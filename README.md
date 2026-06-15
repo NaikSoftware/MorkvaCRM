@@ -1,16 +1,12 @@
-# morkva_crm
+MorkvaCRM — new era CRM for small business with automations and AI capabilities
 
-MorkvaCRM — universal CRM for small business
-
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Main points 
+- Everything is collections with objects
+- Features like kanban, table, dashboard its just different views of the same data model
+- Object linking and automations of everything
+- Dynamic JS modules and marketplace 
+- Your data its your data. Everything stored as regular JSON on your Google Drive
+- Feel free to use any AI tool to work with/analyse your datal (thanks for JSON structure and storing on your side)
+- Web and mobile pllatforms, modern and simple UI
+- Customize your workplace as you want, use AI for scaffolding, use templates
+- Extend features writing your own dynamic modules using API. In era of AI its ability to create absolutely anything in a hours
