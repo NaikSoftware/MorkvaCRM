@@ -11,4 +11,5 @@ export 'field_value.dart';
 export 'morkva_object.dart';
 export 'validation.dart';
 // Field types.
+export 'types/select_option.dart';
 export 'types/text_field.dart';
