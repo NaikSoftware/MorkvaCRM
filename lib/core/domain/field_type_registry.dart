@@ -2,8 +2,8 @@ import 'field_definition.dart';
 
 /// Builds a [FieldDefinition] from its JSON map (which includes the `"type"`
 /// discriminator). One factory is registered per field type.
-typedef FieldDefinitionFactory = FieldDefinition Function(
-    Map<String, dynamic> json);
+typedef FieldDefinitionFactory =
+    FieldDefinition Function(Map<String, dynamic> json);
 
 /// Thrown when a field type cannot be resolved or is malformed.
 class FieldTypeException implements Exception {
@@ -46,7 +46,8 @@ class FieldTypeRegistry {
     final factory = _factories[type];
     if (factory == null) {
       throw FieldTypeException(
-          'Unknown field type "$type". Register it on the FieldTypeRegistry.');
+        'Unknown field type "$type". Register it on the FieldTypeRegistry.',
+      );
     }
     return factory(json);
   }

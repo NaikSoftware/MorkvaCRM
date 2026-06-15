@@ -16,11 +16,11 @@ typedef FieldBase = ({
 
 /// Reads the common field-definition keys from a JSON map.
 FieldBase readFieldBase(Map<String, dynamic> json) => (
-      id: json['id'] as String,
-      name: json['name'] as String,
-      description: json['description'] as String?,
-      isRequired: (json['required'] as bool?) ?? false,
-    );
+  id: json['id'] as String,
+  name: json['name'] as String,
+  description: json['description'] as String?,
+  isRequired: (json['required'] as bool?) ?? false,
+);
 
 /// Defines one typed slot in a [Collection]'s schema.
 ///
@@ -79,30 +79,38 @@ abstract class FieldDefinition extends Equatable {
 
   /// The complete on-disk representation of this definition.
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        if (description != null) 'description': description,
-        'type': type,
-        'required': isRequired,
-        ...configToJson(),
-      };
+    'id': id,
+    'name': name,
+    if (description != null) 'description': description,
+    'type': type,
+    'required': isRequired,
+    ...configToJson(),
+  };
 
   /// Validates [value] against this field: the common `required` rule plus the
   /// type-specific rules from [validateValue].
   List<ValidationError> validate(FieldValue value) {
     final errors = <ValidationError>[];
     if (isRequired && value.isEmpty) {
-      errors.add(ValidationError(
-        fieldId: id,
-        code: ValidationError.requiredCode,
-        message: '$name is required',
-      ));
+      errors.add(
+        ValidationError(
+          fieldId: id,
+          code: ValidationError.requiredCode,
+          message: '$name is required',
+        ),
+      );
     }
     errors.addAll(validateValue(value));
     return errors;
   }
 
   @override
-  List<Object?> get props =>
-      [id, name, description, isRequired, type, ...configProps];
+  List<Object?> get props => [
+    id,
+    name,
+    description,
+    isRequired,
+    type,
+    ...configProps,
+  ];
 }

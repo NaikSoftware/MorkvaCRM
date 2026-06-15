@@ -16,9 +16,7 @@ class MorkvaApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFE8821E)),
         useMaterial3: true,
       ),
-      home: const Scaffold(
-        body: Center(child: Text('MorkvaCRM')),
-      ),
+      home: const Scaffold(body: Center(child: Text('MorkvaCRM'))),
     );
   }
 }

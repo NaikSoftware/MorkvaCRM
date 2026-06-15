@@ -8,28 +8,24 @@ void main() {
     final registry = defaultFieldTypeRegistry();
 
     Collection buildCollection() => const Collection(
-          id: 'c1',
-          name: 'Notes',
-          description: 'A simple collection',
-          fields: [
-            TextFieldDefinition(
-              id: 'title',
-              name: 'Title',
-              isRequired: true,
-              maxLength: 80,
-            ),
-            TextFieldDefinition(
-              id: 'body',
-              name: 'Body',
-              multiline: true,
-            ),
-          ],
-        );
+      id: 'c1',
+      name: 'Notes',
+      description: 'A simple collection',
+      fields: [
+        TextFieldDefinition(
+          id: 'title',
+          name: 'Title',
+          isRequired: true,
+          maxLength: 80,
+        ),
+        TextFieldDefinition(id: 'body', name: 'Body', multiline: true),
+      ],
+    );
 
     test('collection round-trips through JSON identically', () {
       final collection = buildCollection();
-      final json = jsonDecode(jsonEncode(collection.toJson()))
-          as Map<String, dynamic>;
+      final json =
+          jsonDecode(jsonEncode(collection.toJson())) as Map<String, dynamic>;
       final restored = Collection.fromJson(json, registry);
       expect(restored, equals(collection));
     });
@@ -65,8 +61,10 @@ void main() {
         updatedAt: created,
       ).validateAgainst(collection);
       expect(invalid.isValid, isFalse);
-      expect(invalid.forField('title').single.code,
-          ValidationError.requiredCode);
+      expect(
+        invalid.forField('title').single.code,
+        ValidationError.requiredCode,
+      );
 
       final valid = MorkvaObject.create(
         id: 'o2',
@@ -81,7 +79,8 @@ void main() {
     test('registry rejects unknown field types', () {
       final empty = FieldTypeRegistry();
       expect(
-        () => empty.definitionFromJson({'type': 'text', 'id': 'x', 'name': 'X'}),
+        () =>
+            empty.definitionFromJson({'type': 'text', 'id': 'x', 'name': 'X'}),
         throwsA(isA<FieldTypeException>()),
       );
     });

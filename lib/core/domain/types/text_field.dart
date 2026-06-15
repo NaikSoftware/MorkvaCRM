@@ -46,9 +46,9 @@ class TextFieldDefinition extends FieldDefinition {
 
   @override
   Map<String, dynamic> configToJson() => {
-        'multiline': multiline,
-        if (maxLength != null) 'maxLength': maxLength,
-      };
+    'multiline': multiline,
+    if (maxLength != null) 'maxLength': maxLength,
+  };
 
   @override
   List<Object?> get configProps => [multiline, maxLength];
@@ -57,7 +57,8 @@ class TextFieldDefinition extends FieldDefinition {
   FieldValue emptyValue() => const TextFieldValue(null);
 
   @override
-  FieldValue valueFromJson(Object? json) => TextFieldValue(json as String?);
+  FieldValue valueFromJson(Object? json) =>
+      TextFieldValue(json is String ? json : null);
 
   @override
   List<ValidationError> validateValue(FieldValue value) {
@@ -65,11 +66,13 @@ class TextFieldDefinition extends FieldDefinition {
     final text = v.text;
     final errors = <ValidationError>[];
     if (text != null && maxLength != null && text.length > maxLength!) {
-      errors.add(ValidationError(
-        fieldId: id,
-        code: ValidationError.tooLong,
-        message: '$name must be at most $maxLength characters',
-      ));
+      errors.add(
+        ValidationError(
+          fieldId: id,
+          code: ValidationError.tooLong,
+          message: '$name must be at most $maxLength characters',
+        ),
+      );
     }
     return errors;
   }

@@ -60,14 +60,13 @@ class MorkvaObject extends Equatable {
   MorkvaObject copyWith({
     Map<String, FieldValue>? values,
     DateTime? updatedAt,
-  }) =>
-      MorkvaObject(
-        id: id,
-        collectionId: collectionId,
-        values: values ?? this.values,
-        createdAt: createdAt,
-        updatedAt: updatedAt ?? this.updatedAt,
-      );
+  }) => MorkvaObject(
+    id: id,
+    collectionId: collectionId,
+    values: values ?? this.values,
+    createdAt: createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
 
   /// Validates every field value against [collection]'s schema.
   ValidationResult validateAgainst(Collection collection) {
@@ -80,14 +79,14 @@ class MorkvaObject extends Equatable {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'collectionId': collectionId,
-        'createdAt': createdAt.toUtc().toIso8601String(),
-        'updatedAt': updatedAt.toUtc().toIso8601String(),
-        'values': {
-          for (final entry in values.entries) entry.key: entry.value.toJson(),
-        },
-      };
+    'id': id,
+    'collectionId': collectionId,
+    'createdAt': createdAt.toUtc().toIso8601String(),
+    'updatedAt': updatedAt.toUtc().toIso8601String(),
+    'values': {
+      for (final entry in values.entries) entry.key: entry.value.toJson(),
+    },
+  };
 
   /// Reconstructs an object, parsing each value through the matching field
   /// definition in [collection]. Missing values become the field's empty value;
@@ -113,6 +112,5 @@ class MorkvaObject extends Equatable {
   }
 
   @override
-  List<Object?> get props =>
-      [id, collectionId, values, createdAt, updatedAt];
+  List<Object?> get props => [id, collectionId, values, createdAt, updatedAt];
 }

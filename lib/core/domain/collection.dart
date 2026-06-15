@@ -41,21 +41,20 @@ class Collection extends Equatable {
     String? name,
     String? description,
     List<FieldDefinition>? fields,
-  }) =>
-      Collection(
-        id: id ?? this.id,
-        name: name ?? this.name,
-        description: description ?? this.description,
-        fields: fields ?? this.fields,
-      );
+  }) => Collection(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    description: description ?? this.description,
+    fields: fields ?? this.fields,
+  );
 
   Map<String, dynamic> toJson() => {
-        'schemaVersion': kCollectionSchemaVersion,
-        'id': id,
-        'name': name,
-        if (description != null) 'description': description,
-        'fields': fields.map((f) => f.toJson()).toList(),
-      };
+    'schemaVersion': kCollectionSchemaVersion,
+    'id': id,
+    'name': name,
+    if (description != null) 'description': description,
+    'fields': fields.map((f) => f.toJson()).toList(),
+  };
 
   /// Reconstructs a collection, resolving each field definition through
   /// [registry]. Unknown top-level keys are tolerated (forward compatibility).
