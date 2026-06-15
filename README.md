@@ -1,7 +1,7 @@
 MorkvaCRM — new era CRM for small business with automations and AI capabilities
 
 ## Main points 
-- Everything is collections with objects
+- Everything is collections with objects, just like smart database 
 - Features like kanban, table, dashboard its just different views of the same data model
 - Object linking and automations of everything
 - Dynamic JS modules and marketplace 
