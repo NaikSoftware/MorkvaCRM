@@ -22,6 +22,7 @@ class AppShell extends StatelessWidget {
     required this.destinations,
     required this.title,
     required this.child,
+    this.railHeaderBuilder,
   });
 
   /// Index into [destinations] of the active section.
@@ -38,6 +39,12 @@ class AppShell extends StatelessWidget {
 
   /// The routed page body.
   final Widget child;
+
+  /// Optional header for the [NavigationRail] (e.g. a brand wordmark). Receives
+  /// whether the rail is currently `extended` so it can adapt (full wordmark vs.
+  /// compact mark). Only shown in the expanded layout — the compact layout has
+  /// no rail.
+  final Widget Function(BuildContext context, bool extended)? railHeaderBuilder;
 
   /// Width at/above which the expanded rail layout is used (`DESIGN.md` §8).
   static const double expandedBreakpoint = 840;
@@ -71,6 +78,21 @@ class AppShell extends StatelessWidget {
             extended: extended,
             selectedIndex: selectedIndex,
             onDestinationSelected: onDestinationSelected,
+            leading: railHeaderBuilder == null
+                ? null
+                : Padding(
+                    padding: const EdgeInsets.only(
+                      top: 8,
+                      bottom: 16,
+                      left: 8,
+                      right: 8,
+                    ),
+                    child: Align(
+                      alignment:
+                          extended ? Alignment.centerLeft : Alignment.center,
+                      child: railHeaderBuilder!(context, extended),
+                    ),
+                  ),
             labelType: extended
                 ? NavigationRailLabelType.none
                 : NavigationRailLabelType.all,

@@ -5,6 +5,7 @@ import '../../features/home/home_page.dart';
 import '../../features/settings/settings_page.dart';
 import '../navigation/navigation_cubit.dart';
 import 'app_shell.dart';
+import 'brand_wordmark.dart';
 
 /// Connects [NavigationCubit] (the selection source of truth) to the dumb
 /// [AppShell]. The cubit drives which destination is active; tapping a
@@ -24,7 +25,10 @@ class AppShellScaffold extends StatelessWidget {
         return AppShell(
           selectedIndex: index,
           destinations: kAppSections,
-          title: section == AppSection.home ? 'Morkva CRM' : section.label,
+          // App bar shows the current page; the brand lives in the rail header.
+          title: section.label,
+          railHeaderBuilder: (context, extended) =>
+              BrandWordmark(extended: extended),
           onDestinationSelected: (i) =>
               context.read<NavigationCubit>().select(kAppSections[i]),
           child: IndexedStack(

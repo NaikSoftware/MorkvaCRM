@@ -8,8 +8,6 @@ void main() {
     await tester.pumpWidget(const MorkvaApp());
     await tester.pumpAndSettle();
 
-    // Brand shows in the app bar on the home destination.
-    expect(find.text('Morkva CRM'), findsOneWidget);
     // Home renders the empty-collections state.
     expect(find.text('No collections yet'), findsOneWidget);
     // Both navigation destinations are present.
