@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../design/design.dart';
 import '../navigation/navigation_cubit.dart';
 
 /// Responsive scaffold that frames every routed page.
@@ -9,11 +10,13 @@ import '../navigation/navigation_cubit.dart';
 /// and the shell decides only how to *present* them based on available width.
 ///
 /// Layout (single breakpoint per `DESIGN.md` §8):
-/// - `>= 840`: [NavigationRail] (extended at `>= 1240`) beside the body.
-/// - `< 840`: bottom [NavigationBar].
+/// - `>= 840`: a **full-height** [NavigationRail] (extended at `>= 1240`) beside
+///   the content. The page title lives in a slim header **over the content**,
+///   never as a full-width band above the rail.
+/// - `< 840`: the same content header on top of the body, with a bottom
+///   [NavigationBar].
 ///
-/// The themed [AppBar], rail, and bar style themselves from [AppTheme] — this
-/// widget intentionally does no restyling.
+/// The themed rail, bar, and surfaces style themselves from [AppTheme].
 class AppShell extends StatelessWidget {
   const AppShell({
     super.key,
@@ -34,7 +37,7 @@ class AppShell extends StatelessWidget {
   /// Sections to render, in display order.
   final List<AppSection> destinations;
 
-  /// Title shown in the [AppBar].
+  /// Current page title, shown in the content header.
   final String title;
 
   /// The routed page body.
@@ -42,8 +45,8 @@ class AppShell extends StatelessWidget {
 
   /// Optional header for the [NavigationRail] (e.g. a brand wordmark). Receives
   /// whether the rail is currently `extended` so it can adapt (full wordmark vs.
-  /// compact mark). Only shown in the expanded layout — the compact layout has
-  /// no rail.
+  /// compact mark). Only used in the expanded layout — the compact layout has no
+  /// rail.
   final Widget Function(BuildContext context, bool extended)? railHeaderBuilder;
 
   /// Width at/above which the expanded rail layout is used (`DESIGN.md` §8).
@@ -68,53 +71,65 @@ class AppShell extends StatelessWidget {
   }
 
   Widget _buildExpanded(BuildContext context, {required bool extended}) {
-    // A single Scaffold (no nesting) so safe-area insets are consumed once and
-    // the AppBar respects them correctly. The rail sits inside the body Row.
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: Row(
-        children: [
-          NavigationRail(
-            extended: extended,
-            selectedIndex: selectedIndex,
-            onDestinationSelected: onDestinationSelected,
-            leading: railHeaderBuilder == null
-                ? null
-                : Padding(
-                    padding: const EdgeInsets.only(
-                      top: 8,
-                      bottom: 16,
-                      left: 8,
-                      right: 8,
+      body: SafeArea(
+        child: Row(
+          children: [
+            NavigationRail(
+              extended: extended,
+              selectedIndex: selectedIndex,
+              onDestinationSelected: onDestinationSelected,
+              leading: railHeaderBuilder == null
+                  ? null
+                  : Padding(
+                      padding: const EdgeInsets.only(
+                        top: Spacing.sm,
+                        bottom: Spacing.lg,
+                        left: Spacing.xs,
+                        right: Spacing.xs,
+                      ),
+                      child: Align(
+                        alignment:
+                            extended ? Alignment.centerLeft : Alignment.center,
+                        child: railHeaderBuilder!(context, extended),
+                      ),
                     ),
-                    child: Align(
-                      alignment:
-                          extended ? Alignment.centerLeft : Alignment.center,
-                      child: railHeaderBuilder!(context, extended),
-                    ),
+              labelType: extended
+                  ? NavigationRailLabelType.none
+                  : NavigationRailLabelType.all,
+              destinations: [
+                for (final section in destinations)
+                  NavigationRailDestination(
+                    icon: Icon(section.icon),
+                    label: Text(section.label),
                   ),
-            labelType: extended
-                ? NavigationRailLabelType.none
-                : NavigationRailLabelType.all,
-            destinations: [
-              for (final section in destinations)
-                NavigationRailDestination(
-                  icon: Icon(section.icon),
-                  label: Text(section.label),
-                ),
-            ],
-          ),
-          const VerticalDivider(width: 1),
-          Expanded(child: child),
-        ],
+              ],
+            ),
+            const VerticalDivider(width: 1),
+            Expanded(
+              child: Column(
+                children: [
+                  _PageHeader(title: title),
+                  Expanded(child: child),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildCompact(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: child,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _PageHeader(title: title),
+            Expanded(child: child),
+          ],
+        ),
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,
         onDestinationSelected: onDestinationSelected,
@@ -126,6 +141,31 @@ class AppShell extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// A slim header that sits over the content area: the page [title] on the left
+/// and room for page-level actions on the right (added by feature pages later).
+/// A hairline bottom border separates it from the content — no shadow, no band.
+class _PageHeader extends StatelessWidget {
+  const _PageHeader({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      height: 64,
+      padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
+      alignment: Alignment.centerLeft,
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: theme.colorScheme.outlineVariant),
+        ),
+      ),
+      child: Text(title, style: theme.textTheme.titleLarge),
     );
   }
 }
