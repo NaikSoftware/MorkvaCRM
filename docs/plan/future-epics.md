@@ -40,3 +40,10 @@ foundation.
 ## Template sharing
 Promote Epic 7's local templates into shareable/published templates (overlaps with the
 marketplace).
+
+## Global AI assistant — "Ask Morkva"
+A workspace-wide AI chat where the user asks anything in plain language and the assistant
+answers, analyzes, and (with a confirm gate) acts on collections/cards via repository-bound
+tools — the Anthropic key held server-side in a Firebase function. Fully scoped in
+[`epic-08-ai-assistant.md`](epic-08-ai-assistant.md). Depends on Epic 2 (repository + auth +
+backend); richer with Epics 4 and 6.

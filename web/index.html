@@ -18,19 +18,39 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="MorkvaCRM — universal CRM for small business">
+  <meta name="description" content="Morkva CRM — universal CRM for small business">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="morkva_crm">
+  <meta name="apple-mobile-web-app-title" content="Morkva CRM">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>morkva_crm</title>
+  <title>Morkva CRM</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    /*
+      Remove the browser's accent-colored focus outline around the Flutter host
+      only — it draws a halo around the whole canvas that reads as an animated
+      edge "glow". Flutter renders its own in-canvas focus indicators, so this
+      is scoped to flutter-view and does NOT touch the global :focus-visible
+      outlines that keep the rest of the page accessible.
+    */
+    flutter-view:focus,
+    flutter-view:focus-visible {
+      outline: none;
+    }
+
+    /* Stop the browser rubber-band / overscroll glow at the page edges. */
+    html,
+    body {
+      overscroll-behavior: none;
+    }
+  </style>
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>

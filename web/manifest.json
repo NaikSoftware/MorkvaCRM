@@ -1,11 +1,11 @@
 {
-    "name": "morkva_crm",
-    "short_name": "morkva_crm",
+    "name": "Morkva CRM",
+    "short_name": "Morkva CRM",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "MorkvaCRM — universal CRM for small business",
+    "description": "Morkva CRM — universal CRM for small business",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
