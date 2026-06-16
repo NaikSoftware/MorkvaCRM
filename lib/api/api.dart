@@ -7,6 +7,7 @@
 /// exported here.
 library;
 
+export 'auth/auth_cubit.dart';
 export 'auth/auth_repository.dart';
 export 'auth/auth_user.dart';
 export 'data/data_repository.dart';

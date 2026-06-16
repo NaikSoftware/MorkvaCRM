@@ -1,0 +1,143 @@
+import 'dart:async';
+
+import 'package:bloc_test/bloc_test.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:morkva_crm/api/auth/auth_cubit.dart';
+import 'package:morkva_crm/api/auth/auth_repository.dart';
+import 'package:morkva_crm/api/auth/auth_user.dart';
+
+class _MockAuthRepository extends Mock implements AuthRepository {}
+
+void main() {
+  const user = AuthUser(
+    uid: 'uid-1',
+    email: 'jane@example.com',
+    displayName: 'Jane',
+  );
+
+  late _MockAuthRepository repository;
+  late StreamController<AuthUser?> authStateController;
+
+  setUp(() {
+    repository = _MockAuthRepository();
+    authStateController = StreamController<AuthUser?>.broadcast();
+    when(
+      () => repository.authStateChanges,
+    ).thenAnswer((_) => authStateController.stream);
+  });
+
+  tearDown(() => authStateController.close());
+
+  group('AuthCubit', () {
+    test('initial state is AuthInitial', () {
+      final cubit = AuthCubit(repository);
+      addTearDown(cubit.close);
+      expect(cubit.state, const AuthInitial());
+    });
+
+    blocTest<AuthCubit, AuthState>(
+      'initialize -> AuthAuthenticated when stream emits a user',
+      build: () => AuthCubit(repository),
+      act: (cubit) {
+        cubit.initialize();
+        authStateController.add(user);
+      },
+      expect: () => [const AuthAuthenticated(user)],
+    );
+
+    blocTest<AuthCubit, AuthState>(
+      'initialize -> AuthUnauthenticated when stream emits null',
+      build: () => AuthCubit(repository),
+      act: (cubit) {
+        cubit.initialize();
+        authStateController.add(null);
+      },
+      expect: () => [const AuthUnauthenticated()],
+    );
+
+    blocTest<AuthCubit, AuthState>(
+      'initialize reflects subsequent sign-in then sign-out transitions',
+      build: () => AuthCubit(repository),
+      act: (cubit) async {
+        cubit.initialize();
+        authStateController
+          ..add(user)
+          ..add(null);
+      },
+      expect: () => [
+        const AuthAuthenticated(user),
+        const AuthUnauthenticated(),
+      ],
+    );
+
+    blocTest<AuthCubit, AuthState>(
+      'signInWithGoogle success emits AuthLoading then state driven by stream',
+      build: () {
+        when(() => repository.signInWithGoogle()).thenAnswer((_) async => user);
+        return AuthCubit(repository);
+      },
+      act: (cubit) async {
+        cubit.initialize();
+        await cubit.signInWithGoogle();
+        authStateController.add(user);
+      },
+      expect: () => [const AuthLoading(), const AuthAuthenticated(user)],
+      verify: (_) => verify(() => repository.signInWithGoogle()).called(1),
+    );
+
+    blocTest<AuthCubit, AuthState>(
+      'signInWithGoogle on AuthException emits AuthLoading then AuthError',
+      build: () {
+        when(
+          () => repository.signInWithGoogle(),
+        ).thenThrow(const AuthException('cancelled'));
+        return AuthCubit(repository);
+      },
+      act: (cubit) => cubit.signInWithGoogle(),
+      expect: () => [
+        const AuthLoading(),
+        const AuthError(message: 'cancelled'),
+      ],
+    );
+
+    blocTest<AuthCubit, AuthState>(
+      'signOut transitions to AuthUnauthenticated via the stream',
+      build: () {
+        when(() => repository.signOut()).thenAnswer((_) async {});
+        return AuthCubit(repository);
+      },
+      act: (cubit) async {
+        cubit.initialize();
+        authStateController.add(user);
+        await cubit.signOut();
+        authStateController.add(null);
+      },
+      expect: () => [
+        const AuthAuthenticated(user),
+        const AuthUnauthenticated(),
+      ],
+      verify: (_) => verify(() => repository.signOut()).called(1),
+    );
+
+    blocTest<AuthCubit, AuthState>(
+      'signOut failure emits AuthError',
+      build: () {
+        when(
+          () => repository.signOut(),
+        ).thenThrow(const AuthException('network down'));
+        return AuthCubit(repository);
+      },
+      act: (cubit) => cubit.signOut(),
+      expect: () => [const AuthError(message: 'network down')],
+    );
+
+    test('close cancels the auth-state subscription', () async {
+      final cubit = AuthCubit(repository);
+      cubit.initialize();
+      await cubit.close();
+      // Emitting after close must not throw (subscription cancelled, cubit closed).
+      expect(() => authStateController.add(user), returnsNormally);
+    });
+  });
+}
