@@ -89,7 +89,6 @@ class SecondaryButton extends StatelessWidget {
           borderRadius: Radii.mdAll,
           border: Border.all(color: borderColor),
         ),
-        alignment: Alignment.center,
         child: content,
       ),
     );

@@ -76,7 +76,6 @@ class PrimaryButton extends StatelessWidget {
         height: 44,
         padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
         decoration: BoxDecoration(color: bg, borderRadius: Radii.mdAll),
-        alignment: Alignment.center,
         child: content,
       ),
     );
