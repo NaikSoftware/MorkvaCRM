@@ -41,9 +41,9 @@ class SignInPage extends StatelessWidget {
             padding: const EdgeInsets.all(Spacing.lg),
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final isExpanded =
-                    constraints.maxWidth >= _expandedBreakpoint ||
-                    MediaQuery.sizeOf(context).width >= _expandedBreakpoint;
+                // Use the LayoutBuilder's own measurement of available width;
+                // in this full-bleed scaffold it reflects the screen width.
+                final isExpanded = constraints.maxWidth >= _expandedBreakpoint;
                 final content = const _SignInContent();
 
                 if (!isExpanded) {
