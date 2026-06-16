@@ -33,7 +33,7 @@ dependencies:
   google_sign_in: ^7.2.0      # mobile only — guarded import, never on web
 dev_dependencies:
   fake_cloud_firestore: ^4.1.1
-  bloc_test: ^9.x             # compatible with bloc ^9.2.1
+  bloc_test: ^10.0.0          # 9.x pins bloc ^8 — INCOMPATIBLE with our bloc ^9.2.1; 10.x is correct
   mocktail: ^1.x
 ```
 `lib/firebase_options.dart` ALREADY EXISTS (PR #11) — reuse it, do NOT run interactive `flutterfire configure`.
