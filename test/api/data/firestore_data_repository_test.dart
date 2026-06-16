@@ -243,6 +243,35 @@ void main() {
     );
   });
 
+  group('conflict detection', () {
+    test(
+      'observing a pre-existing object at rev>=2 does NOT report a conflict',
+      () async {
+        final schema = buildCollection();
+        // Seed an object the client never wrote, already at rev 5 on the server.
+        await firestore
+            .collection('workspaces')
+            .doc(workspaceId)
+            .collection('objects')
+            .doc('seeded')
+            .set({
+              'collectionId': schema.id,
+              'rev': 5,
+              'createdAt': '2026-01-01T00:00:00.000Z',
+              'updatedAt': '2026-01-02T00:00:00.000Z',
+              'values': <String, dynamic>{},
+            });
+
+        await repository
+            .watchObjects(schema.id, schema: schema)
+            .firstWhere((list) => list.isNotEmpty);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(syncStatus.state, isNot(isA<SyncConflict>()));
+      },
+    );
+  });
+
   group('lifecycle', () {
     test('initialize / dispose / initialize cycle works', () async {
       final schema = buildCollection();
@@ -253,5 +282,23 @@ void main() {
       final loaded = await repository.getCollection(schema.id);
       expect(loaded, equals(schema));
     });
+
+    test(
+      'dispose closes the watchObjects stream so consumers get done',
+      () async {
+        final schema = buildCollection();
+        var done = false;
+        repository
+            .watchObjects(schema.id, schema: schema)
+            .listen((_) {}, onDone: () => done = true);
+        // Let the listener attach before disposing.
+        await Future<void>.delayed(Duration.zero);
+
+        await repository.dispose();
+        await Future<void>.delayed(Duration.zero);
+
+        expect(done, isTrue);
+      },
+    );
   });
 }

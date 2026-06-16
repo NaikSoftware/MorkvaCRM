@@ -58,14 +58,20 @@ class FirestoreDataRepository implements DataRepository {
 
   String? _workspaceId;
 
-  /// Last revision this client successfully wrote, per object id.
+  /// Last revision this client has reconciled per object id — either written by
+  /// us or observed on a server snapshot. Used as the baseline for last-write-
+  /// wins conflict detection.
   final Map<String, int> _localRev = {};
 
   /// Object ids with a local write not yet confirmed by the server.
   final Set<String> _pendingObjects = {};
 
-  /// Active object-stream subscriptions, cancelled on [dispose].
+  /// Active Firestore listener subscriptions, cancelled on [dispose].
   final List<StreamSubscription<dynamic>> _subscriptions = [];
+
+  /// Active watch-stream controllers, closed on [dispose] so consumers receive
+  /// a done event.
+  final List<StreamController<dynamic>> _controllers = [];
 
   String get _wid {
     final id = _workspaceId;
@@ -88,10 +94,29 @@ class FirestoreDataRepository implements DataRepository {
 
   @override
   Stream<List<Collection>> watchCollections() {
-    return _refs
+    final controller = StreamController<List<Collection>>();
+    _controllers.add(controller);
+
+    final subscription = _refs
         .collections(_wid)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map(_collectionFromDoc).toList());
+        .listen(
+          (snapshot) {
+            if (controller.isClosed) return;
+            controller.add(snapshot.docs.map(_collectionFromDoc).toList());
+          },
+          onError: (Object error, StackTrace stackTrace) {
+            if (!controller.isClosed) controller.addError(error, stackTrace);
+          },
+        );
+
+    _subscriptions.add(subscription);
+    controller.onCancel = () async {
+      await subscription.cancel();
+      _subscriptions.remove(subscription);
+      _controllers.remove(controller);
+    };
+    return controller.stream;
   }
 
   @override
@@ -139,6 +164,7 @@ class FirestoreDataRepository implements DataRepository {
     Collection? schema,
   }) {
     final controller = StreamController<List<MorkvaObject>>();
+    _controllers.add(controller);
     Collection? resolved = schema;
 
     Future<Collection?> ensureSchema() async {
@@ -146,9 +172,12 @@ class FirestoreDataRepository implements DataRepository {
       return resolved;
     }
 
+    // includeMetadataChanges so the metadata-only transition (hasPendingWrites
+    // true→false) fires — that is what confirms our own writes and lets the
+    // sync status settle to synced.
     final subscription = _refs
         .objectsByCollection(_wid, collectionId)
-        .snapshots()
+        .snapshots(includeMetadataChanges: true)
         .listen(
           (snapshot) async {
             final collection = await ensureSchema();
@@ -172,6 +201,7 @@ class FirestoreDataRepository implements DataRepository {
     controller.onCancel = () async {
       await subscription.cancel();
       _subscriptions.remove(subscription);
+      _controllers.remove(controller);
     };
     return controller.stream;
   }
@@ -245,10 +275,18 @@ class FirestoreDataRepository implements DataRepository {
 
   @override
   Future<void> dispose() async {
-    for (final subscription in _subscriptions) {
+    // Snapshot the lists first: cancelling/closing triggers onCancel callbacks
+    // that mutate _subscriptions/_controllers, so we must not iterate them live.
+    final subscriptions = List.of(_subscriptions);
+    final controllers = List.of(_controllers);
+    _subscriptions.clear();
+    _controllers.clear();
+    for (final subscription in subscriptions) {
       await subscription.cancel();
     }
-    _subscriptions.clear();
+    for (final controller in controllers) {
+      await controller.close();
+    }
     _localRev.clear();
     _pendingObjects.clear();
     _workspaceId = null;
@@ -304,9 +342,16 @@ class FirestoreDataRepository implements DataRepository {
         // Our own write confirmed by the server.
         _pendingObjects.remove(id);
         _localRev[id] = incomingRev;
-      } else if (incomingRev > (_localRev[id] ?? 0) + 1) {
-        // A remote writer advanced rev past what we last saw → conflict.
+      } else if (_localRev.containsKey(id) &&
+          incomingRev > _localRev[id]! + 1) {
+        // We had a known baseline for this object and a remote writer advanced
+        // rev past it (more than our own +1) → last-write-wins conflict.
         conflicts.add(id);
+        _localRev[id] = incomingRev; // adopt new baseline so we don't re-fire.
+      } else {
+        // First sight, or an expected single-step advance: track the observed
+        // rev as the baseline. Passive observation is never a conflict.
+        _localRev[id] = incomingRev;
       }
     }
 
