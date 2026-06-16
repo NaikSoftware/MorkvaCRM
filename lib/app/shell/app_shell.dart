@@ -82,10 +82,14 @@ class AppShell extends StatelessWidget {
               leading: railHeaderBuilder == null
                   ? null
                   : Padding(
-                      padding: const EdgeInsets.only(
-                        top: Spacing.sm,
+                      // Generous top breathing room so the brand isn't cramped
+                      // against the rail's top edge, an equal gap (lg) down to
+                      // the first destination, and a left inset that lines the
+                      // wordmark up with the destination icons when extended.
+                      padding: EdgeInsets.only(
+                        top: Spacing.lg,
                         bottom: Spacing.lg,
-                        left: Spacing.xs,
+                        left: extended ? Spacing.md : Spacing.xs,
                         right: Spacing.xs,
                       ),
                       child: Align(
@@ -147,7 +151,13 @@ class AppShell extends StatelessWidget {
 
 /// A slim header that sits over the content area: the page [title] on the left
 /// and room for page-level actions on the right (added by feature pages later).
-/// A hairline bottom border separates it from the content — no shadow, no band.
+///
+/// The title is vertically centered by symmetric token padding (`md`) rather
+/// than a fixed pixel height, so the band keeps the spacing rhythm and grows
+/// gracefully once an action control is added. Horizontal padding is the `lg`
+/// content gutter so the title aligns with page content. A single hairline
+/// bottom border in `outlineVariant` separates it from the content — matching
+/// the rail/content [VerticalDivider] in weight and color — no shadow, no band.
 class _PageHeader extends StatelessWidget {
   const _PageHeader({required this.title});
 
@@ -157,8 +167,11 @@ class _PageHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      height: 64,
-      padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: Spacing.lg,
+        vertical: Spacing.md,
+      ),
       alignment: Alignment.centerLeft,
       decoration: BoxDecoration(
         border: Border(

@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../tokens/colors.dart';
@@ -28,10 +27,13 @@ abstract final class AppTheme {
       scaffoldBackgroundColor: scheme.surface,
       canvasColor: scheme.surface,
       visualDensity: VisualDensity.standard,
-      // InkSparkle loads a fragment shader that misbehaves on web; use the
-      // standard ripple there and the sparkle only where it's supported.
-      splashFactory:
-          kIsWeb ? InkRipple.splashFactory : InkSparkle.splashFactory,
+      // No ink splash anywhere. InkSparkle is an animated sparkle/glow that has
+      // no place in a calm productivity tool, and even a plain ripple is
+      // redundant here: custom components press with PressableScale (scale
+      // 0.96), and the nav rail/bar give feedback through the selection
+      // indicator pill plus a subtle hover overlay. NoSplash keeps that
+      // feedback while removing every expanding-ink effect on all platforms.
+      splashFactory: NoSplash.splashFactory,
       extensions: [semantic],
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
