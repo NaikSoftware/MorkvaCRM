@@ -11,6 +11,8 @@ class _MockFirebaseAuth extends Mock implements FirebaseAuth {}
 
 class _MockUser extends Mock implements User {}
 
+class _MockUserCredential extends Mock implements UserCredential {}
+
 void main() {
   late _MockFirebaseAuth auth;
 
@@ -109,20 +111,91 @@ void main() {
   });
 
   group('FirestoreAuthRepository.signInWithGoogle', () {
-    // On the Dart VM the conditional import resolves to the mobile
-    // implementation (dart.library.io), which calls into `GoogleSignIn.instance`
-    // — a platform channel that cannot be initialized under `flutter test`. The
-    // repository's job is to wrap whatever the platform flow throws in an
-    // AuthException; we assert exactly that boundary contract here. The
-    // web/mobile credential flows themselves are exercised in integration, not
-    // unit tests (see the spec note for Task 4).
-    test('wraps platform sign-in failures in an AuthException', () async {
-      final repository = FirestoreAuthRepository(firebaseAuth: auth);
+    // The credential flow is injected so the post-credential branches can be
+    // exercised on the VM. The real web/mobile flows hit platform channels and
+    // are covered by integration tests, not here (see the Task 4 spec note); the
+    // last test confirms the default (platform) flow is wrapped in AuthException.
+
+    test('returns the mapped AuthUser on success', () async {
+      final user = buildUser();
+      final credential = _MockUserCredential();
+      when(() => credential.user).thenReturn(user);
+      final repository = FirestoreAuthRepository(
+        firebaseAuth: auth,
+        credentialFlow: (_) async => credential,
+      );
+
+      final result = await repository.signInWithGoogle();
+
+      expect(result.uid, 'uid-1');
+      expect(result.email, 'jane@example.com');
+    });
+
+    test('throws AuthException when the credential has no user', () async {
+      final credential = _MockUserCredential();
+      when(() => credential.user).thenReturn(null);
+      final repository = FirestoreAuthRepository(
+        firebaseAuth: auth,
+        credentialFlow: (_) async => credential,
+      );
 
       await expectLater(
         repository.signInWithGoogle(),
-        throwsA(isA<AuthException>()),
+        throwsA(
+          isA<AuthException>().having(
+            (e) => e.message,
+            'message',
+            'Google sign-in returned no user.',
+          ),
+        ),
       );
     });
+
+    test('wraps a thrown FirebaseAuthException in an AuthException', () async {
+      final repository = FirestoreAuthRepository(
+        firebaseAuth: auth,
+        credentialFlow: (_) async =>
+            throw FirebaseAuthException(code: 'network-request-failed'),
+      );
+
+      await expectLater(
+        repository.signInWithGoogle(),
+        throwsA(
+          isA<AuthException>().having(
+            (e) => e.cause,
+            'cause',
+            isA<FirebaseAuthException>(),
+          ),
+        ),
+      );
+    });
+
+    test('rethrows an AuthException raised by the flow unchanged', () async {
+      final repository = FirestoreAuthRepository(
+        firebaseAuth: auth,
+        credentialFlow: (_) async => throw const AuthException('cancelled'),
+      );
+
+      await expectLater(
+        repository.signInWithGoogle(),
+        throwsA(
+          isA<AuthException>().having((e) => e.message, 'message', 'cancelled'),
+        ),
+      );
+    });
+
+    test(
+      'wraps the default platform flow failure in an AuthException',
+      () async {
+        // No credentialFlow injected: the conditional import resolves to the
+        // mobile impl on the VM, whose GoogleSignIn platform channel throws.
+        final repository = FirestoreAuthRepository(firebaseAuth: auth);
+
+        await expectLater(
+          repository.signInWithGoogle(),
+          throwsA(isA<AuthException>()),
+        );
+      },
+    );
   });
 }

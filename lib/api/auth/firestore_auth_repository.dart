@@ -12,6 +12,12 @@ import '_platform/auth_impl_stub.dart'
     if (dart.library.io) '_platform/auth_impl_mobile.dart'
     if (dart.library.html) '_platform/auth_impl_web.dart';
 
+/// Runs the platform Google credential flow against [auth] and returns the
+/// resulting Firebase [UserCredential]. Matches the signature of the
+/// platform-selected `signInWithGoogleCredential`.
+typedef GoogleCredentialFlow =
+    Future<UserCredential> Function(FirebaseAuth auth);
+
 /// Firebase-backed [AuthRepository] for MorkvaCRM's Google-only sign-in.
 ///
 /// Maps Firebase's `User` into the app's platform-agnostic [AuthUser] and
@@ -20,10 +26,19 @@ import '_platform/auth_impl_stub.dart'
 class FirestoreAuthRepository implements AuthRepository {
   /// Creates a repository over [firebaseAuth], defaulting to the singleton
   /// [FirebaseAuth.instance]. Inject a mock in tests.
-  FirestoreAuthRepository({FirebaseAuth? firebaseAuth})
-    : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance;
+  ///
+  /// [credentialFlow] overrides the platform-selected Google credential flow;
+  /// it defaults to the conditionally-imported `signInWithGoogleCredential` and
+  /// exists only so unit tests can exercise [signInWithGoogle] on the VM (where
+  /// the real mobile/web flows hit platform channels).
+  FirestoreAuthRepository({
+    FirebaseAuth? firebaseAuth,
+    GoogleCredentialFlow? credentialFlow,
+  }) : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance,
+       _credentialFlow = credentialFlow ?? signInWithGoogleCredential;
 
   final FirebaseAuth _firebaseAuth;
+  final GoogleCredentialFlow _credentialFlow;
 
   @override
   Stream<AuthUser?> get authStateChanges =>
@@ -35,7 +50,7 @@ class FirestoreAuthRepository implements AuthRepository {
   @override
   Future<AuthUser> signInWithGoogle() async {
     try {
-      final credential = await signInWithGoogleCredential(_firebaseAuth);
+      final credential = await _credentialFlow(_firebaseAuth);
       final user = _mapFirebaseUser(credential.user);
       if (user == null) {
         throw const AuthException('Google sign-in returned no user.');

@@ -139,5 +139,36 @@ void main() {
       // Emitting after close must not throw (subscription cancelled, cubit closed).
       expect(() => authStateController.add(user), returnsNormally);
     });
+
+    test(
+      'signInWithGoogle error after close does not throw StateError',
+      () async {
+        final completer = Completer<AuthUser>();
+        when(
+          () => repository.signInWithGoogle(),
+        ).thenAnswer((_) => completer.future);
+        final cubit = AuthCubit(repository);
+
+        final future = cubit
+            .signInWithGoogle(); // emits AuthLoading, then awaits
+        await cubit.close();
+        completer.completeError(const AuthException('too late'));
+
+        // The guarded emit in the catch block must be a no-op after close.
+        await expectLater(future, completes);
+      },
+    );
+
+    test('signOut error after close does not throw StateError', () async {
+      final completer = Completer<void>();
+      when(() => repository.signOut()).thenAnswer((_) => completer.future);
+      final cubit = AuthCubit(repository);
+
+      final future = cubit.signOut();
+      await cubit.close();
+      completer.completeError(const AuthException('too late'));
+
+      await expectLater(future, completes);
+    });
   });
 }

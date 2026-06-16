@@ -88,7 +88,9 @@ class AuthCubit extends Cubit<AuthState> {
     try {
       await _repository.signInWithGoogle();
     } on AuthException catch (e) {
-      emit(AuthError(message: e.message));
+      // The cubit may have been closed while the await was in flight (e.g. the
+      // user navigated away mid-sign-in); guard the post-await emit.
+      if (!isClosed) emit(AuthError(message: e.message));
     }
   }
 
@@ -98,9 +100,10 @@ class AuthCubit extends Cubit<AuthState> {
     try {
       await _repository.signOut();
     } on AuthException catch (e) {
-      emit(AuthError(message: e.message));
+      // Guard the post-await emit in case the cubit was closed mid-flight.
+      if (!isClosed) emit(AuthError(message: e.message));
     } catch (e) {
-      emit(AuthError(message: 'Sign-out failed: $e'));
+      if (!isClosed) emit(AuthError(message: 'Sign-out failed: $e'));
     }
   }
 
