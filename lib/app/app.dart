@@ -20,6 +20,12 @@ class _MorkvaAppState extends State<MorkvaApp> {
   late final GoRouter _router = createAppRouter();
 
   @override
+  void dispose() {
+    _router.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => NavigationCubit(),

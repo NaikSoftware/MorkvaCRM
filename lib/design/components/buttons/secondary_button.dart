@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../tokens/motion.dart';
 import '../../tokens/radii.dart';
 import '../../tokens/spacing.dart';
 import '../pressable_scale.dart';
@@ -36,6 +37,7 @@ class SecondaryButton extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final textStyle = Theme.of(context).textTheme.labelLarge;
     final enabled = onPressed != null && !loading;
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
 
     final fg = enabled
         ? scheme.onSurface
@@ -48,7 +50,7 @@ class SecondaryButton extends StatelessWidget {
         : scheme.outlineVariant.withValues(alpha: 0.38);
 
     final content = AnimatedSize(
-      duration: const Duration(milliseconds: 120),
+      duration: reduceMotion ? MotionDurations.none : MotionDurations.fast,
       child: Row(
         mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,

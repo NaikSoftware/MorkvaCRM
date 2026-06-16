@@ -61,7 +61,10 @@ class AppShell extends StatelessWidget {
   }
 
   Widget _buildExpanded(BuildContext context, {required bool extended}) {
+    // A single Scaffold (no nesting) so safe-area insets are consumed once and
+    // the AppBar respects them correctly. The rail sits inside the body Row.
     return Scaffold(
+      appBar: AppBar(title: Text(title)),
       body: Row(
         children: [
           NavigationRail(
@@ -80,12 +83,7 @@ class AppShell extends StatelessWidget {
             ],
           ),
           const VerticalDivider(width: 1),
-          Expanded(
-            child: Scaffold(
-              appBar: AppBar(title: Text(title)),
-              body: child,
-            ),
-          ),
+          Expanded(child: child),
         ],
       ),
     );

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../tokens/colors.dart';
@@ -27,7 +28,10 @@ abstract final class AppTheme {
       scaffoldBackgroundColor: scheme.surface,
       canvasColor: scheme.surface,
       visualDensity: VisualDensity.standard,
-      splashFactory: InkSparkle.splashFactory,
+      // InkSparkle loads a fragment shader that misbehaves on web; use the
+      // standard ripple there and the sparkle only where it's supported.
+      splashFactory:
+          kIsWeb ? InkRipple.splashFactory : InkSparkle.splashFactory,
       extensions: [semantic],
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
