@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -92,41 +94,83 @@ class _MorkvaAppState extends State<MorkvaApp> {
       widget.workspaceResolver ?? const UidWorkspaceResolver();
 
   late final AuthCubit _authCubit = AuthCubit(_authRepository)..initialize();
-  late final GoRouter _router = createAppRouter(_authCubit);
+
+  /// Whether the workspace [DataRepository] has finished `initialize()` and the
+  /// session is ready for feature pages to mount. Merged into the router's
+  /// refresh listenable so the route gate re-evaluates when it flips.
+  final ValueNotifier<bool> _sessionReady = ValueNotifier(false);
+
+  late final GoRouter _router = createAppRouter(
+    _authCubit,
+    sessionReady: _sessionReady,
+  );
 
   /// The workspace the [DataRepository] is currently bound to, so we don't
   /// re-initialize on every repeated [AuthAuthenticated] emission.
   String? _initializedWorkspaceId;
 
   Future<void> _onAuthChanged(BuildContext context, AuthState state) async {
-    switch (state) {
-      case AuthAuthenticated(:final user):
-        final workspaceId = await _workspaceResolver.resolveWorkspaceId(
-          user.uid,
-        );
-        // The widget may have been disposed while resolving the workspace, or
-        // the auth state may have changed again — bail if either happened.
-        if (!mounted || _initializedWorkspaceId == workspaceId) return;
-        _initializedWorkspaceId = workspaceId;
-        await _dataRepository.initialize(workspaceId);
-      case AuthUnauthenticated() || AuthError():
-        if (_initializedWorkspaceId == null) return;
-        _initializedWorkspaceId = null;
-        await _dataRepository.dispose();
-      case AuthInitial() || AuthLoading():
-        break;
+    try {
+      switch (state) {
+        case AuthAuthenticated(:final user):
+          final workspaceId = await _workspaceResolver.resolveWorkspaceId(
+            user.uid,
+          );
+          // The widget may have been disposed while resolving the workspace, or
+          // the auth state may have changed again — bail if either happened.
+          if (!mounted || _initializedWorkspaceId == workspaceId) return;
+          _initializedWorkspaceId = workspaceId;
+          await _dataRepository.initialize(workspaceId);
+
+          // Re-check after the async gap: a sign-out (or a switch to a
+          // different workspace) may have raced in while `initialize` ran. If
+          // so, tear the repo back down and leave the session not-ready.
+          if (!mounted || _initializedWorkspaceId != workspaceId) {
+            await _dataRepository.dispose();
+            return;
+          }
+          _sessionReady.value = true;
+
+        case AuthUnauthenticated() || AuthError():
+          if (_initializedWorkspaceId == null) return;
+          _initializedWorkspaceId = null;
+          _sessionReady.value = false;
+          await _dataRepository.dispose();
+
+        case AuthInitial() || AuthLoading():
+          break;
+      }
+    } catch (error) {
+      // Surface init failures via the sync indicator instead of a silent hang;
+      // leave the session not-ready so the router holds on `/loading`.
+      _initializedWorkspaceId = null;
+      _sessionReady.value = false;
+      _syncStatusCubit.reportError(
+        'Could not load your workspace',
+        cause: error,
+      );
     }
+  }
+
+  /// Tears down everything this State owns. Cancels/disposes the data
+  /// repository first (so its Firestore listeners stop reporting into the sync
+  /// cubit), then closes the cubits. Idempotent at the repository/cubit level.
+  Future<void> _cleanup() async {
+    await _dataRepository.dispose();
+    await _authCubit.close();
+    await _syncStatusCubit.close();
+    _sessionReady.dispose();
   }
 
   @override
   void dispose() {
     _router.dispose();
-    // Everything in the DI tree is provided via `.value`, so this State owns
-    // disposal of what it constructed (BlocProvider.value never closes the
-    // value it is given).
-    _authCubit.close();
-    _syncStatusCubit.close();
-    _dataRepository.dispose();
+    // `State.dispose` cannot be async, so fire-and-forget the teardown. The
+    // futures involved are local cancellations/closes that complete promptly
+    // and don't touch the widget tree, so there's nothing to await on.
+    // Everything below is provided via `.value`, so this State owns disposal
+    // (BlocProvider.value never closes the value it is given).
+    unawaited(_cleanup());
     super.dispose();
   }
 

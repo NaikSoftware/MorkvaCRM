@@ -43,8 +43,13 @@ class FakeAuthRepository implements AuthRepository {
 class FakeDataRepository implements DataRepository {
   String? initializedWorkspaceId;
 
+  /// When set, `initialize` waits on this before completing, so a test can
+  /// observe the authenticated-but-not-ready loading state.
+  Completer<void>? gate;
+
   @override
   Future<void> initialize(String workspaceId) async {
+    if (gate != null) await gate!.future;
     initializedWorkspaceId = workspaceId;
   }
 
@@ -137,6 +142,32 @@ void main() {
       expect(find.text('No collections yet'), findsOneWidget);
       expect(find.text('Welcome to your workspace'), findsNothing);
       // Workspace id resolved to the uid and the data layer initialized.
+      expect(data.initializedWorkspaceId, 'u1');
+    },
+  );
+
+  testWidgets(
+    'authenticated-but-not-ready shows loading, then the shell once ready',
+    (tester) async {
+      // Hold initialize() open so the session stays not-ready.
+      data.gate = Completer<void>();
+      auth.emit(const AuthUser(uid: 'u1', email: 'u1@example.com'));
+      await tester.pumpWidget(buildApp());
+      // Use pump (not pumpAndSettle): the loading spinner animates forever, so
+      // there is nothing to settle while the session is gated.
+      await tester.pump();
+      await tester.pump();
+
+      // Gated: the loading interstitial is shown, not the shell.
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.text('No collections yet'), findsNothing);
+      expect(data.initializedWorkspaceId, isNull);
+
+      // Release the gate → initialize completes → session becomes ready.
+      data.gate!.complete();
+      await tester.pumpAndSettle();
+
+      expect(find.text('No collections yet'), findsOneWidget);
       expect(data.initializedWorkspaceId, 'u1');
     },
   );

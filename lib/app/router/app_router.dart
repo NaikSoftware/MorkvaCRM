@@ -1,47 +1,69 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart' show ChangeNotifier;
+import 'package:flutter/foundation.dart'
+    show ChangeNotifier, Listenable, ValueListenable;
 import 'package:go_router/go_router.dart';
 
 import '../../api/api.dart';
+import '../../features/auth/session_loading_page.dart';
 import '../../features/auth/sign_in_page.dart';
 import '../shell/app_shell_scaffold.dart';
 
 /// The app's route table.
 ///
-/// Two top-level routes: the auth-gated app shell at `/` and the public
-/// sign-in screen at `/sign-in`. The [authCubit] drives an auth redirect so an
-/// unauthenticated user can only reach `/sign-in`, and an authenticated user is
-/// bounced away from it. Real entity routes (collection / object detail) extend
-/// the `/` subtree in later epics.
+/// Three top-level routes: the auth-gated app shell at `/`, the public sign-in
+/// screen at `/sign-in`, and a neutral `/loading` interstitial. Routing is
+/// gated on two signals merged into [GoRouter.refreshListenable]: the
+/// [authCubit] auth state and [sessionReady] (the [DataRepository] has been
+/// initialized for the workspace). Feature pages under `/` therefore never
+/// mount before the repository is ready — their `watch*` calls require it.
 ///
 /// Kept as a factory so each app instance owns one router.
-GoRouter createAppRouter(AuthCubit authCubit) {
+GoRouter createAppRouter(
+  AuthCubit authCubit, {
+  required ValueListenable<bool> sessionReady,
+}) {
   return GoRouter(
     initialLocation: '/',
-    refreshListenable: GoRouterRefreshStream(authCubit.stream),
+    refreshListenable: Listenable.merge([
+      GoRouterRefreshStream(authCubit.stream),
+      sessionReady,
+    ]),
     redirect: (context, state) {
       final authState = authCubit.state;
+      final location = state.matchedLocation;
+      final isOnSignIn = location == '/sign-in';
+      final isOnLoading = location == '/loading';
 
-      // Until the first auth state resolves (or while a sign-in is in flight)
-      // we don't know where to send the user — stay put and let the stream
-      // refresh trigger a redirect once the state settles.
-      if (authState is AuthInitial || authState is AuthLoading) {
-        return null;
+      switch (authState) {
+        // First auth state not yet resolved, or a sign-in is in flight — hold
+        // on the neutral interstitial.
+        case AuthInitial() || AuthLoading():
+          return isOnLoading ? null : '/loading';
+
+        case AuthAuthenticated():
+          // Signed in but the workspace data layer isn't ready yet — wait on
+          // the interstitial so feature pages don't mount too early.
+          if (!sessionReady.value) {
+            return isOnLoading ? null : '/loading';
+          }
+          // Ready: leave the gate screens for the shell.
+          if (isOnSignIn || isOnLoading) return '/';
+          return null;
+
+        case AuthUnauthenticated() || AuthError():
+          return isOnSignIn ? null : '/sign-in';
       }
-
-      final isAuthenticated = authState is AuthAuthenticated;
-      final isOnSignIn = state.matchedLocation == '/sign-in';
-
-      if (!isAuthenticated && !isOnSignIn) return '/sign-in';
-      if (isAuthenticated && isOnSignIn) return '/';
-      return null;
     },
     routes: [
       GoRoute(path: '/', builder: (context, state) => const AppShellScaffold()),
       GoRoute(
         path: '/sign-in',
         builder: (context, state) => const SignInPage(),
+      ),
+      GoRoute(
+        path: '/loading',
+        builder: (context, state) => const SessionLoadingPage(),
       ),
     ],
   );
