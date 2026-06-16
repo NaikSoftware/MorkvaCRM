@@ -24,7 +24,7 @@ class AppShellScaffold extends StatelessWidget {
         return AppShell(
           selectedIndex: index,
           destinations: kAppSections,
-          title: section == AppSection.home ? 'MorkvaCRM' : section.label,
+          title: section == AppSection.home ? 'Morkva CRM' : section.label,
           onDestinationSelected: (i) =>
               context.read<NavigationCubit>().select(kAppSections[i]),
           child: IndexedStack(

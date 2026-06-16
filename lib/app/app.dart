@@ -30,7 +30,7 @@ class _MorkvaAppState extends State<MorkvaApp> {
     return BlocProvider(
       create: (_) => NavigationCubit(),
       child: MaterialApp.router(
-        title: 'MorkvaCRM',
+        title: 'Morkva CRM',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
