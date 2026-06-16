@@ -66,12 +66,11 @@ JAVA_HOME=<PROJECT_JAVA_HOME> ./gradlew assembleDebug
 ```
 The output APK is at `android/app/build/outputs/apk/debug/app-debug.apk`.
 
-**Install and launch** (substitute the project's real application id and launcher activity — find them in `android/app/build.gradle` `applicationId` and `android/app/src/main/AndroidManifest.xml`):
+**Install and launch** (application id `ua.naiksoftware.morkvacrm`, launcher activity `ua.naiksoftware.morkvacrm.MainActivity`):
 ```bash
 $ANDROID_HOME/platform-tools/adb install -r android/app/build/outputs/apk/debug/app-debug.apk
-$ANDROID_HOME/platform-tools/adb shell am start -n <APPLICATION_ID>/<LAUNCHER_ACTIVITY>
+$ANDROID_HOME/platform-tools/adb shell am start -n ua.naiksoftware.morkvacrm/ua.naiksoftware.morkvacrm.MainActivity
 ```
-<!-- TODO: fill in <APPLICATION_ID> and <LAUNCHER_ACTIVITY> for MorkvaCRM once defined. -->
 
 If the user says "run app" or "build and run", prefer `flutter run` (or build then install and launch).
 If the user says "just build", skip install.
@@ -79,9 +78,9 @@ If the user says "just install" or "just deploy", skip build and install the exi
 
 ### Check Logcat
 
-Show recent logs filtered to the app (resolve `<APPLICATION_ID>` from the manifest):
+Show recent logs filtered to the app (resolve `ua.naiksoftware.morkvacrm` from the manifest):
 ```bash
-$ANDROID_HOME/platform-tools/adb logcat --pid=$($ANDROID_HOME/platform-tools/adb shell pidof <APPLICATION_ID>) -d -t 100
+$ANDROID_HOME/platform-tools/adb logcat --pid=$($ANDROID_HOME/platform-tools/adb shell pidof ua.naiksoftware.morkvacrm) -d -t 100
 ```
 
 Common filters the user might request:
@@ -98,13 +97,13 @@ Common filters the user might request:
 
 - **Live tail** (use interactive mode):
   ```bash
-  $ANDROID_HOME/platform-tools/adb logcat --pid=$($ANDROID_HOME/platform-tools/adb shell pidof <APPLICATION_ID>)
+  $ANDROID_HOME/platform-tools/adb logcat --pid=$($ANDROID_HOME/platform-tools/adb shell pidof ua.naiksoftware.morkvacrm)
   ```
 
 - **Clear and watch fresh:**
   ```bash
   $ANDROID_HOME/platform-tools/adb logcat -c
-  $ANDROID_HOME/platform-tools/adb logcat --pid=$($ANDROID_HOME/platform-tools/adb shell pidof <APPLICATION_ID>)
+  $ANDROID_HOME/platform-tools/adb logcat --pid=$($ANDROID_HOME/platform-tools/adb shell pidof ua.naiksoftware.morkvacrm)
   ```
 
 If the app is not running (`pidof` returns empty), fall back to filtering by a tag substring from the app's package name:
@@ -161,6 +160,6 @@ b. Compute the bounds center, then `adb shell input tap X Y`.
 
 - Always check `adb devices` before any operation to confirm emulator/device connectivity.
 - If `adb` is not responding, try `adb kill-server && adb start-server`.
-- The app's application id and launcher activity come from `android/app/build.gradle` and `android/app/src/main/AndroidManifest.xml` — substitute the real values into the commands above. <!-- TODO: record them here once defined. -->
+- Application id: `ua.naiksoftware.morkvacrm`; launcher activity: `ua.naiksoftware.morkvacrm.MainActivity` (defined in `android/app/build.gradle.kts` and `android/app/src/main/AndroidManifest.xml`).
 - Gradle requires an explicit per-command `JAVA_HOME` pointing at a project-compatible JDK; do not assume or modify the user's default Java version.
 - For release builds, use `assembleRelease` instead of `assembleDebug` (or `flutter build apk --release`).
