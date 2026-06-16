@@ -243,6 +243,38 @@ void main() {
     );
   });
 
+  group('replay on subscribe', () {
+    test(
+      'watchCollections replays the current list to a late subscriber',
+      () async {
+        final collection = buildCollection();
+        await repository.saveCollection(collection);
+
+        // Subscribe AFTER the data already exists and let the source snapshot
+        // settle, then a brand-new subscriber must still receive the current list.
+        final stream = repository.watchCollections();
+        await stream.firstWhere((list) => list.isNotEmpty);
+
+        final replayed = await stream.first;
+        expect(replayed.single, equals(collection));
+      },
+    );
+
+    test(
+      'watchObjects replays the current list to a late subscriber',
+      () async {
+        final schema = buildCollection();
+        await repository.saveObject(buildObject(schema), schema: schema);
+
+        final stream = repository.watchObjects(schema.id, schema: schema);
+        await stream.firstWhere((list) => list.isNotEmpty);
+
+        final replayed = await stream.first;
+        expect(replayed.single.id, 'obj-1');
+      },
+    );
+  });
+
   group('conflict detection', () {
     test(
       'observing a pre-existing object at rev>=2 does NOT report a conflict',

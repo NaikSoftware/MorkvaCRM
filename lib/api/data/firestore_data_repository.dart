@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
+import 'package:rxdart/rxdart.dart';
 
 import '../firestore/firestore_refs.dart';
 import '../firestore/firestore_refs_impl.dart';
@@ -66,12 +67,13 @@ class FirestoreDataRepository implements DataRepository {
   /// Object ids with a local write not yet confirmed by the server.
   final Set<String> _pendingObjects = {};
 
-  /// Active Firestore listener subscriptions, cancelled on [dispose].
+  /// Active Firestore listener subscriptions feeding the watch subjects,
+  /// cancelled on [dispose].
   final List<StreamSubscription<dynamic>> _subscriptions = [];
 
-  /// Active watch-stream controllers, closed on [dispose] so consumers receive
-  /// a done event.
-  final List<StreamController<dynamic>> _controllers = [];
+  /// Active watch subjects, closed on [dispose] so consumers receive a done
+  /// event. [BehaviorSubject]s so a late subscriber replays the latest value.
+  final List<Subject<dynamic>> _subjects = [];
 
   String get _wid {
     final id = _workspaceId;
@@ -94,29 +96,24 @@ class FirestoreDataRepository implements DataRepository {
 
   @override
   Stream<List<Collection>> watchCollections() {
-    final controller = StreamController<List<Collection>>();
-    _controllers.add(controller);
+    final subject = BehaviorSubject<List<Collection>>();
+    _subjects.add(subject);
 
     final subscription = _refs
         .collections(_wid)
         .snapshots()
         .listen(
           (snapshot) {
-            if (controller.isClosed) return;
-            controller.add(snapshot.docs.map(_collectionFromDoc).toList());
+            if (subject.isClosed) return;
+            subject.add(snapshot.docs.map(_collectionFromDoc).toList());
           },
           onError: (Object error, StackTrace stackTrace) {
-            if (!controller.isClosed) controller.addError(error, stackTrace);
+            if (!subject.isClosed) subject.addError(error, stackTrace);
           },
         );
 
     _subscriptions.add(subscription);
-    controller.onCancel = () async {
-      await subscription.cancel();
-      _subscriptions.remove(subscription);
-      _controllers.remove(controller);
-    };
-    return controller.stream;
+    return subject.stream;
   }
 
   @override
@@ -163,8 +160,8 @@ class FirestoreDataRepository implements DataRepository {
     String collectionId, {
     Collection? schema,
   }) {
-    final controller = StreamController<List<MorkvaObject>>();
-    _controllers.add(controller);
+    final subject = BehaviorSubject<List<MorkvaObject>>();
+    _subjects.add(subject);
     Collection? resolved = schema;
 
     Future<Collection?> ensureSchema() async {
@@ -181,29 +178,25 @@ class FirestoreDataRepository implements DataRepository {
         .listen(
           (snapshot) async {
             final collection = await ensureSchema();
+            if (subject.isClosed) return;
             if (collection == null) {
-              if (!controller.isClosed) controller.add(const []);
+              subject.add(const []);
               return;
             }
             _processSnapshotMeta(snapshot);
             final objects = snapshot.docs
                 .map((doc) => _objectFromData(doc.id, doc.data(), collection))
                 .toList();
-            if (!controller.isClosed) controller.add(objects);
+            if (!subject.isClosed) subject.add(objects);
           },
           onError: (Object error, StackTrace stackTrace) {
             _syncStatus.reportError('Failed to watch objects', cause: error);
-            if (!controller.isClosed) controller.addError(error, stackTrace);
+            if (!subject.isClosed) subject.addError(error, stackTrace);
           },
         );
 
     _subscriptions.add(subscription);
-    controller.onCancel = () async {
-      await subscription.cancel();
-      _subscriptions.remove(subscription);
-      _controllers.remove(controller);
-    };
-    return controller.stream;
+    return subject.stream;
   }
 
   @override
@@ -275,21 +268,23 @@ class FirestoreDataRepository implements DataRepository {
 
   @override
   Future<void> dispose() async {
-    // Snapshot the lists first: cancelling/closing triggers onCancel callbacks
-    // that mutate _subscriptions/_controllers, so we must not iterate them live.
+    // Teardown fence: drop the workspace binding and rev tracking BEFORE any
+    // await, so a snapshot callback or watch* call racing during teardown can
+    // neither create untracked subscriptions nor touch the cubit after close.
+    _workspaceId = null;
+    _localRev.clear();
+    _pendingObjects.clear();
+
     final subscriptions = List.of(_subscriptions);
-    final controllers = List.of(_controllers);
+    final subjects = List.of(_subjects);
     _subscriptions.clear();
-    _controllers.clear();
+    _subjects.clear();
     for (final subscription in subscriptions) {
       await subscription.cancel();
     }
-    for (final controller in controllers) {
-      await controller.close();
+    for (final subject in subjects) {
+      await subject.close();
     }
-    _localRev.clear();
-    _pendingObjects.clear();
-    _workspaceId = null;
   }
 
   /// Encodes each schema field's canonical JSON value to its native Firestore
