@@ -138,7 +138,6 @@ Keep tests separate when:
 - Before writing new helpers, check `test/` (and any shared `test/helpers/` or `test_utils/` directory) for existing utilities and reuse them.
 - Common Flutter testing tools: `flutter_test` (`testWidgets`, `WidgetTester`, `pumpWidget`, `pump`, `pumpAndSettle`), `mocktail` or `mockito` for mocking.
 - Wrap widgets under test with the same scaffolding the rest of the suite uses (e.g. a shared `pumpApp`/`wrapWidget` helper). If the project has no such helper yet, wrap with `MaterialApp(home: ...)` and the localization/theme delegates the app requires.
-- <!-- TODO: document the project's actual shared test helpers and localization-mocking pattern once they exist. --> If the app uses localized strings, prefer the project's localization test helper over hand-rolled `AppLocalizations` mocks.
 
 ### 4. Extract Repetitive Code
 

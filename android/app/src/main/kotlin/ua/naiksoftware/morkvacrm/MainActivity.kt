@@ -1,4 +1,4 @@
-package com.morkva.morkva_crm
+package ua.naiksoftware.morkvacrm
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -10,6 +10,11 @@ A universal CRM for small business. Not tailored to any specific business — ev
 - **Collections & cards**: a collection holds cards; each card has typed fields (text, number, date, file, reference to a collection/card, etc.). Fields can be **calculated** (derived from other fields or from another card by id).
 - **Extensibility**: dynamic **JS modules** loaded at runtime; distributed via a Firebase-backed marketplace.
 
+## Platform identifiers
+
+- **Application ID / bundle identifier**: `ua.naiksoftware.morkvacrm` (Android `namespace`/`applicationId`, iOS `PRODUCT_BUNDLE_IDENTIFIER`). Android launcher activity: `ua.naiksoftware.morkvacrm.MainActivity`.
+- **Dart package name** (`pubspec.yaml`): `morkva_crm` — used in `package:morkva_crm/...` imports; distinct from the reverse-DNS app ID above.
+
 ## Architecture
 
 - **core** — main logic, collections, data management.
