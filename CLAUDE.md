@@ -5,8 +5,8 @@ A universal CRM for small business. Not tailored to any specific business — ev
 ## What it is
 
 - **Flutter** app targeting both **web** and **mobile** from one codebase.
-- **Data**: stored as JSON in the user's own **Google Drive** (user signs in with Google, picks a folder). Synced on startup, periodically, and on change.
-- **Backend**: Firebase for the admin side — email-based auth/verification and feature flags (admins enable/disable features per user). Firebase also backs the module marketplace.
+- **Data**: stored as JSON in **Firebase Storage**, under each user's workspace and guarded by security rules (user signs in with Firebase Auth — email or Google). Cloud storage lets a workspace be shared across accounts/teams; the data stays portable JSON the user can export. Synced on startup, periodically, and on change.
+- **Backend**: Firebase end to end — Auth + Storage for data (above), plus the admin side: email verification and feature flags (admins enable/disable features per user). Firebase also backs the module marketplace.
 - **Collections & cards**: a collection holds cards; each card has typed fields (text, number, date, file, reference to a collection/card, etc.). Fields can be **calculated** (derived from other fields or from another card by id).
 - **Extensibility**: dynamic **JS modules** loaded at runtime; distributed via a Firebase-backed marketplace.
 

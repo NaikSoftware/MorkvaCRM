@@ -49,7 +49,7 @@ boxes.
   each.
 - Reference fields let the user search and link objects from the target collection, with the
   link persisted and visible.
-- Invalid input is flagged inline and prevents save; valid edits persist to Drive.
+- Invalid input is flagged inline and prevents save; valid edits persist to Firebase Storage.
 - Calculated and auto-number fields appear read-only.
 - Adding a new field-type editor doesn't require modifying existing editors.
 

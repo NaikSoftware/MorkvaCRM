@@ -14,7 +14,7 @@ Templates also give new users a running start instead of a blank app.
 ## In scope
 - A lightweight **template format**: a bundle of collection schemas + views + (optionally) seed
   objects, expressed in the same JSON the engine already uses. A template is just data the app
-  can import into the user's Drive.
+  can import into the user's workspace.
 - An **import flow**: pick a template, and it creates the collections/views (and any seed
   objects) in the user's workspace, fully editable afterward like anything else.
 - **Two example templates**, authored as data only (see [`appendix-examples.md`](appendix-examples.md)

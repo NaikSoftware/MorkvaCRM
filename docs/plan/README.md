@@ -38,12 +38,13 @@ capability.
 
 ## Scope of this plan
 
-**In scope:** the generic engine, Google Drive storage from day one, the view system
+**In scope:** the generic engine, Firebase Storage (cloud JSON) from day one, the view system
 (table + board), object editing, and calculated/aggregation fields — enough that a user can
 *rebuild* both example setups themselves, with no hardcoding.
 
-**Deferred (noted, not built here):** automation/triggers, Firebase auth/admin/feature-flags,
-the JS-module marketplace, and extra view modes. See [`future-epics.md`](future-epics.md).
+**Deferred (noted, not built here):** automation/triggers, Firebase admin/feature-flags,
+shared-workspace collaboration, the JS-module marketplace, and extra view modes. See
+[`future-epics.md`](future-epics.md). (Firebase Auth ships in Epic 2, since it backs storage access.)
 
 ---
 
@@ -55,7 +56,7 @@ Build top to bottom. Arrows show hard dependencies.
 |---|------|----------|------------|
 | 0 | [Foundation & design system](epic-00-foundation.md) | Runnable Flutter app, BLoC scaffold, theme, routing, quality gates | — |
 | 1 | [Core domain model](epic-01-domain-model.md) | Collections, objects, typed fields, JSON schema, validation | 0 |
-| 2 | [Google Drive storage & sync](epic-02-storage-sync.md) | Google sign-in, folder pick, JSON read/write, sync, offline cache | 1 |
+| 2 | [Firebase Storage & sync](epic-02-storage-sync.md) | Firebase Auth sign-in, cloud JSON read/write, sync, offline cache | 1 |
 | 3 | [Collection management](epic-03-collection-management.md) | Create/configure collections and their field schema in-app | 1, 2 |
 | 4 | [Views & view modes](epic-04-views.md) | One view system: table mode + board (group-by) mode, filter/sort/fields | 3 |
 | 5 | [Object detail & field editors](epic-05-object-editing.md) | Open an object, edit every field type, validation UX | 1, 4 |

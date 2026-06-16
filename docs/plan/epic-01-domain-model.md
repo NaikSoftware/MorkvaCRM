@@ -32,7 +32,7 @@ wrong and we end up hardcoding domains later.
 - **Validation**: per-type rules (required, number range, valid select option, valid
   reference target) producing structured validation results the UI can show.
 - **JSON serialization**: stable, human-readable JSON for a collection and its objects — this
-  is exactly what Epic 2 writes to Google Drive. Design the schema for **forward
+  is exactly what Epic 2 writes to Firebase Storage. Design the schema for **forward
   compatibility** (unknown fields tolerated, versioned where needed) so the model can grow.
 
 ## Out of scope

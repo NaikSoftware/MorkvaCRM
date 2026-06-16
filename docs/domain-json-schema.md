@@ -1,7 +1,7 @@
 # Domain JSON Schema (Epic 1)
 
 The on-disk shape produced by the core domain model (`lib/core/domain/`). This is
-exactly what Epic 2 reads from and writes to Google Drive. The format is designed for
+exactly what Epic 2 reads from and writes to Firebase Storage. The format is designed for
 **forward compatibility**: readers tolerate unknown keys, and a `schemaVersion` is
 stamped on every collection.
 

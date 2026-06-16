@@ -47,7 +47,7 @@ defining fields. No domain is hardcoded; the user authors it here.
   user choose a target collection.
 - Editing the schema (add/reorder/rename/remove a field) never corrupts existing objects'
   stored data.
-- All changes persist to Drive and survive a reload.
+- All changes persist to Firebase Storage and survive a reload.
 
 ## Dependencies & design notes
 - Depends on Epic 1 (the model) and Epic 2 (persistence).
