@@ -186,6 +186,23 @@ void main() {
     expect(ready().dirty, isTrue);
   });
 
+  test('setIcon updates the draft icon and dirties; renaming preserves it',
+      () async {
+    await cubit.load('c1');
+    expect(ready().draft.icon, isNull);
+
+    cubit.setIcon('truck');
+    expect(ready().draft.icon, 'truck');
+    expect(ready().dirty, isTrue);
+
+    // Renaming must not drop the icon.
+    cubit.renameCollection('Orders v2');
+    expect(ready().draft.icon, 'truck');
+
+    cubit.setIcon(null);
+    expect(ready().draft.icon, isNull);
+  });
+
   test('save commits the whole draft and clears dirty', () async {
     await cubit.load('c1');
     cubit.addField('number');

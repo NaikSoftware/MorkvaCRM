@@ -64,16 +64,31 @@ class MorkvaConfirmDialog extends StatelessWidget {
       shape: const RoundedRectangleBorder(borderRadius: Radii.lgAll),
       title: Text(title),
       content: Text(message),
+      actionsPadding: const EdgeInsets.fromLTRB(
+        Spacing.lg,
+        0,
+        Spacing.lg,
+        Spacing.md,
+      ),
+      // A single Wrap, not a bare actions list: AlertDialog's OverflowBar
+      // mis-stacks our (now content-sized) buttons; Wrap keeps the pair on one
+      // baseline and only stacks if the dialog is too narrow to fit them.
       actions: [
-        TextActionButton(
-          label: cancelLabel,
-          onPressed: () => Navigator.of(context).pop(false),
-        ),
-        const SizedBox(width: Spacing.xxs),
-        _ConfirmButton(
-          label: confirmLabel,
-          destructive: destructive,
-          onPressed: () => Navigator.of(context).pop(true),
+        Wrap(
+          alignment: WrapAlignment.end,
+          spacing: Spacing.xxs,
+          runSpacing: Spacing.xs,
+          children: [
+            TextActionButton(
+              label: cancelLabel,
+              onPressed: () => Navigator.of(context).pop(false),
+            ),
+            _ConfirmButton(
+              label: confirmLabel,
+              destructive: destructive,
+              onPressed: () => Navigator.of(context).pop(true),
+            ),
+          ],
         ),
       ],
     );
@@ -109,14 +124,23 @@ class _ConfirmButton extends StatelessWidget {
       child: Container(
         height: 44,
         padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
-        alignment: Alignment.center,
         decoration: BoxDecoration(
           color: scheme.error,
           borderRadius: Radii.mdAll,
         ),
-        child: Text(
-          label,
-          style: theme.textTheme.labelLarge?.copyWith(color: scheme.onError),
+        // A min-size centered Row (not Container.alignment, which grows to fill
+        // a bounded width) keeps the button hugging its label inside a Wrap.
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              label,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: scheme.onError,
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../../design/design.dart';
 
-/// The result of the create / rename collection form: a trimmed [name] and an
-/// optional [description] (null when blank).
-typedef CollectionFormResult = ({String name, String? description});
+/// The result of the create / rename collection form: a trimmed [name], an
+/// optional [description] (null when blank), and an optional [icon] key (null
+/// for the default glyph).
+typedef CollectionFormResult = ({String name, String? description, String? icon});
 
 /// A polished dialog for naming a collection — used both to **create** a new
 /// collection and to **rename** an existing one (the only difference is the
@@ -21,6 +22,7 @@ class CollectionFormDialog extends StatefulWidget {
     required this.confirmLabel,
     this.initialName = '',
     this.initialDescription,
+    this.initialIcon,
   });
 
   /// Dialog headline (e.g. "New collection" / "Rename collection").
@@ -35,6 +37,9 @@ class CollectionFormDialog extends StatefulWidget {
   /// Pre-filled description, if any.
   final String? initialDescription;
 
+  /// Pre-filled icon key, if any.
+  final String? initialIcon;
+
   /// Opens the dialog for **creating** a collection.
   static Future<CollectionFormResult?> create(BuildContext context) {
     return showDialog<CollectionFormResult>(
@@ -46,12 +51,13 @@ class CollectionFormDialog extends StatefulWidget {
     );
   }
 
-  /// Opens the dialog for **renaming** a collection, pre-filled with [name] and
-  /// [description].
+  /// Opens the dialog for **renaming** a collection, pre-filled with [name],
+  /// [description] and [icon].
   static Future<CollectionFormResult?> rename(
     BuildContext context, {
     required String name,
     String? description,
+    String? icon,
   }) {
     return showDialog<CollectionFormResult>(
       context: context,
@@ -60,6 +66,7 @@ class CollectionFormDialog extends StatefulWidget {
         confirmLabel: 'Save',
         initialName: name,
         initialDescription: description,
+        initialIcon: icon,
       ),
     );
   }
@@ -74,6 +81,7 @@ class _CollectionFormDialogState extends State<CollectionFormDialog> {
   );
   late final TextEditingController _descriptionController =
       TextEditingController(text: widget.initialDescription ?? '');
+  late String? _icon = widget.initialIcon;
   String? _nameError;
 
   @override
@@ -81,6 +89,12 @@ class _CollectionFormDialogState extends State<CollectionFormDialog> {
     _nameController.dispose();
     _descriptionController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickIcon() async {
+    final selection = await CollectionIconPicker.show(context, current: _icon);
+    if (selection == null || !mounted) return;
+    setState(() => _icon = selection.key);
   }
 
   void _submit() {
@@ -93,6 +107,7 @@ class _CollectionFormDialogState extends State<CollectionFormDialog> {
     Navigator.of(context).pop<CollectionFormResult>((
       name: name,
       description: description.isEmpty ? null : description,
+      icon: _icon,
     ));
   }
 
@@ -112,17 +127,32 @@ class _CollectionFormDialogState extends State<CollectionFormDialog> {
             children: [
               Text(widget.title, style: theme.textTheme.titleLarge),
               const SizedBox(height: Spacing.lg),
-              MorkvaTextField(
-                controller: _nameController,
-                label: 'Name',
-                hint: 'Orders, Clients, Inventory…',
-                autofocus: true,
-                errorText: _nameError,
-                textInputAction: TextInputAction.next,
-                onChanged: (_) {
-                  if (_nameError != null) setState(() => _nameError = null);
-                },
-                onSubmitted: (_) => _submit(),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  CollectionGlyph(
+                    iconKey: _icon,
+                    onTap: _pickIcon,
+                    tooltip: 'Choose icon',
+                  ),
+                  const SizedBox(width: Spacing.sm),
+                  Expanded(
+                    child: MorkvaTextField(
+                      controller: _nameController,
+                      label: 'Name',
+                      hint: 'Orders, Clients, Inventory…',
+                      autofocus: true,
+                      errorText: _nameError,
+                      textInputAction: TextInputAction.next,
+                      onChanged: (_) {
+                        if (_nameError != null) {
+                          setState(() => _nameError = null);
+                        }
+                      },
+                      onSubmitted: (_) => _submit(),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: Spacing.md),
               MorkvaTextField(

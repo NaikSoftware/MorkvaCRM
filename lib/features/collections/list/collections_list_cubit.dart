@@ -49,7 +49,11 @@ class CollectionsListCubit extends Cubit<CollectionsListState> {
   ///
   /// The caller typically navigates to `/collections/:id` with the returned id.
   /// The new collection appears in the list via the watch stream.
-  Future<String> createCollection(String name, {String? description}) async {
+  Future<String> createCollection(
+    String name, {
+    String? description,
+    String? icon,
+  }) async {
     final id = _ids.collectionId();
     final trimmedDescription = description?.trim();
     final collection = Collection(
@@ -58,6 +62,7 @@ class CollectionsListCubit extends Cubit<CollectionsListState> {
       description: (trimmedDescription == null || trimmedDescription.isEmpty)
           ? null
           : trimmedDescription,
+      icon: icon,
       fields: const [],
     );
     await _repository.saveCollection(collection);
@@ -72,18 +77,20 @@ class CollectionsListCubit extends Cubit<CollectionsListState> {
     String id,
     String name, {
     String? description,
+    String? icon,
   }) async {
     final existing = _findById(id);
     if (existing == null) return;
     final trimmedDescription = description?.trim();
-    // Build directly (not copyWith) so a cleared description can become null —
-    // copyWith's `?? this.description` cannot null an existing value.
+    // Build directly (not copyWith) so a cleared description / icon can become
+    // null — copyWith's `?? this.x` cannot null an existing value.
     final updated = Collection(
       id: existing.id,
       name: name.trim(),
       description: (trimmedDescription == null || trimmedDescription.isEmpty)
           ? null
           : trimmedDescription,
+      icon: icon,
       fields: existing.fields,
     );
     await _repository.saveCollection(updated);

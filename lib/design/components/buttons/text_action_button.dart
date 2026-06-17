@@ -38,26 +38,31 @@ class TextActionButton extends StatelessWidget {
       onPressed: enabled ? onPressed : null,
       semanticLabel: label,
       borderRadius: Radii.mdAll,
-      child: Container(
+      // ConstrainedBox + a content-sized Row (not Container.alignment, which
+      // grows to fill any bounded width it's given): the button hugs its label
+      // under loose constraints (dialog action bars, Wrap) yet still fills and
+      // centers when a parent stretches it tight (e.g. a stretch Column).
+      child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: 44),
-        padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
-        alignment: Alignment.center,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (icon != null) ...[
-              Icon(icon, size: 18, color: fg),
-              const SizedBox(width: Spacing.xs),
-            ],
-            Flexible(
-              child: Text(
-                label,
-                style: textStyle?.copyWith(color: fg),
-                overflow: TextOverflow.ellipsis,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: 18, color: fg),
+                const SizedBox(width: Spacing.xs),
+              ],
+              Flexible(
+                child: Text(
+                  label,
+                  style: textStyle?.copyWith(color: fg),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

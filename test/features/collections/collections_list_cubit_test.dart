@@ -73,6 +73,38 @@ void main() {
     expect(created.description, isNull);
   });
 
+  test('createCollection persists the chosen icon', () async {
+    cubit.initialize();
+    await pump();
+    final id = await cubit.createCollection('Orders', icon: 'truck');
+    await pump();
+    final created = (cubit.state as CollectionsListReady).collections
+        .firstWhere((c) => c.id == id);
+    expect(created.icon, 'truck');
+  });
+
+  test('renameCollection can set and clear the icon', () async {
+    await repository.saveCollection(
+      const Collection(id: 'c1', name: 'X', icon: 'truck'),
+    );
+    cubit.initialize();
+    await pump();
+
+    await cubit.renameCollection('c1', 'X', icon: 'cart');
+    await pump();
+    expect(
+      (cubit.state as CollectionsListReady).collections.single.icon,
+      'cart',
+    );
+
+    await cubit.renameCollection('c1', 'X');
+    await pump();
+    expect(
+      (cubit.state as CollectionsListReady).collections.single.icon,
+      isNull,
+    );
+  });
+
   test('createCollection mints unique ids', () async {
     cubit.initialize();
     await pump();

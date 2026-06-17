@@ -50,7 +50,7 @@ class CollectionCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _CollectionGlyph(seed: collection.id),
+              CollectionGlyph(iconKey: collection.icon),
               const SizedBox(width: Spacing.sm),
               Expanded(
                 child: Padding(
@@ -102,48 +102,6 @@ class CollectionCard extends StatelessWidget {
   }
 }
 
-/// A small rounded glyph that anchors the card. Its tint is derived
-/// deterministically from the collection id so cards stay visually
-/// distinguishable in a dense grid without per-collection color config.
-class _CollectionGlyph extends StatelessWidget {
-  const _CollectionGlyph({required this.seed});
-
-  final String seed;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    // A stable hue rotation off the warm primary keeps every glyph on-brand
-    // while still varying card to card.
-    final hue = (seed.hashCode % 5);
-    final tints = <Color>[
-      scheme.primary,
-      scheme.secondary,
-      scheme.tertiary,
-      scheme.primary,
-      scheme.secondary,
-    ];
-    final tint = tints[hue.abs() % tints.length];
-    final icons = <IconData>[
-      Icons.dashboard_customize_outlined,
-      Icons.inventory_2_outlined,
-      Icons.groups_outlined,
-      Icons.local_shipping_outlined,
-      Icons.style_outlined,
-    ];
-
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        color: tint.withValues(alpha: 0.14),
-        borderRadius: Radii.mdAll,
-      ),
-      alignment: Alignment.center,
-      child: Icon(icons[hue.abs() % icons.length], size: 22, color: tint),
-    );
-  }
-}
 
 /// The borderless rename / delete menu. Kept compact so it doesn't compete with
 /// the card title; delete is tinted with the error role as a quiet warning.

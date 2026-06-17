@@ -263,9 +263,19 @@ class CollectionEditorCubit extends Cubit<CollectionEditorState> {
       description: (trimmedDescription == null || trimmedDescription.isEmpty)
           ? null
           : trimmedDescription,
+      icon: ready.draft.icon,
       fields: ready.draft.fields,
     );
     emit(ready.copyWith(draft: draft, clearError: true));
+  }
+
+  /// Sets (or clears, with null) the draft collection's icon key. Marks the
+  /// draft dirty via the derived `draft != saved` comparison.
+  void setIcon(String? icon) {
+    final ready = _ready;
+    if (ready == null) return;
+    if (ready.draft.icon == icon) return;
+    emit(ready.copyWith(draft: ready.draft.copyWith(icon: icon), clearError: true));
   }
 
   /// Selects [fieldId] (drives the config panel), or clears selection if null.

@@ -252,6 +252,16 @@ class _EditorHeaderState extends State<_EditorHeader> {
     router.go('/');
   }
 
+  Future<void> _pickIcon() async {
+    final cubit = context.read<CollectionEditorCubit>();
+    final selection = await CollectionIconPicker.show(
+      context,
+      current: widget.state.draft.icon,
+    );
+    if (selection == null) return;
+    cubit.setIcon(selection.key);
+  }
+
   void _editDescription() async {
     final cubit = context.read<CollectionEditorCubit>();
     final controller = TextEditingController(
@@ -267,14 +277,30 @@ class _EditorHeaderState extends State<_EditorHeader> {
           hint: 'What this collection holds',
           autofocus: true,
         ),
+        actionsPadding: const EdgeInsets.fromLTRB(
+          Spacing.lg,
+          0,
+          Spacing.lg,
+          Spacing.md,
+        ),
+        // A single Wrap, not a bare actions list: AlertDialog's OverflowBar
+        // mis-stacks our (now content-sized) buttons; Wrap keeps the pair on
+        // one baseline and only stacks if the dialog is too narrow to fit them.
         actions: [
-          TextActionButton(
-            label: 'Cancel',
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-          PrimaryButton(
-            label: 'Save',
-            onPressed: () => Navigator.of(context).pop(controller.text),
+          Wrap(
+            alignment: WrapAlignment.end,
+            spacing: Spacing.xxs,
+            runSpacing: Spacing.xs,
+            children: [
+              TextActionButton(
+                label: 'Cancel',
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+              PrimaryButton(
+                label: 'Save',
+                onPressed: () => Navigator.of(context).pop(controller.text),
+              ),
+            ],
           ),
         ],
       ),
@@ -309,6 +335,12 @@ class _EditorHeaderState extends State<_EditorHeader> {
             onPressed: _back,
           ),
           const SizedBox(width: Spacing.xs),
+          CollectionGlyph(
+            iconKey: state.draft.icon,
+            onTap: _pickIcon,
+            tooltip: 'Choose icon',
+          ),
+          const SizedBox(width: Spacing.sm),
           Expanded(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -321,7 +353,9 @@ class _EditorHeaderState extends State<_EditorHeader> {
                   field: TextField(
                     controller: _nameController,
                     focusNode: _nameFocus,
-                    style: theme.textTheme.titleLarge,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                     cursorColor: scheme.primary,
                     textInputAction: TextInputAction.done,
                     onChanged: (value) => cubit.renameCollection(
@@ -334,11 +368,13 @@ class _EditorHeaderState extends State<_EditorHeader> {
                       border: InputBorder.none,
                       hintText: 'Collection name',
                       hintStyle: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
                   ),
                 ),
+                const SizedBox(height: Spacing.xxs),
                 _DescriptionLine(
                   description: description,
                   onEdit: _editDescription,
@@ -360,6 +396,11 @@ class _EditorHeaderState extends State<_EditorHeader> {
 /// once focused, where the underline + caret already signal editing). This keeps
 /// the borderless title feel while making it obvious the name is editable — and
 /// reads as a sibling of the description line below it.
+///
+/// The underline and pencil hug the title's content width (via [IntrinsicWidth],
+/// capped by [_maxWidth]) rather than stretching the full header, so the pencil
+/// always sits right beside the name instead of being stranded at the far edge.
+/// A long name fills up to the cap and then scrolls within the field.
 class _NameEditAffordance extends StatelessWidget {
   const _NameEditAffordance({
     required this.field,
@@ -373,6 +414,10 @@ class _NameEditAffordance extends StatelessWidget {
   final bool hovered;
   final ValueChanged<bool> onHover;
 
+  /// Upper bound for the content-hugging title, so the underline never sprawls
+  /// across a wide header.
+  static const double _maxWidth = 480;
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -385,28 +430,41 @@ class _NameEditAffordance extends StatelessWidget {
     return MouseRegion(
       onEnter: (_) => onHover(true),
       onExit: (_) => onHover(false),
-      child: AnimatedContainer(
-        duration: MotionDurations.fast,
-        curve: MotionCurves.standard,
-        padding: const EdgeInsets.only(bottom: 3),
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: borderColor, width: focused ? 2 : 1),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Flexible(
+            child: AnimatedContainer(
+              duration: MotionDurations.fast,
+              curve: MotionCurves.standard,
+              padding: const EdgeInsets.only(bottom: 3),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: borderColor,
+                    width: focused ? 2 : 1,
+                  ),
+                ),
+              ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: _maxWidth),
+                child: IntrinsicWidth(child: field),
+              ),
+            ),
           ),
-        ),
-        child: Row(
-          children: [
-            Expanded(child: field),
-            if (!focused) ...[
-              const SizedBox(width: Spacing.xs),
-              Icon(
+          if (!focused) ...[
+            const SizedBox(width: Spacing.xs),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 5),
+              child: Icon(
                 Icons.edit_outlined,
                 size: 16,
                 color: hovered ? scheme.onSurface : scheme.onSurfaceVariant,
               ),
-            ],
+            ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -878,30 +936,52 @@ Future<_LeaveAction> _confirmLeave(BuildContext context) async {
         'You have unsaved changes to this collection. Save them before '
         'leaving, or discard them.',
       ),
+      actionsPadding: const EdgeInsets.fromLTRB(
+        Spacing.lg,
+        0,
+        Spacing.lg,
+        Spacing.md,
+      ),
+      // A single Wrap keeps the three actions on one baseline; AlertDialog's
+      // OverflowBar mis-stacks our buttons into a diagonal. Wrap also lets the
+      // trio drop to stacked rows when a narrow phone can't fit them side by
+      // side (the buttons are content-sized, so they don't balloon in a Wrap).
       actions: [
-        TextActionButton(
-          label: 'Cancel',
-          onPressed: () => Navigator.of(context).pop(_LeaveAction.cancel),
-        ),
-        const SizedBox(width: Spacing.xxs),
-        PressableScale(
-          onPressed: () => Navigator.of(context).pop(_LeaveAction.discard),
-          semanticLabel: 'Discard',
-          borderRadius: Radii.mdAll,
-          child: Container(
-            height: 44,
-            padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
-            alignment: Alignment.center,
-            child: Text(
-              'Discard',
-              style: theme.textTheme.labelLarge?.copyWith(color: scheme.error),
+        Wrap(
+          alignment: WrapAlignment.end,
+          spacing: Spacing.xxs,
+          runSpacing: Spacing.xs,
+          children: [
+            TextActionButton(
+              label: 'Cancel',
+              onPressed: () => Navigator.of(context).pop(_LeaveAction.cancel),
             ),
-          ),
-        ),
-        const SizedBox(width: Spacing.xxs),
-        PrimaryButton(
-          label: 'Save',
-          onPressed: () => Navigator.of(context).pop(_LeaveAction.save),
+            PressableScale(
+              onPressed: () => Navigator.of(context).pop(_LeaveAction.discard),
+              semanticLabel: 'Discard',
+              borderRadius: Radii.mdAll,
+              child: Container(
+                height: 44,
+                padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Discard',
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: scheme.error,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            PrimaryButton(
+              label: 'Save',
+              onPressed: () => Navigator.of(context).pop(_LeaveAction.save),
+            ),
+          ],
         ),
       ],
     ),

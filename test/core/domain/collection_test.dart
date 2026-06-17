@@ -37,5 +37,31 @@ void main() {
       expect(copy.fields, isEmpty);
       expect(copy.description, 'All customer orders');
     });
+
+    test('icon: omitting preserves, null clears, value replaces', () {
+      const withIcon = Collection(id: 'c1', name: 'Orders', icon: 'truck');
+      expect(withIcon.copyWith(name: 'X').icon, 'truck'); // preserved
+      expect(withIcon.copyWith(icon: null).icon, isNull); // cleared
+      expect(withIcon.copyWith(icon: 'cart').icon, 'cart'); // replaced
+    });
+  });
+
+  group('Collection icon serialization', () {
+    final registry = defaultFieldTypeRegistry();
+
+    test('toJson omits icon when null and round-trips when set', () {
+      const noIcon = Collection(id: 'c1', name: 'Orders');
+      expect(noIcon.toJson().containsKey('icon'), isFalse);
+
+      const withIcon = Collection(id: 'c1', name: 'Orders', icon: 'truck');
+      final json = withIcon.toJson();
+      expect(json['icon'], 'truck');
+      expect(Collection.fromJson(json, registry).icon, 'truck');
+    });
+
+    test('fromJson tolerates a missing icon key (legacy doc)', () {
+      final legacy = {'id': 'c1', 'name': 'Orders', 'fields': const []};
+      expect(Collection.fromJson(legacy, registry).icon, isNull);
+    });
   });
 }

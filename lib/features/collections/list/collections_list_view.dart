@@ -54,6 +54,7 @@ class CollectionsListView extends StatelessWidget {
     final id = await cubit.createCollection(
       result.name,
       description: result.description,
+      icon: result.icon,
     );
     router.go('/collections/$id');
   }
@@ -159,12 +160,14 @@ class _CollectionsContent extends StatelessWidget {
           context,
           name: collection.name,
           description: collection.description,
+          icon: collection.icon,
         );
         if (result == null || !context.mounted) return;
         await cubit.renameCollection(
           collection.id,
           result.name,
           description: result.description,
+          icon: result.icon,
         );
       case CollectionCardAction.delete:
         final confirmed = await _confirmDelete(context, collection.name);
