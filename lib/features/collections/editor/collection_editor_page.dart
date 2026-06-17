@@ -365,7 +365,14 @@ class _EditorHeaderState extends State<_EditorHeader> {
                     decoration: InputDecoration(
                       isDense: true,
                       contentPadding: EdgeInsets.zero,
+                      // Opt out of the global filled/rounded input theme so the
+                      // title reads as a heading, not an input chip — our own
+                      // hover/focus underline is the only affordance.
+                      filled: false,
+                      fillColor: Colors.transparent,
                       border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
                       hintText: 'Collection name',
                       hintStyle: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w600,
