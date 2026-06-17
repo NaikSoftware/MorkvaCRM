@@ -24,6 +24,9 @@ class SyncStatusIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<SyncStatusCubit, SyncStatus>(
       builder: (context, status) {
+        // No sync signal yet: render nothing so the chip never claims a status
+        // (least of all a misleading "Offline") before there's evidence.
+        if (status is SyncUnknown) return const SizedBox.shrink();
         final spec = _SyncChipSpec.of(context, status);
         final onTap = status is SyncConflict
             ? () => context.read<SyncStatusCubit>().dismissConflict()
@@ -56,6 +59,13 @@ class _SyncChipSpec {
     final semantic = Theme.of(context).extension<MorkvaSemanticColors>()!;
 
     return switch (status) {
+      // No signal yet — the indicator hides via an early return in the builder,
+      // so this branch is never actually rendered; present only to keep the
+      // switch exhaustive over the sealed [SyncStatus].
+      SyncUnknown() => _SyncChipSpec(
+        label: '',
+        foreground: scheme.onSurfaceVariant,
+      ),
       // Healthy: quiet by design — muted ink, no semantic color.
       SyncSynced() => _SyncChipSpec(
         label: 'Synced',

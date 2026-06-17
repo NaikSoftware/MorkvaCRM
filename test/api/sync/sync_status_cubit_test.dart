@@ -5,9 +5,9 @@ import 'package:morkva_crm/api/sync/sync_status_cubit.dart';
 
 void main() {
   group('SyncStatusCubit', () {
-    test('starts in SyncOffline', () {
+    test('starts in SyncUnknown (no signal yet — not a misleading Offline)', () {
       final cubit = SyncStatusCubit();
-      expect(cubit.state, const SyncOffline());
+      expect(cubit.state, const SyncUnknown());
       cubit.close();
     });
 

@@ -106,6 +106,16 @@ class _SignInContent extends StatelessWidget {
             ),
             const SizedBox(height: Spacing.xl),
             _GoogleSignInButton(loading: loading),
+            // While a sign-in is in flight, offer a way out: on web the Google
+            // popup can be dismissed without the future ever settling, which
+            // would otherwise leave this screen spinning forever.
+            if (loading) ...[
+              const SizedBox(height: Spacing.xs),
+              TextActionButton(
+                label: 'Cancel',
+                onPressed: () => context.read<AuthCubit>().cancelSignIn(),
+              ),
+            ],
             if (errorMessage != null) ...[
               const SizedBox(height: Spacing.md),
               _InlineError(message: errorMessage),

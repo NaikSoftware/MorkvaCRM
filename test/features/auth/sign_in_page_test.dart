@@ -54,6 +54,21 @@ void main() {
     expect(find.text('Continue with Google'), findsNothing);
   });
 
+  testWidgets('offers a Cancel affordance while loading that calls '
+      'cancelSignIn', (tester) async {
+    when(() => cubit.state).thenReturn(const AuthLoading());
+    when(() => cubit.cancelSignIn()).thenReturn(null);
+
+    await tester.pumpWidget(host());
+
+    expect(find.text('Cancel'), findsOneWidget);
+
+    await tester.tap(find.text('Cancel'));
+    await tester.pump();
+
+    verify(() => cubit.cancelSignIn()).called(1);
+  });
+
   testWidgets('shows the error message inline on AuthError (no dialog)', (
     tester,
   ) async {

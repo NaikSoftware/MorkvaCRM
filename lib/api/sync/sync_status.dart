@@ -10,6 +10,21 @@ sealed class SyncStatus extends Equatable {
   const SyncStatus();
 }
 
+/// No sync signal has been observed yet — the seed state before the first
+/// Firestore snapshot arrives.
+///
+/// Deliberately distinct from [SyncOffline]: we are not *known* to be offline,
+/// we simply have nothing to report. The UI stays quiet in this state rather
+/// than claiming a status it cannot back with evidence. (No screen subscribes
+/// to a Firestore stream until Epic 3, so the app sits here until then.)
+final class SyncUnknown extends SyncStatus {
+  /// Creates a [SyncUnknown] status.
+  const SyncUnknown();
+
+  @override
+  List<Object?> get props => const [];
+}
+
 /// Local data matches the server: no pending writes, not serving from cache.
 final class SyncSynced extends SyncStatus {
   /// Creates a [SyncSynced] status.

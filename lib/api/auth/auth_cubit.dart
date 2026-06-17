@@ -88,10 +88,26 @@ class AuthCubit extends Cubit<AuthState> {
     try {
       await _repository.signInWithGoogle();
     } on AuthException catch (e) {
-      // The cubit may have been closed while the await was in flight (e.g. the
-      // user navigated away mid-sign-in); guard the post-await emit.
-      if (!isClosed) emit(AuthError(message: e.message));
+      // Only surface the failure if we're still loading: the cubit may have
+      // been closed mid-flight, or the user may have cancelled (see
+      // [cancelSignIn]) — in which case a late popup rejection must not pop an
+      // error over the now-quiet sign-in screen.
+      if (!isClosed && state is AuthLoading) emit(AuthError(message: e.message));
     }
+  }
+
+  /// Cancels an in-flight sign-in, returning to [AuthUnauthenticated].
+  ///
+  /// On web, the platform popup future can fail to settle when the user simply
+  /// closes the popup, which would otherwise strand the UI in [AuthLoading]
+  /// indefinitely. This gives the user a way out. The orphaned sign-in future
+  /// is harmless: if it somehow does complete later, the authenticated state
+  /// still arrives through [initialize]'s stream subscription; if it fails, the
+  /// guarded emit in [signInWithGoogle] swallows it (no longer loading).
+  ///
+  /// A no-op unless a sign-in is actually in flight.
+  void cancelSignIn() {
+    if (state is AuthLoading) emit(const AuthUnauthenticated());
   }
 
   /// Signs the current user out. The unauthenticated state arrives via the

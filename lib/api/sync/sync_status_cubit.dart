@@ -11,8 +11,10 @@ import 'sync_status.dart';
 /// A [SyncConflict] is "sticky": while in conflict, snapshot-metadata updates are
 /// ignored so the warning stays visible until the user explicitly dismisses it.
 class SyncStatusCubit extends Cubit<SyncStatus> {
-  /// Creates a [SyncStatusCubit] in the [SyncOffline] state.
-  SyncStatusCubit() : super(const SyncOffline());
+  /// Creates a [SyncStatusCubit] in the [SyncUnknown] state — no sync signal
+  /// has been observed yet, so the UI shows nothing rather than a misleading
+  /// "Offline". The first `report*` call moves it to a real status.
+  SyncStatusCubit() : super(const SyncUnknown());
 
   /// Reports that a local write was queued. Moves to [SyncPending] unless a
   /// conflict is currently being shown (which takes precedence).

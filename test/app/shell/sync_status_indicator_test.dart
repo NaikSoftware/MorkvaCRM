@@ -53,6 +53,21 @@ void main() {
     expect(find.text('Offline'), findsOneWidget);
   });
 
+  testWidgets('renders nothing while status is unknown (no signal yet)', (
+    tester,
+  ) async {
+    when(() => cubit.state).thenReturn(const SyncUnknown());
+
+    await tester.pumpWidget(host());
+
+    // No chip, no label, no spinner — the indicator stays out of the way until
+    // there is a real status to show.
+    expect(find.byType(SyncStatusIndicator), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(find.byIcon(Icons.cloud_off_outlined), findsNothing);
+    expect(find.text('Offline'), findsNothing);
+  });
+
   testWidgets('renders "Sync error" on error', (tester) async {
     when(() => cubit.state).thenReturn(const SyncError(message: 'boom'));
 

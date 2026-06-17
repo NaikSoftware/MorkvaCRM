@@ -102,6 +102,50 @@ void main() {
     );
 
     blocTest<AuthCubit, AuthState>(
+      'cancelSignIn while loading returns to AuthUnauthenticated',
+      build: () {
+        // A sign-in whose future never settles — the web popup-dismiss case.
+        when(
+          () => repository.signInWithGoogle(),
+        ).thenAnswer((_) => Completer<AuthUser>().future);
+        return AuthCubit(repository);
+      },
+      act: (cubit) {
+        cubit.signInWithGoogle(); // emits AuthLoading, then awaits forever
+        cubit.cancelSignIn();
+      },
+      expect: () => [const AuthLoading(), const AuthUnauthenticated()],
+    );
+
+    blocTest<AuthCubit, AuthState>(
+      'cancelSignIn is a no-op when no sign-in is in flight',
+      build: () => AuthCubit(repository),
+      act: (cubit) => cubit.cancelSignIn(),
+      expect: () => const <AuthState>[],
+    );
+
+    test('a late sign-in failure after cancel does not emit AuthError', () async {
+      final completer = Completer<AuthUser>();
+      when(
+        () => repository.signInWithGoogle(),
+      ).thenAnswer((_) => completer.future);
+      final cubit = AuthCubit(repository);
+      addTearDown(cubit.close);
+
+      final states = <AuthState>[];
+      final sub = cubit.stream.listen(states.add);
+
+      cubit.signInWithGoogle(); // AuthLoading
+      cubit.cancelSignIn(); // AuthUnauthenticated
+      // The orphaned popup future rejects late — must be swallowed, not shown.
+      completer.completeError(const AuthException('popup closed late'));
+      await Future<void>.delayed(Duration.zero);
+      await sub.cancel();
+
+      expect(states, [const AuthLoading(), const AuthUnauthenticated()]);
+    });
+
+    blocTest<AuthCubit, AuthState>(
       'signOut transitions to AuthUnauthenticated via the stream',
       build: () {
         when(() => repository.signOut()).thenAnswer((_) async {});

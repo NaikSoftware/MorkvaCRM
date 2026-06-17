@@ -36,10 +36,17 @@ GoRouter createAppRouter(
       final isOnLoading = location == '/loading';
 
       switch (authState) {
-        // First auth state not yet resolved, or a sign-in is in flight — hold
-        // on the neutral interstitial.
-        case AuthInitial() || AuthLoading():
+        // First auth state not yet resolved — hold on the neutral interstitial
+        // while the repository replays the persisted session.
+        case AuthInitial():
           return isOnLoading ? null : '/loading';
+
+        // A sign-in is in flight — keep the user on the sign-in screen so its
+        // inline spinner *and* the Cancel affordance stay visible. Bouncing to
+        // the full-screen interstitial here is exactly what made a dismissed
+        // Google popup look like an unrecoverable infinite-progress hang.
+        case AuthLoading():
+          return isOnSignIn ? null : '/sign-in';
 
         case AuthAuthenticated():
           // Signed in but the workspace data layer isn't ready yet — wait on
