@@ -23,9 +23,16 @@ class IdGenerator {
   /// A new select-option id, e.g. `o_l3k9f2_a7c1`.
   String optionId() => _mint('o');
 
+  // The random suffix bound. Written as a literal (not `1 << 32`): on the web,
+  // Dart `int` is a JS number and `<<` uses 32-bit shift semantics, so
+  // `1 << 32` wraps to 0 and `Random.nextInt(0)` throws. `0xFFFFFFFF`
+  // (2^32 - 1) is the largest bound `nextInt` accepts and is identical on the
+  // VM and the web.
+  static const int _suffixBound = 0xFFFFFFFF;
+
   String _mint(String prefix) {
     final time = DateTime.now().microsecondsSinceEpoch.toRadixString(36);
-    final suffix = _random.nextInt(1 << 32).toRadixString(36);
+    final suffix = _random.nextInt(_suffixBound).toRadixString(36);
     return '${prefix}_${time}_$suffix';
   }
 }
