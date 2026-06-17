@@ -62,7 +62,25 @@ abstract class FieldEditor {
   /// A short, human summary of [definition]'s config for the field row
   /// (e.g. "3 options", "→ Orders", "multiline"). Empty string when there is
   /// nothing useful to add beyond the type badge.
-  String summarize(FieldDefinition definition);
+  ///
+  /// [collections] is the workspace's collection list; editors that reference
+  /// another collection (e.g. the reference type) resolve a human name from it
+  /// rather than printing a raw id. Other editors ignore it.
+  String summarize(
+    FieldDefinition definition, {
+    List<Collection> collections = const [],
+  });
+
+  /// Builds an inert, read-only silhouette of this type's value affordance for
+  /// the card preview (a text stub, a switch shape, color-hinted chips, …).
+  ///
+  /// Strictly non-interactive: it shows the *shape* of a value, never any data
+  /// entry (that is Epic 5). This is the registry seam that keeps the card
+  /// preview free of any `switch (type)` over concrete field types.
+  Widget buildPreviewAffordance(
+    BuildContext context,
+    FieldDefinition definition,
+  );
 }
 
 /// Maps field-type discriminators to the [FieldEditor]s that present them.

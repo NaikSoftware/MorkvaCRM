@@ -36,6 +36,14 @@ void main() {
     expect(ready().persistedFieldIds, {'f_title'});
   });
 
+  test(
+    'load fetches the workspace collections for the reference picker',
+    () async {
+      await cubit.load('c1');
+      expect(ready().availableCollections.map((c) => c.id), contains('c1'));
+    },
+  );
+
   test('load of a missing id emits not-found', () async {
     await cubit.load('nope');
     expect(cubit.state, isA<CollectionEditorNotFound>());
@@ -74,6 +82,78 @@ void main() {
     final field = ready().draft.fieldById(id) as TextFieldDefinition;
     expect(field.multiline, isTrue);
     expect(field.name, 'Notes');
+  });
+
+  group('updateFieldEnvelope', () {
+    test('renames a field, preserving its type and config', () async {
+      await cubit.load('c1');
+      cubit.addField('text');
+      final id = ready().draft.fields.last.id;
+      cubit.updateField(
+        TextFieldDefinition(id: id, name: 'Notes', maxLength: 80),
+      );
+
+      cubit.updateFieldEnvelope(id, name: 'Body');
+
+      final field = ready().draft.fieldById(id) as TextFieldDefinition;
+      expect(field.name, 'Body');
+      expect(field.maxLength, 80, reason: 'config must survive the rebuild');
+    });
+
+    test('sets description and required without naming the type', () async {
+      await cubit.load('c1');
+      cubit.addField('number');
+      final id = ready().draft.fields.last.id;
+
+      cubit.updateFieldEnvelope(id, description: 'How many', isRequired: true);
+
+      final field = ready().draft.fieldById(id)!;
+      expect(field.description, 'How many');
+      expect(field.isRequired, isTrue);
+    });
+
+    test('clearing the description with null nulls it', () async {
+      await cubit.load('c1');
+      cubit.addField('text');
+      final id = ready().draft.fields.last.id;
+      cubit.updateFieldEnvelope(id, description: 'temp');
+      expect(ready().draft.fieldById(id)!.description, 'temp');
+
+      cubit.updateFieldEnvelope(id, description: null);
+
+      expect(ready().draft.fieldById(id)!.description, isNull);
+    });
+
+    test('a blank description also clears it', () async {
+      await cubit.load('c1');
+      cubit.addField('text');
+      final id = ready().draft.fields.last.id;
+      cubit.updateFieldEnvelope(id, description: 'temp');
+
+      cubit.updateFieldEnvelope(id, description: '   ');
+
+      expect(ready().draft.fieldById(id)!.description, isNull);
+    });
+
+    test('omitting description preserves the current value', () async {
+      await cubit.load('c1');
+      cubit.addField('text');
+      final id = ready().draft.fields.last.id;
+      cubit.updateFieldEnvelope(id, description: 'keep me');
+
+      cubit.updateFieldEnvelope(id, name: 'Renamed');
+
+      final field = ready().draft.fieldById(id)!;
+      expect(field.name, 'Renamed');
+      expect(field.description, 'keep me');
+    });
+
+    test('is a no-op for an unknown field id', () async {
+      await cubit.load('c1');
+      final before = ready().draft;
+      cubit.updateFieldEnvelope('nope', name: 'x');
+      expect(ready().draft, before);
+    });
   });
 
   test('removeField drops the field and clears its selection', () async {

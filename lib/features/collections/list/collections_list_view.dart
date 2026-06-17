@@ -34,13 +34,13 @@ class CollectionsListView extends StatelessWidget {
       builder: (context, state) {
         return switch (state) {
           CollectionsListLoading() => const LoadingIndicator(
-              message: 'Loading your collections…',
-            ),
-          CollectionsListError(:final message) =>
-            _ErrorState(message: message),
-          CollectionsListReady(:final collections) => collections.isEmpty
-              ? _EmptyCollections(onCreate: () => _create(context))
-              : _CollectionsContent(collections: collections),
+            message: 'Loading your collections…',
+          ),
+          CollectionsListError(:final message) => _ErrorState(message: message),
+          CollectionsListReady(:final collections) =>
+            collections.isEmpty
+                ? _EmptyCollections(onCreate: () => _create(context))
+                : _CollectionsContent(collections: collections),
         };
       },
     );
@@ -50,7 +50,7 @@ class CollectionsListView extends StatelessWidget {
     final cubit = context.read<CollectionsListCubit>();
     final router = GoRouter.of(context);
     final result = await CollectionFormDialog.create(context);
-    if (result == null) return;
+    if (result == null || !context.mounted) return;
     final id = await cubit.createCollection(
       result.name,
       description: result.description,
@@ -112,10 +112,8 @@ class _CollectionsContent extends StatelessWidget {
               ),
               sliver: isWide
                   ? SliverGrid(
-                      gridDelegate:
-                          const SliverGridDelegateWithMaxCrossAxisExtent(
-                        maxCrossAxisExtent:
-                            CollectionsListView._maxCardExtent,
+                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: CollectionsListView._maxCardExtent,
                         mainAxisSpacing: Spacing.md,
                         crossAxisSpacing: Spacing.md,
                         // A relaxed aspect so descriptions and the field-count
@@ -123,8 +121,7 @@ class _CollectionsContent extends StatelessWidget {
                         mainAxisExtent: 164,
                       ),
                       delegate: SliverChildBuilderDelegate(
-                        (context, index) =>
-                            _card(context, collections[index]),
+                        (context, index) => _card(context, collections[index]),
                         childCount: collections.length,
                       ),
                     )
@@ -163,7 +160,7 @@ class _CollectionsContent extends StatelessWidget {
           name: collection.name,
           description: collection.description,
         );
-        if (result == null) return;
+        if (result == null || !context.mounted) return;
         await cubit.renameCollection(
           collection.id,
           result.name,
@@ -171,36 +168,20 @@ class _CollectionsContent extends StatelessWidget {
         );
       case CollectionCardAction.delete:
         final confirmed = await _confirmDelete(context, collection.name);
-        if (confirmed != true) return;
+        if (confirmed != true || !context.mounted) return;
         await cubit.deleteCollection(collection.id);
     }
   }
 
   Future<bool?> _confirmDelete(BuildContext context, String name) {
-    final theme = Theme.of(context);
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: const RoundedRectangleBorder(borderRadius: Radii.lgAll),
-        title: const Text('Delete collection?'),
-        content: Text(
+    return MorkvaConfirmDialog.show(
+      context,
+      title: 'Delete collection?',
+      message:
           'This permanently deletes "$name" and its schema. '
           'Objects in it are no longer reachable. This cannot be undone.',
-        ),
-        actions: [
-          TextActionButton(
-            label: 'Cancel',
-            onPressed: () => Navigator.of(context).pop(false),
-          ),
-          const SizedBox(width: Spacing.xxs),
-          // A destructive confirm — reuse the text action but tint it error.
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(foregroundColor: theme.colorScheme.error),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+      confirmLabel: 'Delete',
+      destructive: true,
     );
   }
 }

@@ -4,6 +4,7 @@ import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
 import 'field_editor.dart';
 import 'widgets/config_controls.dart';
+import 'widgets/preview_affordances.dart';
 
 /// [FieldEditor] for the reference field type (link to another collection).
 class ReferenceFieldEditor extends FieldEditor {
@@ -62,11 +63,9 @@ class ReferenceFieldEditor extends FieldEditor {
           child: DropdownButtonFormField<String>(
             initialValue: hasTarget ? field.targetCollectionId : null,
             isExpanded: true,
-            decoration: const InputDecoration(
-              labelText: 'Target collection',
-              isDense: true,
-              border: OutlineInputBorder(),
-            ),
+            // Inherit the themed input decoration so the picker matches the
+            // MorkvaTextFields elsewhere in the config panel.
+            decoration: const InputDecoration(labelText: 'Target collection'),
             hint: const Text('Choose a collection'),
             items: [
               for (final collection in collections)
@@ -85,6 +84,15 @@ class ReferenceFieldEditor extends FieldEditor {
             },
           ),
         ),
+        if (field.targetCollectionId.isEmpty)
+          const Padding(
+            padding: EdgeInsets.only(bottom: Spacing.sm),
+            child: InlineWarningNote(
+              message:
+                  'Pick a target collection — this reference points nowhere '
+                  'until you do.',
+            ),
+          ),
         ConfigSwitch(
           label: 'Allow multiple',
           subtitle: 'Reference more than one object.',
@@ -96,10 +104,27 @@ class ReferenceFieldEditor extends FieldEditor {
   }
 
   @override
-  String summarize(FieldDefinition definition) {
+  String summarize(
+    FieldDefinition definition, {
+    List<Collection> collections = const [],
+  }) {
     final field = definition as ReferenceFieldDefinition;
-    if (field.targetCollectionId.isEmpty) return 'no target';
-    final arrow = field.multiple ? '→ many' : '→';
-    return '$arrow ${field.targetCollectionId}';
+    if (field.targetCollectionId.isEmpty) return '(no target)';
+    // Resolve the target's human name rather than printing the raw id.
+    String? targetName;
+    for (final collection in collections) {
+      if (collection.id == field.targetCollectionId) {
+        targetName = collection.name;
+        break;
+      }
+    }
+    final label = targetName ?? '(unknown)';
+    return field.multiple ? '→ $label (many)' : '→ $label';
   }
+
+  @override
+  Widget buildPreviewAffordance(
+    BuildContext context,
+    FieldDefinition definition,
+  ) => const PreviewStubInput(icon: Icons.link, height: 36);
 }

@@ -143,10 +143,10 @@ class _OptionSetEditorState extends State<OptionSetEditor> {
         const SizedBox(height: Spacing.xs),
         Align(
           alignment: Alignment.centerLeft,
-          child: TextButton.icon(
+          child: TextActionButton(
+            label: 'Add option',
+            icon: Icons.add,
             onPressed: _addOption,
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('Add option'),
           ),
         ),
       ],
@@ -174,7 +174,6 @@ class _OptionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: Spacing.xxs),
       child: Column(
@@ -184,12 +183,14 @@ class _OptionRow extends StatelessWidget {
             children: [
               ReorderableDragStartListener(
                 index: index,
-                child: Icon(
-                  Icons.drag_indicator,
-                  color: scheme.onSurfaceVariant,
+                child: IconActionButton(
+                  icon: Icons.drag_indicator,
+                  tooltip: 'Drag to reorder',
+                  // Reordering is driven by the wrapping listener, not a tap.
+                  onPressed: () {},
                 ),
               ),
-              const SizedBox(width: Spacing.xs),
+              const SizedBox(width: Spacing.xxs),
               if (option.color != null)
                 Padding(
                   padding: const EdgeInsets.only(right: Spacing.xs),
@@ -199,19 +200,16 @@ class _OptionRow extends StatelessWidget {
                   ),
                 ),
               Expanded(
-                child: TextField(
+                child: MorkvaTextField(
                   controller: controller,
+                  hint: 'Option label',
                   onChanged: onLabelChanged,
-                  decoration: const InputDecoration(
-                    isDense: true,
-                    border: OutlineInputBorder(),
-                    hintText: 'Option label',
-                  ),
                 ),
               ),
-              IconButton(
+              const SizedBox(width: Spacing.xxs),
+              IconActionButton(
+                icon: Icons.close,
                 tooltip: 'Remove option',
-                icon: const Icon(Icons.close),
                 onPressed: onRemove,
               ),
             ],

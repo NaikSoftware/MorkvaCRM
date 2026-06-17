@@ -24,12 +24,17 @@ class FieldRow extends StatelessWidget {
     required this.typeLocked,
     required this.onTap,
     required this.onRemove,
+    this.collections = const [],
   });
 
   final FieldDefinition field;
 
   /// The registry editor for this field's type (icon, label, summary).
   final FieldEditor? editor;
+
+  /// The workspace collections, so reference summaries resolve a target name
+  /// rather than printing a raw id.
+  final List<Collection> collections;
 
   /// Position in the list — drives the [ReorderableDragStartListener].
   final int index;
@@ -47,12 +52,13 @@ class FieldRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final summary = editor?.summarize(field) ?? '';
+    final summary = editor?.summarize(field, collections: collections) ?? '';
     final typeLabel = editor?.displayLabel ?? field.type;
 
     final borderColor = selected ? scheme.primary : scheme.outlineVariant;
-    final background =
-        selected ? scheme.primaryContainer.withValues(alpha: 0.35) : scheme.surfaceContainerLowest;
+    final background = selected
+        ? scheme.primaryContainer.withValues(alpha: 0.35)
+        : scheme.surfaceContainerLowest;
 
     return Padding(
       // Spacing between reorderable rows (ReorderableListView ignores
@@ -103,8 +109,9 @@ class FieldRow extends StatelessWidget {
                             const SizedBox(width: Spacing.xxs),
                             Text(
                               '*',
-                              style: theme.textTheme.titleSmall
-                                  ?.copyWith(color: scheme.error),
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                color: scheme.error,
+                              ),
                             ),
                           ],
                         ],
@@ -118,8 +125,9 @@ class FieldRow extends StatelessWidget {
                             Flexible(
                               child: Text(
                                 summary,
-                                style: theme.textTheme.bodySmall
-                                    ?.copyWith(color: scheme.onSurfaceVariant),
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: scheme.onSurfaceVariant,
+                                ),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
@@ -129,32 +137,19 @@ class FieldRow extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: Spacing.xs),
-                IconButton(
+                const SizedBox(width: Spacing.xxs),
+                IconActionButton(
+                  icon: Icons.close,
                   tooltip: 'Remove field',
-                  icon: Icon(
-                    Icons.close,
-                    size: 18,
-                    color: scheme.onSurfaceVariant,
-                  ),
                   onPressed: onRemove,
-                  visualDensity: VisualDensity.compact,
                 ),
                 ReorderableDragStartListener(
                   index: index,
-                  child: Tooltip(
-                    message: 'Drag to reorder',
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: Spacing.xxs,
-                        vertical: Spacing.xs,
-                      ),
-                      child: Icon(
-                        Icons.drag_indicator,
-                        size: 20,
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
+                  child: const IconActionButton(
+                    icon: Icons.drag_indicator,
+                    tooltip: 'Drag to reorder',
+                    // Reordering is driven by the wrapping listener, not a tap.
+                    onPressed: _noop,
                   ),
                 ),
               ],
@@ -166,7 +161,14 @@ class FieldRow extends StatelessWidget {
   }
 }
 
-/// The tinted square that fronts each row with its type icon.
+/// A no-op tap for the drag-handle button — the wrapping
+/// [ReorderableDragStartListener] handles the actual interaction; the button is
+/// here only for the 44dp hit target and tooltip.
+void _noop() {}
+
+/// The tinted square that fronts each row with its type icon. Carrot-tinted to
+/// match the type cards in the add-field sheet (every glyph in the feature
+/// reads in brand color, never a flat grey).
 class _TypeGlyph extends StatelessWidget {
   const _TypeGlyph({required this.icon});
 
@@ -179,11 +181,11 @@ class _TypeGlyph extends StatelessWidget {
       width: 34,
       height: 34,
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerHigh,
+        color: scheme.primary.withValues(alpha: 0.12),
         borderRadius: Radii.smAll,
       ),
       alignment: Alignment.center,
-      child: Icon(icon, size: 18, color: scheme.onSurfaceVariant),
+      child: Icon(icon, size: 18, color: scheme.primary),
     );
   }
 }
@@ -201,10 +203,7 @@ class _TypeBadge extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: Spacing.xs,
-        vertical: 2,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: Spacing.xs, vertical: 2),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHigh,
         borderRadius: Radii.smAll,
@@ -213,17 +212,14 @@ class _TypeBadge extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (locked) ...[
-            Icon(
-              Icons.lock_outline,
-              size: 12,
-              color: scheme.onSurfaceVariant,
-            ),
+            Icon(Icons.lock_outline, size: 12, color: scheme.onSurfaceVariant),
             const SizedBox(width: 3),
           ],
           Text(
             label,
-            style: theme.textTheme.labelSmall
-                ?.copyWith(color: scheme.onSurfaceVariant),
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),

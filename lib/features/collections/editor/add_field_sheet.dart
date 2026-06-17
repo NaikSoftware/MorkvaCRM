@@ -67,8 +67,9 @@ class AddFieldSheet extends StatelessWidget {
             ),
             child: Text(
               'Pick a type — you can configure and rename it next.',
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
           Flexible(
@@ -99,6 +100,39 @@ class AddFieldSheet extends StatelessWidget {
                   },
                 );
               },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A small "Declare only" tag for computed types: the type can be configured
+/// now, but evaluation lands in a later update. Mirrors the field-row type
+/// badge (surfaceContainerHighest + labelSmall) so the two read as siblings.
+class _DeclareOnlyPill extends StatelessWidget {
+  const _DeclareOnlyPill();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: Spacing.xs, vertical: 2),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: Radii.smAll,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.schedule, size: 11, color: scheme.onSurfaceVariant),
+          const SizedBox(width: 3),
+          Text(
+            'Declare only',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -158,22 +192,19 @@ class _TypeCard extends StatelessWidget {
                         ),
                       ),
                       if (editor.isComputed) ...[
-                        const SizedBox(width: Spacing.xxs),
-                        Icon(
-                          Icons.schedule,
-                          size: 13,
-                          color: scheme.onSurfaceVariant,
-                        ),
+                        const SizedBox(width: Spacing.xs),
+                        const _DeclareOnlyPill(),
                       ],
                     ],
                   ),
                   const SizedBox(height: 2),
+                  // Keep the real type description; the pill above already
+                  // signals it is declare-only for now.
                   Text(
-                    editor.isComputed
-                        ? 'Computed in a later update'
-                        : editor.description,
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: scheme.onSurfaceVariant),
+                    editor.description,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),

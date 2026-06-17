@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/domain/domain.dart';
 import 'field_editor.dart';
 import 'widgets/option_set_editor.dart';
+import 'widgets/preview_affordances.dart';
 
 /// [FieldEditor] for the single-select field type.
 class SingleSelectFieldEditor extends FieldEditor {
@@ -48,9 +49,29 @@ class SingleSelectFieldEditor extends FieldEditor {
   }
 
   @override
-  String summarize(FieldDefinition definition) {
+  String summarize(
+    FieldDefinition definition, {
+    List<Collection> collections = const [],
+  }) {
     final field = definition as SingleSelectFieldDefinition;
     final count = field.options.length;
     return count == 1 ? '1 option' : '$count options';
+  }
+
+  @override
+  Widget buildPreviewAffordance(
+    BuildContext context,
+    FieldDefinition definition,
+  ) {
+    final field = definition as SingleSelectFieldDefinition;
+    final options = field.options;
+    return PreviewStubChips(
+      labels: options.isEmpty
+          ? const ['—']
+          : options.take(4).map((o) => o.label).toList(),
+      colors: options.isEmpty
+          ? const [null]
+          : options.take(4).map((o) => o.color).toList(),
+    );
   }
 }

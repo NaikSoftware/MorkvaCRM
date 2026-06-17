@@ -74,24 +74,19 @@ GoRouter createAppRouter(
       // Full-screen schema editor for one collection. A focused mode outside
       // the shell nav. Same auth+session gate as `/` (the redirect above holds
       // any protected location on `/loading` until the workspace is ready), so
-      // the repository is initialized before these cubits subscribe. Its own
-      // CollectionsListCubit feeds the reference picker's target choices.
+      // the repository is initialized before the cubit loads. The editor cubit
+      // loads a one-shot snapshot of the workspace collections itself (for the
+      // reference picker's target choices), so no live list stream is needed
+      // here.
       GoRoute(
         path: '/collections/:id',
         builder: (context, state) {
           final id = state.pathParameters['id']!;
           final repository = context.read<DataRepository>();
-          return MultiBlocProvider(
-            providers: [
-              BlocProvider(
-                create: (_) => CollectionsListCubit(repository)..initialize(),
-              ),
-              BlocProvider(
-                create: (_) =>
-                    CollectionEditorCubit(repository, fieldEditorRegistry)
-                      ..load(id),
-              ),
-            ],
+          return BlocProvider(
+            create: (_) =>
+                CollectionEditorCubit(repository, fieldEditorRegistry)
+                  ..load(id),
             child: CollectionEditorPage(registry: fieldEditorRegistry),
           );
         },

@@ -68,7 +68,9 @@ abstract final class AppTheme {
       filledButtonTheme: FilledButtonThemeData(style: _filledButtonStyle(text)),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: _filledButtonStyle(text).copyWith(
-          backgroundColor: WidgetStatePropertyAll(scheme.surfaceContainerLowest),
+          backgroundColor: WidgetStatePropertyAll(
+            scheme.surfaceContainerLowest,
+          ),
           foregroundColor: WidgetStatePropertyAll(scheme.onSurface),
           elevation: const WidgetStatePropertyAll(0),
         ),
@@ -86,9 +88,9 @@ abstract final class AppTheme {
         ),
       ),
       textButtonTheme: TextButtonThemeData(
-        style: _baseButtonStyle(text).copyWith(
-          foregroundColor: WidgetStatePropertyAll(scheme.primary),
-        ),
+        style: _baseButtonStyle(
+          text,
+        ).copyWith(foregroundColor: WidgetStatePropertyAll(scheme.primary)),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -123,14 +125,17 @@ abstract final class AppTheme {
       navigationRailTheme: NavigationRailThemeData(
         backgroundColor: scheme.surfaceContainer,
         indicatorColor: scheme.primaryContainer,
-        indicatorShape:
-            const RoundedRectangleBorder(borderRadius: Radii.fullAll),
+        indicatorShape: const RoundedRectangleBorder(
+          borderRadius: Radii.fullAll,
+        ),
         selectedIconTheme: IconThemeData(color: scheme.onPrimaryContainer),
         unselectedIconTheme: IconThemeData(color: scheme.onSurfaceVariant),
-        selectedLabelTextStyle:
-            text.labelMedium?.copyWith(color: scheme.onSurface),
-        unselectedLabelTextStyle:
-            text.labelMedium?.copyWith(color: scheme.onSurfaceVariant),
+        selectedLabelTextStyle: text.labelMedium?.copyWith(
+          color: scheme.onSurface,
+        ),
+        unselectedLabelTextStyle: text.labelMedium?.copyWith(
+          color: scheme.onSurfaceVariant,
+        ),
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: scheme.surfaceContainer,
@@ -146,29 +151,50 @@ abstract final class AppTheme {
           ),
         ),
       ),
+      switchTheme: SwitchThemeData(
+        // Carrot accent when on; quiet neutral track/thumb when off — so a
+        // toggle reads as a brand control, not stock Material blue.
+        thumbColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? scheme.onPrimary
+              : scheme.outline,
+        ),
+        trackColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? scheme.primary
+              : scheme.surfaceContainerHighest,
+        ),
+        trackOutlineColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? Colors.transparent
+              : scheme.outline,
+        ),
+      ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         backgroundColor: scheme.inverseSurface,
-        contentTextStyle:
-            text.bodyMedium?.copyWith(color: scheme.onInverseSurface),
+        contentTextStyle: text.bodyMedium?.copyWith(
+          color: scheme.onInverseSurface,
+        ),
         shape: const RoundedRectangleBorder(borderRadius: Radii.mdAll),
       ),
     );
   }
 
   static ButtonStyle _baseButtonStyle(TextTheme text) => ButtonStyle(
-        textStyle: WidgetStatePropertyAll(text.labelLarge),
-        padding: const WidgetStatePropertyAll(
-          EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: Spacing.sm),
-        ),
-        minimumSize: const WidgetStatePropertyAll(Size(0, 44)),
-        shape: const WidgetStatePropertyAll(
-          RoundedRectangleBorder(borderRadius: Radii.mdAll),
-        ),
-        animationDuration: MotionDurations.fast,
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      );
+    textStyle: WidgetStatePropertyAll(text.labelLarge),
+    padding: const WidgetStatePropertyAll(
+      EdgeInsets.symmetric(horizontal: Spacing.lg, vertical: Spacing.sm),
+    ),
+    minimumSize: const WidgetStatePropertyAll(Size(0, 44)),
+    shape: const WidgetStatePropertyAll(
+      RoundedRectangleBorder(borderRadius: Radii.mdAll),
+    ),
+    animationDuration: MotionDurations.fast,
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+  );
 
-  static ButtonStyle _filledButtonStyle(TextTheme text) =>
-      _baseButtonStyle(text).copyWith(elevation: const WidgetStatePropertyAll(0));
+  static ButtonStyle _filledButtonStyle(TextTheme text) => _baseButtonStyle(
+    text,
+  ).copyWith(elevation: const WidgetStatePropertyAll(0));
 }

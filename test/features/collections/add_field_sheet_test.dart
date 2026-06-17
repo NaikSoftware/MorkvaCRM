@@ -47,9 +47,9 @@ void main() {
     expect(find.text('Number'), findsOneWidget);
     expect(find.text('Reference'), findsOneWidget);
 
-    // Computed types (auto-number, calculated) are tagged rather than showing
-    // a live description.
-    expect(find.text('Computed in a later update'), findsWidgets);
+    // Computed types (auto-number, calculated) keep their real description and
+    // carry a "Declare only" pill marking them as declare-now/compute-later.
+    expect(find.text('Declare only'), findsWidgets);
 
     // Picking a type pops the sheet with its typeId.
     await tester.tap(find.text('Number'));

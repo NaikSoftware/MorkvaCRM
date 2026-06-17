@@ -82,11 +82,24 @@ class FieldList extends StatelessWidget {
       onReorder: (oldIndex, newIndex) => context
           .read<CollectionEditorCubit>()
           .reorderFields(oldIndex, newIndex),
-      proxyDecorator: (child, index, animation) => Material(
-        color: Colors.transparent,
-        elevation: 0,
-        child: child,
-      ),
+      proxyDecorator: (child, index, animation) {
+        // Lift the dragged row: a soft level-2 shadow and a slight scale give
+        // clear "picked up" feedback without the stock Material drop shadow.
+        return Material(
+          color: Colors.transparent,
+          elevation: 0,
+          child: Transform.scale(
+            scale: 1.02,
+            child: DecoratedBox(
+              decoration: const BoxDecoration(
+                borderRadius: Radii.mdAll,
+                boxShadow: MorkvaElevation.level2,
+              ),
+              child: child,
+            ),
+          ),
+        );
+      },
       itemBuilder: (context, index) {
         final field = fields[index];
         return FieldRow(
@@ -96,6 +109,7 @@ class FieldList extends StatelessWidget {
           index: index,
           selected: state.selectedFieldId == field.id,
           typeLocked: state.isFieldTypeLocked(field.id),
+          collections: state.availableCollections,
           onTap: () =>
               context.read<CollectionEditorCubit>().selectField(field.id),
           onRemove: () => _confirmRemove(context, field),
@@ -125,31 +139,15 @@ class FieldList extends StatelessWidget {
     FieldDefinition field,
   ) async {
     final cubit = context.read<CollectionEditorCubit>();
-    final theme = Theme.of(context);
     final name = field.name.trim().isEmpty ? 'this field' : '"${field.name}"';
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: const RoundedRectangleBorder(borderRadius: Radii.lgAll),
-        title: const Text('Remove field?'),
-        content: Text(
+    final confirmed = await MorkvaConfirmDialog.show(
+      context,
+      title: 'Remove field?',
+      message:
           'Remove $name from the schema. Existing objects keep their other '
           'values; this one stops being shown. You can re-add it later.',
-        ),
-        actions: [
-          TextActionButton(
-            label: 'Cancel',
-            onPressed: () => Navigator.of(context).pop(false),
-          ),
-          const SizedBox(width: Spacing.xxs),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style:
-                TextButton.styleFrom(foregroundColor: theme.colorScheme.error),
-            child: const Text('Remove'),
-          ),
-        ],
-      ),
+      confirmLabel: 'Remove',
+      destructive: true,
     );
     if (confirmed == true) cubit.removeField(field.id);
   }
@@ -195,8 +193,9 @@ class _EmptyFields extends StatelessWidget {
             Text(
               'Fields are the columns of your collection — '
               'a title, a status, a date, a price.',
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: scheme.onSurfaceVariant),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
               textAlign: TextAlign.center,
             ),
           ],

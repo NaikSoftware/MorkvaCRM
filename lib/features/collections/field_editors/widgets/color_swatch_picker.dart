@@ -36,8 +36,10 @@ class ColorSwatchPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Wrap(
-      spacing: Spacing.xs,
-      runSpacing: Spacing.xs,
+      // The 44dp hit boxes already carry ~16dp of visual gap between the 28dp
+      // discs, so no extra inter-swatch spacing is needed.
+      spacing: 0,
+      runSpacing: 0,
       children: [
         _NoneSwatch(selected: selected == null, onTap: () => onChanged(null)),
         for (final hex in palette)
@@ -77,6 +79,11 @@ class _ColorSwatch extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = colorFromHex(hex);
+    // White reads on dark swatches, ink on pale ones, so the check never
+    // disappears against a light palette entry.
+    final checkColor = color.computeLuminance() > 0.5
+        ? const Color(0xFF2B2018) // inkHigh
+        : Colors.white;
     return Semantics(
       label: 'Color $hex',
       selected: selected,
@@ -84,22 +91,30 @@ class _ColorSwatch extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: Radii.fullAll,
-        child: Container(
-          width: 28,
-          height: 28,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: selected
-                  ? Theme.of(context).colorScheme.onSurface
-                  : Theme.of(context).colorScheme.outlineVariant,
-              width: selected ? 2.5 : 1,
+        // A 44dp hit area around the 28dp disc keeps the touch target accessible
+        // without enlarging the visual swatch.
+        child: SizedBox(
+          width: 44,
+          height: 44,
+          child: Center(
+            child: Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: selected
+                      ? Theme.of(context).colorScheme.onSurface
+                      : Theme.of(context).colorScheme.outlineVariant,
+                  width: selected ? 2.5 : 1,
+                ),
+              ),
+              child: selected
+                  ? Icon(Icons.check, size: 16, color: checkColor)
+                  : null,
             ),
           ),
-          child: selected
-              ? const Icon(Icons.check, size: 16, color: Colors.white)
-              : null,
         ),
       ),
     );
@@ -122,21 +137,27 @@ class _NoneSwatch extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: Radii.fullAll,
-        child: Container(
-          width: 28,
-          height: 28,
-          decoration: BoxDecoration(
-            color: scheme.surfaceContainerHighest,
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: selected ? scheme.onSurface : scheme.outlineVariant,
-              width: selected ? 2.5 : 1,
+        child: SizedBox(
+          width: 44,
+          height: 44,
+          child: Center(
+            child: Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: scheme.surfaceContainerHighest,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: selected ? scheme.onSurface : scheme.outlineVariant,
+                  width: selected ? 2.5 : 1,
+                ),
+              ),
+              child: Icon(
+                Icons.format_color_reset_outlined,
+                size: 16,
+                color: scheme.onSurfaceVariant,
+              ),
             ),
-          ),
-          child: Icon(
-            Icons.format_color_reset_outlined,
-            size: 16,
-            color: scheme.onSurfaceVariant,
           ),
         ),
       ),

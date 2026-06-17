@@ -6,6 +6,11 @@ import '../field_editors/field_editor.dart';
 import '../util/id_generator.dart';
 import 'collection_editor_state.dart';
 
+/// Sentinel for [CollectionEditorCubit.updateFieldEnvelope]'s nullable
+/// `description`, so an explicit `null` (clear) is distinguishable from
+/// "unchanged".
+const Object _unsetDescription = Object();
+
 /// A schema-editor validation problem.
 ///
 /// [blocking] problems (empty collection name, duplicate field names) must be
@@ -63,11 +68,17 @@ class CollectionEditorCubit extends Cubit<CollectionEditorState> {
     this._registry, {
     IdGenerator? idGenerator,
   }) : _ids = idGenerator ?? IdGenerator(),
+       _fieldTypes = defaultFieldTypeRegistry(),
        super(const CollectionEditorLoading());
 
   final DataRepository _repository;
   final FieldEditorRegistry _registry;
   final IdGenerator _ids;
+
+  /// The canonical domain type registry, owned here so the cubit can rebuild a
+  /// field's common envelope via a lossless toJson → definitionFromJson
+  /// round-trip without any `switch (type)` (see [updateFieldEnvelope]).
+  final FieldTypeRegistry _fieldTypes;
 
   /// Loads the collection [collectionId] into an editable draft.
   ///
@@ -86,11 +97,22 @@ class CollectionEditorCubit extends Cubit<CollectionEditorState> {
       emit(CollectionEditorNotFound(collectionId));
       return;
     }
+    // One-shot snapshot of the workspace collections for the reference picker
+    // and reference summaries — not a live stream (the editor edits a detached
+    // draft and commits atomically).
+    List<Collection> available;
+    try {
+      available = await _repository.getCollections();
+    } catch (_) {
+      available = const [];
+    }
+    if (isClosed) return;
     emit(
       CollectionEditorReady(
         draft: collection,
         saved: collection,
         persistedFieldIds: collection.fields.map((f) => f.id).toSet(),
+        availableCollections: available,
       ),
     );
   }
@@ -150,6 +172,42 @@ class CollectionEditorCubit extends Cubit<CollectionEditorState> {
         clearError: true,
       ),
     );
+  }
+
+  /// Updates a field's **common envelope** (name / description / required)
+  /// without naming its concrete subclass.
+  ///
+  /// Only the supplied arguments change. [description] uses a sentinel default
+  /// so passing an explicit `null` (or an empty/blank string) clears the
+  /// description, while omitting it preserves the current value. The rebuild is
+  /// a lossless `toJson` → [FieldTypeRegistry.definitionFromJson] round-trip,
+  /// owned here so widgets stay free of the type registry and any `switch`.
+  ///
+  /// A no-op if [fieldId] is unknown in the draft.
+  void updateFieldEnvelope(
+    String fieldId, {
+    String? name,
+    Object? description = _unsetDescription,
+    bool? isRequired,
+  }) {
+    final ready = _ready;
+    if (ready == null) return;
+    final field = ready.draft.fieldById(fieldId);
+    if (field == null) return;
+
+    final json = field.toJson();
+    if (name != null) json['name'] = name;
+    if (!identical(description, _unsetDescription)) {
+      final value = description as String?;
+      if (value == null || value.trim().isEmpty) {
+        json.remove('description');
+      } else {
+        json['description'] = value;
+      }
+    }
+    if (isRequired != null) json['required'] = isRequired;
+
+    updateField(_fieldTypes.definitionFromJson(json));
   }
 
   /// Removes the field [fieldId] from the draft, clearing selection if it was

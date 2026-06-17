@@ -36,15 +36,26 @@ class Collection extends Equatable {
     return null;
   }
 
+  /// Sentinel default for [copyWith]'s nullable [description], so passing an
+  /// explicit `null` clears it while omitting the argument preserves it.
+  static const Object _unset = Object();
+
+  /// Returns a copy with the given overrides.
+  ///
+  /// [description] uses a sentinel default so `copyWith(description: null)`
+  /// actually clears the description, while omitting it preserves the current
+  /// value (a plain `?? this.description` could never null an existing value).
   Collection copyWith({
     String? id,
     String? name,
-    String? description,
+    Object? description = _unset,
     List<FieldDefinition>? fields,
   }) => Collection(
     id: id ?? this.id,
     name: name ?? this.name,
-    description: description ?? this.description,
+    description: identical(description, _unset)
+        ? this.description
+        : description as String?,
     fields: fields ?? this.fields,
   );
 

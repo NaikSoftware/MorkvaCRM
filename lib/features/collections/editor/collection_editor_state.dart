@@ -39,14 +39,16 @@ final class CollectionEditorNotFound extends CollectionEditorState {
 
 /// A loaded collection, ready to edit.
 final class CollectionEditorReady extends CollectionEditorState {
-  const CollectionEditorReady({
+  CollectionEditorReady({
     required this.draft,
     required this.saved,
-    required this.persistedFieldIds,
+    required Set<String> persistedFieldIds,
+    List<Collection> availableCollections = const [],
     this.selectedFieldId,
     this.saving = false,
     this.error,
-  });
+  }) : persistedFieldIds = Set.unmodifiable(persistedFieldIds),
+       availableCollections = List.unmodifiable(availableCollections);
 
   /// The in-memory working copy being edited.
   final Collection draft;
@@ -56,6 +58,11 @@ final class CollectionEditorReady extends CollectionEditorState {
 
   /// Ids of fields that existed at load; their type is locked.
   final Set<String> persistedFieldIds;
+
+  /// A one-shot snapshot of the workspace's collections, loaded at [load] time.
+  /// Feeds the reference picker's target choices and resolves reference summary
+  /// labels. Not a live stream — the editor edits a detached draft.
+  final List<Collection> availableCollections;
 
   /// The field whose config panel is open, or null when none is selected.
   final String? selectedFieldId;
@@ -80,6 +87,7 @@ final class CollectionEditorReady extends CollectionEditorState {
     Collection? draft,
     Collection? saved,
     Set<String>? persistedFieldIds,
+    List<Collection>? availableCollections,
     String? selectedFieldId,
     bool clearSelection = false,
     bool? saving,
@@ -90,6 +98,7 @@ final class CollectionEditorReady extends CollectionEditorState {
       draft: draft ?? this.draft,
       saved: saved ?? this.saved,
       persistedFieldIds: persistedFieldIds ?? this.persistedFieldIds,
+      availableCollections: availableCollections ?? this.availableCollections,
       selectedFieldId: clearSelection
           ? null
           : (selectedFieldId ?? this.selectedFieldId),
@@ -103,6 +112,7 @@ final class CollectionEditorReady extends CollectionEditorState {
     draft,
     saved,
     persistedFieldIds,
+    availableCollections,
     selectedFieldId,
     saving,
     error,

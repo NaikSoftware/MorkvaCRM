@@ -5,8 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
 import '../field_editors/field_editor.dart';
-import '../list/collections_list_cubit.dart';
-import '../list/collections_list_state.dart';
 import 'card_preview.dart';
 import 'collection_editor_cubit.dart';
 import 'collection_editor_state.dart';
@@ -27,10 +25,12 @@ import 'field_list.dart';
 /// - **narrow**: a single scrolling column (list + collapsible preview); the
 ///   config panel opens as a modal bottom sheet when a field is selected.
 ///
-/// The reference picker inside per-type config editors needs the live list of
-/// collections; this page reads it from the app-wide [CollectionsListCubit] and
-/// threads it down to [FieldConfigPanel]. Save failures surface as a
-/// non-destructive snackbar (the draft is retained and stays dirty for retry).
+/// The reference picker inside per-type config editors needs the workspace's
+/// collections; the [CollectionEditorCubit] loads them once into
+/// [CollectionEditorReady.availableCollections], and this page threads that
+/// snapshot down to [FieldConfigPanel] and the field rows. Save failures surface
+/// as a non-destructive snackbar (the draft is retained and stays dirty for
+/// retry).
 class CollectionEditorPage extends StatelessWidget {
   const CollectionEditorPage({super.key, required this.registry});
 
@@ -61,13 +61,14 @@ class CollectionEditorPage extends StatelessWidget {
       },
       builder: (context, state) {
         return switch (state) {
-          CollectionEditorLoading() =>
-            const _EditorScaffold(child: LoadingIndicator()),
+          CollectionEditorLoading() => const _EditorScaffold(
+            child: LoadingIndicator(),
+          ),
           CollectionEditorNotFound() => const _NotFoundView(),
           CollectionEditorReady() => _ReadyEditor(
-              state: state,
-              registry: registry,
-            ),
+            state: state,
+            registry: registry,
+          ),
         };
       },
     );
@@ -119,15 +120,10 @@ class _ReadyEditor extends StatelessWidget {
   final CollectionEditorReady state;
   final FieldEditorRegistry registry;
 
-  List<Collection> _collections(BuildContext context) {
-    final listState = context.watch<CollectionsListCubit>().state;
-    return listState is CollectionsListReady ? listState.collections : const [];
-  }
-
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final collections = _collections(context);
+    final collections = state.availableCollections;
 
     return PopScope(
       canPop: !state.dirty,
@@ -200,24 +196,43 @@ class _EditorHeader extends StatefulWidget {
 }
 
 class _EditorHeaderState extends State<_EditorHeader> {
-  late final TextEditingController _nameController =
-      TextEditingController(text: widget.state.draft.name);
+  late final TextEditingController _nameController = TextEditingController(
+    text: widget.state.draft.name,
+  );
+  final FocusNode _nameFocus = FocusNode();
+  bool _nameHovered = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Repaint the editable affordance (underline + pencil) as focus changes.
+    _nameFocus.addListener(_onFocusChanged);
+  }
+
+  void _onFocusChanged() {
+    if (mounted) setState(() {});
+  }
 
   @override
   void didUpdateWidget(_EditorHeader oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Keep the controller in sync if the name changed elsewhere (e.g. discard),
-    // without stomping the caret while the user is typing.
+    // Re-sync the controller when the draft name changed elsewhere (a discard,
+    // an external rename) — but only while the user is NOT editing the field,
+    // so we never stomp the caret mid-type. The caret is placed at the end.
     final draftName = widget.state.draft.name;
-    if (draftName != _nameController.text &&
-        oldWidget.state.draft.id != widget.state.draft.id) {
-      _nameController.text = draftName;
+    if (draftName != _nameController.text && !_nameFocus.hasFocus) {
+      _nameController.value = TextEditingValue(
+        text: draftName,
+        selection: TextSelection.collapsed(offset: draftName.length),
+      );
     }
   }
 
   @override
   void dispose() {
+    _nameFocus.removeListener(_onFocusChanged);
     _nameController.dispose();
+    _nameFocus.dispose();
     super.dispose();
   }
 
@@ -239,8 +254,9 @@ class _EditorHeaderState extends State<_EditorHeader> {
 
   void _editDescription() async {
     final cubit = context.read<CollectionEditorCubit>();
-    final controller =
-        TextEditingController(text: widget.state.draft.description ?? '');
+    final controller = TextEditingController(
+      text: widget.state.draft.description ?? '',
+    );
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
@@ -298,22 +314,29 @@ class _EditorHeaderState extends State<_EditorHeader> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextField(
-                  controller: _nameController,
-                  style: theme.textTheme.titleLarge,
-                  cursorColor: scheme.primary,
-                  textInputAction: TextInputAction.done,
-                  onChanged: (value) => cubit.renameCollection(
-                    value,
-                    description: state.draft.description,
-                  ),
-                  decoration: InputDecoration(
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
-                    border: InputBorder.none,
-                    hintText: 'Collection name',
-                    hintStyle: theme.textTheme.titleLarge
-                        ?.copyWith(color: scheme.onSurfaceVariant),
+                _NameEditAffordance(
+                  focused: _nameFocus.hasFocus,
+                  hovered: _nameHovered,
+                  onHover: (value) => setState(() => _nameHovered = value),
+                  field: TextField(
+                    controller: _nameController,
+                    focusNode: _nameFocus,
+                    style: theme.textTheme.titleLarge,
+                    cursorColor: scheme.primary,
+                    textInputAction: TextInputAction.done,
+                    onChanged: (value) => cubit.renameCollection(
+                      value,
+                      description: state.draft.description,
+                    ),
+                    decoration: InputDecoration(
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
+                      border: InputBorder.none,
+                      hintText: 'Collection name',
+                      hintStyle: theme.textTheme.titleLarge?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
                   ),
                 ),
                 _DescriptionLine(
@@ -326,6 +349,64 @@ class _EditorHeaderState extends State<_EditorHeader> {
           const SizedBox(width: Spacing.md),
           _SaveControl(state: state),
         ],
+      ),
+    );
+  }
+}
+
+/// Wraps the collection-name [field] with a quiet but clear editable
+/// affordance: a bottom border that is invisible at rest, warms to [outline] on
+/// hover, and to carrot on focus, plus a trailing pencil glyph at rest (dropped
+/// once focused, where the underline + caret already signal editing). This keeps
+/// the borderless title feel while making it obvious the name is editable — and
+/// reads as a sibling of the description line below it.
+class _NameEditAffordance extends StatelessWidget {
+  const _NameEditAffordance({
+    required this.field,
+    required this.focused,
+    required this.hovered,
+    required this.onHover,
+  });
+
+  final Widget field;
+  final bool focused;
+  final bool hovered;
+  final ValueChanged<bool> onHover;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final borderColor = focused
+        ? scheme.primary
+        : hovered
+        ? scheme.outline
+        : Colors.transparent;
+
+    return MouseRegion(
+      onEnter: (_) => onHover(true),
+      onExit: (_) => onHover(false),
+      child: AnimatedContainer(
+        duration: MotionDurations.fast,
+        curve: MotionCurves.standard,
+        padding: const EdgeInsets.only(bottom: 3),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: borderColor, width: focused ? 2 : 1),
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(child: field),
+            if (!focused) ...[
+              const SizedBox(width: Spacing.xs),
+              Icon(
+                Icons.edit_outlined,
+                size: 16,
+                color: hovered ? scheme.onSurface : scheme.onSurfaceVariant,
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -393,8 +474,9 @@ class _SaveControl extends StatelessWidget {
           const SizedBox(width: Spacing.xxs),
           Text(
             'Saved',
-            style: theme.textTheme.labelMedium
-                ?.copyWith(color: scheme.onSurfaceVariant),
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
           ),
         ],
       );
@@ -483,11 +565,7 @@ class _TwoPaneLayout extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                FieldList(
-                  state: state,
-                  registry: registry,
-                  scrollable: false,
-                ),
+                FieldList(state: state, registry: registry, scrollable: false),
                 const SizedBox(height: Spacing.lg),
                 CardPreview(collection: state.draft, registry: registry),
               ],
@@ -529,13 +607,20 @@ class _NarrowLayout extends StatefulWidget {
 class _NarrowLayoutState extends State<_NarrowLayout> {
   String? _sheetFieldId;
 
+  /// Whether a config sheet is currently on screen. Guards against stacking a
+  /// second sheet when the selection changes while one is already open — the
+  /// open sheet already rebuilds from cubit state, so it tracks the new field.
+  bool _sheetOpen = false;
+
   @override
   void didUpdateWidget(_NarrowLayout oldWidget) {
     super.didUpdateWidget(oldWidget);
     final selected = widget.state.selectedFieldId;
     // A newly selected field opens the sheet (post-frame, so we're out of
-    // build); deselection or a removed field closes it.
-    if (selected != null &&
+    // build); deselection or a removed field closes it. Never schedule a second
+    // open while one is already showing — the live sheet follows the selection.
+    if (!_sheetOpen &&
+        selected != null &&
         selected != _sheetFieldId &&
         widget.state.draft.fieldById(selected) != null) {
       _sheetFieldId = selected;
@@ -544,7 +629,8 @@ class _NarrowLayoutState extends State<_NarrowLayout> {
   }
 
   Future<void> _openSheet() async {
-    if (!mounted) return;
+    if (!mounted || _sheetOpen) return;
+    _sheetOpen = true;
     final cubit = context.read<CollectionEditorCubit>();
     await showModalBottomSheet<void>(
       context: context,
@@ -566,12 +652,15 @@ class _NarrowLayoutState extends State<_NarrowLayout> {
             if (field == null) return const SizedBox.shrink();
             return FractionallySizedBox(
               heightFactor: 0.85,
-              child: FieldConfigPanel(
-                field: field,
-                editor: widget.registry.forType(field.type),
-                collections: widget.collections,
-                editingCollectionId: state.draft.id,
-                typeLocked: state.isFieldTypeLocked(field.id),
+              child: _ConfigSheet(
+                state: state,
+                child: FieldConfigPanel(
+                  field: field,
+                  editor: widget.registry.forType(field.type),
+                  collections: widget.collections,
+                  editingCollectionId: state.draft.id,
+                  typeLocked: state.isFieldTypeLocked(field.id),
+                ),
               ),
             );
           },
@@ -579,6 +668,7 @@ class _NarrowLayoutState extends State<_NarrowLayout> {
       },
     );
     // Sheet dismissed → clear selection so reopening the same field works.
+    _sheetOpen = false;
     _sheetFieldId = null;
     if (mounted) cubit.selectField(null);
   }
@@ -596,9 +686,114 @@ class _NarrowLayoutState extends State<_NarrowLayout> {
             scrollable: false,
           ),
           const SizedBox(height: Spacing.lg),
-          CardPreview(collection: widget.state.draft, registry: widget.registry),
+          CardPreview(
+            collection: widget.state.draft,
+            registry: widget.registry,
+          ),
         ],
       ),
+    );
+  }
+}
+
+/// Frames the narrow-layout config bottom sheet: a compact header ("Configure
+/// field" + a close action) and a pinned footer with a dirty/saved indicator and
+/// a prominent "Done" button — so a mobile user always has an obvious exit. The
+/// [child] is the scrolling [FieldConfigPanel]; both the close and Done actions
+/// simply dismiss the sheet (the draft is already live in the cubit).
+class _ConfigSheet extends StatelessWidget {
+  const _ConfigSheet({required this.state, required this.child});
+
+  final CollectionEditorReady state;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            Spacing.lg,
+            0,
+            Spacing.xs,
+            Spacing.xs,
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Configure field',
+                  style: theme.textTheme.titleMedium,
+                ),
+              ),
+              IconActionButton(
+                icon: Icons.close,
+                tooltip: 'Close',
+                onPressed: () => Navigator.of(context).maybePop(),
+              ),
+            ],
+          ),
+        ),
+        Divider(height: 1, color: scheme.outlineVariant),
+        Expanded(child: child),
+        Divider(height: 1, color: scheme.outlineVariant),
+        Padding(
+          padding: EdgeInsets.fromLTRB(
+            Spacing.lg,
+            Spacing.sm,
+            Spacing.lg,
+            Spacing.sm + MediaQuery.of(context).padding.bottom,
+          ),
+          child: Row(
+            children: [
+              Expanded(child: _SheetSaveStatus(state: state)),
+              PrimaryButton(
+                label: 'Done',
+                onPressed: () => Navigator.of(context).maybePop(),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The dirty/saved indicator inside the config sheet footer, mirroring the
+/// header's [_SaveControl] language ("Saving…", a carrot "Unsaved changes", or a
+/// calm "Saved") so the mobile user knows the draft's state without the header.
+class _SheetSaveStatus extends StatelessWidget {
+  const _SheetSaveStatus({required this.state});
+
+  final CollectionEditorReady state;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    final (IconData icon, String label, Color color) = state.saving
+        ? (Icons.sync, 'Saving…', scheme.onSurfaceVariant)
+        : state.dirty
+        ? (Icons.edit_outlined, 'Unsaved changes', scheme.primary)
+        : (Icons.check_circle_outline, 'Saved', scheme.secondary);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: Spacing.xxs),
+        Flexible(
+          child: Text(
+            label,
+            style: theme.textTheme.labelMedium?.copyWith(color: color),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -637,8 +832,9 @@ class _ConfigRegion extends StatelessWidget {
               const SizedBox(height: Spacing.sm),
               Text(
                 'Select a field to configure it',
-                style: theme.textTheme.bodyMedium
-                    ?.copyWith(color: scheme.onSurfaceVariant),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -665,8 +861,14 @@ enum _LeaveAction { save, discard, cancel }
 
 /// Prompts the unsaved-changes guard. Returns the chosen action (defaults to
 /// cancel on dismiss).
+///
+/// This is a three-way choice (save / discard / cancel), so it does not use the
+/// binary [MorkvaConfirmDialog]; it is assembled from the same design primitives
+/// — a quiet [TextActionButton] cancel, an error-tinted discard, and the carrot
+/// [PrimaryButton] save — so it still matches the confirm-dialog family.
 Future<_LeaveAction> _confirmLeave(BuildContext context) async {
   final theme = Theme.of(context);
+  final scheme = theme.colorScheme;
   final action = await showDialog<_LeaveAction>(
     context: context,
     builder: (context) => AlertDialog(
@@ -681,11 +883,20 @@ Future<_LeaveAction> _confirmLeave(BuildContext context) async {
           label: 'Cancel',
           onPressed: () => Navigator.of(context).pop(_LeaveAction.cancel),
         ),
-        TextButton(
+        const SizedBox(width: Spacing.xxs),
+        PressableScale(
           onPressed: () => Navigator.of(context).pop(_LeaveAction.discard),
-          style:
-              TextButton.styleFrom(foregroundColor: theme.colorScheme.error),
-          child: const Text('Discard'),
+          semanticLabel: 'Discard',
+          borderRadius: Radii.mdAll,
+          child: Container(
+            height: 44,
+            padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
+            alignment: Alignment.center,
+            child: Text(
+              'Discard',
+              style: theme.textTheme.labelLarge?.copyWith(color: scheme.error),
+            ),
+          ),
         ),
         const SizedBox(width: Spacing.xxs),
         PrimaryButton(

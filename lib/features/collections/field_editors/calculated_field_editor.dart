@@ -4,6 +4,7 @@ import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
 import 'field_editor.dart';
 import 'widgets/config_controls.dart';
+import 'widgets/preview_affordances.dart';
 
 /// [FieldEditor] for the calculated field type.
 ///
@@ -84,11 +85,9 @@ class CalculatedFieldEditor extends FieldEditor {
           child: DropdownButtonFormField<String>(
             initialValue: knownOutput ? field.declaredOutputType : null,
             isExpanded: true,
-            decoration: const InputDecoration(
-              labelText: 'Output type',
-              isDense: true,
-              border: OutlineInputBorder(),
-            ),
+            // Inherit the themed input decoration (filled, carrot focus ring) so
+            // the dropdown matches the MorkvaTextFields around it.
+            decoration: const InputDecoration(labelText: 'Output type'),
             items: [
               for (final entry in outputTypes.entries)
                 DropdownMenuItem(value: entry.key, child: Text(entry.value)),
@@ -98,28 +97,33 @@ class CalculatedFieldEditor extends FieldEditor {
             },
           ),
         ),
-        TextFormField(
-          initialValue: field.expression ?? '',
+        ConfigTextField(
+          label: 'Expression',
+          hint: 'e.g. price * quantity',
+          value: field.expression ?? '',
           minLines: 2,
           maxLines: 4,
           onChanged: (text) =>
               onChanged(update(expression: () => text.isEmpty ? null : text)),
-          decoration: const InputDecoration(
-            labelText: 'Expression',
-            hintText: 'e.g. price * quantity',
-            isDense: true,
-            border: OutlineInputBorder(),
-          ),
         ),
       ],
     );
   }
 
   @override
-  String summarize(FieldDefinition definition) {
+  String summarize(
+    FieldDefinition definition, {
+    List<Collection> collections = const [],
+  }) {
     final field = definition as CalculatedFieldDefinition;
     final outputLabel =
         outputTypes[field.declaredOutputType] ?? field.declaredOutputType;
     return '→ $outputLabel';
   }
+
+  @override
+  Widget buildPreviewAffordance(
+    BuildContext context,
+    FieldDefinition definition,
+  ) => const PreviewStubInput(icon: Icons.functions, height: 36);
 }

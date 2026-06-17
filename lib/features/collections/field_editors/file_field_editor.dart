@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/domain/domain.dart';
 import 'field_editor.dart';
 import 'widgets/config_controls.dart';
+import 'widgets/preview_affordances.dart';
 
 /// [FieldEditor] for the file/attachment field type.
 class FileFieldEditor extends FieldEditor {
@@ -81,7 +82,10 @@ class FileFieldEditor extends FieldEditor {
   }
 
   @override
-  String summarize(FieldDefinition definition) {
+  String summarize(
+    FieldDefinition definition, {
+    List<Collection> collections = const [],
+  }) {
     final field = definition as FileFieldDefinition;
     final parts = <String>[
       if (field.multiple) 'multiple',
@@ -89,4 +93,14 @@ class FileFieldEditor extends FieldEditor {
     ];
     return parts.join(' · ');
   }
+
+  @override
+  Widget buildPreviewAffordance(
+    BuildContext context,
+    FieldDefinition definition,
+  ) => const PreviewStubInput(
+    icon: Icons.attach_file,
+    height: 36,
+    hint: 'No file',
+  );
 }

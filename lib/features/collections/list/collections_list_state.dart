@@ -20,7 +20,8 @@ final class CollectionsListLoading extends CollectionsListState {
 
 /// The workspace's collections, possibly empty.
 final class CollectionsListReady extends CollectionsListState {
-  const CollectionsListReady(this.collections);
+  CollectionsListReady(List<Collection> collections)
+    : collections = List.unmodifiable(collections);
 
   /// All collections in the workspace, in stream order.
   final List<Collection> collections;

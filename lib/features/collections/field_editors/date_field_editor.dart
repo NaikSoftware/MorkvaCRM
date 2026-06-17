@@ -4,6 +4,7 @@ import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
 import 'field_editor.dart';
 import 'widgets/config_controls.dart';
+import 'widgets/preview_affordances.dart';
 
 /// [FieldEditor] for the date / date-time field type.
 class DateFieldEditor extends FieldEditor {
@@ -73,10 +74,19 @@ class DateFieldEditor extends FieldEditor {
   }
 
   @override
-  String summarize(FieldDefinition definition) {
+  String summarize(
+    FieldDefinition definition, {
+    List<Collection> collections = const [],
+  }) {
     final field = definition as DateFieldDefinition;
     return field.includeTime ? 'date & time' : 'date';
   }
+
+  @override
+  Widget buildPreviewAffordance(
+    BuildContext context,
+    FieldDefinition definition,
+  ) => const PreviewStubInput(icon: Icons.calendar_today_outlined, height: 36);
 }
 
 class _DateBoundRow extends StatelessWidget {
@@ -92,7 +102,6 @@ class _DateBoundRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final text = value == null
         ? 'Any'
         : '${value!.year.toString().padLeft(4, '0')}-'
@@ -103,7 +112,9 @@ class _DateBoundRow extends StatelessWidget {
       child: Row(
         children: [
           SizedBox(width: 88, child: Text(label)),
-          OutlinedButton(
+          SecondaryButton(
+            label: text,
+            icon: Icons.event_outlined,
             onPressed: () async {
               final picked = await showDatePicker(
                 context: context,
@@ -115,12 +126,11 @@ class _DateBoundRow extends StatelessWidget {
                 onChanged(DateTime.utc(picked.year, picked.month, picked.day));
               }
             },
-            child: Text(text),
           ),
           if (value != null)
-            IconButton(
+            IconActionButton(
+              icon: Icons.clear,
               tooltip: 'Clear',
-              icon: Icon(Icons.clear, size: 18, color: scheme.onSurfaceVariant),
               onPressed: () => onChanged(null),
             ),
         ],

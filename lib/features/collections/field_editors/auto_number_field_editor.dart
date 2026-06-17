@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/domain/domain.dart';
 import 'field_editor.dart';
 import 'widgets/config_controls.dart';
+import 'widgets/preview_affordances.dart';
 
 /// [FieldEditor] for the auto-number field type.
 ///
@@ -80,7 +81,10 @@ class AutoNumberFieldEditor extends FieldEditor {
   }
 
   @override
-  String summarize(FieldDefinition definition) {
+  String summarize(
+    FieldDefinition definition, {
+    List<Collection> collections = const [],
+  }) {
     final field = definition as AutoNumberFieldDefinition;
     final parts = <String>[
       if (field.prefix != null) field.prefix!,
@@ -88,4 +92,10 @@ class AutoNumberFieldEditor extends FieldEditor {
     ];
     return parts.isEmpty ? 'auto' : parts.join(' · ');
   }
+
+  @override
+  Widget buildPreviewAffordance(
+    BuildContext context,
+    FieldDefinition definition,
+  ) => const PreviewStubInput(icon: Icons.tag, height: 36);
 }

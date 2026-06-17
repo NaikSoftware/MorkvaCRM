@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/domain/domain.dart';
 import 'field_editor.dart';
+import 'widgets/preview_affordances.dart';
 
 /// [FieldEditor] for the boolean (true/false) field type.
 ///
@@ -44,5 +45,14 @@ class BooleanFieldEditor extends FieldEditor {
   }
 
   @override
-  String summarize(FieldDefinition definition) => '';
+  String summarize(
+    FieldDefinition definition, {
+    List<Collection> collections = const [],
+  }) => '';
+
+  @override
+  Widget buildPreviewAffordance(
+    BuildContext context,
+    FieldDefinition definition,
+  ) => const PreviewStubSwitch();
 }

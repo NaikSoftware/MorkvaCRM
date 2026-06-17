@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/domain/domain.dart';
 import 'field_editor.dart';
 import 'widgets/config_controls.dart';
+import 'widgets/preview_affordances.dart';
 
 /// [FieldEditor] for the free-text field type.
 class TextFieldEditor extends FieldEditor {
@@ -72,12 +73,24 @@ class TextFieldEditor extends FieldEditor {
   }
 
   @override
-  String summarize(FieldDefinition definition) {
+  String summarize(
+    FieldDefinition definition, {
+    List<Collection> collections = const [],
+  }) {
     final field = definition as TextFieldDefinition;
     final parts = <String>[
       if (field.multiline) 'multiline',
       if (field.maxLength != null) 'max ${field.maxLength}',
     ];
     return parts.join(' · ');
+  }
+
+  @override
+  Widget buildPreviewAffordance(
+    BuildContext context,
+    FieldDefinition definition,
+  ) {
+    final field = definition as TextFieldDefinition;
+    return PreviewStubInput(height: field.multiline ? 56 : 36);
   }
 }

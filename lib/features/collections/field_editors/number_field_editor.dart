@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/domain/domain.dart';
 import 'field_editor.dart';
 import 'widgets/config_controls.dart';
+import 'widgets/preview_affordances.dart';
 
 /// [FieldEditor] for the numeric field type.
 class NumberFieldEditor extends FieldEditor {
@@ -92,7 +93,10 @@ class NumberFieldEditor extends FieldEditor {
   }
 
   @override
-  String summarize(FieldDefinition definition) {
+  String summarize(
+    FieldDefinition definition, {
+    List<Collection> collections = const [],
+  }) {
     final field = definition as NumberFieldDefinition;
     final parts = <String>[
       if (field.unitLabel != null) field.unitLabel!,
@@ -102,4 +106,10 @@ class NumberFieldEditor extends FieldEditor {
     ];
     return parts.join(' · ');
   }
+
+  @override
+  Widget buildPreviewAffordance(
+    BuildContext context,
+    FieldDefinition definition,
+  ) => const PreviewStubInput(height: 36);
 }
