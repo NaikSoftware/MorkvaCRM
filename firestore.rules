@@ -1,0 +1,45 @@
+rules_version = '2';
+
+// MorkvaCRM Firestore security rules.
+//
+// Data is scoped per workspace. TODAY the workspace owner is the authenticated
+// user (workspaceId == request.auth.uid), resolved client-side by
+// WorkspaceResolver. To enable shared workspaces across accounts/teams (a future
+// epic), replace `isWorkspaceOwner` with a membership check that reads a
+// `memberships/{uid}` document under the workspace — the document paths below do
+// NOT change, so no data migration is required.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isWorkspaceOwner(workspaceId) {
+      return request.auth != null && request.auth.uid == workspaceId;
+    }
+
+    // Defense-in-depth: an update must not lower the monotonic `rev` counter.
+    // The client conflict-detection logic is the primary mechanism; this guards
+    // against a buggy or malicious client rewinding history.
+    function revIsMonotonic(existing, incoming) {
+      return !existing.data.keys().hasAll(['rev'])
+          || incoming.data.get('rev', 0) >= existing.data.get('rev', 0);
+    }
+
+    match /workspaces/{workspaceId} {
+      allow read, write: if isWorkspaceOwner(workspaceId);
+
+      // Collection schema documents (Collection.toJson()).
+      match /collections/{collectionId} {
+        allow read, create, update, delete: if isWorkspaceOwner(workspaceId);
+      }
+
+      // Object documents ({collectionId, rev, createdAt, updatedAt, values}).
+      match /objects/{objectId} {
+        allow read: if isWorkspaceOwner(workspaceId);
+        allow create: if isWorkspaceOwner(workspaceId)
+            && request.resource.data.keys().hasAll(['collectionId', 'rev']);
+        allow update: if isWorkspaceOwner(workspaceId)
+            && revIsMonotonic(resource, request.resource);
+        allow delete: if isWorkspaceOwner(workspaceId);
+      }
+    }
+  }
+}

@@ -26,6 +26,8 @@ class AppShell extends StatelessWidget {
     required this.title,
     required this.child,
     this.railHeaderBuilder,
+    this.headerTrailing,
+    this.banner,
   });
 
   /// Index into [destinations] of the active section.
@@ -48,6 +50,16 @@ class AppShell extends StatelessWidget {
   /// compact mark). Only used in the expanded layout — the compact layout has no
   /// rail.
   final Widget Function(BuildContext context, bool extended)? railHeaderBuilder;
+
+  /// Optional trailing widget pinned to the right of the content header (e.g. a
+  /// sync-status indicator). Shown in both layouts so it stays visible on every
+  /// main screen.
+  final Widget? headerTrailing;
+
+  /// Optional full-width banner mounted directly above the content body, below
+  /// the header (e.g. a conflict warning). Self-hiding widgets are safe to pass
+  /// permanently — they render nothing when there is nothing to show.
+  final Widget? banner;
 
   /// Width at/above which the expanded rail layout is used (`DESIGN.md` §8).
   static const double expandedBreakpoint = 840;
@@ -93,8 +105,9 @@ class AppShell extends StatelessWidget {
                         right: Spacing.xs,
                       ),
                       child: Align(
-                        alignment:
-                            extended ? Alignment.centerLeft : Alignment.center,
+                        alignment: extended
+                            ? Alignment.centerLeft
+                            : Alignment.center,
                         child: railHeaderBuilder!(context, extended),
                       ),
                     ),
@@ -113,7 +126,8 @@ class AppShell extends StatelessWidget {
             Expanded(
               child: Column(
                 children: [
-                  _PageHeader(title: title),
+                  _PageHeader(title: title, trailing: headerTrailing),
+                  ?banner,
                   Expanded(child: child),
                 ],
               ),
@@ -129,7 +143,8 @@ class AppShell extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            _PageHeader(title: title),
+            _PageHeader(title: title, trailing: headerTrailing),
+            ?banner,
             Expanded(child: child),
           ],
         ),
@@ -159,9 +174,13 @@ class AppShell extends StatelessWidget {
 /// bottom border in `outlineVariant` separates it from the content — matching
 /// the rail/content [VerticalDivider] in weight and color — no shadow, no band.
 class _PageHeader extends StatelessWidget {
-  const _PageHeader({required this.title});
+  const _PageHeader({required this.title, this.trailing});
 
   final String title;
+
+  /// Optional control pinned to the right edge of the header (e.g. the sync
+  /// status indicator).
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -172,13 +191,20 @@ class _PageHeader extends StatelessWidget {
         horizontal: Spacing.lg,
         vertical: Spacing.md,
       ),
-      alignment: Alignment.centerLeft,
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(color: theme.colorScheme.outlineVariant),
         ),
       ),
-      child: Text(title, style: theme.textTheme.titleLarge),
+      child: Row(
+        children: [
+          Expanded(child: Text(title, style: theme.textTheme.titleLarge)),
+          if (trailing != null) ...[
+            const SizedBox(width: Spacing.md),
+            trailing!,
+          ],
+        ],
+      ),
     );
   }
 }

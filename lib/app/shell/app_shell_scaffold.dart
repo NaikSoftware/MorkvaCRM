@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../features/auth/conflict_warning_banner.dart';
 import '../../features/home/home_page.dart';
 import '../../features/settings/settings_page.dart';
 import '../navigation/navigation_cubit.dart';
 import 'app_shell.dart';
 import 'brand_wordmark.dart';
+import 'sync_status_indicator.dart';
 
 /// Connects [NavigationCubit] (the selection source of truth) to the dumb
 /// [AppShell]. The cubit drives which destination is active; tapping a
@@ -29,6 +31,11 @@ class AppShellScaffold extends StatelessWidget {
           title: section.label,
           railHeaderBuilder: (context, extended) =>
               BrandWordmark(extended: extended),
+          // Sync status sits quietly in the header so it's visible on every
+          // main screen; the conflict banner self-hides until there's a
+          // conflict to surface.
+          headerTrailing: const SyncStatusIndicator(),
+          banner: const ConflictWarningBanner(),
           onDestinationSelected: (i) =>
               context.read<NavigationCubit>().select(kAppSections[i]),
           child: IndexedStack(

@@ -1,4 +1,6 @@
-# Epic 2 — Firebase Storage & Sync
+# Epic 2 — Cloud Firestore & Sync
+
+> **Architecture update (2026-06-16, user-approved):** this epic was implemented on **Cloud Firestore**, not JSON-in-Firebase-Storage as originally drafted below. Firestore provides built-in offline persistence, an automatic write queue, native typed/queryable fields, and transactions — replacing a hand-built cache + sync engine. Auth is **Google-only**. Conflicts use last-write-wins + a visible warning (a `rev` counter). File-field blob uploads will use Firebase Storage in a later epic. Data is stored as typed Firestore documents that map losslessly back to the canonical JSON, so the "exportable open JSON" requirement still holds. The authoritative design is `docs/superpowers/specs/2026-06-16-epic-02-firestore-design.md`. Read "Firebase Storage" below as "Cloud Firestore" except where it refers to file-blob uploads.
 
 ## Goal
 The user signs in (Firebase Auth), and their collections live as JSON in **Firebase Storage**
