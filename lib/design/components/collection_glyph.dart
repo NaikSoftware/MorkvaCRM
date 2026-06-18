@@ -75,13 +75,17 @@ class CollectionGlyph extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(2),
                 decoration: BoxDecoration(
-                  color: scheme.surface,
+                  // A contrast ring + raised fill keep the badge legible on
+                  // both the editor header (surface) and the dialog's lowest
+                  // surface, where a plain `surface` fill vanished.
+                  color: scheme.surfaceContainerHighest,
                   shape: BoxShape.circle,
+                  border: Border.all(color: scheme.outlineVariant),
                 ),
                 child: Icon(
                   Icons.edit_outlined,
-                  size: 11,
-                  color: scheme.onSurfaceVariant,
+                  size: 12,
+                  color: scheme.primary,
                 ),
               ),
             ),

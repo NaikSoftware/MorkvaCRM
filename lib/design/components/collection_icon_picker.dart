@@ -65,7 +65,10 @@ class CollectionIconPicker extends StatelessWidget {
                   runSpacing: Spacing.sm,
                   children: [
                     _PickerTile(
-                      icon: CollectionIcons.fallback,
+                      // A distinct "no icon" mark — not the default glyph,
+                      // which otherwise made this tile a twin of the first
+                      // real option.
+                      icon: Icons.do_not_disturb_alt,
                       label: 'None',
                       selected: current == null,
                       muted: true,

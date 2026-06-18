@@ -127,6 +127,16 @@ class _CollectionFormDialogState extends State<CollectionFormDialog> {
             children: [
               Text(widget.title, style: theme.textTheme.titleLarge),
               const SizedBox(height: Spacing.lg),
+              // "Name" label is lifted above the whole row so the glyph aligns
+              // to the field box itself — not the taller label+field column —
+              // and stays put when the error line grows below.
+              Text(
+                'Name',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: Spacing.xs),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -139,7 +149,6 @@ class _CollectionFormDialogState extends State<CollectionFormDialog> {
                   Expanded(
                     child: MorkvaTextField(
                       controller: _nameController,
-                      label: 'Name',
                       hint: 'Orders, Clients, Inventory…',
                       autofocus: true,
                       errorText: _nameError,
