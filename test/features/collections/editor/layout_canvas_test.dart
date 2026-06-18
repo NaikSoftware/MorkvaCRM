@@ -96,9 +96,13 @@ Future<CollectionEditorCubit> _buildAndPump(
                   final c = state is CollectionEditorReady
                       ? state.draft
                       : collection;
-                  return LayoutCanvas(
-                    collection: c,
-                    registry: defaultFieldEditorRegistry(),
+                  // Mirror the editor page, which hosts the canvas inside a
+                  // vertical scroll view (so tall layouts never overflow).
+                  return SingleChildScrollView(
+                    child: LayoutCanvas(
+                      collection: c,
+                      registry: defaultFieldEditorRegistry(),
+                    ),
                   );
                 },
               ),

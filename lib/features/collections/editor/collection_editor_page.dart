@@ -776,43 +776,49 @@ class _NarrowLayoutState extends State<_NarrowLayout> {
       ),
       builder: (sheetContext) {
         // Rebuild the sheet body from the live cubit state so edits reflect.
-        return BlocBuilder<CollectionEditorCubit, CollectionEditorState>(
-          bloc: cubit,
-          builder: (context, state) {
-            if (state is! CollectionEditorReady) {
+        // The modal sheet is pushed on the app navigator, above this page's
+        // BlocProvider, so re-expose the cubit to the sheet subtree — the
+        // config panels read it from context.
+        return BlocProvider<CollectionEditorCubit>.value(
+          value: cubit,
+          child: BlocBuilder<CollectionEditorCubit, CollectionEditorState>(
+            bloc: cubit,
+            builder: (context, state) {
+              if (state is! CollectionEditorReady) {
+                return const SizedBox.shrink();
+              }
+              final field = state.selectedField;
+              if (field != null) {
+                return FractionallySizedBox(
+                  heightFactor: 0.85,
+                  child: _ConfigSheet(
+                    state: state,
+                    child: FieldConfigPanel(
+                      field: field,
+                      editor: widget.registry.forType(field.type),
+                      collections: widget.collections,
+                      editingCollectionId: state.draft.id,
+                      typeLocked: state.isFieldTypeLocked(field.id),
+                    ),
+                  ),
+                );
+              }
+              final section = state.selectedSection;
+              if (section != null) {
+                return FractionallySizedBox(
+                  heightFactor: 0.85,
+                  child: _ConfigSheet(
+                    state: state,
+                    child: SectionConfigPanel(
+                      section: section,
+                      canDelete: state.draft.layout.sections.length > 1,
+                    ),
+                  ),
+                );
+              }
               return const SizedBox.shrink();
-            }
-            final field = state.selectedField;
-            if (field != null) {
-              return FractionallySizedBox(
-                heightFactor: 0.85,
-                child: _ConfigSheet(
-                  state: state,
-                  child: FieldConfigPanel(
-                    field: field,
-                    editor: widget.registry.forType(field.type),
-                    collections: widget.collections,
-                    editingCollectionId: state.draft.id,
-                    typeLocked: state.isFieldTypeLocked(field.id),
-                  ),
-                ),
-              );
-            }
-            final section = state.selectedSection;
-            if (section != null) {
-              return FractionallySizedBox(
-                heightFactor: 0.85,
-                child: _ConfigSheet(
-                  state: state,
-                  child: SectionConfigPanel(
-                    section: section,
-                    canDelete: state.draft.layout.sections.length > 1,
-                  ),
-                ),
-              );
-            }
-            return const SizedBox.shrink();
-          },
+            },
+          ),
         );
       },
     );

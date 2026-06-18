@@ -31,7 +31,7 @@ final class _RowPayload extends _DragPayload {
   final String rowId;
 }
 
-/// Payload when dragging a section header.
+/// Payload when dragging a whole group (named section).
 final class _SectionPayload extends _DragPayload {
   const _SectionPayload(this.sectionId);
   final String sectionId;
@@ -44,17 +44,22 @@ final class _SectionPayload extends _DragPayload {
 /// The direct-manipulation visual builder canvas for a card's layout.
 ///
 /// Renders sections → rows → cells with:
-/// - Selection (tap cell → selectField, tap header → selectSection, tap
-///   background → clear selection). Selected element gets a 2 px primary outline.
-/// - Immediate-gesture Draggable cells (field, row-gutter, section-header).
-/// - AnimatedContainer drop zones that expand while a drag is active.
+/// - Selection: tap anywhere in a named group → selectSection; tap a cell →
+///   selectField; tap the canvas background → clear. The selected element gets
+///   a 2 px primary outline.
+/// - Whole-element drags: a field cell drags by its body, a row by its gutter
+///   grip, and a named group by grabbing it anywhere and moving vertically
+///   (`affinity: Axis.vertical`) so it never steals a cell's resize / drag.
+/// - Drop zones expand and highlight only while the dragged element hovers
+///   over them (driven by each target's own `candidateData`), so starting a
+///   drag never reflows the whole canvas.
 /// - A persistent right-edge resize handle on non-last cells in multi-cell rows.
 /// - Per-group "+ Add field" and global "+ Add group" buttons.
 ///
 /// The canvas always uses the 12-column grid; no narrow stacking.
 /// A [SingleChildScrollView] with minWidth 380 keeps it usable when the pane is
 /// dragged narrow.
-class LayoutCanvas extends StatefulWidget {
+class LayoutCanvas extends StatelessWidget {
   const LayoutCanvas({
     super.key,
     required this.collection,
@@ -65,35 +70,18 @@ class LayoutCanvas extends StatefulWidget {
   final FieldEditorRegistry registry;
 
   @override
-  State<LayoutCanvas> createState() => _LayoutCanvasState();
-}
-
-class _LayoutCanvasState extends State<LayoutCanvas> {
-  /// True while any drag is in flight. Notifies drop-zone widgets to expand.
-  final ValueNotifier<bool> _dragActive = ValueNotifier(false);
-
-  @override
-  void dispose() {
-    _dragActive.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final collection = widget.collection;
-    final registry = widget.registry;
-
     final sectionCount = collection.layout.sections.length;
-    final selectedFieldId = context
-        .select<CollectionEditorCubit, String?>((c) {
-          final s = c.state;
-          return s is CollectionEditorReady ? s.selectedFieldId : null;
-        });
-    final selectedSectionId = context
-        .select<CollectionEditorCubit, String?>((c) {
-          final s = c.state;
-          return s is CollectionEditorReady ? s.selectedSectionId : null;
-        });
+    final selectedFieldId = context.select<CollectionEditorCubit, String?>((c) {
+      final s = c.state;
+      return s is CollectionEditorReady ? s.selectedFieldId : null;
+    });
+    final selectedSectionId = context.select<CollectionEditorCubit, String?>((
+      c,
+    ) {
+      final s = c.state;
+      return s is CollectionEditorReady ? s.selectedSectionId : null;
+    });
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
@@ -101,12 +89,11 @@ class _LayoutCanvasState extends State<LayoutCanvas> {
         context.read<CollectionEditorCubit>().selectField(null);
       },
       child: Container(
+        // No outer border: the per-group outlined panels are the only frames,
+        // so groups read as thin outlined cards floating on the canvas surface.
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surfaceContainerLow,
           borderRadius: Radii.lgAll,
-          border: Border.all(
-            color: Theme.of(context).colorScheme.outlineVariant,
-          ),
         ),
         padding: const EdgeInsets.all(Spacing.md),
         child: LayoutBuilder(
@@ -119,59 +106,52 @@ class _LayoutCanvasState extends State<LayoutCanvas> {
               child: SizedBox(
                 width: contentWidth,
                 child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Collection title
-                Text(
-                  collection.name.trim().isEmpty
-                      ? 'Untitled collection'
-                      : collection.name,
-                  style: Theme.of(context).textTheme.titleMedium,
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Collection title
+                    Text(
+                      collection.name.trim().isEmpty
+                          ? 'Untitled collection'
+                          : collection.name,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: Spacing.md),
+                    // Sections
+                    for (var i = 0; i < sectionCount; i++)
+                      _SectionView(
+                        section: collection.layout.sections[i],
+                        sectionIndex: i,
+                        registry: registry,
+                        collection: collection,
+                        showDelete: sectionCount > 1,
+                        selectedFieldId: selectedFieldId,
+                        selectedSectionId: selectedSectionId,
+                      ),
+                    // Trailing between-section drop target for reordering
+                    if (sectionCount > 1)
+                      _BetweenSectionDropTarget(sectionIndex: sectionCount),
+                    // Add group button
+                    const SizedBox(height: Spacing.xs),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        key: const Key('add_section'),
+                        onPressed: () => context
+                            .read<CollectionEditorCubit>()
+                            .addSection(title: 'New group'),
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('Add group'),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: Spacing.md),
-                // Sections
-                for (var i = 0; i < collection.layout.sections.length; i++)
-                  _SectionView(
-                    section: collection.layout.sections[i],
-                    sectionIndex: i,
-                    registry: registry,
-                    collection: collection,
-                    isFirst: i == 0,
-                    showDelete: sectionCount > 1,
-                    selectedFieldId: selectedFieldId,
-                    selectedSectionId: selectedSectionId,
-                    dragActive: _dragActive,
-                    onDragStarted: () => _dragActive.value = true,
-                    onDragEnded: () => _dragActive.value = false,
-                  ),
-                // Trailing between-section drop target for reordering
-                if (collection.layout.sections.length > 1)
-                  _BetweenSectionDropTarget(
-                    sectionIndex: collection.layout.sections.length,
-                    dragActive: _dragActive,
-                  ),
-                // Add group button
-                const SizedBox(height: Spacing.xs),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    key: const Key('add_section'),
-                    onPressed: () => context
-                        .read<CollectionEditorCubit>()
-                        .addSection(title: 'New group'),
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('Add group'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    ),
-  ),
-);
+              ),
+            );
+          },
+        ),
+      ),
+    );
   }
 }
 
@@ -185,213 +165,209 @@ class _SectionView extends StatelessWidget {
     required this.sectionIndex,
     required this.registry,
     required this.collection,
-    required this.isFirst,
     required this.showDelete,
     required this.selectedFieldId,
     required this.selectedSectionId,
-    required this.dragActive,
-    required this.onDragStarted,
-    required this.onDragEnded,
   });
 
   final LayoutSection section;
   final int sectionIndex;
   final FieldEditorRegistry registry;
   final Collection collection;
-  final bool isFirst;
   final bool showDelete;
   final String? selectedFieldId;
   final String? selectedSectionId;
-  final ValueNotifier<bool> dragActive;
-  final VoidCallback onDragStarted;
-  final VoidCallback onDragEnded;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final isGroup = section.title?.trim().isNotEmpty ?? false;
-    final collapsed = isGroup && section.collapsed;
+    final hasTitle = section.title?.trim().isNotEmpty ?? false;
+    final collapsed = hasTitle && section.collapsed;
     final isSelected = selectedSectionId == section.id;
+    final multiSection = collection.layout.sections.length > 1;
 
-    Widget sectionContent = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Hairline divider above named groups (not the first)
-        if (!isFirst && isGroup) ...[
-          Divider(height: 1, thickness: 1, color: scheme.outlineVariant),
-          const SizedBox(height: Spacing.md),
-        ],
-        // Group header (named sections only) — draggable for reordering
-        if (isGroup)
-          _SectionHeader(
-            section: section,
-            sectionIndex: sectionIndex,
-            showDelete: showDelete,
-            isSelected: isSelected,
-            onDragStarted: onDragStarted,
-            onDragEnded: onDragEnded,
-          ),
-        // Rows (hidden when collapsed)
-        if (!collapsed) ...[
-          if (isGroup) const SizedBox(height: Spacing.md),
-          _SectionBody(
+    final body = collapsed
+        ? null
+        : _SectionBody(
             section: section,
             registry: registry,
             collection: collection,
             selectedFieldId: selectedFieldId,
-            dragActive: dragActive,
-            onDragStarted: onDragStarted,
-            onDragEnded: onDragEnded,
-          ),
-        ] else
-          const SizedBox(height: Spacing.md),
-      ],
+          );
+
+    // Ungrouped (headerless) fields: no frame, no whole-group drag/select.
+    if (!hasTitle) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (multiSection)
+            _BetweenSectionDropTarget(sectionIndex: sectionIndex),
+          ?body,
+        ],
+      );
+    }
+
+    // Named group: a thin outlined panel (like a Material outlined input).
+    // The whole panel is selectable (tap) and draggable (vertical drag).
+    final groupBox = AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      margin: const EdgeInsets.only(bottom: Spacing.md),
+      decoration: BoxDecoration(
+        borderRadius: Radii.mdAll,
+        border: Border.all(
+          color: isSelected ? scheme.primary : scheme.outlineVariant,
+          width: isSelected ? 2 : 1,
+        ),
+      ),
+      padding: const EdgeInsets.fromLTRB(
+        Spacing.sm,
+        Spacing.xs,
+        Spacing.sm,
+        Spacing.sm,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SectionHeader(section: section, showDelete: showDelete),
+          if (body != null) ...[const SizedBox(height: Spacing.xs), body],
+        ],
+      ),
     );
 
-    // Wrap in a between-section drop target above this section (for reorder)
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (collection.layout.sections.length > 1)
-          _BetweenSectionDropTarget(
-            sectionIndex: sectionIndex,
-            dragActive: dragActive,
+        if (multiSection) _BetweenSectionDropTarget(sectionIndex: sectionIndex),
+        // Vertical affinity: dragging the panel up/down reorders it, while a
+        // horizontal drag on a cell's resize handle and an immediate drag on a
+        // cell still win their own gesture arenas.
+        Draggable<_DragPayload>(
+          data: _SectionPayload(section.id),
+          affinity: Axis.vertical,
+          dragAnchorStrategy: pointerDragAnchorStrategy,
+          feedback: _SectionDragFeedback(section: section),
+          childWhenDragging: Opacity(opacity: 0.4, child: groupBox),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () =>
+                context.read<CollectionEditorCubit>().selectSection(section.id),
+            child: groupBox,
           ),
-        sectionContent,
+        ),
       ],
     );
   }
 }
 
 // ---------------------------------------------------------------------------
-// Section header (draggable for reorder)
+// Section header (no drag handle — the whole group is the drag surface)
 // ---------------------------------------------------------------------------
 
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({
-    required this.section,
-    required this.sectionIndex,
-    required this.showDelete,
-    required this.isSelected,
-    required this.onDragStarted,
-    required this.onDragEnded,
-  });
+  const _SectionHeader({required this.section, required this.showDelete});
 
   final LayoutSection section;
-  final int sectionIndex;
   final bool showDelete;
-  final bool isSelected;
-  final VoidCallback onDragStarted;
-  final VoidCallback onDragEnded;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
-    final headerRow = GestureDetector(
-      onTap: () {
-        context.read<CollectionEditorCubit>().selectSection(section.id);
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        decoration: BoxDecoration(
-          borderRadius: Radii.smAll,
-          border: isSelected
-              ? Border.all(color: scheme.primary, width: 2)
-              : Border.all(color: Colors.transparent, width: 2),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        // Collapse chevron
+        IconButton(
+          key: Key('collapse_${section.id}'),
+          visualDensity: VisualDensity.compact,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+          icon: Icon(
+            section.collapsed ? Icons.chevron_right : Icons.expand_more,
+            size: 18,
+            color: scheme.onSurfaceVariant,
+          ),
+          onPressed: () => context
+              .read<CollectionEditorCubit>()
+              .toggleSectionCollapsed(section.id),
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Drag grip for reordering sections
-            MouseRegion(
-              cursor: SystemMouseCursors.grab,
-              child: Icon(
-                Icons.drag_indicator,
-                size: 18,
-                color: scheme.onSurfaceVariant,
-              ),
+        const SizedBox(width: Spacing.xxs),
+        // Editable title
+        Expanded(
+          child: _SectionTitle(key: ValueKey(section.id), section: section),
+        ),
+        if (showDelete) ...[
+          const SizedBox(width: Spacing.xxs),
+          IconButton(
+            key: Key('delete_${section.id}'),
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            icon: Icon(
+              Icons.delete_outline,
+              size: 18,
+              color: scheme.onSurfaceVariant,
             ),
-            // Collapse chevron
-            IconButton(
-              key: Key('collapse_${section.id}'),
-              visualDensity: VisualDensity.compact,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-              icon: Icon(
-                section.collapsed ? Icons.chevron_right : Icons.expand_more,
-                size: 18,
-                color: scheme.onSurfaceVariant,
-              ),
-              onPressed: () => context
-                  .read<CollectionEditorCubit>()
-                  .toggleSectionCollapsed(section.id),
+            onPressed: () =>
+                context.read<CollectionEditorCubit>().deleteSection(section.id),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Drag feedback shown while a whole group is being dragged
+// ---------------------------------------------------------------------------
+
+class _SectionDragFeedback extends StatelessWidget {
+  const _SectionDragFeedback({required this.section});
+
+  final LayoutSection section;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Material(
+      elevation: 4,
+      borderRadius: Radii.smAll,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 240),
+        child: Opacity(
+          opacity: 0.9,
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: Spacing.md,
+              vertical: Spacing.sm,
             ),
-            const SizedBox(width: Spacing.xxs),
-            // Editable title
-            Expanded(
-              child: _SectionTitle(
-                key: ValueKey(section.id),
-                section: section,
-              ),
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest,
+              borderRadius: Radii.smAll,
+              border: Border.all(color: scheme.outlineVariant),
             ),
-            if (showDelete) const SizedBox(width: Spacing.xxs),
-            if (showDelete)
-              IconButton(
-                key: Key('delete_${section.id}'),
-                visualDensity: VisualDensity.compact,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                icon: Icon(
-                  Icons.delete_outline,
-                  size: 18,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.drag_indicator,
+                  size: 16,
                   color: scheme.onSurfaceVariant,
                 ),
-                onPressed: () => context
-                    .read<CollectionEditorCubit>()
-                    .deleteSection(section.id),
-              ),
-          ],
-        ),
-      ),
-    );
-
-    // Make the header a Draggable for section reordering
-    return Draggable<_DragPayload>(
-      data: _SectionPayload(section.id),
-      dragAnchorStrategy: pointerDragAnchorStrategy,
-      onDragStarted: onDragStarted,
-      onDragEnd: (_) => onDragEnded(),
-      onDraggableCanceled: (velocity, offset) => onDragEnded(),
-      feedback: Material(
-        elevation: 4,
-        borderRadius: Radii.smAll,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 220),
-          child: Opacity(
-            opacity: 0.85,
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: Spacing.md,
-                vertical: Spacing.sm,
-              ),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerLow,
-                borderRadius: Radii.smAll,
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outlineVariant,
+                const SizedBox(width: Spacing.xs),
+                Flexible(
+                  child: Text(
+                    section.title ?? 'Group',
+                    style: theme.textTheme.titleSmall,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-              ),
-              child: Text(
-                section.title ?? 'Section',
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
+              ],
             ),
           ),
         ),
       ),
-      childWhenDragging: Opacity(opacity: 0.4, child: headerRow),
-      child: headerRow,
     );
   }
 }
@@ -401,57 +377,44 @@ class _SectionHeader extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _BetweenSectionDropTarget extends StatelessWidget {
-  const _BetweenSectionDropTarget({
-    required this.sectionIndex,
-    required this.dragActive,
-  });
+  const _BetweenSectionDropTarget({required this.sectionIndex});
 
   final int sectionIndex;
-  final ValueNotifier<bool> dragActive;
 
   @override
   Widget build(BuildContext context) {
     return DragTarget<_DragPayload>(
-      onWillAcceptWithDetails: (details) =>
-          details.data is _SectionPayload,
+      onWillAcceptWithDetails: (details) => details.data is _SectionPayload,
       onAcceptWithDetails: (details) {
         final payload = details.data;
         if (payload is! _SectionPayload) return;
-        // Find old index of this section
         final cubit = context.read<CollectionEditorCubit>();
         final state = cubit.state;
         if (state is! CollectionEditorReady) return;
         final sections = state.draft.layout.sections;
-        final oldIndex =
-            sections.indexWhere((s) => s.id == payload.sectionId);
+        final oldIndex = sections.indexWhere((s) => s.id == payload.sectionId);
         if (oldIndex < 0) return;
         cubit.reorderSections(oldIndex, sectionIndex);
       },
       builder: (context, candidateData, rejectedData) {
-        final hasSection =
-            candidateData.any((d) => d is _SectionPayload);
-        return ValueListenableBuilder<bool>(
-          valueListenable: dragActive,
-          builder: (context, active, _) {
-            final scheme = Theme.of(context).colorScheme;
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              height: active ? 24 : 4,
-              margin: const EdgeInsets.symmetric(vertical: 2),
-              decoration: BoxDecoration(
-                color: hasSection
-                    ? scheme.primary.withValues(alpha: 0.25)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(
-                  color: hasSection
-                      ? scheme.primary.withValues(alpha: 0.6)
-                      : Colors.transparent,
-                  width: 1.5,
-                ),
-              ),
-            );
-          },
+        final active = candidateData.isNotEmpty;
+        final scheme = Theme.of(context).colorScheme;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          height: active ? 24 : 6,
+          margin: const EdgeInsets.symmetric(vertical: 2),
+          decoration: BoxDecoration(
+            color: active
+                ? scheme.primary.withValues(alpha: 0.25)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(
+              color: active
+                  ? scheme.primary.withValues(alpha: 0.6)
+                  : Colors.transparent,
+              width: 1.5,
+            ),
+          ),
         );
       },
     );
@@ -468,18 +431,12 @@ class _SectionBody extends StatelessWidget {
     required this.registry,
     required this.collection,
     required this.selectedFieldId,
-    required this.dragActive,
-    required this.onDragStarted,
-    required this.onDragEnded,
   });
 
   final LayoutSection section;
   final FieldEditorRegistry registry;
   final Collection collection;
   final String? selectedFieldId;
-  final ValueNotifier<bool> dragActive;
-  final VoidCallback onDragStarted;
-  final VoidCallback onDragEnded;
 
   @override
   Widget build(BuildContext context) {
@@ -553,7 +510,6 @@ class _SectionBody extends StatelessWidget {
                   key: Key('newrowdrop_${section.id}_$rowIndex'),
                   sectionId: section.id,
                   rowIndex: rowIndex,
-                  dragActive: dragActive,
                 ),
                 Padding(
                   padding: const EdgeInsets.only(bottom: Spacing.md),
@@ -562,9 +518,6 @@ class _SectionBody extends StatelessWidget {
                     registry: registry,
                     collection: collection,
                     selectedFieldId: selectedFieldId,
-                    dragActive: dragActive,
-                    onDragStarted: onDragStarted,
-                    onDragEnded: onDragEnded,
                   ),
                 ),
               ],
@@ -573,7 +526,6 @@ class _SectionBody extends StatelessWidget {
                   key: Key('newrowdrop_${section.id}_${section.rows.length}'),
                   sectionId: section.id,
                   rowIndex: section.rows.length,
-                  dragActive: dragActive,
                 ),
               // Per-group add field button
               const SizedBox(height: Spacing.xs),
@@ -586,8 +538,9 @@ class _SectionBody extends StatelessWidget {
                     final state = cubit.state;
                     if (state is! CollectionEditorReady) return;
                     // Capture existing field IDs before adding
-                    final existingIds =
-                        state.draft.fields.map((f) => f.id).toSet();
+                    final existingIds = state.draft.fields
+                        .map((f) => f.id)
+                        .toSet();
                     final typeId = await AddFieldSheet.show(
                       context,
                       editors: registry.all,
@@ -663,9 +616,13 @@ class _SectionTitleState extends State<_SectionTitle> {
   }
 
   void _commit() {
-    final value =
-        _controller.text.trim().isEmpty ? null : _controller.text.trim();
-    context.read<CollectionEditorCubit>().renameSection(widget.section.id, value);
+    final value = _controller.text.trim().isEmpty
+        ? null
+        : _controller.text.trim();
+    context.read<CollectionEditorCubit>().renameSection(
+      widget.section.id,
+      value,
+    );
     setState(() => _editing = false);
   }
 
@@ -723,8 +680,7 @@ class _SectionTitleState extends State<_SectionTitle> {
       );
     }
 
-    final isPlaceholder =
-        !(widget.section.title?.trim().isNotEmpty ?? false);
+    final isPlaceholder = !(widget.section.title?.trim().isNotEmpty ?? false);
     return InkWell(
       onTap: _startEditing,
       mouseCursor: SystemMouseCursors.click,
@@ -756,18 +712,12 @@ class _RowView extends StatelessWidget {
     required this.registry,
     required this.collection,
     required this.selectedFieldId,
-    required this.dragActive,
-    required this.onDragStarted,
-    required this.onDragEnded,
   });
 
   final LayoutRow row;
   final FieldEditorRegistry registry;
   final Collection collection;
   final String? selectedFieldId;
-  final ValueNotifier<bool> dragActive;
-  final VoidCallback onDragStarted;
-  final VoidCallback onDragEnded;
 
   @override
   Widget build(BuildContext context) {
@@ -778,11 +728,7 @@ class _RowView extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Row gutter grip (hover-revealed, draggable for row-move)
-            _RowGutterGrip(
-              row: row,
-              onDragStarted: onDragStarted,
-              onDragEnded: onDragEnded,
-            ),
+            _RowGutterGrip(row: row),
             // Cells
             for (var i = 0; i < row.cells.length; i++) ...[
               if (i > 0) const SizedBox(width: Spacing.sm),
@@ -790,9 +736,6 @@ class _RowView extends StatelessWidget {
                 flex: row.cells[i].span,
                 child: _DraggableCell(
                   fieldId: row.cells[i].fieldId,
-                  rowId: row.id,
-                  onDragStarted: onDragStarted,
-                  onDragEnded: onDragEnded,
                   child: _LayoutCellTile(
                     field: collection.fieldById(row.cells[i].fieldId),
                     registry: registry,
@@ -810,7 +753,6 @@ class _RowView extends StatelessWidget {
               key: Key('rowdrop_${row.id}'),
               rowId: row.id,
               cellCount: row.cells.length,
-              dragActive: dragActive,
             ),
           ],
         );
@@ -824,15 +766,9 @@ class _RowView extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _RowGutterGrip extends StatefulWidget {
-  const _RowGutterGrip({
-    required this.row,
-    required this.onDragStarted,
-    required this.onDragEnded,
-  });
+  const _RowGutterGrip({required this.row});
 
   final LayoutRow row;
-  final VoidCallback onDragStarted;
-  final VoidCallback onDragEnded;
 
   @override
   State<_RowGutterGrip> createState() => _RowGutterGripState();
@@ -868,9 +804,6 @@ class _RowGutterGripState extends State<_RowGutterGrip> {
       child: Draggable<_DragPayload>(
         data: _RowPayload(widget.row.id),
         dragAnchorStrategy: pointerDragAnchorStrategy,
-        onDragStarted: widget.onDragStarted,
-        onDragEnd: (_) => widget.onDragEnded(),
-        onDraggableCanceled: (velocity, offset) => widget.onDragEnded(),
         feedback: Material(
           elevation: 4,
           borderRadius: Radii.smAll,
@@ -986,9 +919,7 @@ class _LayoutCellTile extends StatelessWidget {
                   const SizedBox(width: Spacing.xxs),
                   InkWell(
                     onTap: () {
-                      context
-                          .read<CollectionEditorCubit>()
-                          .removeField(f.id);
+                      context.read<CollectionEditorCubit>().removeField(f.id);
                     },
                     borderRadius: BorderRadius.circular(4),
                     child: Padding(
@@ -1014,7 +945,8 @@ class _LayoutCellTile extends StatelessWidget {
 
     // Only render the resize handle in wide mode with row context,
     // and only when this is NOT the last cell in the row.
-    final showResize = rowId != null &&
+    final showResize =
+        rowId != null &&
         span != null &&
         columnWidth != null &&
         isLastInRow != null &&
@@ -1122,18 +1054,9 @@ class _ResizeHandleState extends State<_ResizeHandle> {
 // ---------------------------------------------------------------------------
 
 class _DraggableCell extends StatelessWidget {
-  const _DraggableCell({
-    required this.fieldId,
-    required this.rowId,
-    required this.onDragStarted,
-    required this.onDragEnded,
-    required this.child,
-  });
+  const _DraggableCell({required this.fieldId, required this.child});
 
   final String fieldId;
-  final String rowId;
-  final VoidCallback onDragStarted;
-  final VoidCallback onDragEnded;
   final Widget child;
 
   @override
@@ -1141,9 +1064,6 @@ class _DraggableCell extends StatelessWidget {
     return Draggable<_DragPayload>(
       data: _FieldPayload(fieldId),
       dragAnchorStrategy: pointerDragAnchorStrategy,
-      onDragStarted: onDragStarted,
-      onDragEnd: (_) => onDragEnded(),
-      onDraggableCanceled: (velocity, offset) => onDragEnded(),
       feedback: Opacity(
         opacity: 0.85,
         child: Material(
@@ -1170,12 +1090,10 @@ class _RowDropTarget extends StatelessWidget {
     super.key,
     required this.rowId,
     required this.cellCount,
-    required this.dragActive,
   });
 
   final String rowId;
   final int cellCount;
-  final ValueNotifier<bool> dragActive;
 
   @override
   Widget build(BuildContext context) {
@@ -1192,27 +1110,22 @@ class _RowDropTarget extends StatelessWidget {
       },
       builder: (context, candidateData, rejectedData) {
         final active = candidateData.isNotEmpty;
-        return ValueListenableBuilder<bool>(
-          valueListenable: dragActive,
-          builder: (context, isDragging, _) {
-            final scheme = Theme.of(context).colorScheme;
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              width: isDragging ? 24 : 8,
-              decoration: BoxDecoration(
-                color: active
-                    ? scheme.primary.withValues(alpha: 0.25)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(
-                  color: active
-                      ? scheme.primary.withValues(alpha: 0.6)
-                      : Colors.transparent,
-                  width: 1.5,
-                ),
-              ),
-            );
-          },
+        final scheme = Theme.of(context).colorScheme;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: active ? 24 : 8,
+          decoration: BoxDecoration(
+            color: active
+                ? scheme.primary.withValues(alpha: 0.25)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(
+              color: active
+                  ? scheme.primary.withValues(alpha: 0.6)
+                  : Colors.transparent,
+              width: 1.5,
+            ),
+          ),
         );
       },
     );
@@ -1228,12 +1141,10 @@ class _BetweenRowDropTarget extends StatelessWidget {
     super.key,
     required this.sectionId,
     required this.rowIndex,
-    required this.dragActive,
   });
 
   final String sectionId;
   final int rowIndex;
-  final ValueNotifier<bool> dragActive;
 
   @override
   Widget build(BuildContext context) {
@@ -1251,28 +1162,23 @@ class _BetweenRowDropTarget extends StatelessWidget {
       },
       builder: (context, candidateData, rejectedData) {
         final active = candidateData.isNotEmpty;
-        return ValueListenableBuilder<bool>(
-          valueListenable: dragActive,
-          builder: (context, isDragging, _) {
-            final scheme = Theme.of(context).colorScheme;
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              height: isDragging ? 24 : 4,
-              margin: const EdgeInsets.symmetric(vertical: 2),
-              decoration: BoxDecoration(
-                color: active
-                    ? scheme.primary.withValues(alpha: 0.25)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(
-                  color: active
-                      ? scheme.primary.withValues(alpha: 0.6)
-                      : Colors.transparent,
-                  width: 1.5,
-                ),
-              ),
-            );
-          },
+        final scheme = Theme.of(context).colorScheme;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          height: active ? 24 : 6,
+          margin: const EdgeInsets.symmetric(vertical: 2),
+          decoration: BoxDecoration(
+            color: active
+                ? scheme.primary.withValues(alpha: 0.25)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(
+              color: active
+                  ? scheme.primary.withValues(alpha: 0.6)
+                  : Colors.transparent,
+              width: 1.5,
+            ),
+          ),
         );
       },
     );
