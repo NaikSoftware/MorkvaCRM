@@ -7,11 +7,11 @@ void main() {
   group('Foundation contract (Collection + Object + Text)', () {
     final registry = defaultFieldTypeRegistry();
 
-    Collection buildCollection() => const Collection(
+    Collection buildCollection() => Collection(
       id: 'c1',
       name: 'Notes',
       description: 'A simple collection',
-      fields: [
+      fields: const [
         TextFieldDefinition(
           id: 'title',
           name: 'Title',
@@ -20,6 +20,7 @@ void main() {
         ),
         TextFieldDefinition(id: 'body', name: 'Body', multiline: true),
       ],
+      layout: CardLayout.synthesize(['title', 'body']),
     );
 
     test('collection round-trips through JSON identically', () {
