@@ -140,4 +140,58 @@ class CardLayout extends Equatable {
 
   @override
   List<Object?> get props => [sections];
+
+  /// Builds a default layout: one section, each field a full-width row, in order.
+  static CardLayout synthesize(List<String> fieldIds) {
+    if (fieldIds.isEmpty) return const CardLayout();
+    return CardLayout(
+      sections: [
+        LayoutSection(
+          id: 'sec_main',
+          rows: [
+            for (final id in fieldIds)
+              LayoutRow(id: 'row_$id', cells: [LayoutCell(fieldId: id)]),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Returns a copy made consistent with [fieldIds]: orphan cells dropped,
+  /// emptied rows pruned, sections kept, and any field id not yet placed
+  /// appended as a full-width row in the last section.
+  CardLayout reconcile(List<String> fieldIds) {
+    if (sections.isEmpty) return synthesize(fieldIds);
+
+    final wanted = fieldIds.toSet();
+    final placed = <String>{};
+
+    final cleaned = <LayoutSection>[];
+    for (final section in sections) {
+      final rows = <LayoutRow>[];
+      for (final row in section.rows) {
+        final cells = <LayoutCell>[];
+        for (final cell in row.cells) {
+          if (wanted.contains(cell.fieldId) && placed.add(cell.fieldId)) {
+            cells.add(cell);
+          }
+        }
+        if (cells.isNotEmpty) rows.add(row.copyWith(cells: cells));
+      }
+      cleaned.add(section.copyWith(rows: rows));
+    }
+
+    final missing = fieldIds.where((id) => !placed.contains(id)).toList();
+    if (missing.isNotEmpty) {
+      final lastIndex = cleaned.length - 1;
+      final last = cleaned[lastIndex];
+      cleaned[lastIndex] = last.copyWith(rows: [
+        ...last.rows,
+        for (final id in missing)
+          LayoutRow(id: 'row_$id', cells: [LayoutCell(fieldId: id)]),
+      ]);
+    }
+
+    return CardLayout(sections: cleaned);
+  }
 }
