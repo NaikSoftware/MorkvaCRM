@@ -113,10 +113,14 @@ class CardPreview extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
               key: const Key('add_section'),
-              onPressed: () =>
-                  context.read<CollectionEditorCubit>().addSection(),
+              // Creates a *named* group (a title-less section renders headerless
+              // as the ungrouped area, so a new group needs a name to be visible
+              // and droppable). The user can rename it by tapping the title.
+              onPressed: () => context
+                  .read<CollectionEditorCubit>()
+                  .addSection(title: 'New group'),
               icon: const Icon(Icons.add, size: 18),
-              label: const Text('Add section'),
+              label: const Text('Add group'),
             ),
           ),
         ],
@@ -150,119 +154,187 @@ class _SectionView extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
+    // A section is a *named group* (full header) only when it has a title.
+    // A title-less section is the "ungrouped" bucket: no header, no collapse,
+    // its fields render flush. This is how a card holds fields without a group.
+    final isGroup = section.title?.trim().isNotEmpty ?? false;
+    final collapsed = isGroup && section.collapsed;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Hairline divider between sections (not above the first) ──────
-        if (!isFirst) ...[
+        // ── Hairline divider above named groups (not above the first) ──────
+        if (!isFirst && isGroup) ...[
           Divider(height: 1, thickness: 1, color: scheme.outlineVariant),
           const SizedBox(height: Spacing.md),
         ],
-        // ── Section header ────────────────────────────────────────────────
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Collapse chevron — minimum 36×36 hit target
-            IconButton(
-              key: Key('collapse_${section.id}'),
-              visualDensity: VisualDensity.compact,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-              icon: Icon(
-                section.collapsed ? Icons.chevron_right : Icons.expand_more,
-                size: 18,
-                color: scheme.onSurfaceVariant,
-              ),
-              onPressed: () => context
-                  .read<CollectionEditorCubit>()
-                  .toggleSectionCollapsed(section.id),
-            ),
-            const SizedBox(width: Spacing.xxs),
-            // Editable title
-            Expanded(
-              child: _SectionTitle(
-                key: ValueKey(section.id),
-                section: section,
-              ),
-            ),
-            // Clearance gap before delete button
-            if (showDelete) const SizedBox(width: Spacing.xxs),
-            // Delete button — only when multiple sections exist
-            if (showDelete)
+        // ── Group header (named sections only) ─────────────────────────────
+        if (isGroup)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Collapse chevron — minimum 36×36 hit target
               IconButton(
-                key: Key('delete_${section.id}'),
+                key: Key('collapse_${section.id}'),
                 visualDensity: VisualDensity.compact,
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                 icon: Icon(
-                  Icons.delete_outline,
+                  section.collapsed ? Icons.chevron_right : Icons.expand_more,
                   size: 18,
                   color: scheme.onSurfaceVariant,
                 ),
                 onPressed: () => context
                     .read<CollectionEditorCubit>()
-                    .deleteSection(section.id),
+                    .toggleSectionCollapsed(section.id),
               ),
-          ],
-        ),
-        // ── Rows (hidden when collapsed) ──────────────────────────────────
-        if (!section.collapsed) ...[
-          const SizedBox(height: Spacing.md),
-          // Coarse section-body DragTarget — dropping a field here appends it
-          // as a new full-width row at the end of the section.
-          // The finer _BetweenRowDropTarget and _RowDropTarget widgets are
-          // rendered *inside* this DragTarget's subtree and receive events first
-          // (Flutter hit-tests innermost first), so they take priority over the
-          // coarse section target when the pointer is over them.
-          DragTarget<String>(
-            onWillAcceptWithDetails: (_) => true,
-            onAcceptWithDetails: (details) {
-              context.read<CollectionEditorCubit>().moveCellToNewRow(
-                    details.data,
-                    section.id,
-                    section.rows.length,
-                  );
-            },
-            builder: (context, candidateData, rejectedData) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  for (
-                    var rowIndex = 0;
-                    rowIndex < section.rows.length;
-                    rowIndex++
-                  ) ...[
-                    // Between-row drop target (before each row)
-                    if (!narrow)
-                      _BetweenRowDropTarget(
-                        key: Key('newrowdrop_${section.id}_$rowIndex'),
-                        sectionId: section.id,
-                        rowIndex: rowIndex,
-                      ),
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: Spacing.md),
-                      child: _RowView(
-                        row: section.rows[rowIndex],
-                        registry: registry,
-                        collection: collection,
-                        narrow: narrow,
-                      ),
-                    ),
-                  ],
-                  // Between-row drop target after the last row
-                  if (!narrow)
-                    _BetweenRowDropTarget(
-                      key: Key('newrowdrop_${section.id}_${section.rows.length}'),
-                      sectionId: section.id,
-                      rowIndex: section.rows.length,
-                    ),
-                ],
-              );
-            },
+              const SizedBox(width: Spacing.xxs),
+              // Editable title
+              Expanded(
+                child: _SectionTitle(
+                  key: ValueKey(section.id),
+                  section: section,
+                ),
+              ),
+              // Clearance gap before delete button
+              if (showDelete) const SizedBox(width: Spacing.xxs),
+              // Delete button — only when multiple sections exist
+              if (showDelete)
+                IconButton(
+                  key: Key('delete_${section.id}'),
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                  icon: Icon(
+                    Icons.delete_outline,
+                    size: 18,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                  onPressed: () => context
+                      .read<CollectionEditorCubit>()
+                      .deleteSection(section.id),
+                ),
+            ],
+          ),
+        // ── Rows (hidden when a group is collapsed) ────────────────────────
+        if (!collapsed) ...[
+          if (isGroup) const SizedBox(height: Spacing.md),
+          _SectionBody(
+            section: section,
+            registry: registry,
+            collection: collection,
+            narrow: narrow,
           ),
         ] else
           const SizedBox(height: Spacing.md),
       ],
+    );
+  }
+}
+
+// ─── Section body (rows + drop zone) ──────────────────────────────────────────
+
+/// The rows of a section, wrapped in a coarse [DragTarget] that **highlights**
+/// while a field is dragged over it — so moving a field into this group (or the
+/// ungrouped area) is discoverable and lands anywhere in the body. Dropping
+/// appends the field as a new full-width row at the end.
+///
+/// The finer [_BetweenRowDropTarget] / [_RowDropTarget] widgets render inside
+/// this subtree and receive events first (Flutter hit-tests innermost first),
+/// so a precise between-rows or join-row drop still wins when aimed there.
+class _SectionBody extends StatelessWidget {
+  const _SectionBody({
+    required this.section,
+    required this.registry,
+    required this.collection,
+    required this.narrow,
+  });
+
+  final LayoutSection section;
+  final FieldEditorRegistry registry;
+  final Collection collection;
+  final bool narrow;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return DragTarget<String>(
+      onWillAcceptWithDetails: (_) => true,
+      onAcceptWithDetails: (details) {
+        context.read<CollectionEditorCubit>().moveCellToNewRow(
+              details.data,
+              section.id,
+              section.rows.length,
+            );
+      },
+      builder: (context, candidateData, rejectedData) {
+        final active = candidateData.isNotEmpty;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          constraints: const BoxConstraints(minHeight: 16),
+          decoration: BoxDecoration(
+            color: active
+                ? scheme.primary.withValues(alpha: 0.06)
+                : Colors.transparent,
+            borderRadius: Radii.smAll,
+            border: Border.all(
+              color: active
+                  ? scheme.primary.withValues(alpha: 0.5)
+                  : Colors.transparent,
+              width: 1.5,
+            ),
+          ),
+          padding: const EdgeInsets.all(2),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (section.rows.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: Spacing.sm,
+                    horizontal: Spacing.xs,
+                  ),
+                  child: Text(
+                    'Drop a field here',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+              for (
+                var rowIndex = 0;
+                rowIndex < section.rows.length;
+                rowIndex++
+              ) ...[
+                if (!narrow)
+                  _BetweenRowDropTarget(
+                    key: Key('newrowdrop_${section.id}_$rowIndex'),
+                    sectionId: section.id,
+                    rowIndex: rowIndex,
+                  ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: Spacing.md),
+                  child: _RowView(
+                    row: section.rows[rowIndex],
+                    registry: registry,
+                    collection: collection,
+                    narrow: narrow,
+                  ),
+                ),
+              ],
+              if (!narrow && section.rows.isNotEmpty)
+                _BetweenRowDropTarget(
+                  key: Key('newrowdrop_${section.id}_${section.rows.length}'),
+                  sectionId: section.id,
+                  rowIndex: section.rows.length,
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

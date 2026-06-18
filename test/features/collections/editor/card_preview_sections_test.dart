@@ -48,8 +48,11 @@ const _collection = Collection(
   ],
   layout: CardLayout(
     sections: [
+      // A *named* section renders as a group (header with chevron/rename/
+      // delete). A title-less section would render headerless (ungrouped).
       LayoutSection(
         id: 's1',
+        title: 'Main',
         rows: [
           LayoutRow(id: 'r1', cells: [LayoutCell(fieldId: 'f1', span: 12)]),
           LayoutRow(id: 'r2', cells: [LayoutCell(fieldId: 'f2', span: 12)]),
@@ -59,12 +62,32 @@ const _collection = Collection(
   ),
 );
 
-Future<CollectionEditorCubit> _buildAndPump(WidgetTester tester) async {
+// A title-less collection: the section is the "ungrouped" bucket (no header).
+const _ungrouped = Collection(
+  id: 'c2',
+  name: 'Loose',
+  fields: [TextFieldDefinition(id: 'f1', name: 'A')],
+  layout: CardLayout(
+    sections: [
+      LayoutSection(
+        id: 's1',
+        rows: [
+          LayoutRow(id: 'r1', cells: [LayoutCell(fieldId: 'f1', span: 12)]),
+        ],
+      ),
+    ],
+  ),
+);
+
+Future<CollectionEditorCubit> _buildAndPump(
+  WidgetTester tester, {
+  Collection collection = _collection,
+}) async {
   final cubit = CollectionEditorCubit(
-    _FakeRepo(_collection),
+    _FakeRepo(collection),
     defaultFieldEditorRegistry(),
   );
-  await cubit.load('c1');
+  await cubit.load(collection.id);
   addTearDown(cubit.close);
 
   await tester.pumpWidget(
@@ -77,11 +100,11 @@ Future<CollectionEditorCubit> _buildAndPump(WidgetTester tester) async {
               value: cubit,
               child: BlocBuilder<CollectionEditorCubit, CollectionEditorState>(
                 builder: (context, state) {
-                  final collection = state is CollectionEditorReady
+                  final c = state is CollectionEditorReady
                       ? state.draft
-                      : _collection;
+                      : collection;
                   return CardPreview(
-                    collection: collection,
+                    collection: c,
                     registry: defaultFieldEditorRegistry(),
                   );
                 },
@@ -190,16 +213,16 @@ void main() {
 
   // ── 5. Rename section (bonus) ─────────────────────────────────────────────────
 
-  testWidgets('tapping section title opens inline TextField for rename', (
+  testWidgets('tapping a group title opens inline TextField for rename', (
     tester,
   ) async {
     final cubit = await _buildAndPump(tester);
 
-    // The section has no title — the muted placeholder "Untitled section" is shown.
-    expect(find.text('Untitled section'), findsOneWidget);
+    // The named group shows its title.
+    expect(find.text('Main'), findsOneWidget);
 
     // Tap it to enter rename mode.
-    await tester.tap(find.text('Untitled section'));
+    await tester.tap(find.text('Main'));
     await tester.pump();
 
     // A TextField should now be visible.
@@ -221,5 +244,19 @@ void main() {
       'Details',
       reason: 'renameSection should have been called with the new title',
     );
+  });
+
+  // ── 6. Ungrouped (title-less) section renders headerless ─────────────────────
+
+  testWidgets('a title-less section has no group header (ungrouped)', (
+    tester,
+  ) async {
+    await _buildAndPump(tester, collection: _ungrouped);
+
+    // No collapse chevron and no delete: an ungrouped bucket has no header.
+    expect(find.byKey(const Key('collapse_s1')), findsNothing);
+    expect(find.byKey(const Key('delete_s1')), findsNothing);
+    // But its field still renders.
+    expect(find.text('A'), findsOneWidget);
   });
 }
