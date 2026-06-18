@@ -124,7 +124,7 @@ class _SectionView extends StatelessWidget {
         // ── Hairline divider between sections (not above the first) ──────
         if (!isFirst) ...[
           Divider(height: 1, thickness: 1, color: scheme.outlineVariant),
-          const SizedBox(height: Spacing.sm),
+          const SizedBox(height: Spacing.md),
         ],
         // ── Section header ────────────────────────────────────────────────
         Row(
@@ -141,14 +141,16 @@ class _SectionView extends StatelessWidget {
                   ? section.title!
                   : 'Untitled section',
               style: theme.textTheme.titleSmall?.copyWith(
-                color: scheme.onSurface,
+                color: (section.title?.trim().isNotEmpty ?? false)
+                    ? scheme.onSurface
+                    : scheme.onSurfaceVariant,
               ),
             ),
           ],
         ),
         // ── Rows (hidden when collapsed) ──────────────────────────────────
         if (!section.collapsed) ...[
-          const SizedBox(height: Spacing.sm),
+          const SizedBox(height: Spacing.md),
           for (final row in section.rows)
             Padding(
               padding: const EdgeInsets.only(bottom: Spacing.md),
@@ -245,7 +247,7 @@ class _LayoutCellTile extends StatelessWidget {
         borderRadius: Radii.smAll,
         border: Border.all(color: scheme.outlineVariant),
       ),
-      padding: const EdgeInsets.all(Spacing.xs),
+      padding: const EdgeInsets.all(Spacing.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -259,22 +261,28 @@ class _LayoutCellTile extends StatelessWidget {
               ),
               const SizedBox(width: Spacing.xxs),
               Flexible(
-                child: Text(
-                  f.name.trim().isEmpty ? 'Untitled field' : f.name,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
+                child: Text.rich(
+                  TextSpan(
+                    text: f.name.trim().isEmpty ? 'Untitled field' : f.name,
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                    children: f.isRequired
+                        ? [
+                            TextSpan(
+                              text: ' *',
+                              style: theme.textTheme.labelMedium
+                                  ?.copyWith(color: scheme.error),
+                            ),
+                          ]
+                        : null,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              if (f.isRequired)
-                Text(
-                  ' *',
-                  style: theme.textTheme.labelMedium?.copyWith(color: scheme.error),
-                ),
             ],
           ),
-          const SizedBox(height: Spacing.xxs),
+          const SizedBox(height: Spacing.xs),
           // ── Inert affordance ───────────────────────────────────────────────
           editor?.buildPreviewAffordance(context, f) ??
               const PreviewStubInput(height: 36),
