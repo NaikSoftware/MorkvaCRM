@@ -194,4 +194,187 @@ class CardLayout extends Equatable {
 
     return CardLayout(sections: cleaned);
   }
+
+  /// Maps each section through [f].
+  CardLayout _mapSections(LayoutSection Function(LayoutSection) f) =>
+      CardLayout(sections: sections.map(f).toList());
+
+  /// Maps the section with [sectionId] through [f]; others pass through.
+  CardLayout _mapSection(String sectionId, LayoutSection Function(LayoutSection) f) =>
+      _mapSections((s) => s.id == sectionId ? f(s) : s);
+
+  CardLayout setCellSpan(String rowId, String fieldId, int span) =>
+      _mapSections((section) => section.copyWith(
+            rows: section.rows.map((row) {
+              if (row.id != rowId) return row;
+              final i = row.cells.indexWhere((c) => c.fieldId == fieldId);
+              if (i < 0) return row;
+              final maxSpan = kLayoutColumns - (row.cells.length - 1);
+              final clamped = span.clamp(1, maxSpan < 1 ? 1 : maxSpan);
+              final cells = [...row.cells];
+              cells[i] = cells[i].copyWith(span: clamped);
+              return row.copyWith(cells: _normalizeRow(cells, keepIndex: i));
+            }).toList(),
+          ));
+
+  /// Removes the cell for [fieldId] from wherever it sits; returns the new
+  /// section list (with emptied rows pruned) and the detached cell.
+  (List<LayoutSection>, LayoutCell?) _detach(String fieldId) {
+    LayoutCell? found;
+    final out = sections.map((section) {
+      final rows = <LayoutRow>[];
+      for (final row in section.rows) {
+        final i = row.cells.indexWhere((c) => c.fieldId == fieldId);
+        if (i < 0) {
+          rows.add(row);
+          continue;
+        }
+        found = row.cells[i];
+        final remaining = [...row.cells]..removeAt(i);
+        if (remaining.isNotEmpty) rows.add(row.copyWith(cells: remaining));
+      }
+      return section.copyWith(rows: rows);
+    }).toList();
+    return (out, found);
+  }
+
+  CardLayout moveCellToRow(String fieldId, String targetRowId, int index) {
+    final (detached, cell) = _detach(fieldId);
+    if (cell == null) return this;
+    final next = detached.map((section) => section.copyWith(
+          rows: section.rows.map((row) {
+            if (row.id != targetRowId) return row;
+            final i = index.clamp(0, row.cells.length);
+            final cells = [...row.cells]..insert(i, cell);
+            return row.copyWith(cells: _normalizeRow(cells));
+          }).toList(),
+        )).toList();
+    return CardLayout(sections: next);
+  }
+
+  CardLayout moveCellToNewRow(
+      String fieldId, String sectionId, int rowIndex, String newRowId) {
+    final (detached, cell) = _detach(fieldId);
+    if (cell == null) return this;
+    final next = detached.map((section) {
+      if (section.id != sectionId) return section;
+      final i = rowIndex.clamp(0, section.rows.length);
+      final rows = [...section.rows]
+        ..insert(i, LayoutRow(id: newRowId, cells: [cell.copyWith(span: kLayoutColumns)]));
+      return section.copyWith(rows: rows);
+    }).toList();
+    return CardLayout(sections: next);
+  }
+
+  CardLayout reorderCellInRow(String rowId, int oldIndex, int newIndex) =>
+      _mapSections((section) => section.copyWith(
+            rows: section.rows.map((row) {
+              if (row.id != rowId) return row;
+              if (oldIndex < 0 || oldIndex >= row.cells.length) return row;
+              var target = newIndex;
+              if (target > oldIndex) target -= 1;
+              target = target.clamp(0, row.cells.length - 1);
+              if (target == oldIndex) return row;
+              final cells = [...row.cells];
+              final moved = cells.removeAt(oldIndex);
+              cells.insert(target, moved);
+              return row.copyWith(cells: cells);
+            }).toList(),
+          ));
+
+  CardLayout addSection(String newSectionId, {String? title}) {
+    final clean = title?.trim();
+    return CardLayout(sections: [
+      ...sections,
+      LayoutSection(
+        id: newSectionId,
+        title: (clean == null || clean.isEmpty) ? null : clean,
+      ),
+    ]);
+  }
+
+  CardLayout renameSection(String sectionId, String? title) {
+    final clean = title?.trim();
+    return _mapSection(
+      sectionId,
+      (s) => s.copyWith(title: (clean == null || clean.isEmpty) ? null : clean),
+    );
+  }
+
+  CardLayout toggleSectionCollapsed(String sectionId) =>
+      _mapSection(sectionId, (s) => s.copyWith(collapsed: !s.collapsed));
+
+  CardLayout reorderSections(int oldIndex, int newIndex) {
+    if (oldIndex < 0 || oldIndex >= sections.length) return this;
+    var target = newIndex;
+    if (target > oldIndex) target -= 1;
+    target = target.clamp(0, sections.length - 1);
+    if (target == oldIndex) return this;
+    final out = [...sections];
+    final moved = out.removeAt(oldIndex);
+    out.insert(target, moved);
+    return CardLayout(sections: out);
+  }
+
+  CardLayout moveRowToSection(String rowId, String targetSectionId, int index) {
+    LayoutRow? moved;
+    final without = sections.map((section) {
+      final rows = <LayoutRow>[];
+      for (final row in section.rows) {
+        if (row.id == rowId) {
+          moved = row;
+        } else {
+          rows.add(row);
+        }
+      }
+      return section.copyWith(rows: rows);
+    }).toList();
+    if (moved == null) return this;
+    final next = without.map((section) {
+      if (section.id != targetSectionId) return section;
+      final i = index.clamp(0, section.rows.length);
+      final rows = [...section.rows]..insert(i, moved!);
+      return section.copyWith(rows: rows);
+    }).toList();
+    return CardLayout(sections: next);
+  }
+
+  CardLayout deleteSection(String sectionId) {
+    if (sections.length <= 1) return this;
+    final index = sections.indexWhere((s) => s.id == sectionId);
+    if (index < 0) return this;
+    final target = sections[index];
+    final adopterIndex = index == 0 ? 1 : index - 1;
+    final out = <LayoutSection>[];
+    for (var i = 0; i < sections.length; i++) {
+      if (i == index) continue;
+      if (i == adopterIndex) {
+        final adopter = sections[i];
+        out.add(adopter.copyWith(rows: [...adopter.rows, ...target.rows]));
+      } else {
+        out.add(sections[i]);
+      }
+    }
+    return CardLayout(sections: out);
+  }
+}
+
+/// Shrinks the rightmost donor cells (span > 1, excluding [keepIndex]) until
+/// the row's span sum is ≤ [kLayoutColumns]. Returns the adjusted cell list.
+List<LayoutCell> _normalizeRow(List<LayoutCell> cells, {int keepIndex = -1}) {
+  final out = [...cells];
+  int sum() => out.fold(0, (a, c) => a + c.span);
+  var guard = 0;
+  while (sum() > kLayoutColumns && guard++ < 200) {
+    var donor = -1;
+    for (var k = out.length - 1; k >= 0; k--) {
+      if (k != keepIndex && out[k].span > 1) {
+        donor = k;
+        break;
+      }
+    }
+    if (donor < 0) break;
+    out[donor] = out[donor].copyWith(span: out[donor].span - 1);
+  }
+  return out;
 }
