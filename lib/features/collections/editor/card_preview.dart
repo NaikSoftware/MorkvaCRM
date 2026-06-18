@@ -426,10 +426,16 @@ class _DraggableCell extends StatelessWidget {
     return LongPressDraggable<String>(
       data: fieldId,
       dragAnchorStrategy: pointerDragAnchorStrategy,
-      feedback: Material(
-        elevation: 4,
-        borderRadius: Radii.smAll,
-        child: SizedBox(width: 160, child: child),
+      feedback: Opacity(
+        opacity: 0.9,
+        child: Material(
+          elevation: 4,
+          borderRadius: Radii.smAll,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 220),
+            child: child,
+          ),
+        ),
       ),
       childWhenDragging: Opacity(opacity: 0.4, child: child),
       child: child,
@@ -452,6 +458,7 @@ class _RowDropTarget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DragTarget<String>(
+      onWillAcceptWithDetails: (_) => true,
       onAcceptWithDetails: (details) {
         context.read<CollectionEditorCubit>().moveCellToRow(
           details.data,
@@ -482,6 +489,7 @@ class _BetweenRowDropTarget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DragTarget<String>(
+      onWillAcceptWithDetails: (_) => true,
       onAcceptWithDetails: (details) {
         context.read<CollectionEditorCubit>().moveCellToNewRow(
           details.data,

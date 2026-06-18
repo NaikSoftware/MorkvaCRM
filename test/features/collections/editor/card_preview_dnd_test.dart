@@ -155,6 +155,54 @@ void main() {
     );
   });
 
+  // ── Drop-slot highlight activates on hover ─────────────────────────────────
+  //
+  // Verifies that onWillAcceptWithDetails is wired: hovering the rowdrop_r1
+  // target during a drag populates candidateData → the _DropSlot AnimatedContainer
+  // switches from transparent to a coloured decoration.
+
+  testWidgets('rowdrop_r1 slot highlights when cell hovers over it', (
+    tester,
+  ) async {
+    await _buildAndPump(tester);
+
+    // Start long-press drag on cell B (f2).
+    final g = await tester.startGesture(tester.getCenter(find.text('B')));
+    await tester.pump(const Duration(milliseconds: 600)); // arm long-press
+    await tester.pump(); // start drag
+
+    // Move over the rowdrop_r1 target (do NOT release).
+    final dropCenter = tester.getCenter(find.byKey(const Key('rowdrop_r1')));
+    await g.moveTo(dropCenter);
+    await tester.pump();
+
+    // The _DropSlot vertical strip is an AnimatedContainer rendered inside
+    // DragTarget. When active==true its decoration colour is non-transparent.
+    // Find all AnimatedContainers in the subtree of the DragTarget key.
+    final dropTargetFinder = find.byKey(const Key('rowdrop_r1'));
+    final animatedContainers = find.descendant(
+      of: dropTargetFinder,
+      matching: find.byType(AnimatedContainer),
+    );
+    expect(animatedContainers, findsOneWidget);
+
+    final container = tester.widget<AnimatedContainer>(animatedContainers);
+    final decoration = container.decoration as BoxDecoration?;
+    expect(
+      decoration?.color,
+      isNotNull,
+      reason: '_DropSlot should carry a non-null colour when active',
+    );
+    expect(
+      decoration!.color,
+      isNot(Colors.transparent),
+      reason: '_DropSlot color should be non-transparent while hovering',
+    );
+
+    await g.up();
+    await tester.pump();
+  });
+
   // ── Cubit-level backup: direct call verifies moveCellToRow semantics ───────
 
   test('cubit.moveCellToRow moves f2 into r1 at index 1', () async {
