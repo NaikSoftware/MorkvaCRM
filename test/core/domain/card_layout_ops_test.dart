@@ -60,6 +60,20 @@ void main() {
       // r2 emptied → pruned
       expect(out.sections.single.rows.length, 1);
     });
+
+    test('moveCellToRow onto the cell\'s own single-cell row is a no-op '
+        '(field is preserved, not dropped)', () {
+      final layout = CardLayout(sections: [
+        LayoutSection(id: 's1', rows: [
+          LayoutRow(id: 'r1', cells: [LayoutCell(fieldId: 'a', span: 12)]),
+          LayoutRow(id: 'r2', cells: [LayoutCell(fieldId: 'b', span: 12)]),
+        ]),
+      ]);
+      // Dropping 'a' onto r1 (where it is already the sole cell) must not lose it.
+      final out = layout.moveCellToRow('a', 'r1', 1);
+      expect(out.fieldIds.toSet(), {'a', 'b'});
+      expect(out, layout, reason: 'self-drop is a no-op');
+    });
   });
 
   group('sections', () {

@@ -241,6 +241,13 @@ class CardLayout extends Equatable {
   CardLayout moveCellToRow(String fieldId, String targetRowId, int index) {
     final (detached, cell) = _detach(fieldId);
     if (cell == null) return this;
+    // If detaching pruned the target row, the cell was that row's only
+    // occupant — i.e. this is a drop onto the cell's own (single-cell) row.
+    // That is a no-op; return [this] so the cell is preserved instead of being
+    // dropped on the floor (the insert below would find no matching row).
+    final targetSurvived =
+        detached.any((s) => s.rows.any((r) => r.id == targetRowId));
+    if (!targetSurvived) return this;
     final next = detached.map((section) => section.copyWith(
           rows: section.rows.map((row) {
             if (row.id != targetRowId) return row;
