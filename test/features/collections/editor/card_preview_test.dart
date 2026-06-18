@@ -51,7 +51,8 @@ void main() {
 
   testWidgets('narrow: cells stack (Title clearly below Number)',
       (tester) async {
-    await tester.pumpWidget(_host(_collection, width: 360));
+    // Below _narrowBreakpoint (320): a true phone-portrait width.
+    await tester.pumpWidget(_host(_collection, width: 300));
     final num = tester.getCenter(find.text('Number')).dy;
     final title = tester.getCenter(find.text('Title')).dy;
     expect(title > num + 24, isTrue, reason: 'cells stacked full-width');

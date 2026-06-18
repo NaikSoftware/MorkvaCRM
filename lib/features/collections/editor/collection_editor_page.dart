@@ -558,33 +558,25 @@ class _ThreePaneLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(
-          flex: 4,
-          child: Padding(
-            padding: const EdgeInsets.all(Spacing.lg),
-            child: FieldList(state: state, registry: registry),
-          ),
+    // User-resizable regions: drag the splitters to size fields / settings /
+    // preview however you like. The preview pane drives the interactive layout
+    // canvas, so widening it engages the multi-column / resize / drag affordances.
+    return _ResizablePanes(
+      initialWeights: const [4, 4, 5],
+      minPaneWidth: 260,
+      panes: [
+        Padding(
+          padding: const EdgeInsets.all(Spacing.lg),
+          child: FieldList(state: state, registry: registry),
         ),
-        VerticalDivider(width: 1, color: scheme.outlineVariant),
-        Expanded(
-          flex: 4,
-          child: _ConfigRegion(
-            state: state,
-            registry: registry,
-            collections: collections,
-          ),
+        _ConfigRegion(
+          state: state,
+          registry: registry,
+          collections: collections,
         ),
-        VerticalDivider(width: 1, color: scheme.outlineVariant),
-        Expanded(
-          flex: 3,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(Spacing.lg),
-            child: CardPreview(collection: state.draft, registry: registry),
-          ),
+        SingleChildScrollView(
+          padding: const EdgeInsets.all(Spacing.lg),
+          child: CardPreview(collection: state.draft, registry: registry),
         ),
       ],
     );
@@ -604,34 +596,163 @@ class _TwoPaneLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return _ResizablePanes(
+      initialWeights: const [1, 1],
+      minPaneWidth: 280,
+      panes: [
+        SingleChildScrollView(
+          padding: const EdgeInsets.all(Spacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              FieldList(state: state, registry: registry, scrollable: false),
+              const SizedBox(height: Spacing.lg),
+              CardPreview(collection: state.draft, registry: registry),
+            ],
+          ),
+        ),
+        _ConfigRegion(
+          state: state,
+          registry: registry,
+          collections: collections,
+        ),
+      ],
+    );
+  }
+}
+
+/// A horizontal row of [panes] separated by draggable splitters, letting the
+/// user size the designer regions (fields / settings / preview) themselves.
+///
+/// Widths are held as fractions of the available width (persisted for the life
+/// of the editor session) and clamped so no pane shrinks below [minPaneWidth].
+/// Initial split comes from [initialWeights] (any positive scale).
+class _ResizablePanes extends StatefulWidget {
+  const _ResizablePanes({
+    required this.panes,
+    required this.initialWeights,
+    this.minPaneWidth = 260,
+  }) : assert(panes.length == initialWeights.length),
+       assert(panes.length >= 2);
+
+  final List<Widget> panes;
+  final List<double> initialWeights;
+  final double minPaneWidth;
+
+  @override
+  State<_ResizablePanes> createState() => _ResizablePanesState();
+}
+
+class _ResizablePanesState extends State<_ResizablePanes> {
+  static const double _dividerHit = 10;
+
+  late List<double> _fractions;
+
+  @override
+  void initState() {
+    super.initState();
+    final total = widget.initialWeights.fold<double>(0, (a, b) => a + b);
+    _fractions = widget.initialWeights.map((w) => w / total).toList();
+  }
+
+  void _drag(int dividerIndex, double dx, double available) {
+    if (available <= 0) return;
+    final minF = (widget.minPaneWidth / available).clamp(0.0, 0.49);
+    final df = dx / available;
+    setState(() {
+      var left = _fractions[dividerIndex] + df;
+      var right = _fractions[dividerIndex + 1] - df;
+      if (left < minF) {
+        right -= minF - left;
+        left = minF;
+      }
+      if (right < minF) {
+        left -= minF - right;
+        right = minF;
+      }
+      if (left >= minF && right >= minF) {
+        _fractions[dividerIndex] = left;
+        _fractions[dividerIndex + 1] = right;
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(
-          flex: 1,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(Spacing.lg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                FieldList(state: state, registry: registry, scrollable: false),
-                const SizedBox(height: Spacing.lg),
-                CardPreview(collection: state.draft, registry: registry),
-              ],
+    final n = widget.panes.length;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final available = constraints.maxWidth - _dividerHit * (n - 1);
+        final children = <Widget>[];
+        for (var i = 0; i < n; i++) {
+          children.add(
+            SizedBox(
+              width: (_fractions[i] * available).clamp(0.0, available),
+              child: widget.panes[i],
+            ),
+          );
+          if (i < n - 1) {
+            children.add(
+              _PaneDivider(
+                width: _dividerHit,
+                color: scheme.outlineVariant,
+                hoverColor: scheme.outline,
+                onDrag: (dx) => _drag(i, dx, available),
+              ),
+            );
+          }
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: children,
+        );
+      },
+    );
+  }
+}
+
+/// The draggable splitter between two [_ResizablePanes] regions: a hairline that
+/// thickens on hover, with a resize cursor and a generous invisible hit area.
+class _PaneDivider extends StatefulWidget {
+  const _PaneDivider({
+    required this.width,
+    required this.color,
+    required this.hoverColor,
+    required this.onDrag,
+  });
+
+  final double width;
+  final Color color;
+  final Color hoverColor;
+  final ValueChanged<double> onDrag;
+
+  @override
+  State<_PaneDivider> createState() => _PaneDividerState();
+}
+
+class _PaneDividerState extends State<_PaneDivider> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.resizeLeftRight,
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onHorizontalDragUpdate: (d) => widget.onDrag(d.delta.dx),
+        child: SizedBox(
+          width: widget.width,
+          child: Center(
+            child: Container(
+              width: _hover ? 2 : 1,
+              color: _hover ? widget.hoverColor : widget.color,
             ),
           ),
         ),
-        VerticalDivider(width: 1, color: scheme.outlineVariant),
-        Expanded(
-          flex: 1,
-          child: _ConfigRegion(
-            state: state,
-            registry: registry,
-            collections: collections,
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

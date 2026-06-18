@@ -7,8 +7,11 @@ import '../field_editors/field_editor.dart';
 import '../field_editors/widgets/preview_affordances.dart';
 import 'collection_editor_cubit.dart';
 
-/// Width at/below which cells render full-width (one per line).
-const double _narrowBreakpoint = 600;
+/// Width at/below which cells render full-width (one per line). Sized so the
+/// editor's preview pane (a fraction of the window) still engages the
+/// multi-column / resize / drag canvas at normal desktop widths; only true
+/// phone-portrait widths stack.
+const double _narrowBreakpoint = 320;
 
 /// A compact, read-only preview of an empty card rendered from [Collection.layout].
 ///
