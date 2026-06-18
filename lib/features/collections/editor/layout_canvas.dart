@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -38,6 +39,67 @@ final class _SectionPayload extends _DragPayload {
 }
 
 // ---------------------------------------------------------------------------
+// Adaptive draggable: immediate with a pointer, long-press on touch
+// ---------------------------------------------------------------------------
+
+/// True on touch-first platforms, where a drag must start with a long-press so
+/// that an ordinary drag scrolls the surrounding canvas instead of grabbing an
+/// element (mirrors how [ReorderableListView] picks its input model).
+bool get _touchToDrag {
+  switch (defaultTargetPlatform) {
+    case TargetPlatform.android:
+    case TargetPlatform.iOS:
+    case TargetPlatform.fuchsia:
+      return true;
+    case TargetPlatform.macOS:
+    case TargetPlatform.linux:
+    case TargetPlatform.windows:
+      return false;
+  }
+}
+
+/// A [Draggable] that begins immediately under a pointer (mouse / trackpad) but
+/// requires a long-press on touch devices, so a plain touch drag scrolls the
+/// canvas rather than picking the element up. [affinity] constrains only the
+/// pointer (immediate) variant — the long-press variant is direction-agnostic.
+class _AdaptiveDraggable<T extends Object> extends StatelessWidget {
+  const _AdaptiveDraggable({
+    required this.data,
+    required this.feedback,
+    required this.childWhenDragging,
+    required this.child,
+    this.affinity,
+  });
+
+  final T data;
+  final Widget feedback;
+  final Widget childWhenDragging;
+  final Widget child;
+  final Axis? affinity;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_touchToDrag) {
+      return LongPressDraggable<T>(
+        data: data,
+        dragAnchorStrategy: pointerDragAnchorStrategy,
+        feedback: feedback,
+        childWhenDragging: childWhenDragging,
+        child: child,
+      );
+    }
+    return Draggable<T>(
+      data: data,
+      affinity: affinity,
+      dragAnchorStrategy: pointerDragAnchorStrategy,
+      feedback: feedback,
+      childWhenDragging: childWhenDragging,
+      child: child,
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // LayoutCanvas (was CardPreview)
 // ---------------------------------------------------------------------------
 
@@ -50,6 +112,8 @@ final class _SectionPayload extends _DragPayload {
 /// - Whole-element drags: a field cell drags by its body, a row by its gutter
 ///   grip, and a named group by grabbing it anywhere and moving vertically
 ///   (`affinity: Axis.vertical`) so it never steals a cell's resize / drag.
+///   Drags start immediately under a pointer but require a long-press on touch
+///   (see [_AdaptiveDraggable]) so a plain swipe scrolls the canvas.
 /// - Drop zones expand and highlight only while the dragged element hovers
 ///   over them (driven by each target's own `candidateData`), so starting a
 ///   drag never reflows the whole canvas.
@@ -238,13 +302,13 @@ class _SectionView extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (multiSection) _BetweenSectionDropTarget(sectionIndex: sectionIndex),
-        // Vertical affinity: dragging the panel up/down reorders it, while a
-        // horizontal drag on a cell's resize handle and an immediate drag on a
-        // cell still win their own gesture arenas.
-        Draggable<_DragPayload>(
+        // Vertical affinity (pointer): dragging the panel up/down reorders it,
+        // while a horizontal drag on a cell's resize handle and an immediate
+        // drag on a cell still win their own gesture arenas. On touch the panel
+        // is long-press-to-drag so a plain swipe scrolls the canvas.
+        _AdaptiveDraggable<_DragPayload>(
           data: _SectionPayload(section.id),
           affinity: Axis.vertical,
-          dragAnchorStrategy: pointerDragAnchorStrategy,
           feedback: _SectionDragFeedback(section: section),
           childWhenDragging: Opacity(opacity: 0.4, child: groupBox),
           child: GestureDetector(
@@ -801,9 +865,8 @@ class _RowGutterGripState extends State<_RowGutterGrip> {
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
-      child: Draggable<_DragPayload>(
+      child: _AdaptiveDraggable<_DragPayload>(
         data: _RowPayload(widget.row.id),
-        dragAnchorStrategy: pointerDragAnchorStrategy,
         feedback: Material(
           elevation: 4,
           borderRadius: Radii.smAll,
@@ -1061,9 +1124,8 @@ class _DraggableCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Draggable<_DragPayload>(
+    return _AdaptiveDraggable<_DragPayload>(
       data: _FieldPayload(fieldId),
-      dragAnchorStrategy: pointerDragAnchorStrategy,
       feedback: Opacity(
         opacity: 0.85,
         child: Material(

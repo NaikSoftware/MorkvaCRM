@@ -2,6 +2,7 @@
 //
 // Part B tests: drag-and-drop for field cells, rows, and sections.
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -51,8 +52,14 @@ const _twoRows = Collection(
         id: 's1',
         title: 'Main',
         rows: [
-          LayoutRow(id: 'r1', cells: [LayoutCell(fieldId: 'f1', span: 12)]),
-          LayoutRow(id: 'r2', cells: [LayoutCell(fieldId: 'f2', span: 12)]),
+          LayoutRow(
+            id: 'r1',
+            cells: [LayoutCell(fieldId: 'f1', span: 12)],
+          ),
+          LayoutRow(
+            id: 'r2',
+            cells: [LayoutCell(fieldId: 'f2', span: 12)],
+          ),
         ],
       ),
     ],
@@ -73,14 +80,20 @@ const _twoSections = Collection(
         id: 's1',
         title: 'First',
         rows: [
-          LayoutRow(id: 'r1', cells: [LayoutCell(fieldId: 'f1', span: 12)]),
+          LayoutRow(
+            id: 'r1',
+            cells: [LayoutCell(fieldId: 'f1', span: 12)],
+          ),
         ],
       ),
       LayoutSection(
         id: 's2',
         title: 'Second',
         rows: [
-          LayoutRow(id: 'r2', cells: [LayoutCell(fieldId: 'f2', span: 12)]),
+          LayoutRow(
+            id: 'r2',
+            cells: [LayoutCell(fieldId: 'f2', span: 12)],
+          ),
         ],
       ),
     ],
@@ -111,17 +124,18 @@ Future<CollectionEditorCubit> _build(
             child: SingleChildScrollView(
               child: BlocProvider.value(
                 value: cubit,
-                child: BlocBuilder<CollectionEditorCubit, CollectionEditorState>(
-                  builder: (context, state) {
-                    final c = state is CollectionEditorReady
-                        ? state.draft
-                        : collection;
-                    return LayoutCanvas(
-                      collection: c,
-                      registry: defaultFieldEditorRegistry(),
-                    );
-                  },
-                ),
+                child:
+                    BlocBuilder<CollectionEditorCubit, CollectionEditorState>(
+                      builder: (context, state) {
+                        final c = state is CollectionEditorReady
+                            ? state.draft
+                            : collection;
+                        return LayoutCanvas(
+                          collection: c,
+                          registry: defaultFieldEditorRegistry(),
+                        );
+                      },
+                    ),
               ),
             ),
           ),
@@ -143,14 +157,16 @@ void main() {
     expect(find.byKey(const Key('rowdrop_r1')), findsOneWidget);
   });
 
-  testWidgets('between-row drop target key newrowdrop_s1_0 exists',
-      (tester) async {
+  testWidgets('between-row drop target key newrowdrop_s1_0 exists', (
+    tester,
+  ) async {
     await _build(tester, _twoRows);
     expect(find.byKey(const Key('newrowdrop_s1_0')), findsOneWidget);
   });
 
-  testWidgets('between-row drop target at tail exists (newrowdrop_s1_2)',
-      (tester) async {
+  testWidgets('between-row drop target at tail exists (newrowdrop_s1_2)', (
+    tester,
+  ) async {
     await _build(tester, _twoRows);
     expect(find.byKey(const Key('newrowdrop_s1_2')), findsOneWidget);
   });
@@ -219,33 +235,65 @@ void main() {
     final layout = (cubit.state as CollectionEditorReady).draft.layout;
     final s1 = layout.sections.firstWhere((s) => s.id == 's1');
     final s2 = layout.sections.firstWhere((s) => s.id == 's2');
-    expect(s1.rows.isEmpty, isTrue,
-        reason: 'r1 should have left s1');
-    expect(s2.rows.any((r) => r.id == 'r1'), isTrue,
-        reason: 'r1 should now be in s2');
+    expect(s1.rows.isEmpty, isTrue, reason: 'r1 should have left s1');
+    expect(
+      s2.rows.any((r) => r.id == 'r1'),
+      isTrue,
+      reason: 'r1 should now be in s2',
+    );
   });
 
   // ---------------------------------------------------------------------------
-  // Widget-gesture drag test — immediate Draggable (no long press)
+  // Widget-gesture drag tests — immediate (pointer) vs long-press (touch)
   // ---------------------------------------------------------------------------
 
   testWidgets(
-      'immediate drag: dragging cell B onto rowdrop_r1 joins it into row r1',
-      (tester) async {
+    'pointer: immediate drag of cell B onto rowdrop_r1 joins it into row r1',
+    (tester) async {
+      // On a pointer platform the cell is an immediate Draggable.
+      debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+      final cubit = await _build(tester, _twoRows);
+
+      // Use a gesture that mimics Draggable (pan-start immediately, no long press)
+      final cellBCenter = tester.getCenter(find.text('B'));
+      final dropCenter = tester.getCenter(find.byKey(const Key('rowdrop_r1')));
+
+      final g = await tester.startGesture(cellBCenter);
+      await tester.pump(const Duration(milliseconds: 50));
+      await g.moveBy(const Offset(10, 0)); // start the pan
+      await tester.pump();
+      await g.moveTo(dropCenter);
+      await tester.pump();
+      await g.up();
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      final layout = (cubit.state as CollectionEditorReady).draft.layout;
+      final r1 = layout.sections.single.rows.firstWhere((r) => r.id == 'r1');
+      expect(
+        r1.cells.any((c) => c.fieldId == 'f2'),
+        isTrue,
+        reason: 'f2 should have joined r1 after the drag',
+      );
+      debugDefaultTargetPlatformOverride = null;
+    },
+  );
+
+  testWidgets('touch: long-press then drag of cell B joins it into row r1', (
+    tester,
+  ) async {
+    // Default test platform is android (touch) → LongPressDraggable.
     final cubit = await _build(tester, _twoRows);
 
-    // Use a gesture that mimics Draggable (pan-start immediately, no long press)
     final cellBCenter = tester.getCenter(find.text('B'));
     final dropCenter = tester.getCenter(find.byKey(const Key('rowdrop_r1')));
 
     final g = await tester.startGesture(cellBCenter);
-    await tester.pump(const Duration(milliseconds: 50));
-    await g.moveBy(const Offset(10, 0)); // start the pan
-    await tester.pump();
+    // Hold past the long-press threshold to arm the drag.
+    await tester.pump(const Duration(milliseconds: 600));
     await g.moveTo(dropCenter);
     await tester.pump();
     await g.up();
-    await tester.pump();
     await tester.pumpAndSettle();
 
     final layout = (cubit.state as CollectionEditorReady).draft.layout;
@@ -253,7 +301,31 @@ void main() {
     expect(
       r1.cells.any((c) => c.fieldId == 'f2'),
       isTrue,
-      reason: 'f2 should have joined r1 after the drag',
+      reason: 'f2 should join r1 after a long-press drag on touch',
+    );
+  });
+
+  testWidgets('touch: a quick drag (no long-press) does NOT move cell B', (
+    tester,
+  ) async {
+    final cubit = await _build(tester, _twoRows);
+    final before = (cubit.state as CollectionEditorReady).draft.layout;
+
+    final cellBCenter = tester.getCenter(find.text('B'));
+    final dropCenter = tester.getCenter(find.byKey(const Key('rowdrop_r1')));
+
+    // No hold → the long-press never arms; on a real device this scrolls.
+    final g = await tester.startGesture(cellBCenter);
+    await g.moveTo(dropCenter);
+    await tester.pump();
+    await g.up();
+    await tester.pumpAndSettle();
+
+    final after = (cubit.state as CollectionEditorReady).draft.layout;
+    expect(
+      after,
+      equals(before),
+      reason: 'a quick touch drag must not reorder — it should scroll',
     );
   });
 
@@ -261,32 +333,40 @@ void main() {
   // Self-drop regression: dropping a lone field on its own row must not lose it
   // ---------------------------------------------------------------------------
 
-  test('self-drop (moveCellToRow onto own single-cell row) is a no-op', () async {
-    final cubit = CollectionEditorCubit(
-      _FakeRepo(_twoRows),
-      defaultFieldEditorRegistry(),
-    );
-    await cubit.load('c1');
-    addTearDown(cubit.close);
+  test(
+    'self-drop (moveCellToRow onto own single-cell row) is a no-op',
+    () async {
+      final cubit = CollectionEditorCubit(
+        _FakeRepo(_twoRows),
+        defaultFieldEditorRegistry(),
+      );
+      await cubit.load('c1');
+      addTearDown(cubit.close);
 
-    // r1 has only f1; dropping f1 onto r1 is a no-op (domain detects this)
-    final before = (cubit.state as CollectionEditorReady).draft.layout;
-    cubit.moveCellToRow('f1', 'r1', 0);
-    final after = (cubit.state as CollectionEditorReady).draft.layout;
+      // r1 has only f1; dropping f1 onto r1 is a no-op (domain detects this)
+      final before = (cubit.state as CollectionEditorReady).draft.layout;
+      cubit.moveCellToRow('f1', 'r1', 0);
+      final after = (cubit.state as CollectionEditorReady).draft.layout;
 
-    // f1 must still be present somewhere in the layout
-    expect(after.fieldIds.contains('f1'), isTrue,
-        reason: 'self-drop must not orphan the field');
-    // Layout should be unchanged (domain returns this)
-    expect(after, equals(before));
-  });
+      // f1 must still be present somewhere in the layout
+      expect(
+        after.fieldIds.contains('f1'),
+        isTrue,
+        reason: 'self-drop must not orphan the field',
+      );
+      // Layout should be unchanged (domain returns this)
+      expect(after, equals(before));
+    },
+  );
 
   // ---------------------------------------------------------------------------
   // DragTarget accept-wiring: rowdrop highlights on hover
   // ---------------------------------------------------------------------------
 
-  testWidgets('rowdrop_r1 slot highlights when a field cell hovers over it',
-      (tester) async {
+  testWidgets('rowdrop_r1 slot highlights when a field cell hovers over it', (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
     await _build(tester, _twoRows);
 
     final cellBCenter = tester.getCenter(find.text('B'));
@@ -308,8 +388,7 @@ void main() {
     );
     expect(animatedContainers, findsOneWidget);
 
-    final container =
-        tester.widget<AnimatedContainer>(animatedContainers);
+    final container = tester.widget<AnimatedContainer>(animatedContainers);
     final decoration = container.decoration as BoxDecoration?;
     expect(
       decoration?.color,
@@ -319,14 +398,16 @@ void main() {
 
     await g.up();
     await tester.pump();
+    debugDefaultTargetPlatformOverride = null;
   });
 
   // ---------------------------------------------------------------------------
   // Between-section DragTargets exist when there are multiple sections
   // ---------------------------------------------------------------------------
 
-  testWidgets('between-section drop targets exist with two sections',
-      (tester) async {
+  testWidgets('between-section drop targets exist with two sections', (
+    tester,
+  ) async {
     await _build(tester, _twoSections);
     // Between-row drop targets exist for each section
     // s1 has r1 → targets at index 0 and 1; s2 has r2 → targets at 0 and 1
