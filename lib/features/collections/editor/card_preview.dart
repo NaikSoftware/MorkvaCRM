@@ -168,15 +168,34 @@ class _SectionView extends StatelessWidget {
         // ── Rows (hidden when collapsed) ──────────────────────────────────
         if (!section.collapsed) ...[
           const SizedBox(height: Spacing.md),
-          for (final row in section.rows)
+          for (
+            var rowIndex = 0;
+            rowIndex < section.rows.length;
+            rowIndex++
+          ) ...[
+            // Between-row drop target (before each row)
+            if (!narrow)
+              _BetweenRowDropTarget(
+                key: Key('newrowdrop_${section.id}_$rowIndex'),
+                sectionId: section.id,
+                rowIndex: rowIndex,
+              ),
             Padding(
               padding: const EdgeInsets.only(bottom: Spacing.md),
               child: _RowView(
-                row: row,
+                row: section.rows[rowIndex],
                 registry: registry,
                 collection: collection,
                 narrow: narrow,
               ),
+            ),
+          ],
+          // Between-row drop target after the last row
+          if (!narrow)
+            _BetweenRowDropTarget(
+              key: Key('newrowdrop_${section.id}_${section.rows.length}'),
+              sectionId: section.id,
+              rowIndex: section.rows.length,
             ),
         ] else
           const SizedBox(height: Spacing.md),
@@ -203,7 +222,7 @@ class _RowView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (narrow) {
-      // Narrow: every cell is its own full-width line.
+      // Narrow: every cell is its own full-width line (no DnD in narrow mode).
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -230,15 +249,24 @@ class _RowView extends StatelessWidget {
               if (i > 0) const SizedBox(width: Spacing.sm),
               Expanded(
                 flex: row.cells[i].span,
-                child: _LayoutCellTile(
-                  field: collection.fieldById(row.cells[i].fieldId),
-                  registry: registry,
-                  rowId: row.id,
-                  span: row.cells[i].span,
-                  columnWidth: columnWidth,
+                child: _DraggableCell(
+                  fieldId: row.cells[i].fieldId,
+                  child: _LayoutCellTile(
+                    field: collection.fieldById(row.cells[i].fieldId),
+                    registry: registry,
+                    rowId: row.id,
+                    span: row.cells[i].span,
+                    columnWidth: columnWidth,
+                  ),
                 ),
               ),
             ],
+            // Trailing drop slot — accepts a cell dragged onto this row.
+            _RowDropTarget(
+              key: Key('rowdrop_${row.id}'),
+              rowId: row.id,
+              cellCount: row.cells.length,
+            ),
           ],
         );
       },
@@ -377,6 +405,148 @@ class _LayoutCellTile extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ─── Drag-and-drop widgets ────────────────────────────────────────────────────
+
+/// Wraps a cell tile in a [LongPressDraggable] that carries [fieldId] as its
+/// data. The tile body becomes the draggable surface; the resize handle
+/// (GestureDetector overlay) uses horizontal-drag and therefore does not
+/// conflict with the long-press gesture here.
+class _DraggableCell extends StatelessWidget {
+  const _DraggableCell({required this.fieldId, required this.child});
+
+  final String fieldId;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return LongPressDraggable<String>(
+      data: fieldId,
+      dragAnchorStrategy: pointerDragAnchorStrategy,
+      feedback: Material(
+        elevation: 4,
+        borderRadius: Radii.smAll,
+        child: SizedBox(width: 160, child: child),
+      ),
+      childWhenDragging: Opacity(opacity: 0.4, child: child),
+      child: child,
+    );
+  }
+}
+
+/// Trailing [DragTarget] on a row — accepting a dragged field drops it into
+/// this row at the trailing position.
+class _RowDropTarget extends StatelessWidget {
+  const _RowDropTarget({
+    super.key,
+    required this.rowId,
+    required this.cellCount,
+  });
+
+  final String rowId;
+  final int cellCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return DragTarget<String>(
+      onAcceptWithDetails: (details) {
+        context.read<CollectionEditorCubit>().moveCellToRow(
+          details.data,
+          rowId,
+          cellCount,
+        );
+      },
+      builder: (context, candidateData, rejectedData) {
+        return _DropSlot(active: candidateData.isNotEmpty, axis: Axis.vertical);
+      },
+    );
+  }
+}
+
+/// A horizontal drop target placed between rows (or before/after all rows).
+/// Accepts a dragged field and creates a new row at [rowIndex] within
+/// [sectionId].
+class _BetweenRowDropTarget extends StatelessWidget {
+  const _BetweenRowDropTarget({
+    super.key,
+    required this.sectionId,
+    required this.rowIndex,
+  });
+
+  final String sectionId;
+  final int rowIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    return DragTarget<String>(
+      onAcceptWithDetails: (details) {
+        context.read<CollectionEditorCubit>().moveCellToNewRow(
+          details.data,
+          sectionId,
+          rowIndex,
+        );
+      },
+      builder: (context, candidateData, rejectedData) {
+        return _DropSlot(
+          active: candidateData.isNotEmpty,
+          axis: Axis.horizontal,
+        );
+      },
+    );
+  }
+}
+
+/// A thin rounded highlight strip that signals an active drop zone.
+///
+/// [axis] controls orientation:
+/// - [Axis.vertical]   → a narrow vertical strip (trailing row slot, 8 px wide)
+/// - [Axis.horizontal] → a narrow horizontal bar (between-rows slot, 8 px tall)
+///
+/// Uses a fixed minimum dimension so it always occupies its space even when
+/// inactive, preventing layout jumps.
+class _DropSlot extends StatelessWidget {
+  const _DropSlot({required this.active, required this.axis});
+
+  final bool active;
+  final Axis axis;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    final color = active
+        ? scheme.primary.withValues(alpha: 0.25)
+        : Colors.transparent;
+
+    final borderColor = active
+        ? scheme.primary.withValues(alpha: 0.6)
+        : Colors.transparent;
+
+    if (axis == Axis.vertical) {
+      // Trailing slot alongside row cells — 8 px wide, fills row height.
+      return AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        width: 8,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: borderColor, width: 1.5),
+        ),
+      );
+    }
+
+    // Between-rows horizontal bar — full width, 8 px tall.
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      height: 8,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: borderColor, width: 1.5),
+      ),
     );
   }
 }
