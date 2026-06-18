@@ -280,14 +280,31 @@ class CollectionEditorCubit extends Cubit<CollectionEditorState> {
     emit(ready.copyWith(draft: ready.draft.copyWith(icon: icon), clearError: true));
   }
 
-  /// Selects [fieldId] (drives the config panel), or clears selection if null.
+  /// Selects [fieldId] (drives the properties panel), or clears selection if
+  /// null. Clears any section selection (field/section are mutually exclusive).
   void selectField(String? fieldId) {
     final ready = _ready;
     if (ready == null) return;
     if (fieldId == null) {
-      emit(ready.copyWith(clearSelection: true));
+      emit(ready.copyWith(clearSelection: true, clearSectionSelection: true));
     } else {
-      emit(ready.copyWith(selectedFieldId: fieldId));
+      emit(
+        ready.copyWith(selectedFieldId: fieldId, clearSectionSelection: true),
+      );
+    }
+  }
+
+  /// Selects [sectionId] (drives the group inspector), or clears if null.
+  /// Clears any field selection (field/section are mutually exclusive).
+  void selectSection(String? sectionId) {
+    final ready = _ready;
+    if (ready == null) return;
+    if (sectionId == null) {
+      emit(ready.copyWith(clearSectionSelection: true, clearSelection: true));
+    } else {
+      emit(
+        ready.copyWith(selectedSectionId: sectionId, clearSelection: true),
+      );
     }
   }
 
@@ -491,7 +508,15 @@ class CollectionEditorCubit extends Cubit<CollectionEditorState> {
   void deleteSection(String sectionId) {
     final ready = _ready;
     if (ready == null) return;
-    _emitLayout(ready.draft.layout.deleteSection(sectionId));
+    final layout = ready.draft.layout.deleteSection(sectionId);
+    final clearSection = ready.selectedSectionId == sectionId;
+    emit(
+      ready.copyWith(
+        draft: ready.draft.copyWith(layout: layout),
+        clearSectionSelection: clearSection,
+        clearError: true,
+      ),
+    );
   }
 
   /// A field name not already used in [collection], based on [label].

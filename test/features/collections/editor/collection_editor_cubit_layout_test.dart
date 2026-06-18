@@ -83,4 +83,40 @@ void main() {
     cubit.removeField('f1');
     expect(ready().draft.layout.fieldIds.toList(), ['f2']);
   });
+
+  group('selection (field/section mutually exclusive)', () {
+    test('selectSection sets it and clears any field selection', () {
+      cubit.selectField('f1');
+      expect(ready().selectedFieldId, 'f1');
+      cubit.selectSection('s1');
+      expect(ready().selectedSectionId, 's1');
+      expect(ready().selectedFieldId, isNull);
+      expect(ready().selectedSection?.id, 's1');
+    });
+
+    test('selectField clears any section selection', () {
+      cubit.selectSection('s1');
+      expect(ready().selectedSectionId, 's1');
+      cubit.selectField('f2');
+      expect(ready().selectedFieldId, 'f2');
+      expect(ready().selectedSectionId, isNull);
+    });
+
+    test('selecting does not mark the draft dirty', () {
+      expect(ready().dirty, isFalse);
+      cubit.selectSection('s1');
+      expect(ready().dirty, isFalse);
+      cubit.selectField('f1');
+      expect(ready().dirty, isFalse);
+    });
+
+    test('deleting the selected section clears the section selection', () {
+      cubit.addSection(title: 'More');
+      final s2 = ready().draft.layout.sections[1].id;
+      cubit.selectSection(s2);
+      expect(ready().selectedSectionId, s2);
+      cubit.deleteSection(s2);
+      expect(ready().selectedSectionId, isNull);
+    });
+  });
 }
