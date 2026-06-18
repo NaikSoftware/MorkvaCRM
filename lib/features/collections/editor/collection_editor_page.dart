@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
 import '../field_editors/field_editor.dart';
-import 'card_preview.dart';
+import 'layout_canvas.dart';
 import 'collection_editor_cubit.dart';
 import 'collection_editor_state.dart';
 import 'field_config_panel.dart';
@@ -576,7 +576,7 @@ class _ThreePaneLayout extends StatelessWidget {
         ),
         SingleChildScrollView(
           padding: const EdgeInsets.all(Spacing.lg),
-          child: CardPreview(collection: state.draft, registry: registry),
+          child: LayoutCanvas(collection: state.draft, registry: registry),
         ),
       ],
     );
@@ -607,7 +607,7 @@ class _TwoPaneLayout extends StatelessWidget {
             children: [
               FieldList(state: state, registry: registry, scrollable: false),
               const SizedBox(height: Spacing.lg),
-              CardPreview(collection: state.draft, registry: registry),
+              LayoutCanvas(collection: state.draft, registry: registry),
             ],
           ),
         ),
@@ -857,7 +857,7 @@ class _NarrowLayoutState extends State<_NarrowLayout> {
             scrollable: false,
           ),
           const SizedBox(height: Spacing.lg),
-          CardPreview(
+          LayoutCanvas(
             collection: widget.state.draft,
             registry: widget.registry,
           ),
