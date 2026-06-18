@@ -23,3 +23,4 @@ A universal CRM for small business. Not tailored to any specific business — ev
 - Null-safe, idiomatic Dart. Compose small widgets.
 - Keep platform-agnostic code shared; isolate web-/mobile-specific bits.
 - Run `flutter analyze` and tests before considering work done.
+- Review changes after they are made to avoid broken logic, missed requirements, etc.
