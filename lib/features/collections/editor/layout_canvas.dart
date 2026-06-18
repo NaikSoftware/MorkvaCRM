@@ -801,9 +801,9 @@ class _RowView extends StatelessWidget {
                 // The resize handle is a SIBLING of the draggable cell, not a
                 // child. Kept outside _DraggableCell so a horizontal drag on the
                 // right edge wins its own gesture arena instead of being
-                // swallowed by the cell's immediate Draggable. Only non-last
-                // cells expose a handle (the last cell has no neighbour to
-                // trade columns with).
+                // swallowed by the cell's immediate Draggable. Every cell gets a
+                // handle — including a lone full-width field, which can be
+                // dragged narrower to free columns for a neighbour.
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
@@ -815,20 +815,19 @@ class _RowView extends StatelessWidget {
                         isSelected: selectedFieldId == row.cells[i].fieldId,
                       ),
                     ),
-                    if (i != row.cells.length - 1)
-                      Positioned(
-                        top: 0,
-                        bottom: 0,
-                        right: -Spacing.xs,
-                        width: 20,
-                        child: _ResizeHandle(
-                          key: Key('resize_${row.id}_${row.cells[i].fieldId}'),
-                          rowId: row.id,
-                          fieldId: row.cells[i].fieldId,
-                          currentSpan: row.cells[i].span,
-                          columnWidth: columnWidth,
-                        ),
+                    Positioned(
+                      top: 0,
+                      bottom: 0,
+                      right: -Spacing.xs,
+                      width: 20,
+                      child: _ResizeHandle(
+                        key: Key('resize_${row.id}_${row.cells[i].fieldId}'),
+                        rowId: row.id,
+                        fieldId: row.cells[i].fieldId,
+                        currentSpan: row.cells[i].span,
+                        columnWidth: columnWidth,
                       ),
+                    ),
                   ],
                 ),
               ),
