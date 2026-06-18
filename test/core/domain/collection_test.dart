@@ -64,4 +64,63 @@ void main() {
       expect(Collection.fromJson(legacy, registry).icon, isNull);
     });
   });
+
+  group('Collection layout', () {
+    final registry = defaultFieldTypeRegistry();
+    const fields = [
+      TextFieldDefinition(id: 'f1', name: 'Title'),
+      TextFieldDefinition(id: 'f2', name: 'Notes'),
+    ];
+
+    test('fromJson synthesizes a default layout for a legacy doc', () {
+      final legacy = {
+        'id': 'c1',
+        'name': 'Orders',
+        'fields': fields.map((f) => f.toJson()).toList(),
+      };
+      final layout = Collection.fromJson(legacy, registry).layout;
+      expect(layout.fieldIds.toList(), ['f1', 'f2']);
+      expect(layout.sections.length, 1);
+    });
+
+    test('toJson/fromJson round-trips an explicit layout', () {
+      final collection = Collection(
+        id: 'c1',
+        name: 'Orders',
+        fields: fields,
+        layout: CardLayout(sections: [
+          LayoutSection(id: 's1', title: 'Main', rows: [
+            LayoutRow(id: 'r1', cells: [
+              LayoutCell(fieldId: 'f1', span: 3),
+              LayoutCell(fieldId: 'f2', span: 9),
+            ]),
+          ]),
+        ]),
+      );
+      final restored = Collection.fromJson(collection.toJson(), registry);
+      expect(restored.layout, collection.layout);
+    });
+
+    test('fromJson reconciles a stored layout against current fields', () {
+      // Layout references f1 only; fields also include f2 → f2 appended.
+      final json = {
+        'id': 'c1',
+        'name': 'Orders',
+        'fields': fields.map((f) => f.toJson()).toList(),
+        'layout': {
+          'sections': [
+            {
+              'id': 's1',
+              'collapsed': false,
+              'rows': [
+                {'id': 'r1', 'cells': [{'fieldId': 'f1', 'span': 12}]},
+              ],
+            },
+          ],
+        },
+      };
+      final layout = Collection.fromJson(json, registry).layout;
+      expect(layout.fieldIds.toList(), ['f1', 'f2']);
+    });
+  });
 }
