@@ -136,15 +136,22 @@ class _SectionView extends StatelessWidget {
               color: scheme.onSurfaceVariant,
             ),
             const SizedBox(width: Spacing.xxs),
-            Text(
-              (section.title?.trim().isNotEmpty ?? false)
-                  ? section.title!
-                  : 'Untitled section',
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: (section.title?.trim().isNotEmpty ?? false)
-                    ? scheme.onSurface
-                    : scheme.onSurfaceVariant,
-              ),
+            Builder(
+              builder: (context) {
+                final isPlaceholder =
+                    !(section.title?.trim().isNotEmpty ?? false);
+                return Text(
+                  isPlaceholder ? 'Untitled section' : section.title!,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: isPlaceholder
+                        ? scheme.onSurfaceVariant
+                        : scheme.onSurface,
+                    fontStyle: isPlaceholder
+                        ? FontStyle.italic
+                        : FontStyle.normal,
+                  ),
+                );
+              },
             ),
           ],
         ),
@@ -162,7 +169,7 @@ class _SectionView extends StatelessWidget {
               ),
             ),
         ] else
-          const SizedBox(height: Spacing.sm),
+          const SizedBox(height: Spacing.md),
       ],
     );
   }
