@@ -399,15 +399,13 @@ class _EditorHeaderState extends State<_EditorHeader> {
 
 /// Wraps the collection-name [field] with a quiet but clear editable
 /// affordance: a bottom border that is invisible at rest, warms to [outline] on
-/// hover, and to carrot on focus, plus a trailing pencil glyph at rest (dropped
-/// once focused, where the underline + caret already signal editing). This keeps
-/// the borderless title feel while making it obvious the name is editable — and
-/// reads as a sibling of the description line below it.
+/// hover, and to carrot on focus. The text itself is the affordance — no
+/// trailing pencil — so the title reads as a heading, not a control, and the
+/// underline + caret carry the "editable" signal once you reach for it.
 ///
-/// The underline and pencil hug the title's content width (via [IntrinsicWidth],
-/// capped by [_maxWidth]) rather than stretching the full header, so the pencil
-/// always sits right beside the name instead of being stranded at the far edge.
-/// A long name fills up to the cap and then scrolls within the field.
+/// The underline hugs the title's content width (via [IntrinsicWidth], capped by
+/// [_maxWidth]) rather than stretching the full header. A long name fills up to
+/// the cap and then scrolls within the field.
 class _NameEditAffordance extends StatelessWidget {
   const _NameEditAffordance({
     required this.field,
@@ -460,17 +458,6 @@ class _NameEditAffordance extends StatelessWidget {
               ),
             ),
           ),
-          if (!focused) ...[
-            const SizedBox(width: Spacing.xs),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 5),
-              child: Icon(
-                Icons.edit_outlined,
-                size: 16,
-                color: hovered ? scheme.onSurface : scheme.onSurfaceVariant,
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -510,8 +497,6 @@ class _DescriptionLine extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            const SizedBox(width: Spacing.xxs),
-            Icon(Icons.edit_outlined, size: 12, color: scheme.onSurfaceVariant),
           ],
         ),
       ),
