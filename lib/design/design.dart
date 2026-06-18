@@ -3,6 +3,9 @@
 /// `import 'package:morkva_crm/design/design.dart';`
 library;
 
+// Catalogs
+export 'collection_icons.dart';
+
 // Tokens
 export 'tokens/colors.dart';
 export 'tokens/elevation.dart';
@@ -16,6 +19,8 @@ export 'theme/app_theme.dart';
 
 // Components — shared primitives
 export 'components/pressable_scale.dart';
+export 'components/collection_glyph.dart';
+export 'components/collection_icon_picker.dart';
 
 // Components — buttons
 export 'components/buttons/primary_button.dart';
@@ -33,5 +38,6 @@ export 'components/cards/list_tile_card.dart';
 
 // Components — feedback
 export 'components/morkva_app_bar.dart';
+export 'components/morkva_confirm_dialog.dart';
 export 'components/empty_state.dart';
 export 'components/loading_indicator.dart';

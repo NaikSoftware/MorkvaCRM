@@ -59,7 +59,11 @@ class FakeDataRepository implements DataRepository {
   }
 
   @override
-  Stream<List<Collection>> watchCollections() => const Stream.empty();
+  Stream<List<Collection>> watchCollections() =>
+      // The real repository always emits the current list (empty included) and
+      // replays on subscribe; emit an empty list so the Home collections cubit
+      // reaches its ready-empty state instead of hanging on a loading spinner.
+      Stream<List<Collection>>.value(const []);
 
   @override
   Future<List<Collection>> getCollections() async => const [];

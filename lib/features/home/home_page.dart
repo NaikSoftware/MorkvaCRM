@@ -1,27 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../design/design.dart';
+import '../../api/api.dart';
+import '../collections/collections.dart';
 
-/// The home surface — where collections will be listed (Epic 3+). For now it
-/// shows the empty workspace state so the themed shell has real content.
+/// The home surface — the user's collections.
+///
+/// Hosts a [CollectionsListCubit] bound to the workspace [DataRepository] and
+/// renders the [CollectionsListView] (empty / loading / error / populated). The
+/// shell only mounts this page once the session is ready (the router gate), so
+/// the repository is already initialized when the cubit subscribes.
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return EmptyState(
-      icon: Icons.dashboard_customize_outlined,
-      title: 'No collections yet',
-      message:
-          'Collections hold your cards — orders, clients, inventory, anything. '
-          'Create your first one to start organizing your work.',
-      actionLabel: 'New collection',
-      onAction: () {
-        // Collection creation arrives in Epic 3.
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Creating collections comes in a later update')),
-        );
-      },
+    return BlocProvider(
+      create: (context) =>
+          CollectionsListCubit(context.read<DataRepository>())..initialize(),
+      child: const CollectionsListView(),
     );
   }
 }

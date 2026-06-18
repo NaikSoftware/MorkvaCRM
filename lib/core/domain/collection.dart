@@ -18,12 +18,19 @@ class Collection extends Equatable {
     required this.id,
     required this.name,
     this.description,
+    this.icon,
     this.fields = const [],
   });
 
   final String id;
   final String name;
   final String? description;
+
+  /// Stable key into the curated collection-icon catalog (e.g. `"truck"`), or
+  /// `null` when the user has not chosen one (renders the default glyph). A key
+  /// rather than a raw glyph so it serializes cleanly and survives icon-font
+  /// changes; unknown keys fall back to the default at render time.
+  final String? icon;
 
   /// The ordered field schema. Order is significant (UI render order).
   final List<FieldDefinition> fields;
@@ -36,15 +43,28 @@ class Collection extends Equatable {
     return null;
   }
 
+  /// Sentinel default for [copyWith]'s nullable [description], so passing an
+  /// explicit `null` clears it while omitting the argument preserves it.
+  static const Object _unset = Object();
+
+  /// Returns a copy with the given overrides.
+  ///
+  /// [description] uses a sentinel default so `copyWith(description: null)`
+  /// actually clears the description, while omitting it preserves the current
+  /// value (a plain `?? this.description` could never null an existing value).
   Collection copyWith({
     String? id,
     String? name,
-    String? description,
+    Object? description = _unset,
+    Object? icon = _unset,
     List<FieldDefinition>? fields,
   }) => Collection(
     id: id ?? this.id,
     name: name ?? this.name,
-    description: description ?? this.description,
+    description: identical(description, _unset)
+        ? this.description
+        : description as String?,
+    icon: identical(icon, _unset) ? this.icon : icon as String?,
     fields: fields ?? this.fields,
   );
 
@@ -53,6 +73,7 @@ class Collection extends Equatable {
     'id': id,
     'name': name,
     if (description != null) 'description': description,
+    if (icon != null) 'icon': icon,
     'fields': fields.map((f) => f.toJson()).toList(),
   };
 
@@ -67,6 +88,7 @@ class Collection extends Equatable {
       id: json['id'] as String,
       name: json['name'] as String,
       description: json['description'] as String?,
+      icon: json['icon'] as String?,
       fields: rawFields
           .cast<Map<String, dynamic>>()
           .map(registry.definitionFromJson)
@@ -75,5 +97,5 @@ class Collection extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, name, description, fields];
+  List<Object?> get props => [id, name, description, icon, fields];
 }

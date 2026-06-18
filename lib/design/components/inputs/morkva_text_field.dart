@@ -13,6 +13,7 @@ class MorkvaTextField extends StatelessWidget {
   const MorkvaTextField({
     super.key,
     this.controller,
+    this.focusNode,
     this.label,
     this.hint,
     this.errorText,
@@ -25,9 +26,15 @@ class MorkvaTextField extends StatelessWidget {
     this.autofocus = false,
     this.textInputAction,
     this.onSubmitted,
+    this.minLines,
+    this.maxLines = 1,
   });
 
   final TextEditingController? controller;
+
+  /// Optional focus node, so callers can re-sync the controller only while the
+  /// field is unfocused (and never stomp the caret mid-type).
+  final FocusNode? focusNode;
 
   /// Optional label rendered above the field (labelMedium).
   final String? label;
@@ -43,6 +50,13 @@ class MorkvaTextField extends StatelessWidget {
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onSubmitted;
 
+  /// Minimum visible lines; pair with [maxLines] for a multiline input.
+  final int? minLines;
+
+  /// Maximum visible lines. Defaults to 1 (single-line); set higher (or null)
+  /// for a multiline field.
+  final int? maxLines;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -53,11 +67,14 @@ class MorkvaTextField extends StatelessWidget {
 
     final field = TextField(
       controller: controller,
+      focusNode: focusNode,
       enabled: enabled,
       autofocus: autofocus,
       obscureText: obscureText,
       keyboardType: keyboardType,
       textInputAction: textInputAction,
+      minLines: minLines,
+      maxLines: maxLines,
       onChanged: onChanged,
       onSubmitted: onSubmitted,
       style: theme.textTheme.bodyLarge,

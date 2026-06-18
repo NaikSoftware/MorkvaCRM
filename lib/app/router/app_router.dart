@@ -2,11 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart'
     show ChangeNotifier, Listenable, ValueListenable;
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../api/api.dart';
 import '../../features/auth/session_loading_page.dart';
 import '../../features/auth/sign_in_page.dart';
+import '../../features/collections/collections.dart';
 import '../shell/app_shell_scaffold.dart';
 
 /// The app's route table.
@@ -23,6 +25,11 @@ GoRouter createAppRouter(
   AuthCubit authCubit, {
   required ValueListenable<bool> sessionReady,
 }) {
+  // One UI-side field-editor registry for the app's lifetime. Stateless and
+  // open-for-extension (mirrors the domain FieldTypeRegistry); shared by the
+  // schema editor page and its cubit.
+  final fieldEditorRegistry = defaultFieldEditorRegistry();
+
   return GoRouter(
     initialLocation: '/',
     refreshListenable: Listenable.merge([
@@ -64,6 +71,26 @@ GoRouter createAppRouter(
     },
     routes: [
       GoRoute(path: '/', builder: (context, state) => const AppShellScaffold()),
+      // Full-screen schema editor for one collection. A focused mode outside
+      // the shell nav. Same auth+session gate as `/` (the redirect above holds
+      // any protected location on `/loading` until the workspace is ready), so
+      // the repository is initialized before the cubit loads. The editor cubit
+      // loads a one-shot snapshot of the workspace collections itself (for the
+      // reference picker's target choices), so no live list stream is needed
+      // here.
+      GoRoute(
+        path: '/collections/:id',
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          final repository = context.read<DataRepository>();
+          return BlocProvider(
+            create: (_) =>
+                CollectionEditorCubit(repository, fieldEditorRegistry)
+                  ..load(id),
+            child: CollectionEditorPage(registry: fieldEditorRegistry),
+          );
+        },
+      ),
       GoRoute(
         path: '/sign-in',
         builder: (context, state) => const SignInPage(),
