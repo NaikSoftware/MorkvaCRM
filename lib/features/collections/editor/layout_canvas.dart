@@ -798,17 +798,38 @@ class _RowView extends StatelessWidget {
               if (i > 0) const SizedBox(width: Spacing.sm),
               Expanded(
                 flex: row.cells[i].span,
-                child: _DraggableCell(
-                  fieldId: row.cells[i].fieldId,
-                  child: _LayoutCellTile(
-                    field: collection.fieldById(row.cells[i].fieldId),
-                    registry: registry,
-                    rowId: row.id,
-                    span: row.cells[i].span,
-                    isLastInRow: i == row.cells.length - 1,
-                    columnWidth: columnWidth,
-                    isSelected: selectedFieldId == row.cells[i].fieldId,
-                  ),
+                // The resize handle is a SIBLING of the draggable cell, not a
+                // child. Kept outside _DraggableCell so a horizontal drag on the
+                // right edge wins its own gesture arena instead of being
+                // swallowed by the cell's immediate Draggable. Only non-last
+                // cells expose a handle (the last cell has no neighbour to
+                // trade columns with).
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    _DraggableCell(
+                      fieldId: row.cells[i].fieldId,
+                      child: _LayoutCellTile(
+                        field: collection.fieldById(row.cells[i].fieldId),
+                        registry: registry,
+                        isSelected: selectedFieldId == row.cells[i].fieldId,
+                      ),
+                    ),
+                    if (i != row.cells.length - 1)
+                      Positioned(
+                        top: 0,
+                        bottom: 0,
+                        right: -Spacing.xs,
+                        width: 20,
+                        child: _ResizeHandle(
+                          key: Key('resize_${row.id}_${row.cells[i].fieldId}'),
+                          rowId: row.id,
+                          fieldId: row.cells[i].fieldId,
+                          currentSpan: row.cells[i].span,
+                          columnWidth: columnWidth,
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ],
@@ -904,19 +925,11 @@ class _LayoutCellTile extends StatelessWidget {
   const _LayoutCellTile({
     required this.field,
     required this.registry,
-    this.rowId,
-    this.span,
-    this.isLastInRow,
-    this.columnWidth,
     this.isSelected = false,
   });
 
   final FieldDefinition? field;
   final FieldEditorRegistry registry;
-  final String? rowId;
-  final int? span;
-  final bool? isLastInRow;
-  final double? columnWidth;
   final bool isSelected;
 
   @override
@@ -1006,40 +1019,7 @@ class _LayoutCellTile extends StatelessWidget {
       ),
     );
 
-    // Only render the resize handle in wide mode with row context,
-    // and only when this is NOT the last cell in the row.
-    final showResize =
-        rowId != null &&
-        span != null &&
-        columnWidth != null &&
-        isLastInRow != null &&
-        !(isLastInRow!);
-
-    if (!showResize) return tile;
-
-    final rId = rowId!;
-    final currentSpan = span!;
-    final colW = columnWidth!;
-
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        tile,
-        Positioned(
-          top: 0,
-          bottom: 0,
-          right: -Spacing.xs,
-          width: 20,
-          child: _ResizeHandle(
-            key: Key('resize_${rId}_${f.id}'),
-            rowId: rId,
-            fieldId: f.id,
-            currentSpan: currentSpan,
-            columnWidth: colW,
-          ),
-        ),
-      ],
-    );
+    return tile;
   }
 }
 
@@ -1080,7 +1060,11 @@ class _ResizeHandleState extends State<_ResizeHandle> {
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
       child: GestureDetector(
-        behavior: HitTestBehavior.translucent,
+        // Opaque so the right-edge strip is resize-only: it absorbs the press
+        // and the cell's immediate Draggable (now a sibling, not an ancestor)
+        // never joins the gesture arena, so a horizontal drag here resizes the
+        // cell instead of picking it up.
+        behavior: HitTestBehavior.opaque,
         onHorizontalDragUpdate: (d) {
           _residual += (d.primaryDelta ?? 0) / widget.columnWidth;
           final deltaCols = _residual.truncate();
@@ -1098,12 +1082,12 @@ class _ResizeHandleState extends State<_ResizeHandle> {
         child: Center(
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
-            width: 4,
+            width: _hovered ? 6 : 4,
             decoration: BoxDecoration(
-              color: _hovered
-                  ? scheme.outline
-                  : scheme.outlineVariant.withValues(alpha: 0.6),
-              borderRadius: BorderRadius.circular(2),
+              // Highlights to the brand colour on hover so the edge reads as a
+              // resize affordance (paired with the resizeLeftRight cursor).
+              color: _hovered ? scheme.primary : scheme.outlineVariant,
+              borderRadius: BorderRadius.circular(3),
             ),
           ),
         ),
