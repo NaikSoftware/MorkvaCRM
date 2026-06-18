@@ -16,8 +16,10 @@ const double _narrowBreakpoint = 600;
 /// Each row distributes cells using span-based flex (12-column grid). Below
 /// [_narrowBreakpoint] every cell expands to full width (stacked layout).
 ///
-/// This is the canvas skeleton that Tasks 8–10 attach drag/resize gestures to —
-/// keep it cleanly factored and interaction-free.
+/// Task 10 adds section controls: collapse chevron, inline rename, delete
+/// (visible only when there is more than one section), and an "Add section"
+/// button. The section body is wrapped in a coarse [DragTarget] so a dragged
+/// field dropped anywhere in a section appends as a new full-width row.
 class CardPreview extends StatelessWidget {
   const CardPreview({
     super.key,
@@ -33,6 +35,7 @@ class CardPreview extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final isEmpty = collection.layout.fieldIds.isEmpty;
+    final sectionCount = collection.layout.sections.length;
 
     return Container(
       decoration: BoxDecoration(
@@ -95,11 +98,24 @@ class CardPreview extends StatelessWidget {
                         collection: collection,
                         narrow: narrow,
                         isFirst: i == 0,
+                        showDelete: sectionCount > 1,
                       ),
                   ],
                 );
               },
             ),
+          // ── Add section button ────────────────────────────────────────────────
+          const SizedBox(height: Spacing.xs),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              key: const Key('add_section'),
+              onPressed: () =>
+                  context.read<CollectionEditorCubit>().addSection(),
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Add section'),
+            ),
+          ),
         ],
       ),
     );
@@ -115,6 +131,7 @@ class _SectionView extends StatelessWidget {
     required this.collection,
     required this.narrow,
     required this.isFirst,
+    required this.showDelete,
   });
 
   final LayoutSection section;
@@ -123,10 +140,12 @@ class _SectionView extends StatelessWidget {
   final bool narrow;
   final bool isFirst;
 
+  /// Whether to show the delete button — false when only one section exists.
+  final bool showDelete;
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    final scheme = Theme.of(context).colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -140,66 +159,213 @@ class _SectionView extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Icon(
-              section.collapsed ? Icons.chevron_right : Icons.expand_more,
-              size: 16,
-              color: scheme.onSurfaceVariant,
+            // Collapse chevron
+            IconButton(
+              key: Key('collapse_${section.id}'),
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              icon: Icon(
+                section.collapsed ? Icons.chevron_right : Icons.expand_more,
+                size: 18,
+                color: scheme.onSurfaceVariant,
+              ),
+              onPressed: () => context
+                  .read<CollectionEditorCubit>()
+                  .toggleSectionCollapsed(section.id),
             ),
             const SizedBox(width: Spacing.xxs),
-            Builder(
-              builder: (context) {
-                final isPlaceholder =
-                    !(section.title?.trim().isNotEmpty ?? false);
-                return Text(
-                  isPlaceholder ? 'Untitled section' : section.title!,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: isPlaceholder
-                        ? scheme.onSurfaceVariant
-                        : scheme.onSurface,
-                    fontStyle: isPlaceholder
-                        ? FontStyle.italic
-                        : FontStyle.normal,
-                  ),
-                );
-              },
-            ),
+            // Editable title
+            Expanded(child: _SectionTitle(section: section)),
+            // Delete button — only when multiple sections exist
+            if (showDelete)
+              IconButton(
+                key: Key('delete_${section.id}'),
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                icon: Icon(
+                  Icons.delete_outline,
+                  size: 18,
+                  color: scheme.onSurfaceVariant,
+                ),
+                onPressed: () => context
+                    .read<CollectionEditorCubit>()
+                    .deleteSection(section.id),
+              ),
           ],
         ),
         // ── Rows (hidden when collapsed) ──────────────────────────────────
         if (!section.collapsed) ...[
           const SizedBox(height: Spacing.md),
-          for (
-            var rowIndex = 0;
-            rowIndex < section.rows.length;
-            rowIndex++
-          ) ...[
-            // Between-row drop target (before each row)
-            if (!narrow)
-              _BetweenRowDropTarget(
-                key: Key('newrowdrop_${section.id}_$rowIndex'),
-                sectionId: section.id,
-                rowIndex: rowIndex,
-              ),
-            Padding(
-              padding: const EdgeInsets.only(bottom: Spacing.md),
-              child: _RowView(
-                row: section.rows[rowIndex],
-                registry: registry,
-                collection: collection,
-                narrow: narrow,
-              ),
-            ),
-          ],
-          // Between-row drop target after the last row
-          if (!narrow)
-            _BetweenRowDropTarget(
-              key: Key('newrowdrop_${section.id}_${section.rows.length}'),
-              sectionId: section.id,
-              rowIndex: section.rows.length,
-            ),
+          // Coarse section-body DragTarget — dropping a field here appends it
+          // as a new full-width row at the end of the section.
+          // The finer _BetweenRowDropTarget and _RowDropTarget widgets are
+          // rendered *inside* this DragTarget's subtree and receive events first
+          // (Flutter hit-tests innermost first), so they take priority over the
+          // coarse section target when the pointer is over them.
+          DragTarget<String>(
+            onWillAcceptWithDetails: (_) => true,
+            onAcceptWithDetails: (details) {
+              context.read<CollectionEditorCubit>().moveCellToNewRow(
+                    details.data,
+                    section.id,
+                    section.rows.length,
+                  );
+            },
+            builder: (context, candidateData, rejectedData) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (
+                    var rowIndex = 0;
+                    rowIndex < section.rows.length;
+                    rowIndex++
+                  ) ...[
+                    // Between-row drop target (before each row)
+                    if (!narrow)
+                      _BetweenRowDropTarget(
+                        key: Key('newrowdrop_${section.id}_$rowIndex'),
+                        sectionId: section.id,
+                        rowIndex: rowIndex,
+                      ),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: Spacing.md),
+                      child: _RowView(
+                        row: section.rows[rowIndex],
+                        registry: registry,
+                        collection: collection,
+                        narrow: narrow,
+                      ),
+                    ),
+                  ],
+                  // Between-row drop target after the last row
+                  if (!narrow)
+                    _BetweenRowDropTarget(
+                      key: Key('newrowdrop_${section.id}_${section.rows.length}'),
+                      sectionId: section.id,
+                      rowIndex: section.rows.length,
+                    ),
+                ],
+              );
+            },
+          ),
         ] else
           const SizedBox(height: Spacing.md),
       ],
+    );
+  }
+}
+
+// ─── Inline section title (editable) ─────────────────────────────────────────
+
+/// Displays the section title as tappable text. On tap, switches to an inline
+/// [TextField] seeded with the current title. Commits via [renameSection] on
+/// submit or focus loss. Shows a muted italic placeholder when not editing and
+/// the title is empty.
+class _SectionTitle extends StatefulWidget {
+  const _SectionTitle({required this.section});
+
+  final LayoutSection section;
+
+  @override
+  State<_SectionTitle> createState() => _SectionTitleState();
+}
+
+class _SectionTitleState extends State<_SectionTitle> {
+  bool _editing = false;
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.section.title ?? '');
+    _focusNode = FocusNode();
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  @override
+  void didUpdateWidget(_SectionTitle oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Sync controller when the section title changes externally (e.g. cubit
+    // rebuild after another user action) but only when not actively editing.
+    if (!_editing && oldWidget.section.title != widget.section.title) {
+      _controller.text = widget.section.title ?? '';
+    }
+  }
+
+  void _onFocusChange() {
+    if (!_focusNode.hasFocus && _editing) {
+      _commit();
+    }
+  }
+
+  void _commit() {
+    final value = _controller.text.trim().isEmpty ? null : _controller.text.trim();
+    context.read<CollectionEditorCubit>().renameSection(widget.section.id, value);
+    setState(() => _editing = false);
+  }
+
+  void _startEditing() {
+    setState(() {
+      _editing = true;
+      _controller.text = widget.section.title ?? '';
+    });
+    // Request focus after the frame so the TextField is mounted.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _focusNode.requestFocus();
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    if (_editing) {
+      return TextField(
+        controller: _controller,
+        focusNode: _focusNode,
+        style: theme.textTheme.titleSmall,
+        decoration: const InputDecoration(
+          isDense: true,
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: Spacing.xs,
+            vertical: Spacing.xxs,
+          ),
+          border: OutlineInputBorder(),
+        ),
+        onSubmitted: (_) => _commit(),
+        textInputAction: TextInputAction.done,
+      );
+    }
+
+    final isPlaceholder = !(widget.section.title?.trim().isNotEmpty ?? false);
+    return InkWell(
+      onTap: _startEditing,
+      borderRadius: BorderRadius.circular(4),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: Spacing.xs,
+          vertical: Spacing.xxs,
+        ),
+        child: Text(
+          isPlaceholder ? 'Untitled section' : widget.section.title!,
+          style: theme.textTheme.titleSmall?.copyWith(
+            color: isPlaceholder ? scheme.onSurfaceVariant : scheme.onSurface,
+            fontStyle: isPlaceholder ? FontStyle.italic : FontStyle.normal,
+          ),
+        ),
+      ),
     );
   }
 }
