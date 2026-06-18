@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
 import '../field_editors/field_editor.dart';
 import '../field_editors/widgets/preview_affordances.dart';
+import 'collection_editor_cubit.dart';
 
 /// Width at/below which cells render full-width (one per line).
 const double _narrowBreakpoint = 600;
@@ -45,19 +47,26 @@ class CardPreview extends StatelessWidget {
           // ── Header bar ──────────────────────────────────────────────────────
           Row(
             children: [
-              Icon(Icons.preview_outlined, size: 16, color: scheme.onSurfaceVariant),
+              Icon(
+                Icons.preview_outlined,
+                size: 16,
+                color: scheme.onSurfaceVariant,
+              ),
               const SizedBox(width: Spacing.xs),
               Text(
                 'Card preview',
-                style: theme.textTheme.labelMedium
-                    ?.copyWith(color: scheme.onSurfaceVariant),
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
           const SizedBox(height: Spacing.md),
           // ── Collection name ──────────────────────────────────────────────────
           Text(
-            collection.name.trim().isEmpty ? 'Untitled collection' : collection.name,
+            collection.name.trim().isEmpty
+                ? 'Untitled collection'
+                : collection.name,
             style: theme.textTheme.titleMedium,
           ),
           const SizedBox(height: Spacing.md),
@@ -67,8 +76,9 @@ class CardPreview extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: Spacing.sm),
               child: Text(
                 'Add fields to see the card take shape.',
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: scheme.onSurfaceVariant),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
             )
           else
@@ -208,21 +218,30 @@ class _RowView extends StatelessWidget {
       );
     }
 
-    // Wide: cells share the row, sized by span (flex).
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (var i = 0; i < row.cells.length; i++) ...[
-          if (i > 0) const SizedBox(width: Spacing.sm),
-          Expanded(
-            flex: row.cells[i].span,
-            child: _LayoutCellTile(
-              field: collection.fieldById(row.cells[i].fieldId),
-              registry: registry,
-            ),
-          ),
-        ],
-      ],
+    // Wide: cells share the row, sized by span (flex). Wrap in LayoutBuilder
+    // to compute columnWidth for the resize handle.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columnWidth = constraints.maxWidth / kLayoutColumns;
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (var i = 0; i < row.cells.length; i++) ...[
+              if (i > 0) const SizedBox(width: Spacing.sm),
+              Expanded(
+                flex: row.cells[i].span,
+                child: _LayoutCellTile(
+                  field: collection.fieldById(row.cells[i].fieldId),
+                  registry: registry,
+                  rowId: row.id,
+                  span: row.cells[i].span,
+                  columnWidth: columnWidth,
+                ),
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 }
@@ -231,13 +250,30 @@ class _RowView extends StatelessWidget {
 
 /// One field's label + inert affordance. Shared by the canvas tasks (8–10).
 ///
-/// Intentionally free of interaction logic so later tasks can wrap or extend it
-/// cleanly with gesture detectors and resize handles.
+/// When [rowId], [span], and [columnWidth] are all provided (wide mode only),
+/// a right-edge drag handle is overlaid so the user can resize the cell's span.
+/// The three params are optional/nullable so the narrow branch and plain test
+/// callers work without them.
 class _LayoutCellTile extends StatelessWidget {
-  const _LayoutCellTile({required this.field, required this.registry});
+  const _LayoutCellTile({
+    required this.field,
+    required this.registry,
+    this.rowId,
+    this.span,
+    this.columnWidth,
+  });
 
   final FieldDefinition? field;
   final FieldEditorRegistry registry;
+
+  /// The id of the containing [LayoutRow] — present only in wide mode.
+  final String? rowId;
+
+  /// The cell's current column span — present only in wide mode.
+  final int? span;
+
+  /// Width of a single grid column (row width / [kLayoutColumns]) — wide mode.
+  final double? columnWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -248,7 +284,7 @@ class _LayoutCellTile extends StatelessWidget {
 
     final editor = registry.forType(f.type);
 
-    return Container(
+    final tile = Container(
       decoration: BoxDecoration(
         color: scheme.surfaceContainerLowest,
         borderRadius: Radii.smAll,
@@ -278,8 +314,9 @@ class _LayoutCellTile extends StatelessWidget {
                         ? [
                             TextSpan(
                               text: ' *',
-                              style: theme.textTheme.labelMedium
-                                  ?.copyWith(color: scheme.error),
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                color: scheme.error,
+                              ),
                             ),
                           ]
                         : null,
@@ -295,6 +332,51 @@ class _LayoutCellTile extends StatelessWidget {
               const PreviewStubInput(height: 36),
         ],
       ),
+    );
+
+    // Only render the resize handle in wide mode (all three params present).
+    if (rowId == null || span == null || columnWidth == null) return tile;
+
+    final rId = rowId!;
+    final currentSpan = span!;
+    final colW = columnWidth!;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        tile,
+        Positioned(
+          top: 0,
+          bottom: 0,
+          right: -Spacing.xs,
+          width: Spacing.lg, // 24 px — meets the minimum touch target
+          child: GestureDetector(
+            key: Key('resize_${rId}_${f.id}'),
+            behavior: HitTestBehavior.translucent,
+            onHorizontalDragUpdate: (d) {
+              final deltaCols = (d.primaryDelta! / colW).round();
+              if (deltaCols == 0) return;
+              context.read<CollectionEditorCubit>().setCellSpan(
+                rId,
+                f.id,
+                currentSpan + deltaCols,
+              );
+            },
+            child: MouseRegion(
+              cursor: SystemMouseCursors.resizeLeftRight,
+              child: Center(
+                child: Container(
+                  width: 3,
+                  decoration: BoxDecoration(
+                    color: scheme.outlineVariant,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
