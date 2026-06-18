@@ -159,12 +159,12 @@ class _SectionView extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Collapse chevron
+            // Collapse chevron — minimum 36×36 hit target
             IconButton(
               key: Key('collapse_${section.id}'),
               visualDensity: VisualDensity.compact,
               padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
               icon: Icon(
                 section.collapsed ? Icons.chevron_right : Icons.expand_more,
                 size: 18,
@@ -176,14 +176,21 @@ class _SectionView extends StatelessWidget {
             ),
             const SizedBox(width: Spacing.xxs),
             // Editable title
-            Expanded(child: _SectionTitle(section: section)),
+            Expanded(
+              child: _SectionTitle(
+                key: ValueKey(section.id),
+                section: section,
+              ),
+            ),
+            // Clearance gap before delete button
+            if (showDelete) const SizedBox(width: Spacing.xxs),
             // Delete button — only when multiple sections exist
             if (showDelete)
               IconButton(
                 key: Key('delete_${section.id}'),
                 visualDensity: VisualDensity.compact,
                 padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                 icon: Icon(
                   Icons.delete_outline,
                   size: 18,
@@ -264,7 +271,7 @@ class _SectionView extends StatelessWidget {
 /// submit or focus loss. Shows a muted italic placeholder when not editing and
 /// the title is empty.
 class _SectionTitle extends StatefulWidget {
-  const _SectionTitle({required this.section});
+  const _SectionTitle({super.key, required this.section});
 
   final LayoutSection section;
 
@@ -336,13 +343,24 @@ class _SectionTitleState extends State<_SectionTitle> {
         controller: _controller,
         focusNode: _focusNode,
         style: theme.textTheme.titleSmall,
-        decoration: const InputDecoration(
+        decoration: InputDecoration(
           isDense: true,
-          contentPadding: EdgeInsets.symmetric(
+          contentPadding: const EdgeInsets.symmetric(
             horizontal: Spacing.xs,
             vertical: Spacing.xxs,
           ),
-          border: OutlineInputBorder(),
+          border: OutlineInputBorder(
+            borderRadius: Radii.mdAll,
+            borderSide: BorderSide(color: scheme.outlineVariant),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: Radii.mdAll,
+            borderSide: BorderSide(color: scheme.outlineVariant),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: Radii.mdAll,
+            borderSide: BorderSide(color: scheme.primary, width: 2),
+          ),
         ),
         onSubmitted: (_) => _commit(),
         textInputAction: TextInputAction.done,
@@ -352,6 +370,7 @@ class _SectionTitleState extends State<_SectionTitle> {
     final isPlaceholder = !(widget.section.title?.trim().isNotEmpty ?? false);
     return InkWell(
       onTap: _startEditing,
+      mouseCursor: SystemMouseCursors.click,
       borderRadius: BorderRadius.circular(4),
       child: Padding(
         padding: const EdgeInsets.symmetric(
@@ -542,8 +561,13 @@ class _LayoutCellTile extends StatelessWidget {
         Positioned(
           top: 0,
           bottom: 0,
+          // Hit area: 20 px wide, right edge at -Spacing.xs from cell edge.
+          // Center lands at -8+10 = +2 px inside the cell boundary (inside the
+          // stack's hit-test region) while the outer 10 px cover the gap.
+          // Old code used width 24 and extended ~16px into the neighbor; this
+          // trims it to ~10 px (one gap-half), reducing accidental neighbor hits.
           right: -Spacing.xs,
-          width: Spacing.lg, // 24 px — meets the minimum touch target
+          width: 20,
           child: GestureDetector(
             key: Key('resize_${rId}_${f.id}'),
             behavior: HitTestBehavior.translucent,
@@ -556,21 +580,49 @@ class _LayoutCellTile extends StatelessWidget {
                 currentSpan + deltaCols,
               );
             },
-            child: MouseRegion(
-              cursor: SystemMouseCursors.resizeLeftRight,
-              child: Center(
-                child: Container(
-                  width: 3,
-                  decoration: BoxDecoration(
-                    color: scheme.outlineVariant,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-            ),
+            child: _ResizeBar(scheme: scheme),
           ),
         ),
       ],
+    );
+  }
+}
+
+// ─── Resize bar ──────────────────────────────────────────────────────────────
+
+/// Thin vertical bar that lives in the resize hit area. Animates from the
+/// faint resting color to [ColorScheme.outline] on hover so it is clearly
+/// visible without distracting at rest.
+class _ResizeBar extends StatefulWidget {
+  const _ResizeBar({required this.scheme});
+
+  final ColorScheme scheme;
+
+  @override
+  State<_ResizeBar> createState() => _ResizeBarState();
+}
+
+class _ResizeBarState extends State<_ResizeBar> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.resizeLeftRight,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: Center(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: 4,
+          decoration: BoxDecoration(
+            color: _hovered
+                ? widget.scheme.outline
+                : widget.scheme.outlineVariant.withValues(alpha: 0.6),
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -593,7 +645,7 @@ class _DraggableCell extends StatelessWidget {
       data: fieldId,
       dragAnchorStrategy: pointerDragAnchorStrategy,
       feedback: Opacity(
-        opacity: 0.9,
+        opacity: 0.85,
         child: Material(
           elevation: 4,
           borderRadius: Radii.smAll,
