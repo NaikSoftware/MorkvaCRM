@@ -788,8 +788,13 @@ class _RowView extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final columnWidth = constraints.maxWidth / kLayoutColumns;
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        final usedColumns = row.cells.fold<int>(0, (sum, c) => sum + c.span);
+        final freeColumns = kLayoutColumns - usedColumns;
+        // IntrinsicHeight + stretch so the trailing drop zone (and cells) fill
+        // the full row height rather than sitting shorter than the cards.
+        return IntrinsicHeight(
+          child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Row gutter grip (hover-revealed, draggable for row-move)
             _RowGutterGrip(row: row),
@@ -832,13 +837,27 @@ class _RowView extends StatelessWidget {
                 ),
               ),
             ],
-            // Trailing drop slot — accepts a cell dragged onto this row
-            _RowDropTarget(
-              key: Key('rowdrop_${row.id}'),
-              rowId: row.id,
-              cellCount: row.cells.length,
-            ),
+            // Trailing slot. When the row has unused columns it expands to fill
+            // them, so shrinking a cell reveals a real, droppable gap; when the
+            // row is full it stays a thin slot.
+            if (freeColumns > 0)
+              Expanded(
+                flex: freeColumns,
+                child: _RowDropTarget(
+                  key: Key('rowdrop_${row.id}'),
+                  rowId: row.id,
+                  cellCount: row.cells.length,
+                  fill: true,
+                ),
+              )
+            else
+              _RowDropTarget(
+                key: Key('rowdrop_${row.id}'),
+                rowId: row.id,
+                cellCount: row.cells.length,
+              ),
           ],
+          ),
         );
       },
     );
@@ -1135,10 +1154,15 @@ class _RowDropTarget extends StatelessWidget {
     super.key,
     required this.rowId,
     required this.cellCount,
+    this.fill = false,
   });
 
   final String rowId;
   final int cellCount;
+
+  /// When true the target fills its parent (the row's free columns) and shows a
+  /// dashed "drop a field here" gap; otherwise it is a thin trailing slot.
+  final bool fill;
 
   @override
   Widget build(BuildContext context) {
@@ -1156,6 +1180,31 @@ class _RowDropTarget extends StatelessWidget {
       builder: (context, candidateData, rejectedData) {
         final active = candidateData.isNotEmpty;
         final scheme = Theme.of(context).colorScheme;
+        if (fill) {
+          // Fills the row's free columns (and full height, via the row's
+          // IntrinsicHeight + stretch) so a shrunk cell shows a visible gap.
+          return Container(
+            margin: const EdgeInsets.only(left: Spacing.sm),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: active
+                  ? scheme.primary.withValues(alpha: 0.18)
+                  : scheme.surfaceContainerLowest.withValues(alpha: 0.4),
+              borderRadius: Radii.smAll,
+              border: Border.all(
+                color: active
+                    ? scheme.primary.withValues(alpha: 0.7)
+                    : scheme.outlineVariant.withValues(alpha: 0.6),
+                width: 1.5,
+              ),
+            ),
+            child: Icon(
+              Icons.add,
+              size: 18,
+              color: active ? scheme.primary : scheme.onSurfaceVariant,
+            ),
+          );
+        }
         return AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           width: active ? 24 : 8,
