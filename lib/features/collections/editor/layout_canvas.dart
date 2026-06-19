@@ -79,11 +79,20 @@ class _AdaptiveDraggable<T extends Object> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Paint the dragged element centred on the cursor (cursor at its middle)
+    // rather than with its top-left corner at the cursor. Detection stays
+    // cursor-based, so the user aims the element's centre at the drop target.
+    // FractionalTranslation shifts by half the feedback's own size, so it works
+    // for any feedback size (cell, row, group).
+    final centeredFeedback = FractionalTranslation(
+      translation: const Offset(-0.5, -0.5),
+      child: feedback,
+    );
     if (_touchToDrag) {
       return LongPressDraggable<T>(
         data: data,
         dragAnchorStrategy: pointerDragAnchorStrategy,
-        feedback: feedback,
+        feedback: centeredFeedback,
         childWhenDragging: childWhenDragging,
         child: child,
       );
@@ -92,7 +101,7 @@ class _AdaptiveDraggable<T extends Object> extends StatelessWidget {
       data: data,
       affinity: affinity,
       dragAnchorStrategy: pointerDragAnchorStrategy,
-      feedback: feedback,
+      feedback: centeredFeedback,
       childWhenDragging: childWhenDragging,
       child: child,
     );
