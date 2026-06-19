@@ -516,12 +516,16 @@ class _SectionBody extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
 
-    // Coarse section body DragTarget — accepts field and row drops, highlights
-    // the whole body. Fine inner targets (between-row, row slot) win first
-    // because Flutter hit-tests innermost first.
+    // Coarse section body DragTarget — only accepts drops when the section is
+    // EMPTY (the "Drop a field here" affordance for a fresh group). When the
+    // section has rows, precise placement is handled by the fine inner targets
+    // (between-row slots, row edge / free-space); an imprecise release that
+    // misses them is rejected here so the dragged element returns to its
+    // original place instead of being appended to the end of the section.
     return DragTarget<_DragPayload>(
       onWillAcceptWithDetails: (details) =>
-          details.data is _FieldPayload || details.data is _RowPayload,
+          section.rows.isEmpty &&
+          (details.data is _FieldPayload || details.data is _RowPayload),
       onAcceptWithDetails: (details) {
         final payload = details.data;
         final cubit = context.read<CollectionEditorCubit>();
