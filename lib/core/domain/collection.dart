@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 
+import 'card_layout.dart';
 import 'field_definition.dart';
 import 'field_type_registry.dart';
 
@@ -20,6 +21,7 @@ class Collection extends Equatable {
     this.description,
     this.icon,
     this.fields = const [],
+    this.layout = const CardLayout(),
   });
 
   final String id;
@@ -34,6 +36,10 @@ class Collection extends Equatable {
 
   /// The ordered field schema. Order is significant (UI render order).
   final List<FieldDefinition> fields;
+
+  /// The presentation layout (sections → rows → cells) over [fields].
+  /// Pure presentation; reconciled against [fields] on load.
+  final CardLayout layout;
 
   /// The field with [fieldId], or `null` if the schema has no such field.
   FieldDefinition? fieldById(String fieldId) {
@@ -58,6 +64,7 @@ class Collection extends Equatable {
     Object? description = _unset,
     Object? icon = _unset,
     List<FieldDefinition>? fields,
+    CardLayout? layout,
   }) => Collection(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -66,6 +73,7 @@ class Collection extends Equatable {
         : description as String?,
     icon: identical(icon, _unset) ? this.icon : icon as String?,
     fields: fields ?? this.fields,
+    layout: layout ?? this.layout,
   );
 
   Map<String, dynamic> toJson() => {
@@ -75,6 +83,7 @@ class Collection extends Equatable {
     if (description != null) 'description': description,
     if (icon != null) 'icon': icon,
     'fields': fields.map((f) => f.toJson()).toList(),
+    'layout': layout.toJson(),
   };
 
   /// Reconstructs a collection, resolving each field definition through
@@ -84,18 +93,25 @@ class Collection extends Equatable {
     FieldTypeRegistry registry,
   ) {
     final rawFields = (json['fields'] as List?) ?? const [];
+    final fields = rawFields
+        .cast<Map<String, dynamic>>()
+        .map(registry.definitionFromJson)
+        .toList();
+    final fieldIds = fields.map((f) => f.id).toList();
+    final rawLayout = json['layout'] as Map<String, dynamic>?;
+    final layout = rawLayout == null
+        ? CardLayout.synthesize(fieldIds)
+        : CardLayout.fromJson(rawLayout).reconcile(fieldIds);
     return Collection(
       id: json['id'] as String,
       name: json['name'] as String,
       description: json['description'] as String?,
       icon: json['icon'] as String?,
-      fields: rawFields
-          .cast<Map<String, dynamic>>()
-          .map(registry.definitionFromJson)
-          .toList(),
+      fields: fields,
+      layout: layout,
     );
   }
 
   @override
-  List<Object?> get props => [id, name, description, icon, fields];
+  List<Object?> get props => [id, name, description, icon, fields, layout];
 }

@@ -4,6 +4,7 @@
 library;
 
 export 'built_in_field_types.dart';
+export 'card_layout.dart';
 export 'collection.dart';
 export 'field_definition.dart';
 export 'field_type_registry.dart';

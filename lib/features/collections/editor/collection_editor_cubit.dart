@@ -135,9 +135,10 @@ class CollectionEditorCubit extends Cubit<CollectionEditorState> {
     final name = _uniqueFieldName(ready.draft, editor.displayLabel);
     final field = editor.createDefault(id: fieldId, name: name);
     final fields = [...ready.draft.fields, field];
+    final layout = ready.draft.layout.reconcile(fields.map((f) => f.id).toList());
     emit(
       ready.copyWith(
-        draft: ready.draft.copyWith(fields: fields),
+        draft: ready.draft.copyWith(fields: fields, layout: layout),
         selectedFieldId: fieldId,
         clearError: true,
       ),
@@ -218,9 +219,10 @@ class CollectionEditorCubit extends Cubit<CollectionEditorState> {
     final fields = ready.draft.fields.where((f) => f.id != fieldId).toList();
     if (fields.length == ready.draft.fields.length) return;
     final clearSelection = ready.selectedFieldId == fieldId;
+    final layout = ready.draft.layout.reconcile(fields.map((f) => f.id).toList());
     emit(
       ready.copyWith(
-        draft: ready.draft.copyWith(fields: fields),
+        draft: ready.draft.copyWith(fields: fields, layout: layout),
         clearSelection: clearSelection,
         clearError: true,
       ),
@@ -278,14 +280,31 @@ class CollectionEditorCubit extends Cubit<CollectionEditorState> {
     emit(ready.copyWith(draft: ready.draft.copyWith(icon: icon), clearError: true));
   }
 
-  /// Selects [fieldId] (drives the config panel), or clears selection if null.
+  /// Selects [fieldId] (drives the properties panel), or clears selection if
+  /// null. Clears any section selection (field/section are mutually exclusive).
   void selectField(String? fieldId) {
     final ready = _ready;
     if (ready == null) return;
     if (fieldId == null) {
-      emit(ready.copyWith(clearSelection: true));
+      emit(ready.copyWith(clearSelection: true, clearSectionSelection: true));
     } else {
-      emit(ready.copyWith(selectedFieldId: fieldId));
+      emit(
+        ready.copyWith(selectedFieldId: fieldId, clearSectionSelection: true),
+      );
+    }
+  }
+
+  /// Selects [sectionId] (drives the group inspector), or clears if null.
+  /// Clears any field selection (field/section are mutually exclusive).
+  void selectSection(String? sectionId) {
+    final ready = _ready;
+    if (ready == null) return;
+    if (sectionId == null) {
+      emit(ready.copyWith(clearSectionSelection: true, clearSelection: true));
+    } else {
+      emit(
+        ready.copyWith(selectedSectionId: sectionId, clearSelection: true),
+      );
     }
   }
 
@@ -413,6 +432,91 @@ class CollectionEditorCubit extends Cubit<CollectionEditorState> {
     }
 
     return EditorValidation(issues);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Layout operations — thin delegates to CardLayout, emitting a new draft.
+  // ---------------------------------------------------------------------------
+
+  /// Emits a new draft with [layout] applied. No-op when not ready.
+  void _emitLayout(CardLayout layout) {
+    final ready = _ready;
+    if (ready == null) return;
+    emit(ready.copyWith(
+      draft: ready.draft.copyWith(layout: layout),
+      clearError: true,
+    ));
+  }
+
+  /// Sets the span of cell [fieldId] within [rowId] (neighbour absorbs overflow).
+  void setCellSpan(String rowId, String fieldId, int span) {
+    final ready = _ready;
+    if (ready == null) return;
+    _emitLayout(ready.draft.layout.setCellSpan(rowId, fieldId, span));
+  }
+
+  void moveCellToRow(String fieldId, String targetRowId, int index) {
+    final ready = _ready;
+    if (ready == null) return;
+    _emitLayout(ready.draft.layout.moveCellToRow(fieldId, targetRowId, index));
+  }
+
+  void moveCellToNewRow(String fieldId, String sectionId, int rowIndex) {
+    final ready = _ready;
+    if (ready == null) return;
+    _emitLayout(
+      ready.draft.layout.moveCellToNewRow(fieldId, sectionId, rowIndex, _ids.rowId()),
+    );
+  }
+
+  void reorderCellInRow(String rowId, int oldIndex, int newIndex) {
+    final ready = _ready;
+    if (ready == null) return;
+    _emitLayout(ready.draft.layout.reorderCellInRow(rowId, oldIndex, newIndex));
+  }
+
+  void addSection({String? title}) {
+    final ready = _ready;
+    if (ready == null) return;
+    _emitLayout(ready.draft.layout.addSection(_ids.sectionId(), title: title));
+  }
+
+  void renameSection(String sectionId, String? title) {
+    final ready = _ready;
+    if (ready == null) return;
+    _emitLayout(ready.draft.layout.renameSection(sectionId, title));
+  }
+
+  void toggleSectionCollapsed(String sectionId) {
+    final ready = _ready;
+    if (ready == null) return;
+    _emitLayout(ready.draft.layout.toggleSectionCollapsed(sectionId));
+  }
+
+  void reorderSections(int oldIndex, int newIndex) {
+    final ready = _ready;
+    if (ready == null) return;
+    _emitLayout(ready.draft.layout.reorderSections(oldIndex, newIndex));
+  }
+
+  void moveRowToSection(String rowId, String targetSectionId, int index) {
+    final ready = _ready;
+    if (ready == null) return;
+    _emitLayout(ready.draft.layout.moveRowToSection(rowId, targetSectionId, index));
+  }
+
+  void deleteSection(String sectionId) {
+    final ready = _ready;
+    if (ready == null) return;
+    final layout = ready.draft.layout.deleteSection(sectionId);
+    final clearSection = ready.selectedSectionId == sectionId;
+    emit(
+      ready.copyWith(
+        draft: ready.draft.copyWith(layout: layout),
+        clearSectionSelection: clearSection,
+        clearError: true,
+      ),
+    );
   }
 
   /// A field name not already used in [collection], based on [label].

@@ -5,11 +5,11 @@ import 'package:go_router/go_router.dart';
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
 import '../field_editors/field_editor.dart';
-import 'card_preview.dart';
+import 'layout_canvas.dart';
 import 'collection_editor_cubit.dart';
 import 'collection_editor_state.dart';
 import 'field_config_panel.dart';
-import 'field_list.dart';
+import 'section_config_panel.dart';
 
 /// Host for `/collections/:id` — the full schema editor.
 ///
@@ -17,29 +17,27 @@ import 'field_list.dart';
 /// friendly not-found, and the ready editor). The ready editor frames an
 /// in-content page header (editable collection name + description, a Save
 /// affordance that lights up only when dirty, and a back action) over a
-/// responsive workspace:
+/// responsive 2-panel workspace:
 ///
-/// - **wide (>= [_threePaneBreakpoint])**: three regions — field list, config
-///   panel, and a card preview rail.
-/// - **medium**: two regions — field list and config panel.
-/// - **narrow**: a single scrolling column (list + collapsible preview); the
-///   config panel opens as a modal bottom sheet when a field is selected.
+/// - **wide (>= [_twoPaneBreakpoint])**: two docked panels — a [LayoutCanvas]
+///   direct-manipulation builder on the left and a Properties inspector on the
+///   right. The inspector dispatches based on selection: [FieldConfigPanel] for
+///   a selected field, [SectionConfigPanel] for a selected group, or a calm
+///   placeholder when nothing is selected.
+/// - **narrow**: a single scrolling column showing the [LayoutCanvas]; the
+///   inspector opens as a modal bottom sheet when a field or group is selected.
 ///
 /// The reference picker inside per-type config editors needs the workspace's
 /// collections; the [CollectionEditorCubit] loads them once into
 /// [CollectionEditorReady.availableCollections], and this page threads that
-/// snapshot down to [FieldConfigPanel] and the field rows. Save failures surface
-/// as a non-destructive snackbar (the draft is retained and stays dirty for
-/// retry).
+/// snapshot down to [FieldConfigPanel]. Save failures surface as a
+/// non-destructive snackbar (the draft is retained and stays dirty for retry).
 class CollectionEditorPage extends StatelessWidget {
   const CollectionEditorPage({super.key, required this.registry});
 
   final FieldEditorRegistry registry;
 
-  /// Width at/above which the card-preview rail joins the layout.
-  static const double _threePaneBreakpoint = 1100;
-
-  /// Width at/above which the config panel docks beside the list.
+  /// Width at/above which the Properties inspector docks beside the canvas.
   static const double _twoPaneBreakpoint = 760;
 
   @override
@@ -149,13 +147,6 @@ class _ReadyEditor extends StatelessWidget {
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final width = constraints.maxWidth;
-                    if (width >= CollectionEditorPage._threePaneBreakpoint) {
-                      return _ThreePaneLayout(
-                        state: state,
-                        registry: registry,
-                        collections: collections,
-                      );
-                    }
                     if (width >= CollectionEditorPage._twoPaneBreakpoint) {
                       return _TwoPaneLayout(
                         state: state,
@@ -545,52 +536,11 @@ class _SaveControl extends StatelessWidget {
 // Layouts
 // ---------------------------------------------------------------------------
 
-class _ThreePaneLayout extends StatelessWidget {
-  const _ThreePaneLayout({
-    required this.state,
-    required this.registry,
-    required this.collections,
-  });
-
-  final CollectionEditorReady state;
-  final FieldEditorRegistry registry;
-  final List<Collection> collections;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(
-          flex: 4,
-          child: Padding(
-            padding: const EdgeInsets.all(Spacing.lg),
-            child: FieldList(state: state, registry: registry),
-          ),
-        ),
-        VerticalDivider(width: 1, color: scheme.outlineVariant),
-        Expanded(
-          flex: 4,
-          child: _ConfigRegion(
-            state: state,
-            registry: registry,
-            collections: collections,
-          ),
-        ),
-        VerticalDivider(width: 1, color: scheme.outlineVariant),
-        Expanded(
-          flex: 3,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(Spacing.lg),
-            child: CardPreview(collection: state.draft, registry: registry),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
+/// The docked 2-pane layout for wide screens.
+///
+/// Left pane (weight 3): the [LayoutCanvas] in a vertically scrollable
+/// container — the canvas handles its own horizontal layout. Right pane
+/// (weight 2): the [_ConfigRegion] inspector.
 class _TwoPaneLayout extends StatelessWidget {
   const _TwoPaneLayout({
     required this.state,
@@ -604,41 +554,167 @@ class _TwoPaneLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(
-          flex: 1,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(Spacing.lg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                FieldList(state: state, registry: registry, scrollable: false),
-                const SizedBox(height: Spacing.lg),
-                CardPreview(collection: state.draft, registry: registry),
-              ],
-            ),
-          ),
+    return _ResizablePanes(
+      initialWeights: const [3, 2],
+      minPaneWidth: 320,
+      panes: [
+        SingleChildScrollView(
+          padding: const EdgeInsets.all(Spacing.lg),
+          child: LayoutCanvas(collection: state.draft, registry: registry),
         ),
-        VerticalDivider(width: 1, color: scheme.outlineVariant),
-        Expanded(
-          flex: 1,
-          child: _ConfigRegion(
-            state: state,
-            registry: registry,
-            collections: collections,
-          ),
+        _ConfigRegion(
+          state: state,
+          registry: registry,
+          collections: collections,
         ),
       ],
     );
   }
 }
 
-/// On narrow screens: a single scrolling column. The config panel for the
-/// selected field is presented as a modal bottom sheet (driven by selection
-/// changes) instead of a docked pane.
+/// A horizontal row of [panes] separated by draggable splitters, letting the
+/// user size the designer regions (fields / settings / preview) themselves.
+///
+/// Widths are held as fractions of the available width (persisted for the life
+/// of the editor session) and clamped so no pane shrinks below [minPaneWidth].
+/// Initial split comes from [initialWeights] (any positive scale).
+class _ResizablePanes extends StatefulWidget {
+  const _ResizablePanes({
+    required this.panes,
+    required this.initialWeights,
+    this.minPaneWidth = 260,
+  }) : assert(panes.length == initialWeights.length),
+       assert(panes.length >= 2);
+
+  final List<Widget> panes;
+  final List<double> initialWeights;
+  final double minPaneWidth;
+
+  @override
+  State<_ResizablePanes> createState() => _ResizablePanesState();
+}
+
+class _ResizablePanesState extends State<_ResizablePanes> {
+  static const double _dividerHit = 10;
+
+  late List<double> _fractions;
+
+  @override
+  void initState() {
+    super.initState();
+    final total = widget.initialWeights.fold<double>(0, (a, b) => a + b);
+    _fractions = widget.initialWeights.map((w) => w / total).toList();
+  }
+
+  void _drag(int dividerIndex, double dx, double available) {
+    if (available <= 0) return;
+    final minF = (widget.minPaneWidth / available).clamp(0.0, 0.49);
+    final df = dx / available;
+    setState(() {
+      var left = _fractions[dividerIndex] + df;
+      var right = _fractions[dividerIndex + 1] - df;
+      if (left < minF) {
+        right -= minF - left;
+        left = minF;
+      }
+      if (right < minF) {
+        left -= minF - right;
+        right = minF;
+      }
+      if (left >= minF && right >= minF) {
+        _fractions[dividerIndex] = left;
+        _fractions[dividerIndex + 1] = right;
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final n = widget.panes.length;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final available = constraints.maxWidth - _dividerHit * (n - 1);
+        final children = <Widget>[];
+        for (var i = 0; i < n; i++) {
+          children.add(
+            SizedBox(
+              width: (_fractions[i] * available).clamp(0.0, available),
+              child: widget.panes[i],
+            ),
+          );
+          if (i < n - 1) {
+            children.add(
+              _PaneDivider(
+                width: _dividerHit,
+                color: scheme.outlineVariant,
+                hoverColor: scheme.outline,
+                onDrag: (dx) => _drag(i, dx, available),
+              ),
+            );
+          }
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: children,
+        );
+      },
+    );
+  }
+}
+
+/// The draggable splitter between two [_ResizablePanes] regions: a hairline that
+/// thickens on hover, with a resize cursor and a generous invisible hit area.
+class _PaneDivider extends StatefulWidget {
+  const _PaneDivider({
+    required this.width,
+    required this.color,
+    required this.hoverColor,
+    required this.onDrag,
+  });
+
+  final double width;
+  final Color color;
+  final Color hoverColor;
+  final ValueChanged<double> onDrag;
+
+  @override
+  State<_PaneDivider> createState() => _PaneDividerState();
+}
+
+class _PaneDividerState extends State<_PaneDivider> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.resizeLeftRight,
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onHorizontalDragUpdate: (d) => widget.onDrag(d.delta.dx),
+        child: SizedBox(
+          width: widget.width,
+          child: Center(
+            child: Container(
+              width: _hover ? 2 : 1,
+              color: _hover ? widget.hoverColor : widget.color,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// On narrow screens: a single scrolling column showing only the [LayoutCanvas].
+///
+/// The inspector (field or group config) opens as a modal bottom sheet driven
+/// by selection changes. Tapping a field or a group header on the canvas
+/// selects it; the sheet auto-opens and renders the matching inspector.
+/// On dismiss the selection is cleared so re-tapping the same element reopens
+/// the sheet.
 class _NarrowLayout extends StatefulWidget {
   const _NarrowLayout({
     required this.state,
@@ -655,26 +731,34 @@ class _NarrowLayout extends StatefulWidget {
 }
 
 class _NarrowLayoutState extends State<_NarrowLayout> {
-  String? _sheetFieldId;
+  /// The id of the element for which the sheet is currently open (field or
+  /// section id). Used to avoid stacking a second sheet for the same element.
+  String? _sheetElementId;
 
   /// Whether a config sheet is currently on screen. Guards against stacking a
   /// second sheet when the selection changes while one is already open — the
-  /// open sheet already rebuilds from cubit state, so it tracks the new field.
+  /// open sheet rebuilds from cubit state and tracks the live selection.
   bool _sheetOpen = false;
 
   @override
   void didUpdateWidget(_NarrowLayout oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final selected = widget.state.selectedFieldId;
-    // A newly selected field opens the sheet (post-frame, so we're out of
-    // build); deselection or a removed field closes it. Never schedule a second
-    // open while one is already showing — the live sheet follows the selection.
-    if (!_sheetOpen &&
-        selected != null &&
-        selected != _sheetFieldId &&
-        widget.state.draft.fieldById(selected) != null) {
-      _sheetFieldId = selected;
-      WidgetsBinding.instance.addPostFrameCallback((_) => _openSheet());
+    // Check for a newly selected field or section.
+    final fieldId = widget.state.selectedFieldId;
+    final sectionId = widget.state.selectedSectionId;
+
+    if (!_sheetOpen) {
+      if (fieldId != null &&
+          fieldId != _sheetElementId &&
+          widget.state.draft.fieldById(fieldId) != null) {
+        _sheetElementId = fieldId;
+        WidgetsBinding.instance.addPostFrameCallback((_) => _openSheet());
+      } else if (sectionId != null &&
+          sectionId != _sheetElementId &&
+          widget.state.draft.layout.sections.any((s) => s.id == sectionId)) {
+        _sheetElementId = sectionId;
+        WidgetsBinding.instance.addPostFrameCallback((_) => _openSheet());
+      }
     }
   }
 
@@ -692,34 +776,55 @@ class _NarrowLayoutState extends State<_NarrowLayout> {
       ),
       builder: (sheetContext) {
         // Rebuild the sheet body from the live cubit state so edits reflect.
-        return BlocBuilder<CollectionEditorCubit, CollectionEditorState>(
-          bloc: cubit,
-          builder: (context, state) {
-            if (state is! CollectionEditorReady) {
+        // The modal sheet is pushed on the app navigator, above this page's
+        // BlocProvider, so re-expose the cubit to the sheet subtree — the
+        // config panels read it from context.
+        return BlocProvider<CollectionEditorCubit>.value(
+          value: cubit,
+          child: BlocBuilder<CollectionEditorCubit, CollectionEditorState>(
+            bloc: cubit,
+            builder: (context, state) {
+              if (state is! CollectionEditorReady) {
+                return const SizedBox.shrink();
+              }
+              final field = state.selectedField;
+              if (field != null) {
+                return FractionallySizedBox(
+                  heightFactor: 0.85,
+                  child: _ConfigSheet(
+                    state: state,
+                    child: FieldConfigPanel(
+                      field: field,
+                      editor: widget.registry.forType(field.type),
+                      collections: widget.collections,
+                      editingCollectionId: state.draft.id,
+                      typeLocked: state.isFieldTypeLocked(field.id),
+                    ),
+                  ),
+                );
+              }
+              final section = state.selectedSection;
+              if (section != null) {
+                return FractionallySizedBox(
+                  heightFactor: 0.85,
+                  child: _ConfigSheet(
+                    state: state,
+                    child: SectionConfigPanel(
+                      section: section,
+                      canDelete: state.draft.layout.sections.length > 1,
+                    ),
+                  ),
+                );
+              }
               return const SizedBox.shrink();
-            }
-            final field = state.selectedField;
-            if (field == null) return const SizedBox.shrink();
-            return FractionallySizedBox(
-              heightFactor: 0.85,
-              child: _ConfigSheet(
-                state: state,
-                child: FieldConfigPanel(
-                  field: field,
-                  editor: widget.registry.forType(field.type),
-                  collections: widget.collections,
-                  editingCollectionId: state.draft.id,
-                  typeLocked: state.isFieldTypeLocked(field.id),
-                ),
-              ),
-            );
-          },
+            },
+          ),
         );
       },
     );
-    // Sheet dismissed → clear selection so reopening the same field works.
+    // Sheet dismissed → clear selection so re-tapping the same element works.
     _sheetOpen = false;
-    _sheetFieldId = null;
+    _sheetElementId = null;
     if (mounted) cubit.selectField(null);
   }
 
@@ -727,20 +832,9 @@ class _NarrowLayoutState extends State<_NarrowLayout> {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(Spacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          FieldList(
-            state: widget.state,
-            registry: widget.registry,
-            scrollable: false,
-          ),
-          const SizedBox(height: Spacing.lg),
-          CardPreview(
-            collection: widget.state.draft,
-            registry: widget.registry,
-          ),
-        ],
+      child: LayoutCanvas(
+        collection: widget.state.draft,
+        registry: widget.registry,
       ),
     );
   }
@@ -848,8 +942,12 @@ class _SheetSaveStatus extends StatelessWidget {
   }
 }
 
-/// The docked config region used by the wide/medium layouts: the selected
-/// field's [FieldConfigPanel], or a calm "select a field" placeholder.
+/// The docked inspector region for wide layouts.
+///
+/// Dispatches based on the cubit's selection:
+/// - A selected field → [FieldConfigPanel].
+/// - A selected section → [SectionConfigPanel].
+/// - Nothing selected → a calm "select a field or group" placeholder.
 class _ConfigRegion extends StatelessWidget {
   const _ConfigRegion({
     required this.state,
@@ -863,42 +961,50 @@ class _ConfigRegion extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     final field = state.selectedField;
-
-    if (field == null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(Spacing.xl),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.tune,
-                size: 32,
-                color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
-              ),
-              const SizedBox(height: Spacing.sm),
-              Text(
-                'Select a field to configure it',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
+    if (field != null) {
+      return FieldConfigPanel(
+        field: field,
+        editor: registry.forType(field.type),
+        collections: collections,
+        editingCollectionId: state.draft.id,
+        typeLocked: state.isFieldTypeLocked(field.id),
       );
     }
 
-    return FieldConfigPanel(
-      field: field,
-      editor: registry.forType(field.type),
-      collections: collections,
-      editingCollectionId: state.draft.id,
-      typeLocked: state.isFieldTypeLocked(field.id),
+    final section = state.selectedSection;
+    if (section != null) {
+      return SectionConfigPanel(
+        section: section,
+        canDelete: state.draft.layout.sections.length > 1,
+      );
+    }
+
+    // Nothing selected — empty-state placeholder.
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(Spacing.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.tune,
+              size: 32,
+              color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
+            ),
+            const SizedBox(height: Spacing.sm),
+            Text(
+              'Select a field or group to edit it.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

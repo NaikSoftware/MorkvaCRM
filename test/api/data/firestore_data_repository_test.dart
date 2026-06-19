@@ -28,11 +28,11 @@ void main() {
     await syncStatus.close();
   });
 
-  Collection buildCollection() => const Collection(
+  Collection buildCollection() => Collection(
     id: 'contacts',
     name: 'Contacts',
     description: 'People',
-    fields: [
+    fields: const [
       TextFieldDefinition(id: 'name', name: 'Name'),
       NumberFieldDefinition(id: 'age', name: 'Age'),
       BooleanFieldDefinition(id: 'vip', name: 'VIP'),
@@ -46,6 +46,7 @@ void main() {
         ],
       ),
     ],
+    layout: CardLayout.synthesize(['name', 'age', 'vip', 'joined', 'tags']),
   );
 
   MorkvaObject buildObject(Collection schema, {String id = 'obj-1'}) =>

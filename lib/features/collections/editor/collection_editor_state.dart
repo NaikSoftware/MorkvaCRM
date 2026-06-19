@@ -45,6 +45,7 @@ final class CollectionEditorReady extends CollectionEditorState {
     required Set<String> persistedFieldIds,
     List<Collection> availableCollections = const [],
     this.selectedFieldId,
+    this.selectedSectionId,
     this.saving = false,
     this.error,
   }) : persistedFieldIds = Set.unmodifiable(persistedFieldIds),
@@ -65,7 +66,12 @@ final class CollectionEditorReady extends CollectionEditorState {
   final List<Collection> availableCollections;
 
   /// The field whose config panel is open, or null when none is selected.
+  /// Mutually exclusive with [selectedSectionId] (enforced by the cubit).
   final String? selectedFieldId;
+
+  /// The group/section whose inspector is open, or null. Mutually exclusive
+  /// with [selectedFieldId].
+  final String? selectedSectionId;
 
   /// Whether a save is in flight.
   final bool saving;
@@ -83,6 +89,15 @@ final class CollectionEditorReady extends CollectionEditorState {
   FieldDefinition? get selectedField =>
       selectedFieldId == null ? null : draft.fieldById(selectedFieldId!);
 
+  /// The currently selected section, or null.
+  LayoutSection? get selectedSection {
+    if (selectedSectionId == null) return null;
+    for (final s in draft.layout.sections) {
+      if (s.id == selectedSectionId) return s;
+    }
+    return null;
+  }
+
   CollectionEditorReady copyWith({
     Collection? draft,
     Collection? saved,
@@ -90,6 +105,8 @@ final class CollectionEditorReady extends CollectionEditorState {
     List<Collection>? availableCollections,
     String? selectedFieldId,
     bool clearSelection = false,
+    String? selectedSectionId,
+    bool clearSectionSelection = false,
     bool? saving,
     String? error,
     bool clearError = false,
@@ -102,6 +119,9 @@ final class CollectionEditorReady extends CollectionEditorState {
       selectedFieldId: clearSelection
           ? null
           : (selectedFieldId ?? this.selectedFieldId),
+      selectedSectionId: clearSectionSelection
+          ? null
+          : (selectedSectionId ?? this.selectedSectionId),
       saving: saving ?? this.saving,
       error: clearError ? null : (error ?? this.error),
     );
@@ -114,6 +134,7 @@ final class CollectionEditorReady extends CollectionEditorState {
     persistedFieldIds,
     availableCollections,
     selectedFieldId,
+    selectedSectionId,
     saving,
     error,
   ];

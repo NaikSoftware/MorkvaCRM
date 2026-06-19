@@ -10,11 +10,11 @@ void main() {
   final registry = defaultFieldTypeRegistry();
 
   // A collection exercising every built-in field type.
-  Collection buildKitchenSink() => const Collection(
+  Collection buildKitchenSink() => Collection(
     id: 'everything',
     name: 'Everything',
     description: 'One object with every field type',
-    fields: [
+    fields: const [
       TextFieldDefinition(
         id: 'f_text',
         name: 'Text',
@@ -77,6 +77,20 @@ void main() {
         expression: 'price * qty',
       ),
     ],
+    layout: CardLayout.synthesize([
+      'f_text',
+      'f_number',
+      'f_bool',
+      'f_date',
+      'f_datetime',
+      'f_single',
+      'f_multi',
+      'f_ref',
+      'f_refs',
+      'f_file',
+      'f_auto',
+      'f_calc',
+    ]),
   );
 
   final ts = DateTime.utc(2026, 6, 16, 9, 0, 0, 0, 42);

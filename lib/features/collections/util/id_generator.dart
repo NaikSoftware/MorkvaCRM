@@ -23,6 +23,12 @@ class IdGenerator {
   /// A new select-option id, e.g. `o_l3k9f2_a7c1`.
   String optionId() => _mint('o');
 
+  /// A new layout-section id, e.g. `s_l3k9f2_a7c1`.
+  String sectionId() => _mint('s');
+
+  /// A new layout-row id, e.g. `r_l3k9f2_a7c1`.
+  String rowId() => _mint('r');
+
   // The random suffix bound. Written as a literal (not `1 << 32`): on the web,
   // Dart `int` is a JS number and `<<` uses 32-bit shift semantics, so
   // `1 << 32` wraps to 0 and `Random.nextInt(0)` throws. `0xFFFFFFFF`

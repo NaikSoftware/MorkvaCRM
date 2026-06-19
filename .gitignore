@@ -51,3 +51,6 @@ app.*.map.json
 
 # Claude Code git worktrees (isolated checkouts — never commit)
 /.claude/worktrees/
+
+# Subagent-driven-development scratch (reports)
+/sdd/
