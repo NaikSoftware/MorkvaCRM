@@ -24,3 +24,7 @@ A universal CRM for small business. Not tailored to any specific business — ev
 - Keep platform-agnostic code shared; isolate web-/mobile-specific bits.
 - Run `flutter analyze` and tests before considering work done.
 - Review changes after they are made to avoid broken logic, missed requirements, etc.
+
+## Coding
+
+Use codebase-memory MCP tools to find/navigate code. Use serena MCp to refactor code.

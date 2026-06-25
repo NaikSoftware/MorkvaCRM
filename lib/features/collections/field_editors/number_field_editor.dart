@@ -111,5 +111,5 @@ class NumberFieldEditor extends FieldEditor {
   Widget buildPreviewAffordance(
     BuildContext context,
     FieldDefinition definition,
-  ) => const PreviewStubInput(height: 36);
+  ) => const PreviewStubInput(icon: Icons.numbers, height: 36);
 }
