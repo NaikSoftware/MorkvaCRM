@@ -32,7 +32,11 @@ class PreviewStubInput extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
       alignment: Alignment.centerLeft,
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest,
+        // A light warm silhouette of the value — intentionally lighter-weight
+        // than the field card's own edge, so the field never reads as a box
+        // inside a box. (Real data entry uses AppTheme's bordered white well;
+        // this is just the inert shape preview in the builder.)
+        color: scheme.surfaceContainer,
         borderRadius: Radii.smAll,
       ),
       child: Row(
@@ -65,7 +69,9 @@ class PreviewStubSwitch extends StatelessWidget {
       width: 40,
       height: 22,
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest,
+        // Same light warm silhouette as the other value previews (see
+        // PreviewStubInput) — an off-state toggle with the thumb pinned left.
+        color: scheme.surfaceContainer,
         borderRadius: Radii.fullAll,
       ),
       alignment: Alignment.centerLeft,
