@@ -991,15 +991,10 @@ class _LayoutCellTile extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Label row
+            // Label row — name only; the field's type icon lives as a prefix
+            // inside the value silhouette below, not here.
             Row(
               children: [
-                Icon(
-                  editor?.icon ?? Icons.help_outline,
-                  size: 13,
-                  color: scheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: Spacing.xxs),
                 Flexible(
                   child: Text.rich(
                     TextSpan(

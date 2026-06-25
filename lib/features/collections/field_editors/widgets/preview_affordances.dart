@@ -14,7 +14,7 @@ import '../../../../design/design.dart';
 class PreviewStubInput extends StatelessWidget {
   const PreviewStubInput({super.key, this.icon, this.hint, this.height = 36});
 
-  /// Optional leading glyph (e.g. a calendar or attachment icon).
+  /// Optional leading prefix glyph (the field's type icon).
   final IconData? icon;
 
   /// Optional muted hint text shown inside the silhouette.
