@@ -286,10 +286,15 @@ class _SectionView extends StatelessWidget {
       duration: const Duration(milliseconds: 150),
       margin: const EdgeInsets.only(bottom: Spacing.md),
       decoration: BoxDecoration(
+        // A barely-there warm wash reads the group as one region without a
+        // border competing against the field cards inside it. The brand ring
+        // appears only when the group is selected (a transparent 2 px border
+        // when not, so selecting never shifts the layout).
+        color: scheme.onSurfaceVariant.withValues(alpha: 0.06),
         borderRadius: Radii.mdAll,
         border: Border.all(
-          color: isSelected ? scheme.primary : scheme.outlineVariant,
-          width: isSelected ? 2 : 1,
+          color: isSelected ? scheme.primary : Colors.transparent,
+          width: 2,
         ),
       ),
       padding: const EdgeInsets.fromLTRB(
@@ -1108,11 +1113,16 @@ class _ResizeHandleState extends State<_ResizeHandle> {
         child: Center(
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
-            width: _hovered ? 6 : 4,
+            // A short pill on the cell's right edge — the single resize
+            // affordance. Soft at rest so it reads as a grip without adding to
+            // the border noise; brightens to the brand colour on hover (paired
+            // with the resizeLeftRight cursor).
+            width: _hovered ? 5 : 4,
+            height: _hovered ? 36 : 28,
             decoration: BoxDecoration(
-              // Highlights to the brand colour on hover so the edge reads as a
-              // resize affordance (paired with the resizeLeftRight cursor).
-              color: _hovered ? scheme.primary : scheme.outlineVariant,
+              color: _hovered
+                  ? scheme.primary
+                  : scheme.outline.withValues(alpha: 0.55),
               borderRadius: BorderRadius.circular(3),
             ),
           ),

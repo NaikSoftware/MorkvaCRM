@@ -93,21 +93,24 @@ abstract final class AppTheme {
         ).copyWith(foregroundColor: WidgetStatePropertyAll(scheme.primary)),
       ),
       inputDecorationTheme: InputDecorationTheme(
+        // A clean white well with a visible hairline edge: the field reads as a
+        // distinct "type here" zone on any warm surface, instead of a borderless
+        // beige smudge that blends into the card around it.
         filled: true,
-        fillColor: scheme.surfaceContainer,
+        fillColor: scheme.surfaceContainerLowest,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: Spacing.md,
           vertical: Spacing.sm,
         ),
         hintStyle: text.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
         labelStyle: text.bodyMedium,
-        border: const OutlineInputBorder(
+        border: OutlineInputBorder(
           borderRadius: Radii.mdAll,
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(color: scheme.outline),
         ),
-        enabledBorder: const OutlineInputBorder(
+        enabledBorder: OutlineInputBorder(
           borderRadius: Radii.mdAll,
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(color: scheme.outline),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: Radii.mdAll,
