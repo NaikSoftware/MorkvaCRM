@@ -102,15 +102,15 @@ void main() {
     expect(find.byKey(const Key('resize_r1_f1')), findsOneWidget);
   });
 
-  testWidgets('resize handle does NOT exist on last cell in row', (
+  testWidgets('resize handle exists on last cell in row', (
     tester,
   ) async {
     await _buildAndPump(tester);
-    // f2 is the last cell in row r1 — no handle
-    expect(find.byKey(const Key('resize_r1_f2')), findsNothing);
+    // every cell, including the last in a row, has a draggable edge
+    expect(find.byKey(const Key('resize_r1_f2')), findsOneWidget);
   });
 
-  testWidgets('resize handle does NOT exist on a single-cell (full-width) row',
+  testWidgets('resize handle exists on a single-cell (full-width) row',
       (tester) async {
     const singleCell = Collection(
       id: 'c2',
@@ -156,7 +156,7 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.byKey(const Key('resize_r1_f1')), findsNothing);
+    expect(find.byKey(const Key('resize_r1_f1')), findsOneWidget);
   });
 
   // ── Dragging the handle changes span ────────────────────────────────────────
