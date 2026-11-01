@@ -10,6 +10,7 @@ abstract final class MorkvaPalette {
   // Carrot — the brand accent.
   static const carrot = Color(0xFFE8821E);
   static const carrotBright = Color(0xFFF59B3C); // dark-mode primary
+  static const carrotDeep = Color(0xFF8A4708); // carrot text on paper (AA)
   static const carrotContainerLight = Color(0xFFFFE0C2);
   static const onCarrotContainerLight = Color(0xFF4E2A00);
 
@@ -56,7 +57,8 @@ abstract final class MorkvaColors {
     brightness: Brightness.light,
   ).copyWith(
     primary: MorkvaPalette.carrot,
-    onPrimary: Colors.white,
+    // White on carrot is ~2.8:1; dark brown clears WCAG AA.
+    onPrimary: const Color(0xFF3A1E00),
     primaryContainer: MorkvaPalette.carrotContainerLight,
     onPrimaryContainer: MorkvaPalette.onCarrotContainerLight,
     secondary: MorkvaPalette.leaf,
@@ -109,6 +111,7 @@ class MorkvaSemanticColors extends ThemeExtension<MorkvaSemanticColors> {
     required this.onWarning,
     required this.info,
     required this.onInfo,
+    required this.primaryText,
   });
 
   final Color success;
@@ -118,6 +121,10 @@ class MorkvaSemanticColors extends ThemeExtension<MorkvaSemanticColors> {
   final Color info;
   final Color onInfo;
 
+  /// Carrot for text-coloured actions/links on surfaces; raw `primary` text
+  /// is too light on paper to pass WCAG AA.
+  final Color primaryText;
+
   static const light = MorkvaSemanticColors(
     success: MorkvaPalette.success,
     onSuccess: Colors.white,
@@ -125,6 +132,7 @@ class MorkvaSemanticColors extends ThemeExtension<MorkvaSemanticColors> {
     onWarning: Color(0xFF3D2E00),
     info: MorkvaPalette.info,
     onInfo: Colors.white,
+    primaryText: MorkvaPalette.carrotDeep,
   );
 
   static const dark = MorkvaSemanticColors(
@@ -134,6 +142,7 @@ class MorkvaSemanticColors extends ThemeExtension<MorkvaSemanticColors> {
     onWarning: Color(0xFF3D2E00),
     info: Color(0xFF6FA8C9),
     onInfo: Color(0xFF06243A),
+    primaryText: MorkvaPalette.carrotBright,
   );
 
   @override
@@ -144,6 +153,7 @@ class MorkvaSemanticColors extends ThemeExtension<MorkvaSemanticColors> {
     Color? onWarning,
     Color? info,
     Color? onInfo,
+    Color? primaryText,
   }) {
     return MorkvaSemanticColors(
       success: success ?? this.success,
@@ -152,6 +162,7 @@ class MorkvaSemanticColors extends ThemeExtension<MorkvaSemanticColors> {
       onWarning: onWarning ?? this.onWarning,
       info: info ?? this.info,
       onInfo: onInfo ?? this.onInfo,
+      primaryText: primaryText ?? this.primaryText,
     );
   }
 
@@ -168,6 +179,7 @@ class MorkvaSemanticColors extends ThemeExtension<MorkvaSemanticColors> {
       onWarning: Color.lerp(onWarning, other.onWarning, t)!,
       info: Color.lerp(info, other.info, t)!,
       onInfo: Color.lerp(onInfo, other.onInfo, t)!,
+      primaryText: Color.lerp(primaryText, other.primaryText, t)!,
     );
   }
 }
