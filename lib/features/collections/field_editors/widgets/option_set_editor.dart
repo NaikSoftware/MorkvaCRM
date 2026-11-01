@@ -94,10 +94,8 @@ class _OptionSetEditorState extends State<OptionSetEditor> {
 
   void _reorder(int oldIndex, int newIndex) {
     final next = [...widget.options];
-    var target = newIndex;
-    if (target > oldIndex) target -= 1;
     final moved = next.removeAt(oldIndex);
-    next.insert(target, moved);
+    next.insert(newIndex, moved);
     widget.onChanged(next);
   }
 
@@ -124,7 +122,7 @@ class _OptionSetEditorState extends State<OptionSetEditor> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             buildDefaultDragHandles: false,
-            onReorder: _reorder,
+            onReorderItem: _reorder,
             children: [
               for (var i = 0; i < widget.options.length; i++)
                 _OptionRow(
