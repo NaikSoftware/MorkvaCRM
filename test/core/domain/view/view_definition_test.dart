@@ -165,8 +165,11 @@ void main() {
     });
 
     test('empty views list also yields the default view', () {
-      final json = const Collection(id: 'c1', name: 'D', fields: fields)
-          .toJson();
+      final json = const Collection(
+        id: 'c1',
+        name: 'D',
+        fields: fields,
+      ).toJson();
       expect(json['views'], isEmpty);
       expect(Collection.fromJson(json, registry).views.single.id, 'all');
     });
@@ -177,7 +180,10 @@ void main() {
         name: 'Deals',
         fields: fields,
         layout: CardLayout.synthesize(const ['name', 'amount']),
-        views: [full, const ViewDefinition(id: 'v2', name: 'Two')],
+        views: [
+          full,
+          const ViewDefinition(id: 'v2', name: 'Two'),
+        ],
       );
       final restored = Collection.fromJson(collection.toJson(), registry);
       expect(restored.views.map((v) => v.id), ['v1', 'v2']);

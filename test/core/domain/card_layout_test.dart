@@ -28,11 +28,17 @@ void main() {
           id: 's1',
           title: 'Main',
           rows: [
-            LayoutRow(id: 'r1', cells: [
-              LayoutCell(fieldId: 'a', span: 2),
-              LayoutCell(fieldId: 'b', span: 10),
-            ]),
-            LayoutRow(id: 'r2', cells: [LayoutCell(fieldId: 'c')]),
+            LayoutRow(
+              id: 'r1',
+              cells: [
+                LayoutCell(fieldId: 'a', span: 2),
+                LayoutCell(fieldId: 'b', span: 10),
+              ],
+            ),
+            LayoutRow(
+              id: 'r2',
+              cells: [LayoutCell(fieldId: 'c')],
+            ),
           ],
         ),
       ],

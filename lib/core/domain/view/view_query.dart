@@ -54,13 +54,18 @@ List<FilterOp> operatorsFor(FieldDefinition field) => switch (field) {
 /// positive ones (equals, contains, anyOf, greaterThan, lessThan, before,
 /// after, onDay) fail them. `isFalse` passes an unset boolean. Text matching
 /// is case-insensitive. A filter whose operator does not apply to the field or
-/// whose operand is missing / of the wrong type is ignored (passes).
+/// whose operand is missing, blank (`''`, an empty list) or of the wrong type
+/// is ignored (passes).
 bool matchesFilter(ViewFilter filter, FieldDefinition field, FieldValue value) {
   final op = filter.op;
   if (!operatorsFor(field).contains(op)) return true;
   if (op == FilterOp.isEmpty) return value.isEmpty;
   if (op == FilterOp.isNotEmpty) return value.isNotEmpty;
   final operand = filter.operand;
+  if ((operand is String && operand.trim().isEmpty) ||
+      (operand is List && operand.isEmpty)) {
+    return true;
+  }
 
   switch (value) {
     case BooleanFieldValue(value: final b):
@@ -199,7 +204,7 @@ int _compareKeys(Object a, Object b) {
 
 /// The comparable sort key of [value], or null when empty. Select sorts by
 /// option order (an unknown option after all known ones); booleans false
-/// before true; everything else without a natural order by its formatted text.
+/// before true; references by how many objects they link; everything else without a natural order by its formatted text.
 Object? _sortKey(FieldDefinition field, FieldValue value) {
   if (value.isEmpty) return null;
   return switch ((field, value)) {
@@ -208,6 +213,7 @@ Object? _sortKey(FieldDefinition field, FieldValue value) {
     (_, AutoNumberFieldValue(:final sequence)) => sequence,
     (_, DateFieldValue(:final value)) => value,
     (_, BooleanFieldValue(:final value)) => value! ? 1 : 0,
+    (_, ReferenceFieldValue(:final objectIds)) => objectIds.length,
     (
       SingleSelectFieldDefinition(:final options),
       SingleSelectFieldValue(:final optionId),

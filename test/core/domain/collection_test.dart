@@ -88,14 +88,23 @@ void main() {
         id: 'c1',
         name: 'Orders',
         fields: fields,
-        layout: CardLayout(sections: [
-          LayoutSection(id: 's1', title: 'Main', rows: [
-            LayoutRow(id: 'r1', cells: [
-              LayoutCell(fieldId: 'f1', span: 3),
-              LayoutCell(fieldId: 'f2', span: 9),
-            ]),
-          ]),
-        ]),
+        layout: CardLayout(
+          sections: [
+            LayoutSection(
+              id: 's1',
+              title: 'Main',
+              rows: [
+                LayoutRow(
+                  id: 'r1',
+                  cells: [
+                    LayoutCell(fieldId: 'f1', span: 3),
+                    LayoutCell(fieldId: 'f2', span: 9),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
       );
       final restored = Collection.fromJson(collection.toJson(), registry);
       expect(restored.layout, collection.layout);
@@ -113,7 +122,12 @@ void main() {
               'id': 's1',
               'collapsed': false,
               'rows': [
-                {'id': 'r1', 'cells': [{'fieldId': 'f1', 'span': 12}]},
+                {
+                  'id': 'r1',
+                  'cells': [
+                    {'fieldId': 'f1', 'span': 12},
+                  ],
+                },
               ],
             },
           ],

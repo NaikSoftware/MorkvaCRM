@@ -27,6 +27,14 @@ const _months = [
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ];
 
+/// [n] without float noise: integers as is, other doubles rounded to 12
+/// significant digits (0.1 + 0.2 shows as 0.3).
+String _plainNumber(num n) {
+  if (n is int) return '$n';
+  if (n == n.truncateToDouble()) return n.toStringAsFixed(0);
+  return '${double.parse(n.toStringAsPrecision(12))}';
+}
+
 String _two(int n) => n.toString().padLeft(2, '0');
 
 /// The one display formatter for a field value (cards, rows, detail sheet).
@@ -47,11 +55,11 @@ String formatFieldValue(
       NumberFieldDefinition(:final decimalPlaces, :final unitLabel),
       NumberFieldValue(value: final number?),
     ):
+      if (number.isNaN) return '';
+      if (number.isInfinite) return number > 0 ? '∞' : '-∞';
       final digits = decimalPlaces != null
           ? number.toStringAsFixed(decimalPlaces)
-          : (number == number.truncate()
-                ? number.toInt().toString()
-                : '$number');
+          : _plainNumber(number);
       return unitLabel == null || unitLabel.isEmpty
           ? digits
           : '$digits $unitLabel';
