@@ -115,80 +115,84 @@ class _ViewTableState extends State<ViewTable> {
         );
         final rowCount = state.objects.length + 1;
 
+        // The border paints over the rows so opaque cells never hide it.
         return DecoratedBox(
+          position: DecorationPosition.foreground,
           decoration: BoxDecoration(
-            color: scheme.surfaceContainerLowest,
             borderRadius: Radii.lgAll,
             border: Border.all(color: scheme.outlineVariant),
           ),
           child: ClipRRect(
             borderRadius: Radii.lgAll,
-            child: Column(
-              children: [
-                Expanded(
-                  child: Scrollbar(
-                    controller: _vertical,
-                    notificationPredicate: (n) =>
-                        n.metrics.axis == Axis.vertical,
+            child: ColoredBox(
+              color: scheme.surfaceContainerLowest,
+              child: Column(
+                children: [
+                  Expanded(
                     child: Scrollbar(
-                      controller: _horizontal,
+                      controller: _vertical,
                       notificationPredicate: (n) =>
-                          n.metrics.axis == Axis.horizontal,
-                      child: SingleChildScrollView(
+                          n.metrics.axis == Axis.vertical,
+                      child: Scrollbar(
                         controller: _horizontal,
-                        scrollDirection: Axis.horizontal,
-                        child: SizedBox(
-                          width: tableWidth,
-                          child: Column(
-                            children: [
-                              _HeaderRow(
-                                layout: layout,
-                                sort: view.sort,
-                                onSort: _cycleSort,
-                              ),
-                              Expanded(
-                                child: ListView.builder(
-                                  controller: _vertical,
-                                  itemExtent: ViewTable.rowHeight,
-                                  itemCount: rowCount,
-                                  itemBuilder: (context, i) {
-                                    if (i == state.objects.length) {
-                                      return _GhostRow(
-                                        layout: layout,
-                                        label: 'New ${data.itemLabel}',
-                                        onAdd: () => data.quickAdd(),
-                                        onChangeFields: state.objects.isEmpty
-                                            ? data.editFields
-                                            : null,
-                                      );
-                                    }
-                                    final object = state.objects[i];
-                                    return _ObjectRow(
-                                      key: ValueKey(object.id),
-                                      layout: layout,
-                                      object: object,
-                                      view: view,
-                                      collection: collection,
-                                      referenceLabels: state.referenceLabels,
-                                      onOpen: () => data.openObject(object),
-                                    );
-                                  },
+                        notificationPredicate: (n) =>
+                            n.metrics.axis == Axis.horizontal,
+                        child: SingleChildScrollView(
+                          controller: _horizontal,
+                          scrollDirection: Axis.horizontal,
+                          child: SizedBox(
+                            width: tableWidth,
+                            child: Column(
+                              children: [
+                                _HeaderRow(
+                                  layout: layout,
+                                  sort: view.sort,
+                                  onSort: _cycleSort,
                                 ),
-                              ),
-                            ],
+                                Expanded(
+                                  child: ListView.builder(
+                                    controller: _vertical,
+                                    itemExtent: ViewTable.rowHeight,
+                                    itemCount: rowCount,
+                                    itemBuilder: (context, i) {
+                                      if (i == state.objects.length) {
+                                        return _GhostRow(
+                                          layout: layout,
+                                          label: 'New ${data.itemLabel}',
+                                          onAdd: () => data.quickAdd(),
+                                          onChangeFields: state.objects.isEmpty
+                                              ? data.editFields
+                                              : null,
+                                        );
+                                      }
+                                      final object = state.objects[i];
+                                      return _ObjectRow(
+                                        key: ValueKey(object.id),
+                                        layout: layout,
+                                        object: object,
+                                        view: view,
+                                        collection: collection,
+                                        referenceLabels: state.referenceLabels,
+                                        onOpen: () => data.openObject(object),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
-                _Footer(
-                  text: state.isFiltered
-                      ? '${state.objects.length} of ${state.totalCount}'
-                      : '${state.totalCount} '
-                            '${state.totalCount == 1 ? data.itemLabel : collection.name.toLowerCase()}',
-                ),
-              ],
+                  _Footer(
+                    text: state.isFiltered
+                        ? '${state.objects.length} of ${state.totalCount}'
+                        : '${state.totalCount} '
+                              '${state.totalCount == 1 ? data.itemLabel : collection.name.toLowerCase()}',
+                  ),
+                ],
+              ),
             ),
           ),
         );

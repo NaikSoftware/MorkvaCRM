@@ -82,7 +82,11 @@ Future<CollectionViewsCubit> pumpWorkPage(
         BlocProvider.value(value: sync),
         BlocProvider.value(value: nav),
       ],
-      child: MaterialApp.router(theme: AppTheme.light, routerConfig: router),
+      child: MaterialApp.router(
+        theme: AppTheme.light,
+        routerConfig: router,
+        debugShowCheckedModeBanner: false,
+      ),
     ),
   );
   await tester.pump();

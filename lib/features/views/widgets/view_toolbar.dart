@@ -57,7 +57,12 @@ class ViewToolbar extends StatelessWidget {
         ],
       ),
     );
-    if (compact) return SizedBox(height: 52, child: Center(child: chips));
+    if (compact) {
+      return SizedBox(
+        height: 52,
+        child: Align(alignment: Alignment.centerLeft, child: chips),
+      );
+    }
 
     final sort = view.sort;
     final sortField = sort == null || sort.isPseudo
