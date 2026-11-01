@@ -81,11 +81,12 @@ class FieldConfigPanel extends StatelessWidget {
         const SizedBox(height: Spacing.md),
         // The Required toggle sits in a tinted tile so it reads as a distinct,
         // important choice rather than getting lost in the envelope stack.
-        DecoratedBox(
-          decoration: BoxDecoration(
-            color: scheme.surfaceContainerLow,
+        // A Material (not DecoratedBox) so the ListTile's ink paints on it.
+        Material(
+          color: scheme.surfaceContainerLow,
+          shape: RoundedRectangleBorder(
             borderRadius: Radii.mdAll,
-            border: Border.all(color: scheme.outlineVariant),
+            side: BorderSide(color: scheme.outlineVariant),
           ),
           child: SwitchListTile.adaptive(
             contentPadding: const EdgeInsets.symmetric(
