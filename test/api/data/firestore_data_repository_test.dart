@@ -47,6 +47,18 @@ void main() {
       ),
     ],
     layout: CardLayout.synthesize(['name', 'age', 'vip', 'joined', 'tags']),
+    views: const [
+      ViewDefinition(
+        id: 'all',
+        name: 'All',
+        fieldIds: ['name', 'age'],
+        filters: [
+          ViewFilter(fieldId: 'tags', op: FilterOp.anyOf, operand: ['a']),
+        ],
+        sort: ViewSort(fieldId: 'age', ascending: false),
+        manualOrder: ['obj-1'],
+      ),
+    ],
   );
 
   MorkvaObject buildObject(Collection schema, {String id = 'obj-1'}) =>

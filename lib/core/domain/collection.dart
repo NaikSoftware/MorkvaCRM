@@ -3,6 +3,7 @@ import 'package:equatable/equatable.dart';
 import 'card_layout.dart';
 import 'field_definition.dart';
 import 'field_type_registry.dart';
+import 'view/view_definition.dart';
 
 /// The on-disk schema version for a serialized collection. Written into every
 /// collection JSON so the model can evolve while staying forward-compatible:
@@ -22,6 +23,7 @@ class Collection extends Equatable {
     this.icon,
     this.fields = const [],
     this.layout = const CardLayout(),
+    this.views = const [],
   });
 
   final String id;
@@ -40,6 +42,13 @@ class Collection extends Equatable {
   /// The presentation layout (sections → rows → cells) over [fields].
   /// Pure presentation; reconciled against [fields] on load.
   final CardLayout layout;
+
+  /// The saved views, shown as tabs. Invariant: a persisted collection has at
+  /// least one view — [Collection.fromJson] substitutes
+  /// [ViewDefinition.defaultFor] when none are stored, and new collections are
+  /// created with one. The empty constructor default exists only for
+  /// in-memory fixtures.
+  final List<ViewDefinition> views;
 
   /// The field with [fieldId], or `null` if the schema has no such field.
   FieldDefinition? fieldById(String fieldId) {
@@ -65,6 +74,7 @@ class Collection extends Equatable {
     Object? icon = _unset,
     List<FieldDefinition>? fields,
     CardLayout? layout,
+    List<ViewDefinition>? views,
   }) => Collection(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -74,6 +84,7 @@ class Collection extends Equatable {
     icon: identical(icon, _unset) ? this.icon : icon as String?,
     fields: fields ?? this.fields,
     layout: layout ?? this.layout,
+    views: views ?? this.views,
   );
 
   Map<String, dynamic> toJson() => {
@@ -84,6 +95,7 @@ class Collection extends Equatable {
     if (icon != null) 'icon': icon,
     'fields': fields.map((f) => f.toJson()).toList(),
     'layout': layout.toJson(),
+    'views': views.map((v) => v.toJson()).toList(),
   };
 
   /// Reconstructs a collection, resolving each field definition through
@@ -102,6 +114,10 @@ class Collection extends Equatable {
     final layout = rawLayout == null
         ? CardLayout.synthesize(fieldIds)
         : CardLayout.fromJson(rawLayout).reconcile(fieldIds);
+    final views = ((json['views'] as List?) ?? const [])
+        .cast<Map<String, dynamic>>()
+        .map((v) => ViewDefinition.fromJson(v).reconcile(fieldIds))
+        .toList();
     return Collection(
       id: json['id'] as String,
       name: json['name'] as String,
@@ -109,9 +125,18 @@ class Collection extends Equatable {
       icon: json['icon'] as String?,
       fields: fields,
       layout: layout,
+      views: views.isEmpty ? [ViewDefinition.defaultFor(fields)] : views,
     );
   }
 
   @override
-  List<Object?> get props => [id, name, description, icon, fields, layout];
+  List<Object?> get props => [
+    id,
+    name,
+    description,
+    icon,
+    fields,
+    layout,
+    views,
+  ];
 }

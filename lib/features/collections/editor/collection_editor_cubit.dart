@@ -258,15 +258,12 @@ class CollectionEditorCubit extends Cubit<CollectionEditorState> {
     final ready = _ready;
     if (ready == null) return;
     final trimmedDescription = description?.trim();
-    // Build directly so a cleared description becomes null (copyWith can't null).
-    final draft = Collection(
-      id: ready.draft.id,
+    // copyWith keeps layout and views; its sentinel lets description clear.
+    final draft = ready.draft.copyWith(
       name: name,
       description: (trimmedDescription == null || trimmedDescription.isEmpty)
           ? null
           : trimmedDescription,
-      icon: ready.draft.icon,
-      fields: ready.draft.fields,
     );
     emit(ready.copyWith(draft: draft, clearError: true));
   }
