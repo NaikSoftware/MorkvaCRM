@@ -13,7 +13,7 @@ export 'list/collections_list_cubit.dart';
 export 'list/collections_list_state.dart';
 export 'list/collections_list_view.dart';
 
-// Collection schema editor (/collections/:id).
+// Collection schema editor (/collections/:id/edit).
 export 'editor/collection_editor_cubit.dart';
 export 'editor/collection_editor_state.dart';
 export 'editor/collection_editor_page.dart';

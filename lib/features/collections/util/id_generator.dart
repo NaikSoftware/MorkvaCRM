@@ -29,6 +29,12 @@ class IdGenerator {
   /// A new layout-row id, e.g. `r_l3k9f2_a7c1`.
   String rowId() => _mint('r');
 
+  /// A new view id, e.g. `v_l3k9f2_a7c1`.
+  String viewId() => _mint('v');
+
+  /// A new object id, e.g. `b_l3k9f2_a7c1`.
+  String objectId() => _mint('b');
+
   // The random suffix bound. Written as a literal (not `1 << 32`): on the web,
   // Dart `int` is a JS number and `<<` uses 32-bit shift semantics, so
   // `1 << 32` wraps to 0 and `Random.nextInt(0)` throws. `0xFFFFFFFF`
