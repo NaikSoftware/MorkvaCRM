@@ -1,46 +1,40 @@
 ---
 name: run-for-web
-description: "Run the MorkvaCRM Flutter app on Chrome with a PERSISTENT browser profile"
-when_to_use: "run web app, run web, run on chrome, start web, flutter web, web version, запусти веб, веб версію, запусти на хромі"
+description: Run the MorkvaCRM Flutter app as a web server on a fixed port and open it in the user's own Chrome, so their existing login is reused - run web app, run web, run on chrome, start web, flutter web, web version, запусти веб, веб версію, запусти на хромі
 ---
 
-# Run Web App (persistent profile)
+# Run Web App (web server, user's own Chrome)
 
-Run the app on Chrome so the Google session stays logged in between launches.
+Serve the app on a fixed origin; the user opens it in **their everyday Chrome**, so their Google /
+Firebase session carries over. Don't launch a browser for them.
 
 ## Run
 
-From the project root:
+From the project root, in the background, so it outlives the command:
 
 ```bash
-PROFILE="$HOME/.morkva-chrome-profile"; mkdir -p "$PROFILE"
-flutter run -d chrome --web-hostname localhost --web-port 8088 \
-  --web-browser-flag=--user-data-dir="$PROFILE"
+LOG=<scratchpad>/web-run.log
+nohup sh -c "tail -f /dev/null | flutter run -d web-server --web-hostname localhost --web-port 8088" > "$LOG" 2>&1 & disown
+timeout 180 sh -c "until grep -qE 'is being served at|Error|Failed|finished' $LOG; do sleep 1; done"; tail -3 "$LOG"
+curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8088/   # expect 200
 ```
 
-Two flags make login persist, and **both** are required:
+Then tell the user to open **http://localhost:8088** in their Chrome.
 
-- `--web-browser-flag=--user-data-dir=…` — a **dedicated persistent profile dir** instead of Flutter's default throwaway temp profile.
-- `--web-hostname localhost --web-port 8088` — a **fixed origin**. This is the one people miss: Firebase Auth stores the web session in IndexedDB keyed by origin (`host:port`), and `flutter run` picks a *random* port each launch. A new port = a new origin = the previous login is invisible = login screen every time. Pin the port and the origin stays constant, so the session carries over.
+- **The port must be fixed.** Firebase Auth keeps the web session in IndexedDB keyed by origin
+  (`host:port`). `flutter run` picks a random port each launch, and a new origin means a new
+  login every time. With `localhost:8088` the user signs in once and stays signed in.
+- **Pipe `tail -f /dev/null` into stdin.** In the background with no terminal, `flutter run` hits
+  EOF on stdin and exits right after start ("Application finished"). Holding stdin open keeps it running.
+- `-d web-server` doesn't attach a debugger, so Dart `print` output only appears in the browser
+  console, not in the log.
+- First compile takes about 30–60s.
 
-The user signs in once at `localhost:8088`; every later run auto-resumes.
+## Reload / stop
 
-Run it in the background if the session should outlive the command (`nohup … &` and `disown`), or in the foreground to keep Flutter's `r` (hot reload) / `R` (hot restart) keys.
+There's no terminal for `r`/`R`, so restart instead. Stop it with
+`pkill -f "flutter_tools.snapshot run -d web-server"` and `pkill -f "tail -f /dev/null"`, then run
+it again; the user refreshes the tab. Run each `pkill` as its own command: a pattern that also
+appears in the current shell's command line kills that shell (exit 144).
 
-## Notes
-
-- **Use `-d chrome`**, not `-d web-server` — only the chrome device launches a real browser to attach the profile to.
-- Use a **dedicated** profile dir (`~/.morkva-chrome-profile`), never the user's real Chrome profile — that collides with their everyday Chrome and locks.
-- First web compile is slow (~30–60s); later runs are faster.
-- The user must complete the Google sign-in popup **once** per profile; it persists afterward.
-
-## If it won't launch
-
-`Failed to launch browser after 3 tries` means a stale Chrome still holds the profile lock:
-
-```bash
-pkill -9 -f "remote-debugging-port"
-rm -f "$HOME/.morkva-chrome-profile"/Singleton{Lock,Cookie,Socket}
-```
-
-Then run again.
+If port 8088 is busy, an old server is still running: `ss -ltnp | grep 8088`, and stop it as above.
