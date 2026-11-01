@@ -47,14 +47,15 @@ List<FilterOp> operatorsFor(FieldDefinition field) => switch (field) {
   _ => _empties,
 };
 
-/// Whether [value] of [field] passes [filter].
+/// Whether [value] of [field] passes [filter]. (Not named `matches`, which
+/// would clash with the `flutter_test` matcher of that name.)
 ///
 /// Negative operators (notEquals, notContains, noneOf) pass empty values;
 /// positive ones (equals, contains, anyOf, greaterThan, lessThan, before,
 /// after, onDay) fail them. `isFalse` passes an unset boolean. Text matching
 /// is case-insensitive. A filter whose operator does not apply to the field or
 /// whose operand is missing / of the wrong type is ignored (passes).
-bool matches(ViewFilter filter, FieldDefinition field, FieldValue value) {
+bool matchesFilter(ViewFilter filter, FieldDefinition field, FieldValue value) {
   final op = filter.op;
   if (!operatorsFor(field).contains(op)) return true;
   if (op == FilterOp.isEmpty) return value.isEmpty;
@@ -144,7 +145,7 @@ List<MorkvaObject> applyView(
   ];
   final kept = objects.where((o) {
     for (final (filter, field) in filters) {
-      if (!matches(filter, field, o[field.id] ?? field.emptyValue())) {
+      if (!matchesFilter(filter, field, o[field.id] ?? field.emptyValue())) {
         return false;
       }
     }
