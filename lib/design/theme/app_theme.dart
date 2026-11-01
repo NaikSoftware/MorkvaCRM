@@ -89,9 +89,9 @@ abstract final class AppTheme {
         ),
       ),
       textButtonTheme: TextButtonThemeData(
-        style: _baseButtonStyle(
-          text,
-        ).copyWith(foregroundColor: WidgetStatePropertyAll(scheme.primary)),
+        style: _baseButtonStyle(text).copyWith(
+          foregroundColor: WidgetStatePropertyAll(semantic.primaryText),
+        ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         // A clean white well with a visible hairline edge: the field reads as a

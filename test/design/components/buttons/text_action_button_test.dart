@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/design/components/buttons/text_action_button.dart';
 import 'package:morkva_crm/design/theme/app_theme.dart';
+import 'package:morkva_crm/design/tokens/colors.dart';
 
 class _Host extends StatelessWidget {
   const _Host(this.child);
@@ -60,6 +61,15 @@ void main() {
       await tester.pump();
 
       expect(find.text('Disabled'), findsOneWidget);
+    });
+
+    testWidgets('labels in the AA primaryText colour', (tester) async {
+      await tester.pumpWidget(
+        _Host(TextActionButton(label: 'Link', onPressed: () {})),
+      );
+
+      final text = tester.widget<Text>(find.text('Link'));
+      expect(text.style?.color, MorkvaSemanticColors.light.primaryText);
     });
 
     testWidgets('keeps a 44px-tall hit target', (tester) async {
