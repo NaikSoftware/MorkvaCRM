@@ -60,7 +60,41 @@ void main() {
     expect(created.id, id);
     expect(created.name, 'Orders');
     expect(created.description, 'track');
-    expect(created.fields, isEmpty);
+    final title = created.fields.single;
+    expect(title, isA<TextFieldDefinition>());
+    expect(title.name, 'Name');
+    expect(title.id, startsWith('f_'));
+    expect(created.layout.fieldIds, [title.id]);
+    expect(created.views, [ViewDefinition.defaultFor(created.fields)]);
+    expect(created.views.single.fieldIds, [title.id]);
+  });
+
+  test('renameCollection keeps layout and views', () async {
+    const fields = [TextFieldDefinition(id: 'f1', name: 'Name')];
+    final layout = CardLayout.synthesize(const ['f1']);
+    const views = [
+      ViewDefinition(id: 'all', name: 'All', fieldIds: ['f1']),
+      ViewDefinition(id: 'b', name: 'Board', mode: ViewModeIds.board),
+    ];
+    await repository.saveCollection(
+      Collection(
+        id: 'c1',
+        name: 'X',
+        fields: fields,
+        layout: layout,
+        views: views,
+      ),
+    );
+    cubit.initialize();
+    await pump();
+
+    await cubit.renameCollection('c1', 'Y', description: 'd');
+    await pump();
+    final renamed = (cubit.state as CollectionsListReady).collections.single;
+    expect(renamed.name, 'Y');
+    expect(renamed.description, 'd');
+    expect(renamed.layout, layout);
+    expect(renamed.views, views);
   });
 
   test('createCollection blank description becomes null', () async {

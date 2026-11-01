@@ -11,6 +11,11 @@ export 'field_type_registry.dart';
 export 'field_value.dart';
 export 'morkva_object.dart';
 export 'validation.dart';
+// Views.
+export 'view/field_format.dart';
+export 'view/view_definition.dart';
+export 'view/view_grouping.dart';
+export 'view/view_query.dart';
 // Field types.
 export 'types/auto_number_field.dart';
 export 'types/boolean_field.dart';

@@ -178,6 +178,41 @@ void main() {
     expect(reordered, [ids[1], ids[2], ids[0]]);
   });
 
+  group('views survive editing', () {
+    const views = [
+      ViewDefinition(id: 'all', name: 'All', fieldIds: ['f_title']),
+      ViewDefinition(
+        id: 'board',
+        name: 'Board',
+        mode: ViewModeIds.board,
+        manualOrder: ['o2', 'o1'],
+      ),
+    ];
+
+    setUp(() async {
+      await repository.saveCollection(
+        const Collection(
+          id: 'c1',
+          name: 'Orders',
+          fields: [TextFieldDefinition(id: 'f_title', name: 'Title')],
+          views: views,
+        ),
+      );
+    });
+
+    test('rename, add field and save keep the views', () async {
+      await cubit.load('c1');
+      cubit.renameCollection('Invoices', description: 'billing');
+      cubit.addField('number');
+      expect(await cubit.save(), isTrue);
+
+      final saved = await repository.getCollection('c1');
+      expect(saved!.name, 'Invoices');
+      expect(saved.fields, hasLength(2));
+      expect(saved.views, views);
+    });
+  });
+
   test('renameCollection updates the draft and dirties', () async {
     await cubit.load('c1');
     cubit.renameCollection('Invoices', description: 'billing');
