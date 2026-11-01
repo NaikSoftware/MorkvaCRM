@@ -27,4 +27,7 @@ A universal CRM for small business. Not tailored to any specific business — ev
 
 ## Coding
 
-Use codebase-memory MCP tools to find/navigate code. Use serena MCp to refactor code.
+Use **jbcontext** to find and navigate code: when the file or symbol is not known yet, start with
+`jbcontext search "<descriptive query>"` (narrow with `-p <path>`), then switch to direct reads
+or exact search once you know where to look. The index covers committed `main`; code that only
+exists on a feature branch is found by reading files directly.
