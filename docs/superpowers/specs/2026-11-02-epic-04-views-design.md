@@ -68,8 +68,13 @@ Rule: **what changes the shape of the data is Build; what changes how you look a
 - **Object open**: Epic 5 owns the editor. Until then a tap opens a read-only detail sheet
   (all fields, formatted) with Delete. Quick-add: the title value + the pre-filled layout value;
   saved immediately.
-- **Reconcile**: on load, view `fieldIds`, filters, sort, `manualOrder` stays, and `layoutFieldId`
-  pointing at deleted fields are dropped (mirrors `CardLayout.reconcile`).
+- **Reconcile**: on load, view `fieldIds`, filters, sort and `layoutFieldId` that point at
+  deleted fields are dropped (mirrors `CardLayout.reconcile`); `manualOrder` is kept as is.
+- **Title field on create**: `createCollection` adds a "Name" text field, so every new
+  collection's default view leads with it. There is no collection-level title concept.
+- **Build scope this epic**: the existing editor (explicit Save, name/icon/description header)
+  moves to `/edit`; it gains the "Customizing · <name>" header cue, `?field=` deep link, and
+  "Object form" wording for the card layout. No three-tab restructure.
 - **Concurrency**: views and the schema share the collection doc; last write wins (the editor
   saves via `copyWith`, so it carries views through untouched).
 
