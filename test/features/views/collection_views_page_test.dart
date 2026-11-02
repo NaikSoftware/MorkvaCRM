@@ -144,8 +144,8 @@ void main() {
             )
             .first,
       );
-      // header 44 + 5 rows x 52 + footer 40 + border 2.
-      expect(table.height, 44 + 5 * 52 + 40 + 2);
+      // header 44 + 5 rows x 52 + footer 40.
+      expect(table.height, 44 + 5 * 52 + 40);
       final fab = tester.getRect(find.byType(FloatingActionButton));
       expect(card.bottom, lessThanOrEqualTo(fab.top));
     });

@@ -116,12 +116,11 @@ class _ViewTableState extends State<ViewTable> {
         // The ghost "+ New" row only stands in for an empty table.
         final empty = state.objects.isEmpty;
         final rowCount = empty ? 1 : state.objects.length;
-        // The card hugs its rows instead of filling the body (+2: border).
+        // The card hugs its rows instead of filling the body.
         final contentHeight =
             ViewTable.headerHeight +
             rowCount * ViewTable.rowHeight +
-            _Footer.height +
-            2;
+            _Footer.height;
 
         // The border paints over the rows so opaque cells never hide it.
         final card = DecoratedBox(
