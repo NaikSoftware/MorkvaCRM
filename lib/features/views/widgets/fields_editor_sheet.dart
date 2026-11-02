@@ -40,6 +40,7 @@ class FieldsEditorSheet extends StatefulWidget {
     MorkvaObject? object,
     Map<String, String> referenceLabels = const {},
   }) {
+    if (collection.fields.isEmpty) return Future.value();
     final sheet = FieldsEditorSheet(
       title: title,
       collection: collection,
@@ -75,14 +76,15 @@ class _FieldsEditorSheetState extends State<FieldsEditorSheet> {
   late List<String> _order; // every listed field except the title
   late Set<String> _shown;
 
-  bool get _columns => widget.title == 'Columns';
+  bool get _columns => widget.view.mode == ViewModeIds.table;
   String? get _layoutId => widget.view.layoutFieldId;
   List<String> get _original => [
     for (final id in widget.view.fieldIds)
       if (widget.collection.fieldById(id) != null) id,
   ];
 
-  FieldDefinition get _titleField => widget.collection.fieldById(_titleId)!;
+  FieldDefinition get _titleField =>
+      widget.collection.fieldById(_titleId) ?? widget.collection.fields.first;
 
   @override
   void initState() {
@@ -154,121 +156,137 @@ class _FieldsEditorSheetState extends State<FieldsEditorSheet> {
       for (final f in c.fields)
         if (f.id != _layoutId || f.id == _titleId) f,
     ];
+    final compact = MediaQuery.sizeOf(context).width < 600;
     return Material(
       color: scheme.surface,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              Spacing.lg,
-              Spacing.sm,
-              Spacing.xs,
-              Spacing.xs,
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(widget.title, style: theme.textTheme.titleLarge),
-                ),
-                IconActionButton(
-                  icon: Icons.close,
-                  tooltip: 'Close',
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            color: scheme.surfaceContainerLow,
-            padding: const EdgeInsets.all(Spacing.md),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'PREVIEW',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                    letterSpacing: 0.8,
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: compact ? MainAxisSize.max : MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                Spacing.lg,
+                Spacing.sm,
+                Spacing.xs,
+                Spacing.xs,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.title,
+                      style: theme.textTheme.titleLarge,
+                    ),
                   ),
-                ),
-                const SizedBox(height: Spacing.xs),
-                Semantics(
-                  label: 'Preview',
-                  child: _columns ? _ColumnsPreview(this) : _CardPreview(this),
-                ),
-                if (layout != null) ...[
-                  const SizedBox(height: Spacing.xs),
+                  IconActionButton(
+                    icon: Icons.close,
+                    tooltip: 'Close',
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              color: scheme.surfaceContainerLow,
+              padding: const EdgeInsets.all(Spacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    _layoutNote(layout),
-                    style: theme.textTheme.bodySmall?.copyWith(
+                    'PREVIEW',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                  const SizedBox(height: Spacing.xs),
+                  Semantics(
+                    label: 'Preview',
+                    child: _columns
+                        ? _ColumnsPreview(this)
+                        : _CardPreview(this),
+                  ),
+                  if (layout != null) ...[
+                    const SizedBox(height: Spacing.xs),
+                    Text(
+                      _layoutNote(layout),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            _TitleRow(
+              columns: _columns,
+              current: _titleField,
+              candidates: candidates,
+              onChanged: _setTitle,
+            ),
+            Padding(
+              padding: const EdgeInsets.only(right: Spacing.xxs),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: SizedBox(
+                  width: 48,
+                  child: Text(
+                    'Show',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.labelSmall?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),
                   ),
-                ],
-              ],
-            ),
-          ),
-          _TitleRow(
-            columns: _columns,
-            current: _titleField,
-            candidates: candidates,
-            onChanged: _setTitle,
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: Spacing.md),
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                'Show',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
                 ),
               ),
             ),
-          ),
-          Flexible(
-            child: ReorderableListView(
-              shrinkWrap: true,
-              buildDefaultDragHandles: false,
-              onReorderItem: _move,
-              proxyDecorator: (child, _, _) => DecoratedBox(
-                decoration: BoxDecoration(
-                  color: scheme.surfaceContainerLowest,
-                  boxShadow: MorkvaElevation.level2,
-                ),
-                child: Transform.scale(scale: 1.02, child: child),
-              ),
-              children: [
-                for (var i = 0; i < _order.length; i++)
-                  _FieldRow(
-                    key: ValueKey(_order[i]),
-                    field: c.fieldById(_order[i])!,
-                    index: i,
-                    count: _order.length,
-                    shown: _shown.contains(_order[i]),
-                    onToggle: () => _toggle(_order[i]),
-                    onMove: (to) => _move(i, to),
+            Flexible(
+              fit: compact ? FlexFit.tight : FlexFit.loose,
+              child: ReorderableListView(
+                shrinkWrap: true,
+                buildDefaultDragHandles: false,
+                onReorderItem: _move,
+                proxyDecorator: (child, _, _) => DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerLowest,
+                    boxShadow: MorkvaElevation.level2,
                   ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(Spacing.md),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextActionButton(
-                  label: 'Cancel',
-                  onPressed: () => Navigator.of(context).pop(),
+                  child: Transform.scale(scale: 1.02, child: child),
                 ),
-                const SizedBox(width: Spacing.xs),
-                PrimaryButton(label: 'Save', onPressed: _dirty ? _save : null),
-              ],
+                children: [
+                  for (var i = 0; i < _order.length; i++)
+                    _FieldRow(
+                      key: ValueKey(_order[i]),
+                      field: c.fieldById(_order[i])!,
+                      index: i,
+                      count: _order.length,
+                      shown: _shown.contains(_order[i]),
+                      onToggle: () => _toggle(_order[i]),
+                      onMove: (to) => _move(i, to),
+                    ),
+                ],
+              ),
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.all(Spacing.md),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextActionButton(
+                    label: 'Cancel',
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                  const SizedBox(width: Spacing.xs),
+                  PrimaryButton(
+                    label: 'Save',
+                    onPressed: _dirty ? _save : null,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -373,12 +391,15 @@ class _FieldRow extends StatelessWidget {
             children: [
               ReorderableDragStartListener(
                 index: index,
-                child: SizedBox(
-                  width: 44,
-                  height: 44,
-                  child: Icon(
-                    Icons.drag_indicator,
-                    color: scheme.onSurfaceVariant,
+                child: Semantics(
+                  label: 'Reorder ${field.name}',
+                  child: SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: Icon(
+                      Icons.drag_indicator,
+                      color: scheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               ),
@@ -414,7 +435,10 @@ class _FieldRow extends StatelessWidget {
                   ),
                 ],
               ),
-              Checkbox(value: shown, onChanged: (_) => onToggle()),
+              Semantics(
+                label: field.name,
+                child: Checkbox(value: shown, onChanged: (_) => onToggle()),
+              ),
               const SizedBox(width: Spacing.xxs),
             ],
           ),
@@ -468,7 +492,10 @@ class _NamesOnly extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: Spacing.sm),
+      padding: const EdgeInsets.symmetric(
+        horizontal: Spacing.sm,
+        vertical: Spacing.sm,
+      ),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerLowest,
         borderRadius: Radii.mdAll,

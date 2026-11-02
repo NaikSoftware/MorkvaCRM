@@ -1,7 +1,11 @@
+import 'dart:ui' show CheckedState;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/design/design.dart';
 import 'package:morkva_crm/features/views/widgets/fields_editor_sheet.dart';
+
+import 'package:morkva_crm/core/domain/domain.dart';
 
 import '../views_fixtures.dart';
 
@@ -125,4 +129,43 @@ void main() {
     await tester.tap(find.text('Save'));
     expect(saved, ['name', 'amount', 'stage']);
   });
+
+  testWidgets('rows expose a named checked state and a reorder handle', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    await pump(tester);
+    expect(find.bySemanticsLabel(RegExp(r'Reorder\s+Amount')), findsOneWidget);
+    final box = tester.getSemantics(find.byType(Checkbox).first);
+    expect(box.label, contains('Amount'));
+    expect(box.flagsCollection.isChecked, CheckedState.isTrue);
+    handle.dispose();
+  });
+
+  testWidgets(
+    'an unknown title id falls back and a field-less collection is a no-op',
+    (tester) async {
+      await pump(tester);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => FieldsEditorSheet.show(
+                context,
+                title: 'Columns',
+                collection: const Collection(id: 'x', name: 'X'),
+                view: tableView,
+                onSave: (_) {},
+              ),
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      expect(find.text('PREVIEW'), findsNothing);
+    },
+  );
 }
