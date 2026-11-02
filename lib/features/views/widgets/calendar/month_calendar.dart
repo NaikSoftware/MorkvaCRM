@@ -435,7 +435,7 @@ Future<void> _showDay(
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(
-                Spacing.lg,
+                Spacing.md,
                 Spacing.md,
                 Spacing.xs,
                 Spacing.xs,
