@@ -224,7 +224,12 @@ void main() {
       final saved = await repository.getCollection('c1');
       expect(saved!.name, 'Invoices');
       expect(saved.fields, hasLength(2));
-      expect(saved.views, views);
+      // Views survive; the new field is appended to each one's fieldIds.
+      final newId = saved.fields.last.id;
+      expect(saved.views.map((v) => v.id), ['all', 'board']);
+      expect(saved.views[0].fieldIds, ['f_title', newId]);
+      expect(saved.views[1].manualOrder, ['o2', 'o1']);
+      expect(saved.views[1].mode, ViewModeIds.board);
     });
   });
 
@@ -236,22 +241,24 @@ void main() {
     expect(ready().dirty, isTrue);
   });
 
-  test('setIcon updates the draft icon and dirties; renaming preserves it',
-      () async {
-    await cubit.load('c1');
-    expect(ready().draft.icon, isNull);
+  test(
+    'setIcon updates the draft icon and dirties; renaming preserves it',
+    () async {
+      await cubit.load('c1');
+      expect(ready().draft.icon, isNull);
 
-    cubit.setIcon('truck');
-    expect(ready().draft.icon, 'truck');
-    expect(ready().dirty, isTrue);
+      cubit.setIcon('truck');
+      expect(ready().draft.icon, 'truck');
+      expect(ready().dirty, isTrue);
 
-    // Renaming must not drop the icon.
-    cubit.renameCollection('Orders v2');
-    expect(ready().draft.icon, 'truck');
+      // Renaming must not drop the icon.
+      cubit.renameCollection('Orders v2');
+      expect(ready().draft.icon, 'truck');
 
-    cubit.setIcon(null);
-    expect(ready().draft.icon, isNull);
-  });
+      cubit.setIcon(null);
+      expect(ready().draft.icon, isNull);
+    },
+  );
 
   test('save commits the whole draft and clears dirty', () async {
     await cubit.load('c1');
