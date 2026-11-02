@@ -65,22 +65,30 @@ class ListSectionHeader extends StatelessWidget {
         alignment: Alignment.centerLeft,
         child: Row(
           children: [
-            Flexible(
-              child: Text(
-                label.toUpperCase(),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: style?.copyWith(fontWeight: FontWeight.w700),
+            // Label + count take the rest, so a trailing widget sits at the
+            // right edge.
+            Expanded(
+              child: Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      label.toUpperCase(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: style?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  const SizedBox(width: Spacing.xs),
+                  Text(
+                    '$count',
+                    style: style?.copyWith(
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(width: Spacing.xs),
-            Text(
-              '$count',
-              style: style?.copyWith(
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
-            if (trailing case final widget?) ...[const Spacer(), widget],
+            ?trailing,
           ],
         ),
       ),

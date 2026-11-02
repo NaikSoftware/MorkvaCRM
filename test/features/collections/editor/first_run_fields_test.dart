@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
-import 'package:morkva_crm/design/theme/app_theme.dart';
+import 'package:morkva_crm/design/design.dart';
 import 'package:morkva_crm/features/collections/editor/collection_editor_cubit.dart';
 import 'package:morkva_crm/features/collections/list/collections_list_cubit.dart';
 import 'package:morkva_crm/features/collections/editor/collection_editor_state.dart';
@@ -207,5 +207,8 @@ void main() {
       t.getSize(find.byKey(const Key('suggest_custom'))).width,
     };
     expect(widths, hasLength(1));
+    // …and they span the card's content width, not just their labels.
+    final card = t.getSize(find.byKey(const Key('first_run_card'))).width;
+    expect(widths.single, greaterThanOrEqualTo(card - Spacing.md * 2 - 2));
   });
 }
