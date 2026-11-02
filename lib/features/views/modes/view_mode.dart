@@ -60,6 +60,10 @@ abstract class ViewMode {
   /// null when it can.
   String? unavailableReason(Collection collection) => null;
 
+  /// Whether the mode draws its own state when filters hide every object
+  /// (Board keeps its columns); otherwise the page shows "Nothing matches".
+  bool get drawsNoMatches => false;
+
   /// Label of the toolbar button that edits the shown fields.
   String get fieldsLabel => 'Setup card';
 
