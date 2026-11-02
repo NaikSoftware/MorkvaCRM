@@ -18,12 +18,14 @@ Tiebreak for the rule in the design doc: stored on the collection and seen by ev
 - **Build** (`/collections/:id/edit`, focused full-screen route outside the shell, as today):
   name, icon; fields, types, options + colours, required; the object editor's card layout —
   renamed **"Object form"** so it is never confused with a view's "Setup card"; delete collection.
-  - Desktop header: "✕ Close" left, `edit` icon + "Customizing · <name>" `titleLarge`, sunk
+  - Desktop header: "✕ Close" left, `tune` icon (the one Customize icon) + "Customizing · <name>" `titleLarge`, sunk
     `surfaceContainer` header band, tabs **Fields · Object form · Settings**, solid carrot
     **Done** right. Phone: ✕, one-line title, Done; tabs become a `SegmentedButton` below.
   - This epic keeps the existing editor body and its explicit Save (name/icon/description are
-    already in its header); only the header cue, deep link and "Object form" wording change.
-    The tabbed Fields · Object form · Settings layout above is the target for a later pass.
+    already in its header — a secondary "Save" while dirty, icon-only on phone) plus the primary
+    **Done** (saves a dirty draft, then returns to Work; just returns when clean). While the
+    collection is a starter, the guided picker sits under its own "Fields" heading above
+    "Object form"; the form preview fits the phone width. The tabbed Fields · Object form · Settings layout above is the target for a later pass.
   - Deep links: `/collections/:id/edit?field=<fieldId>` opens Fields with that field selected.
     Done returns to the exact view the user came from.
 - **Work** (`/collections/:id`, inside the shell, rail visible on desktop): header = collection

@@ -15,6 +15,39 @@ bool isStarterSchema(Collection saved) =>
     saved.fields.isEmpty ||
     (saved.fields.length == 1 && saved.fields.first.type == kTextFieldType);
 
+/// The "Fields" block above the object form while the collection is still a
+/// starter (see [isStarterSchema]): a heading and [FirstRunFields]. Empty
+/// otherwise.
+class FirstRunSection extends StatelessWidget {
+  const FirstRunSection({
+    super.key,
+    required this.collection,
+    required this.registry,
+  });
+
+  final Collection collection;
+  final FieldEditorRegistry registry;
+
+  @override
+  Widget build(BuildContext context) {
+    final starter = context.select<CollectionEditorCubit, bool>((c) {
+      final s = c.state;
+      return s is CollectionEditorReady && isStarterSchema(s.saved);
+    });
+    if (!starter) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Fields', style: theme.textTheme.titleMedium),
+        const SizedBox(height: Spacing.sm),
+        FirstRunFields(collection: collection, registry: registry),
+        const SizedBox(height: Spacing.sm),
+      ],
+    );
+  }
+}
+
 /// The Build › Fields guided empty state: "What do you track for each
 /// `<item>`?" with one-tap typed suggestions and a "Custom field" fallback.
 /// Chips add through [CollectionEditorCubit]; nothing is saved until Save.

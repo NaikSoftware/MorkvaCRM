@@ -6,6 +6,7 @@ import 'package:morkva_crm/design/theme/app_theme.dart';
 import 'package:morkva_crm/features/collections/editor/collection_editor_cubit.dart';
 import 'package:morkva_crm/features/collections/list/collections_list_cubit.dart';
 import 'package:morkva_crm/features/collections/editor/collection_editor_state.dart';
+import 'package:morkva_crm/features/collections/editor/first_run_fields.dart';
 import 'package:morkva_crm/features/collections/editor/layout_canvas.dart';
 import 'package:morkva_crm/features/collections/field_editors/built_in_field_editors.dart';
 
@@ -43,9 +44,15 @@ Future<CollectionEditorCubit> _pump(
           body: BlocBuilder<CollectionEditorCubit, CollectionEditorState>(
             builder: (_, s) => s is CollectionEditorReady
                 ? SingleChildScrollView(
-                    child: LayoutCanvas(
-                      collection: s.draft,
-                      registry: registry,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        FirstRunSection(
+                          collection: s.draft,
+                          registry: registry,
+                        ),
+                        LayoutCanvas(collection: s.draft, registry: registry),
+                      ],
                     ),
                   )
                 : const SizedBox(),
@@ -67,6 +74,8 @@ void main() {
       _deals(const [_name]),
     ]);
     expect(find.text('What do you track for each deal?'), findsOneWidget);
+    // Under its own "Fields" heading, above the object form canvas.
+    expect(find.text('Fields'), findsOneWidget);
     for (final k in ['Status', 'Due date', 'Amount', 'Customer', 'Notes']) {
       expect(find.byKey(Key('suggest_$k')), findsOneWidget);
     }
@@ -171,5 +180,20 @@ void main() {
     await t.tap(find.byKey(const Key('suggest_custom')));
     await t.pumpAndSettle();
     expect(find.text('Add a field'), findsOneWidget);
+  });
+
+  testWidgets('phone width: the form preview fits without side-scrolling', (
+    t,
+  ) async {
+    await _pump(t, [
+      _deals(const [_name]),
+    ], size: const Size(390, 1200));
+    final canvasScroll = find
+        .descendant(
+          of: find.byType(LayoutCanvas),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    expect(t.state<ScrollableState>(canvasScroll).position.maxScrollExtent, 0);
   });
 }
