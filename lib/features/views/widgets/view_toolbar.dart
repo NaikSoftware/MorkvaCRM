@@ -20,8 +20,8 @@ class ViewToolbar extends StatelessWidget {
     required this.onAddFilter,
     required this.onEditFilter,
     required this.onRemoveFilter,
-    required this.onSort,
-    required this.onEditFields,
+    this.onSort,
+    this.onEditFields,
     this.settingsChip,
     this.horizontalPadding = Spacing.lg,
     this.referenceLabels = const {},
@@ -34,8 +34,12 @@ class ViewToolbar extends StatelessWidget {
   final VoidCallback onAddFilter;
   final ValueChanged<int> onEditFilter;
   final ValueChanged<int> onRemoveFilter;
-  final VoidCallback onSort;
-  final VoidCallback onEditFields;
+
+  /// Null hides Sort (the mode can't draw this collection yet).
+  final VoidCallback? onSort;
+
+  /// Null hides Columns / Setup card.
+  final VoidCallback? onEditFields;
   final Widget? settingsChip;
   final double horizontalPadding;
   final Map<String, String> referenceLabels;
@@ -63,7 +67,10 @@ class ViewToolbar extends StatelessWidget {
         ],
       ),
     );
-    if (compact) {
+    final onSort = this.onSort;
+    final onEditFields = this.onEditFields;
+    if (compact ||
+        (settingsChip == null && onSort == null && onEditFields == null)) {
       return SizedBox(
         height: 52,
         child: Align(alignment: Alignment.centerLeft, child: chips),
@@ -71,15 +78,6 @@ class ViewToolbar extends StatelessWidget {
     }
 
     final sort = view.sort;
-    final sortField = sort == null || sort.isPseudo
-        ? null
-        : collection.fieldById(sort.fieldId);
-    final sortLabel = switch (sort?.fieldId) {
-      null => 'Sort',
-      ViewSort.createdAt => 'Created',
-      ViewSort.updatedAt => 'Updated',
-      _ => sortField?.name ?? 'Sort',
-    };
     return SizedBox(
       height: 52,
       child: Row(
@@ -92,20 +90,22 @@ class ViewToolbar extends StatelessWidget {
             child: _Cluster(
               children: [
                 ?settingsChip,
-                ToolbarButton(
-                  icon: switch (sort) {
-                    null => Icons.swap_vert,
-                    ViewSort(ascending: true) => Icons.arrow_upward,
-                    _ => Icons.arrow_downward,
-                  },
-                  label: sortLabel,
-                  onPressed: onSort,
-                ),
-                ToolbarButton(
-                  icon: Icons.view_column_outlined,
-                  label: fieldsLabel,
-                  onPressed: onEditFields,
-                ),
+                if (onSort != null)
+                  ToolbarButton(
+                    icon: switch (sort) {
+                      null => Icons.swap_vert,
+                      ViewSort(ascending: true) => Icons.arrow_upward,
+                      _ => Icons.arrow_downward,
+                    },
+                    label: sortLabel(sort, collection) ?? 'Sort',
+                    onPressed: onSort,
+                  ),
+                if (onEditFields != null)
+                  ToolbarButton(
+                    icon: Icons.view_column_outlined,
+                    label: fieldsLabel,
+                    onPressed: onEditFields,
+                  ),
               ],
             ),
           ),

@@ -31,6 +31,25 @@ Finder _card(String title) =>
 
 ViewsReady _ready(CollectionViewsCubit cubit) => cubit.state as ViewsReady;
 
+/// The board's horizontal Scrollable.
+Finder _board() => find
+    .ancestor(
+      of: find.byType(BoardColumn).first,
+      matching: find.byType(Scrollable),
+    )
+    .first;
+
+/// Group key of the column under [point], if any.
+String? _columnAt(WidgetTester tester, Offset point) {
+  for (final e in find.byType(BoardColumn).evaluate()) {
+    final box = e.renderObject! as RenderBox;
+    if ((box.localToGlobal(Offset.zero) & box.size).contains(point)) {
+      return (e.widget as BoardColumn).group.key;
+    }
+  }
+  return null;
+}
+
 String? _stageOf(CollectionViewsCubit cubit, String id) =>
     switch (_ready(cubit).objects.firstWhere((o) => o.id == id)['stage']) {
       SingleSelectFieldValue(:final optionId) => optionId,
@@ -110,8 +129,8 @@ void main() {
           tester.getTopLeft(_column(l)).dx,
       ];
       expect(xs, orderedEquals([...xs]..sort()));
-      expect(tester.getSize(_column('Lead')).width, BoardColumn.width);
-      expect(xs[1] - xs[0], BoardColumn.width + 16);
+      expect(tester.getSize(_column('Lead')).width, BoardColumn.defaultWidth);
+      expect(xs[1] - xs[0], BoardColumn.defaultWidth + 16);
       expect(
         find.descendant(of: _column('Lead'), matching: find.text('2')),
         findsOneWidget,
@@ -398,11 +417,107 @@ void main() {
       await gesture.moveTo(tester.getBottomLeft(list) + const Offset(60, -12));
       await tester.pump();
       await gesture.moveBy(const Offset(0, 1));
-      for (var i = 0; i < 20; i++) {
+      await tester.pump();
+      // Cards above the pointer before any scrolling.
+      final pointerY = tester.getBottomLeft(list).dy - 11;
+      final stale = [
+        for (final e
+            in find
+                .descendant(
+                  of: _column('Lead'),
+                  matching: find.byType(ObjectCard),
+                )
+                .evaluate())
+          if ((e.widget as ObjectCard).object.id != 'c1')
+            if (e.renderObject case final RenderBox box
+                when box.localToGlobal(box.size.center(Offset.zero)).dy <
+                    pointerY)
+              e,
+      ].length;
+      for (var i = 0; i < 40; i++) {
         await tester.pump(const Duration(milliseconds: 50));
       }
       expect(position.pixels, greaterThan(0));
-      // The board itself did not scroll vertically or sideways.
+      // The board itself did not scroll sideways.
+      expect(tester.state<ScrollableState>(_board()).position.pixels, 0);
+
+      // Dropped without moving: it lands where the pointer is now, deep in
+      // the scrolled column, not where it was when scrolling began.
+      await gesture.up();
+      await tester.pumpAndSettle();
+      final order = [for (final o in _ready(cubit).objects) o.id];
+      expect(order.indexOf('c1'), greaterThan(stale + 2));
+    });
+
+    testWidgets('a drop while the board scrolls under a still pointer lands '
+        'in the column now under it', (tester) async {
+      final cubit = await _pumpBoard(
+        tester,
+        repository: manyCompanies(60, [
+          deal('d1', 0, name: 'Acme renewal', company: 'k0'),
+        ]),
+      );
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.text('Acme renewal')),
+        kind: PointerDeviceKind.mouse,
+      );
+      await gesture.moveBy(const Offset(0, 6));
+      await tester.pump();
+      final edge = tester.getTopRight(_board()) + const Offset(-10, 40);
+      await gesture.moveTo(edge);
+      await tester.pump();
+      final start = _columnAt(tester, edge);
+      for (var i = 0; i < 60; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      final now = _columnAt(tester, edge);
+      expect(now, isNot(start));
+      await gesture.up();
+      await tester.pumpAndSettle();
+      final company = switch (_ready(cubit).objects.single['company']) {
+        ReferenceFieldValue(:final objectIds) => objectIds.single,
+        _ => null,
+      };
+      expect(company, now);
+    });
+
+    testWidgets('another finger does not stop the drag auto-scroll', (
+      tester,
+    ) async {
+      await _pumpBoard(
+        tester,
+        repository: manyCompanies(60, [
+          deal('d1', 0, name: 'Acme renewal', company: 'k0'),
+        ]),
+      );
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.text('Acme renewal')),
+        kind: PointerDeviceKind.mouse,
+      );
+      await gesture.moveBy(const Offset(0, 6));
+      await tester.pump();
+      await gesture.moveTo(
+        tester.getTopRight(_board()) + const Offset(-10, 120),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      final position = tester.state<ScrollableState>(_board()).position;
+
+      // A second finger lands, moves away from the edge and lifts.
+      final other = await tester.startGesture(
+        const Offset(400, 500),
+        pointer: 7,
+      );
+      await other.moveBy(const Offset(-80, 0));
+      await tester.pump();
+      await other.up();
+      await tester.pump(const Duration(milliseconds: 300));
+      final before = position.pixels;
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      expect(position.pixels, greaterThan(before));
+
       await gesture.up();
       await tester.pumpAndSettle();
     });
@@ -434,7 +549,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 50));
       }
       final position = tester.state<ScrollableState>(board).position;
-      expect(position.pixels, greaterThan(BoardColumn.width * 2));
+      expect(position.pixels, greaterThan(BoardColumn.defaultWidth * 2));
       // The source column scrolled out and was disposed.
       expect(_column('Company 000'), findsNothing);
 
@@ -502,6 +617,9 @@ void main() {
         findsOneWidget,
       );
       expect(find.textContaining('Group:'), findsNothing);
+      // Nothing to sort or set up until the board can draw.
+      expect(find.text('Sort'), findsNothing);
+      expect(find.text('Setup card'), findsNothing);
       await tester.tap(find.text('Add field'));
       await tester.pumpAndSettle();
       expect(find.text('editor:deals'), findsOneWidget);

@@ -20,6 +20,7 @@ import 'widgets/quick_add_dialog.dart';
 import 'widgets/sort_menu.dart';
 import 'widgets/view_labels.dart';
 import 'widgets/view_popover.dart';
+import 'widgets/view_settings_sheet.dart';
 import 'widgets/view_tabs.dart';
 import 'widgets/view_toolbar.dart';
 import 'widgets/views_skeleton.dart';
@@ -61,7 +62,7 @@ class CollectionViewsPage extends StatelessWidget {
               ),
             };
             return compact
-                ? _PhoneFrame(state: ready, body: body)
+                ? _PhoneFrame(state: ready, modes: modes, body: body)
                 : _WideFrame(state: ready, body: body);
           },
         );
@@ -113,9 +114,6 @@ void _notify(
       ),
     );
 }
-
-void _comingSoon(BuildContext context, String what) =>
-    _notify(context, '$what is coming soon');
 
 /// Columns (Table) / Setup card (other modes), named by the mode.
 void _openFieldsEditor(BuildContext context, ViewMode mode) {
@@ -210,8 +208,36 @@ Future<void> _openSortMenu(
   );
 }
 
-void _openViewSettings(BuildContext context) =>
-    _comingSoon(context, 'View settings');
+/// The phone's view settings sheet. Sort and the fields editor replace it
+/// rather than stacking on it.
+Future<void> _openViewSettings(BuildContext context, ViewModeRegistry modes) {
+  final cubit = context.read<CollectionViewsCubit>();
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    useSafeArea: true,
+    backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(Radii.lg)),
+    ),
+    // The sheet lives above the route that provides the cubit.
+    builder: (sheet) => BlocProvider.value(
+      value: cubit,
+      child: ViewSettingsSheet(
+        modes: modes,
+        onSort: () {
+          Navigator.of(sheet).pop();
+          _openSortMenu(context);
+        },
+        onEditFields: (mode) {
+          Navigator.of(sheet).pop();
+          _openFieldsEditor(context, mode);
+        },
+      ),
+    ),
+  );
+}
 
 void _customize(BuildContext context, String collectionId) =>
     context.go('/collections/$collectionId/edit');
@@ -383,9 +409,14 @@ class _WideHeader extends StatelessWidget {
 }
 
 class _PhoneFrame extends StatelessWidget {
-  const _PhoneFrame({required this.state, required this.body});
+  const _PhoneFrame({
+    required this.state,
+    required this.modes,
+    required this.body,
+  });
 
   final ViewsReady? state;
+  final ViewModeRegistry modes;
   final Widget body;
 
   @override
@@ -427,11 +458,13 @@ class _PhoneFrame extends StatelessWidget {
         actions: [
           if (collection != null) ...[
             const SyncStatusIndicator(),
-            IconButton(
-              tooltip: 'View settings',
-              icon: const Icon(Icons.tune),
-              onPressed: () => _openViewSettings(context),
-            ),
+            // Without fields the body's Customize carries the only `tune`.
+            if (collection.fields.isNotEmpty)
+              IconButton(
+                tooltip: 'View settings',
+                icon: const Icon(Icons.tune),
+                onPressed: () => _openViewSettings(context, modes),
+              ),
             PopupMenuButton<void>(
               tooltip: 'More',
               icon: const Icon(Icons.more_vert),
@@ -524,6 +557,7 @@ class _WorkBody extends StatelessWidget {
     );
     final noMatches =
         state.objects.isEmpty && state.isFiltered && !mode.drawsNoMatches;
+    final renders = mode.unavailableReason(collection) == null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -563,9 +597,12 @@ class _WorkBody extends StatelessWidget {
               ),
               onRemoveFilter: (i) =>
                   cubit.setFilters([...view.filters]..removeAt(i)),
-              onSort: () =>
-                  _openSortMenu(context, anchor: anchor(), inset: gutter),
-              onEditFields: data.editFields,
+              // Nothing to sort or set up while the mode can't draw yet.
+              onSort: renders
+                  ? () =>
+                        _openSortMenu(context, anchor: anchor(), inset: gutter)
+                  : null,
+              onEditFields: renders ? data.editFields : null,
             );
           },
         ),

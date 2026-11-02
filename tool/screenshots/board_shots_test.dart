@@ -207,5 +207,14 @@ void main() {
 
     await _board(tester, size: const Size(390, 844));
     await _shot(tester, 'board-390');
+
+    await tester.tap(find.byKey(const ValueKey('column-jump')).first);
+    await tester.pumpAndSettle();
+    await _shot(tester, 'board-390-jump');
+
+    await _board(tester, size: const Size(390, 844));
+    await tester.tap(find.byTooltip('View settings'));
+    await tester.pumpAndSettle();
+    await _shot(tester, 'settings-390');
   });
 }
