@@ -56,15 +56,6 @@ class ColorSwatchPicker extends StatelessWidget {
       a != null && a.toUpperCase() == b.toUpperCase();
 }
 
-/// Parses a `#RRGGBB` string into a [Color]; falls back to grey on malformed
-/// input so a bad stored value never crashes the picker.
-Color colorFromHex(String hex) {
-  final cleaned = hex.replaceAll('#', '').trim();
-  final value = int.tryParse(cleaned, radix: 16);
-  if (value == null || cleaned.length != 6) return const Color(0xFF9E9E9E);
-  return Color(0xFF000000 | value);
-}
-
 class _ColorSwatch extends StatelessWidget {
   const _ColorSwatch({
     required this.hex,

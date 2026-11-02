@@ -42,6 +42,7 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
   StreamSubscription<List<MorkvaObject>>? _objectsSub;
   final Map<String, StreamSubscription<List<MorkvaObject>>> _targetSubs = {};
   final Map<String, List<MorkvaObject>> _targetObjects = {};
+  final Set<String> _failedTargets = {};
 
   List<Collection> _collections = const [];
   Collection? _streamCollection;
@@ -70,6 +71,7 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
     _targetObjects.clear();
     _pending.clear();
     _notFound = false;
+    _writeError = null;
     emit(const ViewsLoading());
     initialize();
   }
@@ -122,11 +124,17 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
       if (target == null) continue;
       _targetSubs[targetId] = _repository
           .watchObjects(targetId, schema: target)
-          .listen((objects) {
-            if (isClosed) return;
-            _targetObjects[targetId] = objects;
-            _emitReady();
-          }, onError: (Object _) {});
+          .listen(
+            (objects) {
+              if (isClosed) return;
+              _targetObjects[targetId] = objects;
+              _emitReady();
+            },
+            onError: (Object _) {
+              if (isClosed || !_failedTargets.add(targetId)) return;
+              _reportWriteError("Couldn't load ${target.name} names");
+            },
+          );
     }
   }
 
@@ -272,9 +280,12 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
       layoutFieldId: layoutFieldId,
       fieldIds: ViewDefinition.defaultFor(collection.fields).fieldIds,
     );
+    final previous = _activeViewId;
     _activeViewId = view.id;
-    await _saveViews([...collection.views, view]);
-    return view.id;
+    if (await _saveViews([...collection.views, view])) return view.id;
+    _activeViewId = previous;
+    _emitReady();
+    return null;
   }
 
   /// Renames [viewId]; a blank name is ignored.
@@ -295,9 +306,14 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
       id: _ids.viewId(),
       name: '${source.name} copy',
     );
+    final previous = _activeViewId;
     _activeViewId = copy.id;
-    await _saveViews([...collection.views]..insert(index + 1, copy));
-    return copy.id;
+    if (await _saveViews([...collection.views]..insert(index + 1, copy))) {
+      return copy.id;
+    }
+    _activeViewId = previous;
+    _emitReady();
+    return null;
   }
 
   /// Deletes [viewId] unless it is the last view; returns whether it did.
@@ -349,23 +365,24 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
   Future<void> _updateView(
     String viewId,
     ViewDefinition Function(ViewDefinition) update,
-  ) {
+  ) async {
     final collection = _collection;
-    if (collection == null) return Future.value();
+    if (collection == null) return;
     final views = [
       for (final v in collection.views) v.id == viewId ? update(v) : v,
     ];
-    if (_sameViews(views, collection.views)) return Future.value();
-    return _saveViews(views);
+    if (_sameViews(views, collection.views)) return;
+    await _saveViews(views);
   }
 
   static bool _sameViews(List<ViewDefinition> a, List<ViewDefinition> b) =>
       a.length == b.length &&
       [for (var i = 0; i < a.length; i++) a[i] == b[i]].every((s) => s);
 
-  Future<void> _saveViews(List<ViewDefinition> views) async {
+  /// Saves [views]; returns whether the save succeeded.
+  Future<bool> _saveViews(List<ViewDefinition> views) async {
     final collection = _collection;
-    if (collection == null) return;
+    if (collection == null) return false;
     final updated = collection.copyWith(views: views);
     _localCollection = updated;
     _emitReady();
@@ -374,10 +391,11 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
     } catch (_) {
       if (identical(_localCollection, updated)) _localCollection = null;
       if (!isClosed) _reportWriteError("Couldn't save the view");
-      return;
+      return false;
     }
     if (identical(_localCollection, updated)) _localCollection = null;
     _emitReady();
+    return true;
   }
 
   // ---------------------------------------------------------------------------
@@ -436,11 +454,13 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
         !_sameIds(order, _effectiveIds(collection, view, objects));
     if (!valueChanged && !orderChanged) return null;
 
-    if (valueChanged) unawaited(_writeObject(updated));
-    if (orderChanged) {
-      unawaited(_updateView(view.id, (v) => v.copyWith(manualOrder: order)));
-    }
+    final writes = Future.wait([
+      if (valueChanged) _writeObject(updated),
+      if (orderChanged)
+        _updateView(view.id, (v) => v.copyWith(manualOrder: order)),
+    ]);
     return () async {
+      await writes;
       await Future.wait([
         if (valueChanged) _writeObject(object.copyWith(updatedAt: _now())),
         if (orderChanged)
@@ -471,15 +491,16 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
         ? const DateFieldValue(null)
         : withDay(field, currentDate, day);
     if (value == currentDate) return null;
-    unawaited(
-      _writeObject(
-        object.copyWith(
-          values: {...object.values, field.id: value},
-          updatedAt: _now(),
-        ),
+    final write = _writeObject(
+      object.copyWith(
+        values: {...object.values, field.id: value},
+        updatedAt: _now(),
       ),
     );
-    return () => _writeObject(object.copyWith(updatedAt: _now()));
+    return () async {
+      await write;
+      await _writeObject(object.copyWith(updatedAt: _now()));
+    };
   }
 
   /// Puts [objectId] before [beforeId] in the active view's manual order (or
@@ -507,13 +528,17 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
         _sameIds(order, _effectiveIds(collection, view, _allObjects))) {
       return null;
     }
-    unawaited(
-      _updateView(view.id, (v) => v.copyWith(manualOrder: order, sort: null)),
-    );
-    return () => _updateView(
+    final write = _updateView(
       view.id,
-      (v) => v.copyWith(manualOrder: view.manualOrder, sort: view.sort),
+      (v) => v.copyWith(manualOrder: order, sort: null),
     );
+    return () async {
+      await write;
+      await _updateView(
+        view.id,
+        (v) => v.copyWith(manualOrder: view.manualOrder, sort: view.sort),
+      );
+    };
   }
 
   /// The ids of [objects] in [view]'s order ignoring filters, with [objectId]
@@ -585,12 +610,7 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
     final collection = _collection;
     final view = _activeView;
     if (collection == null || view == null) return null;
-    final first = view.fieldIds.isEmpty
-        ? null
-        : collection.fieldById(view.fieldIds.first);
-    final titleField = first is TextFieldDefinition
-        ? first
-        : collection.fields.whereType<TextFieldDefinition>().firstOrNull;
+    final titleField = quickAddTitleField();
     final layout = view.layoutFieldId == null
         ? null
         : collection.fieldById(view.layoutFieldId!);
@@ -614,30 +634,41 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
     return object.id;
   }
 
+  /// The field [quickAdd] puts the title into: the active view's title field
+  /// when it is a text field, else the collection's first text field.
+  TextFieldDefinition? quickAddTitleField() {
+    final collection = _collection;
+    final view = _activeView;
+    if (collection == null || view == null) return null;
+    final first = view.fieldIds.isEmpty
+        ? null
+        : collection.fieldById(view.fieldIds.first);
+    return first is TextFieldDefinition
+        ? first
+        : collection.fields.whereType<TextFieldDefinition>().firstOrNull;
+  }
+
   /// Deletes [objectId]; the undo restores it with the same id.
   ViewUndo? deleteObject(String objectId) {
     final object = _objectById(objectId);
     if (object == null) return null;
-    unawaited(_deleteObject(object));
-    return () => _writeObject(object);
+    final delete = _deleteObject(object);
+    return () async {
+      await delete;
+      await _writeObject(object);
+    };
   }
 
   Future<void> _writeObject(MorkvaObject object) async {
     final collection = _collection;
     if (collection == null || isClosed) return;
-    // Normalized against the current schema so the save carries every field.
-    final normalized = MorkvaObject.create(
-      id: object.id,
-      collection: collection,
-      values: object.values,
-      createdAt: object.createdAt,
-      updatedAt: object.updatedAt,
-    );
-    final pending = _Pending(normalized);
+    // Saved as given: values of fields this object was decoded without stay
+    // untouched in storage (the repository merges values).
+    final pending = _Pending(object);
     _pending[object.id] = pending;
     _emitReady();
     try {
-      await _repository.saveObject(normalized, schema: collection);
+      await _repository.saveObject(object, schema: collection);
       _settle(object.id, pending);
     } catch (_) {
       _fail(object.id, pending, "Couldn't save the change");

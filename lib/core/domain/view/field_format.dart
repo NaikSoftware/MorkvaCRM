@@ -35,6 +35,25 @@ String _plainNumber(num n) {
   return '${double.parse(n.toStringAsPrecision(12))}';
 }
 
+/// [text] with ',' between thousands of its integer part ("48250.5" →
+/// "48,250.5"). Exponent forms are left as they are.
+// shortcut: en-style separators only; switch to locale-aware formatting when
+// the app gets a locale setting.
+String _grouped(String text) {
+  if (text.contains('e')) return text;
+  final negative = text.startsWith('-');
+  final body = negative ? text.substring(1) : text;
+  final dot = body.indexOf('.');
+  final whole = dot < 0 ? body : body.substring(0, dot);
+  final fraction = dot < 0 ? '' : body.substring(dot);
+  final out = StringBuffer();
+  for (var i = 0; i < whole.length; i++) {
+    if (i > 0 && (whole.length - i) % 3 == 0) out.write(',');
+    out.write(whole[i]);
+  }
+  return '${negative ? '-' : ''}$out$fraction';
+}
+
 String _two(int n) => n.toString().padLeft(2, '0');
 
 /// The one display formatter for a field value (cards, rows, detail sheet).
@@ -57,9 +76,11 @@ String formatFieldValue(
     ):
       if (number.isNaN) return '';
       if (number.isInfinite) return number > 0 ? '∞' : '-∞';
-      final digits = decimalPlaces != null
-          ? number.toStringAsFixed(decimalPlaces)
-          : _plainNumber(number);
+      final digits = _grouped(
+        decimalPlaces != null
+            ? number.toStringAsFixed(decimalPlaces)
+            : _plainNumber(number),
+      );
       return unitLabel == null || unitLabel.isEmpty
           ? digits
           : '$digits $unitLabel';

@@ -54,13 +54,13 @@ void main() {
       var taps = 0;
       await pump(tester, ObjectCardDensity.board, onTap: () => taps++);
       expect(find.text('Acme renewal'), findsOneWidget);
-      expect(find.text('1200 USD'), findsOneWidget);
+      expect(find.text('1,200 USD'), findsOneWidget);
       expect(find.text('Alpha Ltd'), findsOneWidget);
       // Stage is the layout field (the columns show it); Due is empty.
       expect(find.text('Lead'), findsNothing);
       expect(find.textContaining('2026'), findsNothing);
       expect(
-        tester.getTopRight(find.text('1200 USD')).dx,
+        tester.getTopRight(find.text('1,200 USD')).dx,
         greaterThan(tester.getTopRight(find.text('Acme renewal')).dx),
       );
       await tester.tap(find.text('Acme renewal'));
@@ -89,7 +89,7 @@ void main() {
     (tester) async {
       await pump(tester, ObjectCardDensity.list);
       expect(find.text('Alpha Ltd'), findsOneWidget);
-      expect(find.text('1200 USD'), findsOneWidget);
+      expect(find.text('1,200 USD'), findsOneWidget);
       expect(tester.getSize(find.byType(ObjectCard)).height, 64);
     },
   );
@@ -107,7 +107,7 @@ void main() {
     await pump(tester, ObjectCardDensity.pill);
     expect(tester.getSize(find.byType(ObjectCard)).height, 24);
     expect(find.text('Acme renewal'), findsOneWidget);
-    expect(find.text('1200 USD'), findsNothing);
+    expect(find.text('1,200 USD'), findsNothing);
   });
 
   testWidgets('an empty title reads Untitled', (tester) async {

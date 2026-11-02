@@ -162,8 +162,8 @@ class _FieldRow extends StatelessWidget {
         ),
       (MultiSelectFieldDefinition(), MultiSelectFieldValue(:final optionIds)) =>
         Wrap(
-          spacing: 6,
-          runSpacing: 6,
+          spacing: Spacing.xxs,
+          runSpacing: Spacing.xxs,
           children: [
             for (final id in optionIds)
               OptionPill(
@@ -186,7 +186,7 @@ class _FieldRow extends StatelessWidget {
                 size: 16,
                 color: scheme.onSurfaceVariant,
               ),
-              const SizedBox(width: Spacing.xs - 2),
+              const SizedBox(width: Spacing.xxs),
               Text(
                 field.name,
                 style: theme.textTheme.labelMedium?.copyWith(

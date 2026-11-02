@@ -58,7 +58,7 @@ void main() {
       // Select cells as pills, references by label.
       expect(find.widgetWithText(OptionPill, 'Lead'), findsNWidgets(2));
       expect(find.text('Alpha Ltd'), findsOneWidget);
-      expect(find.text('1200 USD'), findsOneWidget);
+      expect(find.text('1,200 USD'), findsOneWidget);
       expect(find.text('5 deals'), findsOneWidget);
     });
 
@@ -109,6 +109,45 @@ void main() {
       await tester.tap(find.text('Pipeline'));
       await tester.pumpAndSettle();
       expect((cubit.state as ViewsReady).activeViewId, 'board');
+    });
+  });
+
+  group('fix round 1', () {
+    testWidgets('Customize is a quiet outlined button', (tester) async {
+      await pumpWorkPage(tester);
+      expect(
+        find.ancestor(
+          of: find.text('Customize'),
+          matching: find.byWidgetPredicate((w) => w is OutlinedButton),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('no ghost row while the table has objects', (tester) async {
+      await pumpWorkPage(tester);
+      // Only the header button.
+      expect(find.text('New deal'), findsOneWidget);
+      expect(find.text('Change fields'), findsNothing);
+    });
+
+    testWidgets('the table card hugs its rows; phone body clears the FAB', (
+      tester,
+    ) async {
+      await pumpWorkPage(tester, size: _phone);
+      final card = tester.getRect(find.byType(ViewTable).first);
+      final table = tester.getRect(
+        find
+            .descendant(
+              of: find.byType(ViewTable),
+              matching: find.byType(DecoratedBox),
+            )
+            .first,
+      );
+      // header 44 + 5 rows x 52 + footer 40 + border 2.
+      expect(table.height, 44 + 5 * 52 + 40 + 2);
+      final fab = tester.getRect(find.byType(FloatingActionButton));
+      expect(card.bottom, lessThanOrEqualTo(fab.top));
     });
   });
 

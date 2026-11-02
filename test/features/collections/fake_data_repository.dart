@@ -34,7 +34,7 @@ class FakeDataRepository implements DataRepository {
   Future<void> initialize(String workspaceId) async {}
 
   @override
-  Stream<List<Collection>> watchCollections() => _subject.stream;
+  Stream<List<Collection>> watchCollections() => _counted(_subject.stream);
 
   @override
   Future<List<Collection>> getCollections() async =>
@@ -75,6 +75,13 @@ class FakeDataRepository implements DataRepository {
 
   /// Count of [watchObjects] calls per collection id, for assertions.
   final Map<String, int> watchObjectsCalls = {};
+
+  /// Subscriptions currently open on any watch stream, for leak tests.
+  int liveListeners = 0;
+
+  Stream<T> _counted<T>(Stream<T> stream) => stream
+      .doOnListen(() => liveListeners++)
+      .doOnCancel(() => liveListeners--);
 
   /// Set to a non-null factory to make the next [saveObject] /
   /// [deleteObject] throw (cleared after one use).
@@ -119,7 +126,7 @@ class FakeDataRepository implements DataRepository {
     Collection? schema,
   }) {
     watchObjectsCalls.update(collectionId, (n) => n + 1, ifAbsent: () => 1);
-    return _subjectFor(collectionId).stream;
+    return _counted(_subjectFor(collectionId).stream);
   }
 
   @override

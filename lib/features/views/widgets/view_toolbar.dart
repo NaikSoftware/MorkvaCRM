@@ -150,7 +150,7 @@ class ToolbarButton extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(icon, size: 18, color: scheme.onSurfaceVariant),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: Spacing.xxs),
                       Text(
                         label,
                         style: theme.textTheme.labelLarge?.copyWith(

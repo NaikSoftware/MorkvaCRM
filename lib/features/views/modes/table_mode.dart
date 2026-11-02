@@ -113,10 +113,18 @@ class _ViewTableState extends State<ViewTable> {
           width: tableWidth,
           horizontal: _horizontal,
         );
-        final rowCount = state.objects.length + 1;
+        // The ghost "+ New" row only stands in for an empty table.
+        final empty = state.objects.isEmpty;
+        final rowCount = empty ? 1 : state.objects.length;
+        // The card hugs its rows instead of filling the body (+2: border).
+        final contentHeight =
+            ViewTable.headerHeight +
+            rowCount * ViewTable.rowHeight +
+            _Footer.height +
+            2;
 
         // The border paints over the rows so opaque cells never hide it.
-        return DecoratedBox(
+        final card = DecoratedBox(
           position: DecorationPosition.foreground,
           decoration: BoxDecoration(
             borderRadius: Radii.lgAll,
@@ -155,14 +163,12 @@ class _ViewTableState extends State<ViewTable> {
                                     itemExtent: ViewTable.rowHeight,
                                     itemCount: rowCount,
                                     itemBuilder: (context, i) {
-                                      if (i == state.objects.length) {
+                                      if (empty) {
                                         return _GhostRow(
                                           layout: layout,
                                           label: 'New ${data.itemLabel}',
                                           onAdd: () => data.quickAdd(),
-                                          onChangeFields: state.objects.isEmpty
-                                              ? data.editFields
-                                              : null,
+                                          onChangeFields: data.editFields,
                                         );
                                       }
                                       final object = state.objects[i];
@@ -194,6 +200,13 @@ class _ViewTableState extends State<ViewTable> {
                 ],
               ),
             ),
+          ),
+        );
+        return Align(
+          alignment: Alignment.topCenter,
+          child: SizedBox(
+            height: contentHeight.clamp(0, constraints.maxHeight).toDouble(),
+            child: card,
           ),
         );
       },
@@ -404,7 +417,7 @@ class _HeaderCell extends StatelessWidget {
             children: [
               if (!numeric) ...[
                 Icon(fieldTypeIcon(field), size: 16, color: scheme.outline),
-                const SizedBox(width: 6),
+                const SizedBox(width: Spacing.xxs),
               ],
               label,
               if (arrow != null) ...[const SizedBox(width: Spacing.xxs), arrow],
@@ -664,6 +677,8 @@ class _GhostRow extends StatelessWidget {
 class _Footer extends StatelessWidget {
   const _Footer({required this.text});
 
+  static const double height = 40;
+
   final String text;
 
   @override
@@ -671,7 +686,7 @@ class _Footer extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     return Container(
-      height: 40,
+      height: height,
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
       alignment: Alignment.centerLeft,

@@ -112,7 +112,10 @@ class ObjectCard extends StatelessWidget {
     final theme = Theme.of(context);
     final label = f is BooleanFieldDefinition ? f.name : _text(f);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: Spacing.xs, vertical: 3),
+      padding: const EdgeInsets.symmetric(
+        horizontal: Spacing.xs,
+        vertical: Spacing.xxs,
+      ),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainer,
         borderRadius: Radii.smAll,
@@ -222,7 +225,11 @@ class _BoardCardState extends State<_BoardCard> {
               ),
               if (widget.chips.isNotEmpty) ...[
                 const SizedBox(height: Spacing.xs),
-                Wrap(spacing: 6, runSpacing: 6, children: widget.chips),
+                Wrap(
+                  spacing: Spacing.xxs,
+                  runSpacing: Spacing.xxs,
+                  children: widget.chips,
+                ),
               ],
             ],
           ),
@@ -341,7 +348,7 @@ class _Pill extends StatelessWidget {
         child: Row(
           children: [
             Container(width: 3, color: accent ?? scheme.primary),
-            const SizedBox(width: 6),
+            const SizedBox(width: Spacing.xxs),
             Expanded(
               child: Text(
                 title,

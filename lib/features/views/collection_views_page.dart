@@ -91,8 +91,9 @@ void _notify(
 void _comingSoon(BuildContext context, String what) =>
     _notify(context, '$what is coming soon');
 
-void _openColumns(BuildContext context) => _comingSoon(context, 'Columns');
-void _openSetupCard(BuildContext context) => _comingSoon(context, 'Setup card');
+/// Columns (Table) / Setup card (other modes), named by the mode.
+void _openFieldsEditor(BuildContext context, ViewMode mode) =>
+    _comingSoon(context, mode.fieldsLabel);
 void _openFilterEditor(BuildContext context, {int? index}) =>
     _comingSoon(context, 'Filtering');
 void _openSortMenu(BuildContext context) => _comingSoon(context, 'Sorting');
@@ -111,13 +112,7 @@ Future<void> _quickAdd(
 }) async {
   final cubit = context.read<CollectionViewsCubit>();
   final collection = state.collection;
-  final view = state.activeView;
-  final first = view.fieldIds.isEmpty
-      ? null
-      : collection.fieldById(view.fieldIds.first);
-  final titleField = first is TextFieldDefinition
-      ? first
-      : collection.fields.whereType<TextFieldDefinition>().firstOrNull;
+  final titleField = cubit.quickAddTitleField();
   final layout = state.layoutField;
   final prefill = switch (layout) {
     _ when groupKey != null && layout != null =>
@@ -236,10 +231,10 @@ class _WideHeader extends StatelessWidget {
           ),
           const SyncStatusIndicator(),
           const SizedBox(width: Spacing.sm),
-          SecondaryButton(
-            label: 'Customize',
-            icon: Icons.tune,
+          OutlinedButton.icon(
             onPressed: () => _customize(context, collection.id),
+            icon: const Icon(Icons.tune, size: 18),
+            label: const Text('Customize'),
           ),
           if (collection.fields.isNotEmpty) ...[
             const SizedBox(width: Spacing.sm),
@@ -348,6 +343,9 @@ class _PhoneFrame extends StatelessWidget {
 // Body
 // -----------------------------------------------------------------------------
 
+/// Bottom space under the phone body: the FAB (56) plus its margins.
+const double _fabClearance = 88;
+
 class _WorkBody extends StatelessWidget {
   const _WorkBody({
     required this.state,
@@ -389,9 +387,7 @@ class _WorkBody extends StatelessWidget {
       openObject: (o) => _openObject(context, state, o),
       quickAdd: ({groupKey, day}) =>
           _quickAdd(context, state, groupKey: groupKey, day: day),
-      editFields: () => mode.id == ViewModeIds.table
-          ? _openColumns(context)
-          : _openSetupCard(context),
+      editFields: () => _openFieldsEditor(context, mode),
       notify: (message, {undo}) => _notify(context, message, undo: undo),
     );
     final noMatches = state.objects.isEmpty && state.isFiltered;
@@ -431,7 +427,13 @@ class _WorkBody extends StatelessWidget {
           _UnknownModeNotice(modeId: view.mode, fallback: mode, gutter: gutter),
         Expanded(
           child: Padding(
-            padding: EdgeInsets.fromLTRB(gutter, Spacing.xxs, gutter, gutter),
+            padding: EdgeInsets.fromLTRB(
+              gutter,
+              Spacing.xxs,
+              gutter,
+              // Room for the FAB so it never covers the table footer.
+              compact ? _fabClearance : gutter,
+            ),
             child: noMatches
                 ? EmptyState(
                     icon: Icons.filter_alt_off_outlined,

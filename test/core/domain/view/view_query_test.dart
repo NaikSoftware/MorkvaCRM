@@ -463,7 +463,21 @@ void main() {
       expect(f(plain, NumberFieldValue(0.1 + 0.2)), '0.3');
       expect(f(plain, const NumberFieldValue(2.5)), '2.5');
       expect(f(plain, const NumberFieldValue(-7)), '-7');
-      expect(f(plain, const NumberFieldValue(1e20)), '100000000000000000000');
+      expect(
+        f(plain, const NumberFieldValue(1e20)),
+        '100,000,000,000,000,000,000',
+      );
+      expect(f(plain, const NumberFieldValue(48250.5)), '48,250.5');
+      expect(f(plain, const NumberFieldValue(-1234567)), '-1,234,567');
+      expect(f(plain, const NumberFieldValue(999)), '999');
+      expect(f(plain, const NumberFieldValue(1000)), '1,000');
+      const usd = NumberFieldDefinition(
+        id: 'n',
+        name: 'N',
+        decimalPlaces: 2,
+        unitLabel: 'USD',
+      );
+      expect(f(usd, const NumberFieldValue(15000)), '15,000.00 USD');
       expect(f(fixed, NumberFieldValue(0.1 + 0.2)), '0.30');
     });
 

@@ -38,7 +38,7 @@ class OptionPill extends StatelessWidget {
               shape: BoxShape.circle,
             ),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: Spacing.xxs),
           Flexible(
             child: Text(
               label,

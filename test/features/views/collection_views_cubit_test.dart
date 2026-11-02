@@ -474,4 +474,92 @@ void main() {
       expect(stateOf(c).referenceLabels, {'k1': 'Renamed'});
     });
   });
+
+  group('fix round 1', () {
+    test(
+      'an object is saved as given, not padded with fields it lacks',
+      () async {
+        // Decoded before 'meeting' existed: no key for it.
+        final stale = deal('d1', 0, name: 'Acme', stage: 'lead');
+        final values = {...stale.values}..remove('meeting');
+        final c = await ready(seeded([stale.copyWith(values: values)]));
+        c.selectView('board');
+        c.moveToGroup('d1', 'won');
+        await pumpEventQueue();
+        expect(stored('d1').values.containsKey('meeting'), isFalse);
+        expect(stored('d1')['stage'], const SingleSelectFieldValue('won'));
+      },
+    );
+
+    test('a failing reference target is reported once', () async {
+      final c = await ready();
+      await pumpEventQueue();
+      repo.failObjects('companies', StateError('denied'));
+      repo.failObjects('companies', StateError('denied'));
+      await pumpEventQueue();
+      expect(stateOf(c).writeErrorSeq, 1);
+      expect(stateOf(c).writeError, contains('Companies'));
+    });
+
+    test('retry cancels its old subscriptions first', () async {
+      final c = await ready();
+      await pumpEventQueue();
+      final live = repo.liveListeners;
+      expect(live, 3); // collections, deals, companies
+      for (var i = 0; i < 3; i++) {
+        await c.retry();
+        await pumpEventQueue();
+      }
+      expect(repo.liveListeners, live);
+      await c.close();
+      expect(repo.liveListeners, 0);
+    });
+
+    test('retry clears the previous write error', () async {
+      final c = await ready();
+      repo.objectWriteError = () => StateError('denied');
+      c.deleteObject('d1');
+      await pumpEventQueue();
+      expect(stateOf(c).writeError, isNotNull);
+      await c.retry();
+      await pumpEventQueue();
+      expect(stateOf(c).writeError, isNull);
+    });
+
+    test('undo waits for the write it reverts', () async {
+      final c = await ready();
+      c.selectView('board');
+      final undo = c.moveToGroup('d3', 'won')!;
+      // Undo right away, before the move's write has landed.
+      await undo();
+      await pumpEventQueue();
+      expect(stored('d3')['stage'], const SingleSelectFieldValue('lead'));
+
+      final undoDelete = c.deleteObject('d2')!;
+      await undoDelete();
+      await pumpEventQueue();
+      expect(repo.objectsOf('deals').map((o) => o.id), contains('d2'));
+    });
+
+    test('createView / duplicateView failing keep the old selection', () async {
+      final c = await ready();
+      c.selectView('board');
+      repo.saveError = () => StateError('denied');
+      expect(await c.createView('X'), isNull);
+      expect(stateOf(c).activeViewId, 'board');
+      expect(await c.duplicateView('board'), isNull);
+      expect(stateOf(c).activeViewId, 'board');
+      expect(stateOf(c).collection.views.map((v) => v.id), ['all', 'board']);
+    });
+
+    test(
+      'quickAddTitleField follows the view, else the first text field',
+      () async {
+        final c = await ready();
+        expect(c.quickAddTitleField()?.id, 'name');
+        await c.setFieldIds(['amount', 'name']);
+        expect(c.quickAddTitleField()?.id, 'name');
+      },
+    );
+  });
 }

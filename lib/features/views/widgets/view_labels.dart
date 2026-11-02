@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/domain/domain.dart';
 import '../../collections/field_editors/built_in_field_editors.dart';
-import '../../collections/field_editors/widgets/color_swatch_picker.dart';
+import '../../../design/design.dart';
 
 final _fieldEditors = defaultFieldEditorRegistry();
 
