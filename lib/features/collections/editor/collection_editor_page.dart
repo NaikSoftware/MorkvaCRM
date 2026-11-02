@@ -11,7 +11,7 @@ import 'collection_editor_state.dart';
 import 'field_config_panel.dart';
 import 'section_config_panel.dart';
 
-/// Host for `/collections/:id` — the full schema editor.
+/// Host for `/collections/:id/edit` — the full schema editor.
 ///
 /// Renders the [CollectionEditorCubit] over its three states (loading, a
 /// friendly not-found, and the ready editor). The ready editor frames an

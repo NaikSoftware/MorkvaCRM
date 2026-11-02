@@ -17,8 +17,8 @@ import 'create_collection_dialog.dart';
 /// empty workspace reuses the shared [EmptyState] with the primary "New
 /// collection" call-to-action.
 ///
-/// All mutations route through the cubit; navigation to an editor uses
-/// go_router (`/collections/:id`). The widget is otherwise dumb.
+/// All mutations route through the cubit. A card opens the Work page
+/// (`/collections/:id`); a new collection opens in its editor (`.../edit`).
 class CollectionsListView extends StatelessWidget {
   const CollectionsListView({super.key});
 
@@ -56,7 +56,7 @@ class CollectionsListView extends StatelessWidget {
       description: result.description,
       icon: result.icon,
     );
-    router.go('/collections/$id');
+    router.go('/collections/$id/edit');
   }
 }
 

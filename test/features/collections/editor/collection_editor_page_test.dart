@@ -63,14 +63,14 @@ Future<CollectionEditorCubit> _pumpPage(
   addTearDown(cubit.close);
 
   final router = GoRouter(
-    initialLocation: '/collections/$_collectionId',
+    initialLocation: '/collections/$_collectionId/edit',
     routes: [
       GoRoute(
         path: '/',
         builder: (_, _) => const Scaffold(body: Text('home')),
       ),
       GoRoute(
-        path: '/collections/:id',
+        path: '/collections/:id/edit',
         builder: (context, state) => BlocProvider.value(
           value: cubit,
           child: CollectionEditorPage(registry: registry),

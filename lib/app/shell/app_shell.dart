@@ -28,6 +28,7 @@ class AppShell extends StatelessWidget {
     this.railHeaderBuilder,
     this.headerTrailing,
     this.banner,
+    this.header,
   });
 
   /// Index into [destinations] of the active section.
@@ -60,6 +61,10 @@ class AppShell extends StatelessWidget {
   /// the header (e.g. a conflict warning). Self-hiding widgets are safe to pass
   /// permanently — they render nothing when there is nothing to show.
   final Widget? banner;
+
+  /// Replaces the slim title header (and [title] / [headerTrailing]) with a
+  /// page's own header, e.g. a collection's Work header.
+  final Widget? header;
 
   /// Width at/above which the expanded rail layout is used (`DESIGN.md` §8).
   static const double expandedBreakpoint = 840;
@@ -126,7 +131,7 @@ class AppShell extends StatelessWidget {
             Expanded(
               child: Column(
                 children: [
-                  _PageHeader(title: title, trailing: headerTrailing),
+                  header ?? _PageHeader(title: title, trailing: headerTrailing),
                   ?banner,
                   Expanded(child: child),
                 ],
@@ -143,7 +148,7 @@ class AppShell extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            _PageHeader(title: title, trailing: headerTrailing),
+            header ?? _PageHeader(title: title, trailing: headerTrailing),
             ?banner,
             Expanded(child: child),
           ],

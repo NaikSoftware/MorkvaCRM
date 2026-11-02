@@ -21,12 +21,18 @@ void main() {
   group('CardLayout.reconcile', () {
     final base = CardLayout(
       sections: [
-        LayoutSection(id: 's1', rows: [
-          LayoutRow(id: 'r1', cells: [
-            LayoutCell(fieldId: 'a', span: 4),
-            LayoutCell(fieldId: 'b', span: 8),
-          ]),
-        ]),
+        LayoutSection(
+          id: 's1',
+          rows: [
+            LayoutRow(
+              id: 'r1',
+              cells: [
+                LayoutCell(fieldId: 'a', span: 4),
+                LayoutCell(fieldId: 'b', span: 8),
+              ],
+            ),
+          ],
+        ),
       ],
     );
 
@@ -58,12 +64,20 @@ void main() {
     });
 
     test('preserves an intentionally empty section', () {
-      final withEmpty = CardLayout(sections: [
-        const LayoutSection(id: 's1', rows: [
-          LayoutRow(id: 'r1', cells: [LayoutCell(fieldId: 'a')]),
-        ]),
-        const LayoutSection(id: 's2'), // empty, user-created
-      ]);
+      final withEmpty = CardLayout(
+        sections: [
+          const LayoutSection(
+            id: 's1',
+            rows: [
+              LayoutRow(
+                id: 'r1',
+                cells: [LayoutCell(fieldId: 'a')],
+              ),
+            ],
+          ),
+          const LayoutSection(id: 's2'), // empty, user-created
+        ],
+      );
       final out = withEmpty.reconcile(['a']);
       expect(out.sections.length, 2);
       expect(out.sections[1].rows, isEmpty);

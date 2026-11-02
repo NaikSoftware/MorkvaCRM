@@ -99,7 +99,11 @@ void main() {
         mode: ViewModeIds.board,
         layoutFieldId: 'f_single',
         filters: [
-          ViewFilter(fieldId: 'f_date', op: FilterOp.after, operand: '2026-01-01'),
+          ViewFilter(
+            fieldId: 'f_date',
+            op: FilterOp.after,
+            operand: '2026-01-01',
+          ),
         ],
         sort: ViewSort(fieldId: ViewSort.createdAt),
       ),

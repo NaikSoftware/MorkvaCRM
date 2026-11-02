@@ -5,6 +5,7 @@ library;
 
 // Catalogs
 export 'collection_icons.dart';
+export 'color_hex.dart';
 
 // Tokens
 export 'tokens/colors.dart';

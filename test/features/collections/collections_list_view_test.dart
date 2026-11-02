@@ -11,8 +11,8 @@ import 'package:morkva_crm/features/collections/list/collections_list_view.dart'
 import 'fake_data_repository.dart';
 
 void main() {
-  // A minimal router so the view's `context.go('/collections/:id')` resolves
-  // without a real editor page. The list view itself is the unit under test.
+  // A minimal router so the view's navigation resolves without the real Work
+  // and editor pages. The list view itself is the unit under test.
   GoRouter router() => GoRouter(
         initialLocation: '/',
         routes: [
@@ -22,6 +22,11 @@ void main() {
           ),
           GoRoute(
             path: '/collections/:id',
+            builder: (_, state) =>
+                Scaffold(body: Text('work:${state.pathParameters['id']}')),
+          ),
+          GoRoute(
+            path: '/collections/:id/edit',
             builder: (_, state) =>
                 Scaffold(body: Text('editor:${state.pathParameters['id']}')),
           ),
@@ -81,7 +86,7 @@ void main() {
       expect(find.text('2 collections'), findsOneWidget);
     });
 
-    testWidgets('tapping a card navigates to its editor route', (tester) async {
+    testWidgets('tapping a card opens its Work page', (tester) async {
       final repository = FakeDataRepository([
         const Collection(id: 'c_orders', name: 'Orders'),
       ]);
@@ -91,7 +96,22 @@ void main() {
       await tester.tap(find.byType(CollectionCard));
       await tester.pumpAndSettle();
 
-      expect(find.text('editor:c_orders'), findsOneWidget);
+      expect(find.text('work:c_orders'), findsOneWidget);
+    });
+
+    testWidgets('a new collection opens in its editor', (tester) async {
+      final repository = FakeDataRepository();
+
+      await pumpView(tester, repository);
+
+      await tester.tap(find.text('New collection'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).first, 'Deals');
+      await tester.tap(find.text('Create'));
+      await tester.pumpAndSettle();
+
+      final id = (await repository.getCollections()).single.id;
+      expect(find.text('editor:$id'), findsOneWidget);
     });
   });
 }

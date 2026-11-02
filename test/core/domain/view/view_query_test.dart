@@ -205,6 +205,28 @@ void main() {
       expectSort('calc', objects, ['a', 'b', 'n'], ['b', 'a', 'n']);
     });
 
+    test('reference by number of linked objects, empties last', () {
+      final objects = [
+        _obj('three', 0, {
+          'contacts': const ReferenceFieldValue(['p1', 'p2', 'p3']),
+        }),
+        _obj('none', 1),
+        _obj('ten', 2, {
+          'contacts': ReferenceFieldValue([for (var i = 0; i < 10; i++) 'x$i']),
+        }),
+        _obj('one', 3, {
+          'contacts': const ReferenceFieldValue(['p1']),
+        }),
+      ];
+      // Lexicographic "N linked" text would put "10 linked" before "3 linked".
+      expectSort(
+        'contacts',
+        objects,
+        ['one', 'three', 'ten', 'none'],
+        ['ten', 'three', 'one', 'none'],
+      );
+    });
+
     test('pseudo fields @createdAt / @updatedAt', () {
       final objects = [_obj('mid', 5), _obj('old', 1), _obj('new', 9)];
       expectSort(
@@ -275,6 +297,23 @@ void main() {
         'stage': const SingleSelectFieldValue('won'),
       }),
     ];
+
+    test('a blank operand makes the filter a no-op', () {
+      for (final filter in const [
+        ViewFilter(fieldId: 'name', op: FilterOp.contains, operand: ''),
+        ViewFilter(fieldId: 'name', op: FilterOp.equals, operand: '  '),
+        ViewFilter(fieldId: 'name', op: FilterOp.notContains, operand: ''),
+        ViewFilter(fieldId: 'stage', op: FilterOp.anyOf, operand: <String>[]),
+        ViewFilter(fieldId: 'stage', op: FilterOp.noneOf, operand: <String>[]),
+      ]) {
+        final view = ViewDefinition(id: 'v', name: 'V', filters: [filter]);
+        expect(_ids(applyView(_collection, view, objects)), [
+          'acme-won',
+          'acme-lead',
+          'other-won',
+        ], reason: '$filter');
+      }
+    });
 
     test('filters are AND-ed', () {
       const view = ViewDefinition(
@@ -413,6 +452,34 @@ void main() {
       FieldValue v, [
       Map<String, String>? labels,
     ]) => formatFieldValue(field, v, referenceLabels: labels ?? const {});
+
+    test('numbers: non-finite never throws, no float noise', () {
+      const plain = NumberFieldDefinition(id: 'n', name: 'N');
+      const fixed = NumberFieldDefinition(id: 'n', name: 'N', decimalPlaces: 2);
+      expect(f(plain, const NumberFieldValue(double.nan)), '');
+      expect(f(plain, const NumberFieldValue(double.infinity)), '∞');
+      expect(f(plain, const NumberFieldValue(double.negativeInfinity)), '-∞');
+      expect(f(fixed, const NumberFieldValue(double.infinity)), '∞');
+      expect(f(plain, NumberFieldValue(0.1 + 0.2)), '0.3');
+      expect(f(plain, const NumberFieldValue(2.5)), '2.5');
+      expect(f(plain, const NumberFieldValue(-7)), '-7');
+      expect(
+        f(plain, const NumberFieldValue(1e20)),
+        '100,000,000,000,000,000,000',
+      );
+      expect(f(plain, const NumberFieldValue(48250.5)), '48,250.5');
+      expect(f(plain, const NumberFieldValue(-1234567)), '-1,234,567');
+      expect(f(plain, const NumberFieldValue(999)), '999');
+      expect(f(plain, const NumberFieldValue(1000)), '1,000');
+      const usd = NumberFieldDefinition(
+        id: 'n',
+        name: 'N',
+        decimalPlaces: 2,
+        unitLabel: 'USD',
+      );
+      expect(f(usd, const NumberFieldValue(15000)), '15,000.00 USD');
+      expect(f(fixed, NumberFieldValue(0.1 + 0.2)), '0.30');
+    });
 
     test('every type', () {
       expect(
