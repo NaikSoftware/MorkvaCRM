@@ -522,7 +522,8 @@ class _WorkBody extends StatelessWidget {
       editFields: () => _openFieldsEditor(context, mode),
       notify: (message, {undo}) => _notify(context, message, undo: undo),
     );
-    final noMatches = state.objects.isEmpty && state.isFiltered;
+    final noMatches =
+        state.objects.isEmpty && state.isFiltered && !mode.drawsNoMatches;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
