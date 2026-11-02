@@ -425,7 +425,20 @@ void main() {
           .watchObjects(schema.id, schema: schema)
           .listen((_) {});
       expect(repository.activeListenerCount, 1);
+      expect(repository.trackedSubjectCount, 1);
       await live.cancel();
+      expect(repository.trackedSubjectCount, 0);
+    });
+
+    test('saveViews replaces only the views', () async {
+      final schema = buildCollection();
+      await repository.saveCollection(schema);
+      const view = ViewDefinition(id: 'v1', name: 'Mine', fieldIds: []);
+      await repository.saveViews(schema.id, const [view]);
+      final loaded = (await repository.getCollection(schema.id))!;
+      expect(loaded.views.single.name, 'Mine');
+      expect(loaded.fields, schema.fields);
+      expect(loaded.layout, schema.layout);
     });
   });
 

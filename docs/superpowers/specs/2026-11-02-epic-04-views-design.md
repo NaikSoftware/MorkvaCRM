@@ -49,7 +49,10 @@ Rule: **what changes the shape of the data is Build; what changes how you look a
 ## Calls made by the builder (my call)
 
 - **Storage**: `views` is a list inside the collection document (`Collection.views`), next to
-  `layout`. Saved with `saveCollection`; no rules or repository change; travels with JSON export.
+  `layout`. The Work page saves them with `saveViews(collectionId, views)` — a field-level
+  `update({'views': …})`, so a client holding an older copy of the schema never writes back
+  stale fields/layout (Build still saves the whole doc with `saveCollection`); no rules change;
+  travels with JSON export.
   Missing/empty `views` on load → one default Table view "All".
 - **Title**: an object's title is the first field of the view's `fieldIds` (Setup card / Columns
   order). Default `fieldIds` = first text field, then the next 3 fields in schema order.
@@ -117,14 +120,18 @@ isTrue/isFalse; reference — anyOf/empties; file — empties; calculated — em
 
 `CollectionViewsCubit(DataRepository, collectionId)` watches the collection (from
 `watchCollections`), its objects (`watchObjects`), and — when the active board groups by a
-reference — the target collection's objects for labels. States: `ViewsLoading`, `ViewsReady
+reference — the target collection's objects for labels. The objects stream decodes with the
+schema it was opened with, so it (and a target's) is re-opened when that collection's fields
+change; the old objects stay shown until the new stream emits. A failed stream stays on
+`ViewsError` until `retry`. States: `ViewsLoading`, `ViewsReady
 { collection, activeViewId, objects (applied), groups?, days? }`, `ViewsNotFound`, `ViewsError`.
 Commands: `selectView`, `createView(name, mode, layoutFieldId?)`, `renameView`, `duplicateView`,
 `deleteView` (never the last), `setFilters`, `setSort`, `setFieldIds`, `setLayoutField`,
 `moveToGroup(objectId, groupKey, {beforeId})`, `moveToDay(objectId, day)`, `reorder(objectId,
 {beforeId})`, `quickAdd(title, {groupKey, day})`, `deleteObject`. View changes persist via
-`saveCollection`; object changes via `saveObject`, applied optimistically then confirmed by the
-stream.
+`saveViews` (only the views are overlaid locally until acknowledged); object changes via
+`saveObject`, applied optimistically then confirmed by the stream. Undo of a move writes back only
+the moved field (saves merge values).
 
 ## Modes (`lib/features/views/modes/`)
 

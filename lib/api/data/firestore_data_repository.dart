@@ -73,13 +73,19 @@ class FirestoreDataRepository implements DataRepository {
   /// the last one leaves (and on [dispose]).
   final List<StreamSubscription<dynamic>> _subscriptions = [];
 
-  /// Active watch subjects, closed on [dispose] so consumers receive a done
-  /// event. [BehaviorSubject]s so a late subscriber replays the latest value.
+  /// Watch subjects that have listeners, closed on [dispose] so consumers
+  /// receive a done event. A subject leaves this list when its last listener
+  /// does (and rejoins if it is listened to again), so abandoned watches don't
+  /// pile up. [BehaviorSubject]s so a late subscriber replays the latest value.
   final List<Subject<dynamic>> _subjects = [];
 
   /// How many Firestore listeners are live, for leak tests.
   @visibleForTesting
   int get activeListenerCount => _subscriptions.length;
+
+  /// How many watch subjects are tracked, for leak tests.
+  @visibleForTesting
+  int get trackedSubjectCount => _subjects.length;
 
   /// A replaying stream whose Firestore listener ([listen]) runs only while
   /// the stream has subscribers, so an abandoned watch costs no listener.
@@ -91,11 +97,13 @@ class FirestoreDataRepository implements DataRepository {
     subject = BehaviorSubject<T>(
       onListen: () {
         if (source != null || _workspaceId == null) return;
+        _subjects.add(subject);
         final started = listen(subject);
         source = started;
         _subscriptions.add(started);
       },
       onCancel: () {
+        _subjects.remove(subject);
         final running = source;
         source = null;
         if (running == null) return;
@@ -103,7 +111,6 @@ class FirestoreDataRepository implements DataRepository {
         unawaited(running.cancel());
       },
     );
-    _subjects.add(subject);
     return subject.stream;
   }
 
@@ -164,6 +171,16 @@ class FirestoreDataRepository implements DataRepository {
     await _refs
         .collection(_wid, collection.id)
         .set(collection.toJson(), SetOptions(merge: false));
+  }
+
+  @override
+  Future<void> saveViews(
+    String collectionId,
+    List<ViewDefinition> views,
+  ) async {
+    await _refs.collection(_wid, collectionId).update({
+      'views': views.map((v) => v.toJson()).toList(),
+    });
   }
 
   @override

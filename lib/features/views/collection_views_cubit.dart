@@ -15,14 +15,16 @@ typedef ViewUndo = Future<void> Function();
 ///
 /// Watches the collection (via [DataRepository.watchCollections]) and its
 /// objects, plus, once needed, the objects of each collection a shown or
-/// laid-out reference field points at (for labels and board columns). Every
-/// stream is subscribed once per cubit lifetime: the repository only releases
-/// subscriptions on dispose.
+/// laid-out reference field points at (for labels and board columns). An
+/// objects stream decodes with the schema it was opened with, so it is
+/// re-opened whenever that collection's fields change (e.g. in Build, which
+/// keeps this cubit alive).
 ///
-/// View commands persist the collection with `saveCollection`; object
-/// commands save objects with `saveObject`. Both apply optimistically: object
-/// changes sit in an overlay until the objects stream confirms them, and a
-/// failed write drops the change again and reports [ViewsReady.writeError].
+/// View commands persist only the views (`saveViews`), so they never write
+/// back a stale schema; object commands save objects with `saveObject`. Both
+/// apply optimistically: view changes sit over the streamed collection and
+/// object changes in an overlay until the stream confirms them, and a failed
+/// write drops the change again and reports [ViewsReady.writeError].
 class CollectionViewsCubit extends Cubit<CollectionViewsState> {
   CollectionViewsCubit(
     this._repository,
@@ -40,7 +42,13 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
 
   StreamSubscription<List<Collection>>? _collectionsSub;
   StreamSubscription<List<MorkvaObject>>? _objectsSub;
+
+  /// The fields [_objectsSub] decodes with.
+  List<FieldDefinition>? _objectsSchema;
   final Map<String, StreamSubscription<List<MorkvaObject>>> _targetSubs = {};
+
+  /// The fields each of [_targetSubs] decodes with.
+  final Map<String, List<FieldDefinition>> _targetSchemas = {};
   final Map<String, List<MorkvaObject>> _targetObjects = {};
   final Set<String> _failedTargets = {};
 
@@ -49,13 +57,18 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
 
   List<Collection> _collections = const [];
   Collection? _streamCollection;
-  Collection? _localCollection;
+
+  /// Views saved locally but not yet acknowledged; shown over the stream's.
+  List<ViewDefinition>? _localViews;
   List<MorkvaObject>? _streamObjects;
   final Map<String, _Pending> _pending = {};
   String? _activeViewId;
   String? _writeError;
   int _writeErrorSeq = 0;
   bool _notFound = false;
+
+  /// A stream failed: stay on [ViewsError] until [retry].
+  bool _streamFailed = false;
 
   /// Starts watching. Call once after creating the cubit.
   void initialize() {
@@ -67,13 +80,16 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
 
   /// Re-subscribes after a [ViewsError].
   Future<void> retry() async {
-    await _cancelAll();
+    // Not awaited: a cancel may complete late, and the old streams are
+    // already silent.
+    unawaited(_cancelAll());
     _streamCollection = null;
-    _localCollection = null;
+    _localViews = null;
     _streamObjects = null;
     _targetObjects.clear();
     _pending.clear();
     _notFound = false;
+    _streamFailed = false;
     _writeError = null;
     emit(const ViewsLoading());
     initialize();
@@ -99,10 +115,41 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
         (id) => collection.first.fieldById(id) is! ReferenceFieldDefinition,
       );
     }
-    _objectsSub ??= _repository
-        .watchObjects(collectionId, schema: collection.first)
-        .listen(_onObjects, onError: _onStreamError);
+    _watchObjects(collection.first);
+    _dropStaleTargets();
     _emitReady();
+  }
+
+  static bool _sameFields(List<FieldDefinition>? a, List<FieldDefinition> b) =>
+      a != null &&
+      a.length == b.length &&
+      [for (var i = 0; i < a.length; i++) a[i] == b[i]].every((s) => s);
+
+  /// (Re-)opens the objects stream when [collection]'s fields changed. The
+  /// old objects stay shown until the new stream's first emission.
+  void _watchObjects(Collection collection) {
+    if (_objectsSub != null && _sameFields(_objectsSchema, collection.fields)) {
+      return;
+    }
+    unawaited(_objectsSub?.cancel());
+    _objectsSchema = collection.fields;
+    _objectsSub = _repository
+        .watchObjects(collectionId, schema: collection)
+        .listen(_onObjects, onError: _onStreamError);
+  }
+
+  /// Closes target streams whose collection's fields changed (or that is
+  /// gone); [_emitReady] re-opens the ones still needed, keeping their last
+  /// objects meanwhile.
+  void _dropStaleTargets() {
+    for (final id in [..._targetSubs.keys]) {
+      final target = _collections.where((c) => c.id == id).firstOrNull;
+      if (target != null && _sameFields(_targetSchemas[id], target.fields)) {
+        continue;
+      }
+      unawaited(_targetSubs.remove(id)?.cancel());
+      _targetSchemas.remove(id);
+    }
   }
 
   void _onObjects(List<MorkvaObject> objects) {
@@ -113,7 +160,9 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
   }
 
   void _onStreamError(Object error) {
-    if (!isClosed) emit(ViewsError('$error'));
+    if (isClosed) return;
+    _streamFailed = true;
+    emit(ViewsError('$error'));
   }
 
   /// The reference fields of [collection] that [view] shows, lays out by or
@@ -150,6 +199,7 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
     if (targetId == collectionId || _targetSubs.containsKey(targetId)) return;
     final target = _collections.where((c) => c.id == targetId).firstOrNull;
     if (target == null) return;
+    _targetSchemas[targetId] = target.fields;
     _targetSubs[targetId] = _repository
         .watchObjects(targetId, schema: target)
         .listen(
@@ -181,7 +231,12 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
       ? c
       : c.copyWith(views: [ViewDefinition.defaultFor(c.fields)]);
 
-  Collection? get _collection => _localCollection ?? _streamCollection;
+  Collection? get _collection {
+    final views = _localViews;
+    return views == null
+        ? _streamCollection
+        : _streamCollection?.copyWith(views: views);
+  }
 
   /// Stream objects with the pending overlay applied.
   List<MorkvaObject> get _allObjects {
@@ -231,7 +286,11 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
 
   void _emitReady() {
     final collection = _collection;
-    if (collection == null || _streamObjects == null || _notFound || isClosed) {
+    if (collection == null ||
+        _streamObjects == null ||
+        _notFound ||
+        _streamFailed ||
+        isClosed) {
       return;
     }
     final view =
@@ -258,12 +317,12 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
         objects: applied,
         totalCount: all.length,
         groups: switch (layout) {
-          SingleSelectFieldDefinition() => groupObjects(layout, applied),
-          ReferenceFieldDefinition(multiple: false) => groupObjects(
-            layout,
+          final f? when isGroupable(f) => groupObjects(
+            f,
             applied,
-            referenceLabels:
-                labelsByTarget[layout.targetCollectionId] ?? const {},
+            referenceLabels: f is ReferenceFieldDefinition
+                ? labelsByTarget[f.targetCollectionId] ?? const {}
+                : const {},
           ),
           _ => null,
         },
@@ -370,11 +429,14 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
     final index = collection.views.indexWhere((v) => v.id == viewId);
     if (index < 0) return false;
     final views = [...collection.views]..removeAt(index);
+    final previous = _activeViewId;
     if (_activeViewId == viewId) {
       _activeViewId = views[index == 0 ? 0 : index - 1].id;
     }
-    await _saveViews(views);
-    return true;
+    if (await _saveViews(views)) return true;
+    _activeViewId = previous;
+    _emitReady();
+    return false;
   }
 
   /// Switches the active view's mode and sets its layout field to
@@ -426,19 +488,18 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
 
   /// Saves [views]; returns whether the save succeeded.
   Future<bool> _saveViews(List<ViewDefinition> views) async {
-    final collection = _collection;
-    if (collection == null) return false;
-    final updated = collection.copyWith(views: views);
-    _localCollection = updated;
+    if (_collection == null) return false;
+    final saved = List<ViewDefinition>.unmodifiable(views);
+    _localViews = saved;
     _emitReady();
     try {
-      await _repository.saveCollection(updated);
+      await _repository.saveViews(collectionId, saved);
     } catch (_) {
-      if (identical(_localCollection, updated)) _localCollection = null;
+      if (identical(_localViews, saved)) _localViews = null;
       if (!isClosed) _reportWriteError("Couldn't save the view");
       return false;
     }
-    if (identical(_localCollection, updated)) _localCollection = null;
+    if (identical(_localViews, saved)) _localViews = null;
     _emitReady();
     return true;
   }
@@ -458,10 +519,6 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
         _ => null,
       };
 
-  static bool _isGroupable(FieldDefinition? f) =>
-      f is SingleSelectFieldDefinition ||
-      (f is ReferenceFieldDefinition && !f.multiple);
-
   /// Moves [objectId] to the board group [groupKey] (null = the `No <field>`
   /// group) by writing the active view's layout field. With manual order,
   /// it lands before [beforeId], or at the end of the group. Returns an undo,
@@ -474,7 +531,7 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
         : collection?.fieldById(view!.layoutFieldId!);
     final object = _objectById(objectId);
     if (collection == null || view == null || object == null) return null;
-    if (!_isGroupable(field)) return null;
+    if (!isGroupable(field)) return null;
     final value = groupValueFor(field!, groupKey);
     final updated = object.copyWith(
       values: {...object.values, field.id: value},
@@ -507,7 +564,12 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
     return () async {
       await writes;
       await Future.wait([
-        if (valueChanged) _writeObject(object.copyWith(updatedAt: _now())),
+        if (valueChanged)
+          _revertField(
+            objectId,
+            field.id,
+            object[field.id] ?? field.emptyValue(),
+          ),
         if (orderChanged)
           _updateView(
             view.id,
@@ -544,7 +606,7 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
     );
     return () async {
       await write;
-      await _writeObject(object.copyWith(updatedAt: _now()));
+      await _revertField(objectId, field.id, currentDate);
     };
   }
 
@@ -567,7 +629,7 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
       _allObjects,
       objectId,
       beforeId: beforeId,
-      groupField: _isGroupable(layout) ? layout : null,
+      groupField: isGroupable(layout) ? layout : null,
     );
     if (view.sort == null &&
         _sameIds(order, _effectiveIds(collection, view, _allObjects))) {
@@ -667,7 +729,7 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
       values: {
         if (titleField != null && trimmed.isNotEmpty)
           titleField.id: TextFieldValue(trimmed),
-        if (groupKey != null && _isGroupable(layout))
+        if (groupKey != null && isGroupable(layout))
           layout!.id: groupValueFor(layout, groupKey),
         if (day != null && layout is DateFieldDefinition)
           layout.id: withDay(layout, const DateFieldValue(null), day),
@@ -704,7 +766,23 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
     };
   }
 
-  Future<void> _writeObject(MorkvaObject object) async {
+  /// Puts [fieldId] of [objectId] back to [value], writing only that key so
+  /// other fields changed meanwhile keep their stored values.
+  Future<void> _revertField(String objectId, String fieldId, FieldValue value) {
+    final current = _objectById(objectId);
+    if (current == null) return Future.value();
+    final now = _now();
+    return _writeObject(
+      current.copyWith(
+        values: {...current.values, fieldId: value},
+        updatedAt: now,
+      ),
+      saved: current.copyWith(values: {fieldId: value}, updatedAt: now),
+    );
+  }
+
+  /// Shows [object] at once and saves [saved] (default: [object]).
+  Future<void> _writeObject(MorkvaObject object, {MorkvaObject? saved}) async {
     final collection = _collection;
     if (collection == null || isClosed) return;
     // Saved as given: values of fields this object was decoded without stay
@@ -713,7 +791,7 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
     _pending[object.id] = pending;
     _emitReady();
     try {
-      await _repository.saveObject(object, schema: collection);
+      await _repository.saveObject(saved ?? object, schema: collection);
       _settle(object.id, pending);
     } catch (_) {
       _fail(object.id, pending, "Couldn't save the change");
@@ -750,16 +828,17 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
     _reportWriteError(message);
   }
 
-  Future<void> _cancelAll() async {
-    await _collectionsSub?.cancel();
-    await _objectsSub?.cancel();
-    for (final sub in _targetSubs.values) {
-      await sub.cancel();
-    }
+  /// Cancels every stream at once, so no event arrives after this returns;
+  /// the future completes when the cancels have.
+  Future<void> _cancelAll() {
+    final subs = [?_collectionsSub, ?_objectsSub, ..._targetSubs.values];
     _collectionsSub = null;
     _objectsSub = null;
+    _objectsSchema = null;
     _targetSubs.clear();
+    _targetSchemas.clear();
     _failedTargets.clear();
+    return Future.wait([for (final sub in subs) sub.cancel()]);
   }
 
   @override
