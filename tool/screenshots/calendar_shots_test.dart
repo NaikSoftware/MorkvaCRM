@@ -168,7 +168,7 @@ void main() {
 
     await tester.drag(find.byType(CustomScrollView), const Offset(0, -2000));
     await tester.pumpAndSettle();
-    await tester.tap(find.textContaining('No date ('));
+    await tester.tap(find.text('NO DATE'));
     await tester.pumpAndSettle();
     await tester.drag(find.byType(CustomScrollView), const Offset(0, -2000));
     await tester.pumpAndSettle();

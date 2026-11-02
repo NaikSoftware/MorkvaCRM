@@ -109,7 +109,7 @@ Tiebreak for the rule in the design doc: stored on the collection and seen by ev
 
 - One `surfaceContainerLowest` card, radius 16; rows 56 px (64 with subtitle), 1 px
   `outlineVariant` divider inset 16. Leading 10 px colour dot when the view has a select layout
-  field; title `titleSmall` 600 ellipsis; subtitle = the next 2 card fields joined " · "
+  field (a row without a value keeps the slot as a hollow `outlineVariant` ring); title `titleSmall` 600 ellipsis; subtitle = the next 2 card fields joined " · "
   `bodySmall`; trailing one number/date in `labelLarge` tabular.
 - Optional grouping by the layout field: sticky 36 px section headers (`labelMedium` uppercase,
   count). Manual sort → long-press / hover handle reorders; dragging between sections writes the
@@ -126,8 +126,9 @@ Tiebreak for the rule in the design doc: stored on the collection and seen by ev
   a cell creates with that date. "No date" tray: collapsible 280 px right panel with a count;
   drag tray→day sets the date, pill→tray clears it (with Undo). Drag pill→day writes the date,
   keeping the time.
-- <840: agenda — a 56 px snapping week strip on top, sticky day headers ("Mon 4 Nov", today in
-  carrot), list-density rows; "No date (5)" last, collapsed. No drag on phone: long-press →
+- <840: agenda — a 56 px snapping week strip on top, then List mode's own card, 36 px uppercase
+  sticky section headers per day ("MON 4 NOV 2", today in carrot) and divided list-density rows
+  (dot = first shown choice field); "NO DATE 5" last, collapsed. No drag on phone: long-press →
   "Move to date…" date picker.
 
 ## 9. New view dialog

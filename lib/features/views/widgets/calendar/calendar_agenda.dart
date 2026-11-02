@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/domain/domain.dart';
 import '../../../../design/design.dart';
 import '../../modes/view_mode.dart';
+import '../list_parts.dart';
 import '../object_card.dart';
 import 'calendar_common.dart';
 
@@ -17,7 +18,7 @@ class CalendarAgenda extends StatefulWidget {
   final DateTime today;
 
   static const double stripHeight = 56;
-  static const double dayHeaderHeight = 40;
+  static const double dayHeaderHeight = ListSectionHeader.height;
 
   @override
   State<CalendarAgenda> createState() => _CalendarAgendaState();
@@ -111,95 +112,90 @@ class _CalendarAgendaState extends State<CalendarAgenda> {
           ),
         ),
         Divider(height: 1, color: scheme.outlineVariant),
+        const SizedBox(height: Spacing.sm),
         Expanded(
-          child: CustomScrollView(
-            slivers: [
-              if (days.isEmpty)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.all(Spacing.lg),
-                    child: Text(
-                      'Nothing scheduled yet',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                ),
-              for (final MapEntry(key: day, value: objects) in days.entries)
-                SliverMainAxisGroup(
-                  key: _keys.putIfAbsent(day, GlobalKey.new),
-                  slivers: [
-                    SliverPersistentHeader(
-                      pinned: true,
-                      delegate: _DayHeader(
-                        label: dayLabel(day),
-                        today: isSameDay(day, widget.today),
-                        count: objects.length,
-                      ),
-                    ),
-                    SliverList.builder(
-                      itemCount: objects.length,
-                      itemBuilder: (_, i) => _AgendaRow(
-                        object: objects[i],
-                        day: day,
-                        today: widget.today,
-                        data: data,
-                      ),
-                    ),
-                  ],
-                ),
-              if (undated.isNotEmpty) ...[
-                SliverToBoxAdapter(
-                  child: Material(
-                    color: scheme.surfaceContainerLow,
-                    child: InkWell(
-                      onTap: () => setState(() => _undatedOpen = !_undatedOpen),
-                      child: SizedBox(
-                        height: 48,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: Spacing.md,
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  'No date (${undated.length})',
-                                  style: theme.textTheme.titleSmall,
-                                ),
-                              ),
-                              Icon(
-                                _undatedOpen
-                                    ? Icons.expand_less
-                                    : Icons.expand_more,
-                                color: scheme.onSurfaceVariant,
-                              ),
-                            ],
+          child: Align(
+            alignment: Alignment.topCenter,
+            // The same card, section headers and rows as List mode.
+            child: ListCard(
+              child: CustomScrollView(
+                shrinkWrap: true,
+                slivers: [
+                  if (days.isEmpty)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.all(Spacing.lg),
+                        child: Text(
+                          'Nothing scheduled yet',
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: scheme.onSurfaceVariant,
                           ),
                         ),
                       ),
                     ),
-                  ),
-                ),
-                if (_undatedOpen)
-                  SliverList.builder(
-                    itemCount: undated.length,
-                    itemBuilder: (_, i) => _AgendaRow(
-                      object: undated[i],
-                      day: null,
-                      today: widget.today,
-                      data: data,
+                  for (final MapEntry(key: day, value: objects) in days.entries)
+                    SliverMainAxisGroup(
+                      key: _keys.putIfAbsent(day, GlobalKey.new),
+                      slivers: [
+                        SliverPersistentHeader(
+                          pinned: true,
+                          delegate: _DayHeader(
+                            label: dayLabel(day),
+                            today: isSameDay(day, widget.today),
+                            count: objects.length,
+                          ),
+                        ),
+                        _rows(objects, day),
+                      ],
                     ),
-                  ),
-              ],
-            ],
+                  if (undated.isNotEmpty) ...[
+                    SliverToBoxAdapter(
+                      child: Material(
+                        type: MaterialType.transparency,
+                        child: InkWell(
+                          onTap: () =>
+                              setState(() => _undatedOpen = !_undatedOpen),
+                          child: ListSectionHeader(
+                            label: 'No date',
+                            count: undated.length,
+                            trailing: Icon(
+                              _undatedOpen
+                                  ? Icons.expand_less
+                                  : Icons.expand_more,
+                              size: 20,
+                              semanticLabel: _undatedOpen
+                                  ? 'Collapse'
+                                  : 'Expand',
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (_undatedOpen) _rows(undated, null),
+                  ],
+                ],
+              ),
+            ),
           ),
         ),
       ],
     );
   }
+
+  Widget _rows(List<MorkvaObject> objects, DateTime? day) => SliverList.builder(
+    itemCount: objects.length,
+    itemBuilder: (_, i) => ListRowFrame(
+      divider: i < objects.length - 1,
+      child: _AgendaRow(
+        object: objects[i],
+        day: day,
+        today: widget.today,
+        data: widget.data,
+      ),
+    ),
+  );
 }
 
 class _StripDay extends StatelessWidget {
@@ -296,35 +292,12 @@ class _DayHeader extends SliverPersistentHeaderDelegate {
   double get maxExtent => CalendarAgenda.dayHeaderHeight;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlaps) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return Container(
-      height: CalendarAgenda.dayHeaderHeight,
-      color: scheme.surface,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                today ? '$label · Today' : label,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  color: today ? primaryTextColor(context) : scheme.onSurface,
-                ),
-              ),
-            ),
-            Text(
-              '$count',
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context, double shrinkOffset, bool overlaps) =>
+      ListSectionHeader(
+        label: today ? '$label · Today' : label,
+        count: count,
+        color: today ? primaryTextColor(context) : null,
+      );
 
   @override
   bool shouldRebuild(_DayHeader old) =>

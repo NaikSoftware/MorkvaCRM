@@ -7,6 +7,7 @@ import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
 import '../collection_views_cubit.dart';
 import '../collection_views_state.dart';
+import '../widgets/list_parts.dart';
 import '../widgets/object_card.dart';
 import '../widgets/view_toolbar.dart';
 import 'view_mode.dart';
@@ -121,7 +122,7 @@ class ViewList extends StatefulWidget {
 
   final ViewModeData data;
 
-  static const double headerHeight = 36;
+  static const double headerHeight = ListSectionHeader.height;
   static const double addHeight = 44;
 
   @override
@@ -293,55 +294,43 @@ class _ViewListState extends State<ViewList> {
           // The list is the scroll view itself (shrink-wrapped so the card
           // hugs short lists), so a drag auto-scrolls it and rows build
           // lazily.
-          DecoratedBox(
-            position: DecorationPosition.foreground,
-            decoration: BoxDecoration(
-              borderRadius: Radii.lgAll,
-              border: Border.all(color: scheme.outlineVariant),
-            ),
-            child: ClipRRect(
-              borderRadius: Radii.lgAll,
-              child: ColoredBox(
+          ListCard(
+            child: ReorderableListView.builder(
+              scrollController: _scroll,
+              shrinkWrap: true,
+              buildDefaultDragHandles: false,
+              itemCount: items.length,
+              onReorderItem: (from, to) => _reorder(context, items, from, to),
+              proxyDecorator: (child, _, _) => Material(
                 color: scheme.surfaceContainerLowest,
-                child: ReorderableListView.builder(
-                  scrollController: _scroll,
-                  shrinkWrap: true,
-                  buildDefaultDragHandles: false,
-                  itemCount: items.length,
-                  onReorderItem: (from, to) =>
-                      _reorder(context, items, from, to),
-                  proxyDecorator: (child, _, _) => Material(
-                    color: scheme.surfaceContainerLowest,
-                    elevation: 6,
-                    borderRadius: Radii.mdAll,
-                    child: child,
-                  ),
-                  itemBuilder: (context, i) {
-                    final item = items[i];
-                    return switch (item) {
-                      _Header(:final group) => _SectionHeader(
-                        key: ValueKey(item.key),
-                        group: group,
-                      ),
-                      _AddItem(:final groupKey) => _AddRow(
-                        key: ValueKey(item.key),
-                        label: 'New ${data.itemLabel}',
-                        onTap: () => data.quickAdd(groupKey: groupKey),
-                      ),
-                      _RowItem(:final object) => _ObjectRow(
-                        key: ValueKey(item.key),
-                        index: i,
-                        object: object,
-                        state: state,
-                        draggable: manual,
-                        showHandle: manual && wide,
-                        divider: items.elementAtOrNull(i + 1) is _RowItem,
-                        onOpen: () => data.openObject(object),
-                      ),
-                    };
-                  },
-                ),
+                elevation: 6,
+                borderRadius: Radii.mdAll,
+                child: child,
               ),
+              itemBuilder: (context, i) {
+                final item = items[i];
+                return switch (item) {
+                  _Header(:final group) => _SectionHeader(
+                    key: ValueKey(item.key),
+                    group: group,
+                  ),
+                  _AddItem(:final groupKey) => _AddRow(
+                    key: ValueKey(item.key),
+                    label: 'New ${data.itemLabel}',
+                    onTap: () => data.quickAdd(groupKey: groupKey),
+                  ),
+                  _RowItem(:final object) => _ObjectRow(
+                    key: ValueKey(item.key),
+                    index: i,
+                    object: object,
+                    state: state,
+                    draggable: manual,
+                    showHandle: manual && wide,
+                    divider: items.elementAtOrNull(i + 1) is _RowItem,
+                    onOpen: () => data.openObject(object),
+                  ),
+                };
+              },
             ),
           ),
           // The sticky copy of the section header under the top edge.
@@ -381,42 +370,8 @@ class _SectionHeader extends StatelessWidget {
   final ViewGroup group;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final style = theme.textTheme.labelMedium?.copyWith(
-      color: scheme.onSurfaceVariant,
-      letterSpacing: 0.6,
-    );
-    return Semantics(
-      header: true,
-      child: Container(
-        height: ViewList.headerHeight,
-        padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
-        color: scheme.surfaceContainerLow,
-        alignment: Alignment.centerLeft,
-        child: Row(
-          children: [
-            Flexible(
-              child: Text(
-                group.label.toUpperCase(),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: style?.copyWith(fontWeight: FontWeight.w700),
-              ),
-            ),
-            const SizedBox(width: Spacing.xs),
-            Text(
-              '${group.objects.length}',
-              style: style?.copyWith(
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      ListSectionHeader(label: group.label, count: group.objects.length);
 }
 
 class _AddRow extends StatelessWidget {
@@ -535,19 +490,7 @@ class _ObjectRowState extends State<_ObjectRow> {
         canRequestFocus: false,
         skipTraversal: true,
         onFocusChange: (f) => setState(() => _focused = f),
-        child: Stack(
-          children: [
-            row,
-            if (widget.divider)
-              Positioned(
-                left: Spacing.md,
-                right: 0,
-                bottom: 0,
-                height: 1,
-                child: ColoredBox(color: scheme.outlineVariant),
-              ),
-          ],
-        ),
+        child: ListRowFrame(divider: widget.divider, child: row),
       ),
     );
   }

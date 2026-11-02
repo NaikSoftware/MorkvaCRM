@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/design/design.dart';
 import 'package:morkva_crm/features/views/views.dart';
+import 'package:morkva_crm/features/views/widgets/list_parts.dart';
 import 'package:morkva_crm/features/views/widgets/calendar/month_calendar.dart';
 import 'package:morkva_crm/features/views/widgets/calendar/no_date_tray.dart';
 
@@ -467,16 +468,19 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byWidgetPredicate((w) => w is Draggable), findsNothing);
-      expect(find.text('Mon 2 Nov · Today'), findsOneWidget);
-      expect(find.text('Wed 4 Nov'), findsOneWidget);
-      expect(find.text('No date (1)'), findsOneWidget);
+      expect(find.text('MON 2 NOV · TODAY'), findsOneWidget);
+      expect(find.text('WED 4 NOV'), findsOneWidget);
+      // Same card and section headers as List mode.
+      expect(find.byType(ListCard), findsOneWidget);
+      expect(find.byType(ListSectionHeader), findsNWidgets(3));
+      expect(find.text('NO DATE'), findsOneWidget);
       expect(find.text('Hooli'), findsNothing);
-      await tester.tap(find.text('No date (1)'));
+      await tester.tap(find.text('NO DATE'));
       await tester.pump();
       expect(find.text('Hooli'), findsOneWidget);
       expect(
-        tester.getTopLeft(find.text('Wed 4 Nov')).dy,
-        lessThan(tester.getTopLeft(find.text('No date (1)')).dy),
+        tester.getTopLeft(find.text('WED 4 NOV')).dy,
+        lessThan(tester.getTopLeft(find.text('NO DATE')).dy),
       );
     });
 
