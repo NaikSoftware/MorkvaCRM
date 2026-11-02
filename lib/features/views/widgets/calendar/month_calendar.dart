@@ -10,9 +10,9 @@ import '../object_card.dart';
 import 'calendar_common.dart';
 import 'no_date_tray.dart';
 
-/// The desktop calendar: a month grid (Monday first) with a "No date" tray.
 // shortcut: weeks always start on Monday; upgrade to
 // MaterialLocalizations.firstDayOfWeekIndex once the app has locale settings.
+/// The desktop calendar: a month grid (Monday first) with a "No date" tray.
 /// The shown month is local UI state, starting at [today]'s month.
 class MonthCalendar extends StatefulWidget {
   const MonthCalendar({super.key, required this.data, required this.today});
@@ -286,7 +286,15 @@ class _DayCellState extends State<_DayCell> {
                   height: 28,
                   child: Row(
                     children: [
-                      _DateBadge(day: day, today: isToday, outside: outside),
+                      // Inset so today's filled circle clears the cell border.
+                      Padding(
+                        padding: const EdgeInsets.only(left: Spacing.xxs),
+                        child: _DateBadge(
+                          day: day,
+                          today: isToday,
+                          outside: outside,
+                        ),
+                      ),
                       const Spacer(),
                       ListenableBuilder(
                         // Touch-only screens have no hover: keep "+" shown.

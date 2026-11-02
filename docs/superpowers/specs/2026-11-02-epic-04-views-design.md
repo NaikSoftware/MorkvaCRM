@@ -68,6 +68,9 @@ Rule: **what changes the shape of the data is Build; what changes how you look a
 - **Object open**: Epic 5 owns the editor. Until then a tap opens a read-only detail sheet
   (all fields, formatted) with Delete. Quick-add: the title value + the pre-filled layout value;
   saved immediately.
+- **New fields join views**: when Build saves, fields added since the collection was loaded are
+  appended to the end of every view's `fieldIds` (the title, the first id, never changes), so a
+  new field is visible everywhere until the user hides it.
 - **Reconcile**: on load, view `fieldIds`, filters, sort and `layoutFieldId` that point at
   deleted fields are dropped (mirrors `CardLayout.reconcile`); `manualOrder` is kept as is.
 - **Title field on create**: `createCollection` adds a "Name" text field, so every new

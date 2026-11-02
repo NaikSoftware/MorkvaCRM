@@ -106,15 +106,19 @@ void main() {
     testWidgets('header cues Customizing and Close returns to Work', (
       tester,
     ) async {
+      final semantics = tester.ensureSemantics();
       await _pumpPage(tester);
       expect(find.byKey(const Key('customizing-cue')), findsOneWidget);
       expect(find.text('Customizing · '), findsOneWidget);
+      // The visible text names the cue; the icon adds no duplicate label.
+      expect(find.bySemanticsLabel('Customizing'), findsNothing);
       expect(find.text('Object form'), findsOneWidget);
       expect(find.text('How a card looks when opened'), findsOneWidget);
 
       await tester.tap(find.byTooltip('Close'));
       await tester.pumpAndSettle();
       expect(find.text('work'), findsOneWidget);
+      semantics.dispose();
     });
 
     testWidgets('Close on a dirty draft confirms; Discard goes to Work', (
@@ -134,6 +138,7 @@ void main() {
     testWidgets('phone 360: cue collapses to the icon, no overflow', (
       tester,
     ) async {
+      final semantics = tester.ensureSemantics();
       tester.view.physicalSize = const Size(360, 800);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
@@ -143,8 +148,10 @@ void main() {
 
       expect(find.byKey(const Key('customizing-cue')), findsOneWidget);
       expect(find.text('Customizing · '), findsNothing);
+      expect(find.bySemanticsLabel('Customizing'), findsOneWidget);
       expect(find.text('Object form'), findsOneWidget);
       expect(tester.takeException(), isNull);
+      semantics.dispose();
     });
   });
 

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
+import 'package:morkva_crm/design/design.dart';
 import 'package:morkva_crm/features/views/views.dart';
 
 import 'views_fixtures.dart';
@@ -204,6 +206,91 @@ void main() {
       t.getTopLeft(pinned).dy,
       closeTo(t.getTopLeft(find.byType(SingleChildScrollView).last).dy, 1),
     );
+  });
+
+  testWidgets('the pinned header follows data changes without a scroll', (
+    t,
+  ) async {
+    t.view.physicalSize = const Size(1280, 250);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    final leads = [
+      for (var i = 0; i < 4; i++)
+        deal('l$i', i, name: 'Lead $i', stage: 'lead'),
+    ];
+    final wons = [
+      for (var i = 0; i < 8; i++)
+        deal('w$i', 9 + i, name: 'Won $i', stage: 'won'),
+    ];
+    ViewModeData dataFor(List<MorkvaObject> lead, List<MorkvaObject> won) =>
+        ViewModeData(
+          state: ViewsReady(
+            collection: _with(_grouped),
+            activeViewId: 'list',
+            objects: [...lead, ...won],
+            totalCount: lead.length + won.length,
+            groups: [
+              ViewGroup(key: 'lead', label: 'Lead', objects: lead),
+              ViewGroup(key: 'won', label: 'Won', objects: won),
+            ],
+          ),
+          itemLabel: 'deal',
+          openObject: (_) {},
+          quickAdd: ({groupKey, day}) {},
+          editFields: () {},
+          notify: (_, {undo}) {},
+        );
+    Future<void> pumpList(List<MorkvaObject> lead, List<MorkvaObject> won) =>
+        t.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light,
+            home: Scaffold(body: ViewList(data: dataFor(lead, won))),
+          ),
+        );
+
+    await pumpList(leads, wons);
+    final top = t.getTopLeft(find.byType(SingleChildScrollView).last).dy;
+    final wonTop = t.getTopLeft(find.text('WON')).dy - top;
+    final scrollable = t.state<ScrollableState>(
+      find
+          .descendant(
+            of: find.byType(SingleChildScrollView).last,
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    // LEAD is pinned, its section's end just below the top edge.
+    scrollable.position.jumpTo(wonTop - 10);
+    await t.pump();
+    final pinned = find.byKey(const ValueKey('pinned-header'));
+    expect(
+      find.descendant(of: pinned, matching: find.text('LEAD')),
+      findsOneWidget,
+    );
+
+    // A lead moves to Won: same total height and scroll offset (so no scroll
+    // notification), but WON's header is now above the edge.
+    await pumpList(leads.take(3).toList(), [leads.last, ...wons]);
+    expect(
+      find.descendant(of: pinned, matching: find.text('WON')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('the drag handle brightens on keyboard focus', (t) async {
+    await pumpWorkPage(
+      t,
+      repository: workRepository(collection: _with(_grouped)),
+    );
+    double alpha() =>
+        t.widget<Icon>(find.byIcon(Icons.drag_indicator).first).color!.a;
+    final resting = alpha();
+    // Tab through the page until focus lands inside the first row.
+    for (var i = 0; i < 30 && alpha() == resting; i++) {
+      await t.sendKeyEvent(LogicalKeyboardKey.tab);
+      await t.pump();
+    }
+    expect(alpha(), greaterThan(resting));
   });
 
   testWidgets('phone width renders without the hover handle', (t) async {

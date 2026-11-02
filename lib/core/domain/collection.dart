@@ -58,6 +58,29 @@ class Collection extends Equatable {
     return null;
   }
 
+  /// Returns a copy where every field absent from [previous] is appended to
+  /// the end of every view's `fieldIds` (never in front, so the title column
+  /// is unchanged). Fields already listed in a view are not duplicated.
+  Collection withNewFieldsInViews(Collection previous) {
+    final known = previous.fields.map((f) => f.id).toSet();
+    final added = [
+      for (final f in fields)
+        if (!known.contains(f.id)) f.id,
+    ];
+    if (added.isEmpty) return this;
+    return copyWith(
+      views: [
+        for (final v in views)
+          v.copyWith(
+            fieldIds: [
+              ...v.fieldIds,
+              ...added.where((id) => !v.fieldIds.contains(id)),
+            ],
+          ),
+      ],
+    );
+  }
+
   /// Sentinel default for [copyWith]'s nullable [description], so passing an
   /// explicit `null` clears it while omitting the argument preserves it.
   static const Object _unset = Object();

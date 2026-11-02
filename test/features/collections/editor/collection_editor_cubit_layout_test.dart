@@ -21,12 +21,26 @@ void main() {
           TextFieldDefinition(id: 'f1', name: 'A'),
           TextFieldDefinition(id: 'f2', name: 'B'),
         ],
-        layout: CardLayout(sections: [
-          LayoutSection(id: 's1', rows: [
-            LayoutRow(id: 'r1', cells: [LayoutCell(fieldId: 'f1')]),
-            LayoutRow(id: 'r2', cells: [LayoutCell(fieldId: 'f2')]),
-          ]),
-        ]),
+        views: [
+          ViewDefinition(id: 'v1', name: 'All', fieldIds: ['f1']),
+        ],
+        layout: CardLayout(
+          sections: [
+            LayoutSection(
+              id: 's1',
+              rows: [
+                LayoutRow(
+                  id: 'r1',
+                  cells: [LayoutCell(fieldId: 'f1')],
+                ),
+                LayoutRow(
+                  id: 'r2',
+                  cells: [LayoutCell(fieldId: 'f2')],
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     ]);
     cubit = CollectionEditorCubit(repository, defaultFieldEditorRegistry());
@@ -40,12 +54,7 @@ void main() {
 
   test('setCellSpan updates the draft layout', () {
     cubit.setCellSpan('r1', 'f1', 4);
-    final cell = ready()
-        .draft
-        .layout
-        .sections
-        .single
-        .rows
+    final cell = ready().draft.layout.sections.single.rows
         .firstWhere((r) => r.id == 'r1')
         .cells
         .single;
@@ -54,13 +63,9 @@ void main() {
 
   test('moveCellToRow joins f2 into r1', () {
     cubit.moveCellToRow('f2', 'r1', 1);
-    final r1 = ready()
-        .draft
-        .layout
-        .sections
-        .single
-        .rows
-        .firstWhere((r) => r.id == 'r1');
+    final r1 = ready().draft.layout.sections.single.rows.firstWhere(
+      (r) => r.id == 'r1',
+    );
     expect(r1.cells.map((c) => c.fieldId), ['f1', 'f2']);
   });
 
@@ -118,5 +123,14 @@ void main() {
       cubit.deleteSection(s2);
       expect(ready().selectedSectionId, isNull);
     });
+  });
+
+  test('save appends a newly added field to every view', () async {
+    cubit.addField('text');
+    final newId = ready().draft.fields.last.id;
+    expect(await cubit.save(), isTrue);
+    final views = (await repository.getCollection('c1'))!.views;
+    expect(views.single.fieldIds, ['f1', newId]);
+    expect(ready().dirty, isFalse);
   });
 }
