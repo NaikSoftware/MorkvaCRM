@@ -7,6 +7,7 @@ import '../../../design/design.dart';
 import '../field_editors/field_editor.dart';
 import '../field_editors/widgets/preview_affordances.dart';
 import 'add_field_sheet.dart';
+import 'first_run_fields.dart';
 import 'collection_editor_cubit.dart';
 import 'collection_editor_state.dart';
 
@@ -156,6 +157,11 @@ class LayoutCanvas extends StatelessWidget {
       return s is CollectionEditorReady ? s.selectedSectionId : null;
     });
 
+    final starter = context.select<CollectionEditorCubit, bool>((c) {
+      final s = c.state;
+      return s is CollectionEditorReady && isStarterSchema(s.saved);
+    });
+
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTap: () {
@@ -190,6 +196,8 @@ class LayoutCanvas extends StatelessWidget {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: Spacing.md),
+                    if (starter)
+                      FirstRunFields(collection: collection, registry: registry),
                     // Sections
                     for (var i = 0; i < sectionCount; i++)
                       _SectionView(

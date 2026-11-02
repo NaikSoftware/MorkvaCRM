@@ -27,6 +27,8 @@ List<String> _rowTitles(WidgetTester tester) =>
     );
 
 void main() {
+  setUp(resetFirstItemNudges);
+
   group('loading', () {
     testWidgets('the skeleton shows only after 150 ms', (tester) async {
       await pumpWorkPage(tester, initialize: false);
@@ -190,6 +192,27 @@ void main() {
       expect(find.bySemanticsLabel('Sort by Amount'), findsOneWidget);
       expect(find.text('New deal'), findsNWidgets(2));
       expect(find.text('Change fields'), findsOneWidget);
+    });
+
+    testWidgets('empty collection nudges once per session', (tester) async {
+      final repo = workRepository(objects: []);
+      await pumpWorkPage(tester, repository: repo);
+      await tester.pump();
+      expect(find.text('Add your first deal'), findsOneWidget);
+      ScaffoldMessenger.of(
+        tester.element(find.byType(Scaffold).first),
+      ).hideCurrentSnackBar();
+      await tester.pumpAndSettle();
+      // Reopening the same collection in this session does not nag again.
+      await pumpWorkPage(tester, repository: repo);
+      await tester.pumpAndSettle();
+      expect(find.text('Add your first deal'), findsNothing);
+    });
+
+    testWidgets('no nudge when the collection has objects', (tester) async {
+      await pumpWorkPage(tester);
+      await tester.pump();
+      expect(find.text('Add your first deal'), findsNothing);
     });
 
     testWidgets('no fields: set up fields', (tester) async {

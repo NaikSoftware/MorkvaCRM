@@ -1,3 +1,4 @@
+// ignore_for_file: invalid_use_of_visible_for_testing_member
 // Renders the Work page states to PNGs for visual review (not part of the
 // test suite). Run:
 //
@@ -9,7 +10,15 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:morkva_crm/features/collections/editor/collection_editor_cubit.dart';
+import 'package:morkva_crm/features/collections/editor/collection_editor_page.dart';
+import 'package:morkva_crm/features/collections/field_editors/built_in_field_editors.dart';
+import 'package:morkva_crm/features/views/views.dart';
+import '../../test/features/collections/fake_data_repository.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
@@ -123,7 +132,9 @@ final _shotDeals = deals.copyWith(
 
 void main() {
   // flutter_test draws elevation shadows as black outlines by default.
-  setUp(() => debugDisableShadows = false);
+  setUp(() {
+    debugDisableShadows = false;
+  });
   tearDown(() => debugDisableShadows = true);
 
   testWidgets('work page shots', (tester) async {
@@ -207,5 +218,60 @@ void main() {
     await tester.tap(find.text('Stark Industries expansion'));
     await tester.pumpAndSettle();
     await _shot(tester, 'detail-1280');
+  });
+
+  testWidgets('first run shots', (tester) async {
+    await tester.runAsync(_loadFonts);
+    resetFirstItemNudges();
+    for (final (name, size) in [
+      ('1280', const Size(1280, 800)),
+      ('390', const Size(390, 844)),
+    ]) {
+      resetFirstItemNudges();
+      await pumpWorkPage(
+        tester,
+        size: size,
+        repository: workRepository(objects: const []),
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await _shot(tester, 'first-run-work-$name');
+
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      final registry = defaultFieldEditorRegistry();
+      final cubit = CollectionEditorCubit(
+        FakeDataRepository([
+          const Collection(
+            id: 'c1',
+            name: 'Deals',
+            fields: [TextFieldDefinition(id: 'f1', name: 'Name')],
+          ),
+          const Collection(id: 'c2', name: 'Customers'),
+        ]),
+        registry,
+      );
+      await cubit.load('c1');
+      final router = GoRouter(
+        initialLocation: '/e',
+        routes: [
+          GoRoute(
+            path: '/e',
+            builder: (_, _) => BlocProvider.value(
+              value: cubit,
+              child: CollectionEditorPage(registry: registry),
+            ),
+          ),
+        ],
+      );
+      await tester.pumpWidget(
+        MaterialApp.router(theme: AppTheme.light, routerConfig: router),
+      );
+      await tester.pumpAndSettle();
+      await _shot(tester, 'first-run-build-$name');
+      await tester.tap(find.byKey(const Key('suggest_Status')));
+      await tester.pumpAndSettle();
+      await _shot(tester, 'first-run-build-chip-$name');
+      await cubit.close();
+    }
   });
 }
