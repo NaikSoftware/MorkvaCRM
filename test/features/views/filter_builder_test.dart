@@ -106,6 +106,9 @@ void main() {
     await tester.pump();
     expect(find.text('Enter a number'), findsOneWidget);
     expect(applyButton(tester).onPressed, isNull);
+    await tester.enterText(find.byType(TextField), 'Infinity');
+    await tester.pump();
+    expect(applyButton(tester).onPressed, isNull);
     await tester.enterText(find.byType(TextField), '-1.5');
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pump();

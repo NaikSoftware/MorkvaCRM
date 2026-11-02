@@ -95,7 +95,7 @@ class _FilterBuilderState extends State<FilterBuilder> {
   /// The operand to save, or null while it is blank or malformed.
   Object? get _valid => switch (_operand) {
     final String s when s.trim().isNotEmpty => s.trim(),
-    final num n => n,
+    final num n when n.isFinite => n,
     final List<Object?> l when l.isNotEmpty => [...l.whereType<String>()],
     _ => null,
   };
@@ -469,7 +469,9 @@ class _TextValueState extends State<_TextValue> {
   Widget build(BuildContext context) {
     final text = _controller.text.trim();
     final invalid =
-        widget.number && text.isNotEmpty && num.tryParse(text) == null;
+        widget.number &&
+        text.isNotEmpty &&
+        num.tryParse(text)?.isFinite != true;
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         Spacing.md,
