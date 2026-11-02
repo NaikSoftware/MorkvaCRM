@@ -509,6 +509,29 @@ void main() {
       expect(stateOf(c).referenceChoices.keys, ['company']);
     });
 
+    test('removing a field forgets its requested choices', () async {
+      final repo = boardOnly([company('k1', 'Zeta Corp', 0)]);
+      final c = CollectionViewsCubit(repo, 'deals')..initialize();
+      addTearDown(c.close);
+      await pumpEventQueue();
+      c.loadReferenceChoices('company');
+      await pumpEventQueue();
+      expect(stateOf(c).referenceChoices.keys, ['company']);
+      final full = (await repo.getCollection('deals'))!;
+      await repo.saveCollection(
+        full.copyWith(
+          fields: [
+            for (final f in full.fields)
+              if (f.id != 'company') f,
+          ],
+        ),
+      );
+      await pumpEventQueue();
+      await repo.saveCollection(full);
+      await pumpEventQueue();
+      expect(stateOf(c).referenceChoices, isEmpty);
+    });
+
     test('an empty target still emits (loaded, nothing to pick)', () async {
       final c = await ready(boardOnly(const []));
       final states = <CollectionViewsState>[];

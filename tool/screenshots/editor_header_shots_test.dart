@@ -1,7 +1,7 @@
 // Renders the Build editor header (Task 4) to PNGs for visual review (not part of the
 // test suite). Run:
 //
-//   flutter test tool/screenshots/work_page_shots_test.dart \
+//   flutter test tool/screenshots/editor_header_shots_test.dart \
 //     --dart-define=SHOTS_DIR=/abs/out --dart-define=FONTS_DIR=/abs/fonts
 //
 // FONTS_DIR holds BricolageGrotesque.ttf and HankenGrotesk.ttf (the app's
@@ -9,17 +9,18 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:morkva_crm/core/domain/domain.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/design/design.dart';
 import 'package:morkva_crm/features/collections/editor/collection_editor_cubit.dart';
 import 'package:morkva_crm/features/collections/editor/collection_editor_page.dart';
 import 'package:morkva_crm/features/collections/field_editors/built_in_field_editors.dart';
+
 import '../../test/features/collections/fake_data_repository.dart';
 
 const _out = String.fromEnvironment('SHOTS_DIR', defaultValue: 'build/shots');

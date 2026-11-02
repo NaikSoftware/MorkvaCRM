@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/features/views/views.dart';
@@ -204,6 +205,60 @@ void main() {
       t.getTopLeft(pinned).dy,
       closeTo(t.getTopLeft(find.byType(SingleChildScrollView).last).dy, 1),
     );
+  });
+
+  testWidgets('the pinned header follows data changes without a scroll', (
+    t,
+  ) async {
+    final repo = workRepository(collection: _with(_grouped));
+    await pumpWorkPage(t, size: const Size(1280, 420), repository: repo);
+    final wonTop =
+        t.getTopLeft(find.text('WON')).dy -
+        t.getTopLeft(find.byType(SingleChildScrollView).last).dy;
+    final scrollable = t.state<ScrollableState>(
+      find
+          .descendant(
+            of: find.byType(SingleChildScrollView).last,
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    scrollable.position.jumpTo(wonTop - 10);
+    await t.pump();
+    final pinned = find.byKey(const ValueKey('pinned-header'));
+    expect(
+      find.descendant(of: pinned, matching: find.text('LEAD')),
+      findsOneWidget,
+    );
+    // The LEAD section shrinks, so WON's header is now past the top edge.
+    repo.seedObjects('deals', [
+      deal('d1', 0, name: 'Acme renewal', amount: 1200, stage: 'won'),
+      deal('d2', 1, name: 'Globex pilot', amount: 300, stage: 'won'),
+      deal('d3', 2, name: 'Initech', amount: 50, stage: 'won'),
+      deal('d4', 3, name: 'Umbrella', stage: 'lost'),
+    ]);
+    await t.pump(); // the data frame
+    await t.pump(); // the recompute scheduled after its layout
+    expect(
+      find.descendant(of: pinned, matching: find.text('WON')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('the drag handle brightens on keyboard focus', (t) async {
+    await pumpWorkPage(
+      t,
+      repository: workRepository(collection: _with(_grouped)),
+    );
+    double alpha() =>
+        t.widget<Icon>(find.byIcon(Icons.drag_indicator).first).color!.a;
+    final resting = alpha();
+    // Tab through the page until focus lands inside the first row.
+    for (var i = 0; i < 30 && alpha() == resting; i++) {
+      await t.sendKeyEvent(LogicalKeyboardKey.tab);
+      await t.pump();
+    }
+    expect(alpha(), greaterThan(resting));
   });
 
   testWidgets('phone width renders without the hover handle', (t) async {

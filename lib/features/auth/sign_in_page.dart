@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../api/auth/auth_cubit.dart';
+import '../../app/shell/app_shell.dart';
 import '../../app/shell/brand_wordmark.dart';
 import '../../design/design.dart';
 
@@ -27,7 +28,6 @@ class SignInPage extends StatelessWidget {
   static const double _cardMaxWidth = 400;
 
   /// At/above this width we show the focused, centered card layout.
-  static const double _expandedBreakpoint = 840;
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +43,8 @@ class SignInPage extends StatelessWidget {
               builder: (context, constraints) {
                 // Use the LayoutBuilder's own measurement of available width;
                 // in this full-bleed scaffold it reflects the screen width.
-                final isExpanded = constraints.maxWidth >= _expandedBreakpoint;
+                final isExpanded =
+                    constraints.maxWidth >= AppShell.expandedBreakpoint;
                 final content = const _SignInContent();
 
                 if (!isExpanded) {

@@ -350,7 +350,10 @@ class _EditorHeaderState extends State<_EditorHeader> {
                         Icons.edit_outlined,
                         size: 20,
                         color: scheme.primary,
-                        semanticLabel: 'Customizing',
+                        // The visible "Customizing · " text names it when wide.
+                        semanticLabel: MediaQuery.sizeOf(context).width >= 600
+                            ? null
+                            : 'Customizing',
                       ),
                     ),
                     const SizedBox(width: Spacing.xs),

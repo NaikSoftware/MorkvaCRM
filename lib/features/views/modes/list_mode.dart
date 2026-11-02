@@ -131,10 +131,25 @@ class _ViewListState extends State<ViewList> {
   final _stackKey = GlobalKey();
   final _headerKeys = <String?, GlobalKey>{};
 
+  /// Bumped after layout when the data changed so the sticky header is
+  /// recomputed against the new header positions without a scroll.
+  final _relayout = ValueNotifier<int>(0);
+
   ViewModeData get data => widget.data;
 
   @override
+  void didUpdateWidget(ViewList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final live = {for (final g in data.state.groups ?? const []) g.key};
+    _headerKeys.removeWhere((key, _) => !live.contains(key));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _relayout.value++;
+    });
+  }
+
+  @override
   void dispose() {
+    _relayout.dispose();
     _scroll.dispose();
     super.dispose();
   }
@@ -314,7 +329,7 @@ class _ViewListState extends State<ViewList> {
           Positioned.fill(
             child: IgnorePointer(
               child: ListenableBuilder(
-                listenable: _scroll,
+                listenable: Listenable.merge([_scroll, _relayout]),
                 builder: (context, _) {
                   final pinned = _pinned();
                   if (pinned == null) return const SizedBox.shrink();
@@ -449,6 +464,7 @@ class _ObjectRow extends StatefulWidget {
 
 class _ObjectRowState extends State<_ObjectRow> {
   bool _hovered = false;
+  bool _focused = false;
 
   @override
   Widget build(BuildContext context) {
@@ -479,7 +495,7 @@ class _ObjectRowState extends State<_ObjectRow> {
                   size: 20,
                   semanticLabel: 'Drag to reorder',
                   color: scheme.onSurfaceVariant.withValues(
-                    alpha: _hovered ? 1 : 0.7,
+                    alpha: _hovered || _focused ? 1 : 0.7,
                   ),
                 ),
               ),
@@ -496,18 +512,23 @@ class _ObjectRowState extends State<_ObjectRow> {
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
-      child: Stack(
-        children: [
-          row,
-          if (widget.divider)
-            Positioned(
-              left: Spacing.md,
-              right: 0,
-              bottom: 0,
-              height: 1,
-              child: ColoredBox(color: scheme.outlineVariant),
-            ),
-        ],
+      child: Focus(
+        canRequestFocus: false,
+        skipTraversal: true,
+        onFocusChange: (f) => setState(() => _focused = f),
+        child: Stack(
+          children: [
+            row,
+            if (widget.divider)
+              Positioned(
+                left: Spacing.md,
+                right: 0,
+                bottom: 0,
+                height: 1,
+                child: ColoredBox(color: scheme.outlineVariant),
+              ),
+          ],
+        ),
       ),
     );
   }
