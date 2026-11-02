@@ -349,26 +349,35 @@ class _AgendaRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = data.state;
-    return GestureDetector(
-      onLongPress: () => _moveToDate(context),
-      child: ObjectCard(
-        object: object,
-        collection: state.collection,
-        view: state.activeView,
-        density: ObjectCardDensity.list,
-        referenceLabels: state.referenceLabels,
-        onTap: () => data.openObject(object),
+    return Semantics(
+      onLongPressHint: 'Move to date',
+      child: GestureDetector(
+        onLongPress: () => _moveToDate(context),
+        child: ObjectCard(
+          object: object,
+          collection: state.collection,
+          view: state.activeView,
+          density: ObjectCardDensity.list,
+          referenceLabels: state.referenceLabels,
+          onTap: () => data.openObject(object),
+        ),
       ),
     );
   }
+
+  static final _first = DateTime(1900);
+  static final _last = DateTime(2200);
+
+  static DateTime _clamp(DateTime d) =>
+      d.isBefore(_first) ? _first : (d.isAfter(_last) ? _last : d);
 
   Future<void> _moveToDate(BuildContext context) async {
     final picked = await showDatePicker(
       context: context,
       helpText: 'Move to date',
-      initialDate: day ?? today,
-      firstDate: DateTime(1900),
-      lastDate: DateTime(2200),
+      initialDate: _clamp(day ?? today),
+      firstDate: _first,
+      lastDate: _last,
     );
     if (picked == null || !context.mounted) return;
     moveObjectToDay(context, data, object.id, dayOf(picked));

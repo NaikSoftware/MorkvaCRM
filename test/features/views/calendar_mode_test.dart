@@ -1,9 +1,9 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/design/design.dart';
-import 'package:morkva_crm/features/views/modes/calendar_mode.dart';
 import 'package:morkva_crm/features/views/views.dart';
 import 'package:morkva_crm/features/views/widgets/calendar/month_calendar.dart';
 import 'package:morkva_crm/features/views/widgets/calendar/no_date_tray.dart';
@@ -78,8 +78,12 @@ Future<(CollectionViewsCubit, FakeDataRepository, _Recorder)> _pump(
 
 Finder _cell(DateTime day) => find.byKey(ValueKey(day));
 
+/// A mouse drag (immediate, as on desktop).
 Future<void> _dragTo(WidgetTester tester, Finder from, Finder to) async {
-  final gesture = await tester.startGesture(tester.getCenter(from));
+  final gesture = await tester.startGesture(
+    tester.getCenter(from),
+    kind: PointerDeviceKind.mouse,
+  );
   await gesture.moveBy(const Offset(12, 12));
   await tester.pump();
   await gesture.moveTo(tester.getCenter(to));
@@ -167,28 +171,29 @@ void main() {
       expect(find.text('November 2026'), findsOneWidget);
     });
 
-    testWidgets('a full day shows what fits, then "+N more" opens the list', (
+    testWidgets('a 112 px day shows 2 pills, then "+3 more" opens the list', (
       tester,
     ) async {
       final (_, _, rec) = await _pump(
         tester,
+        // Short enough that rows sit at the 112 px minimum.
+        size: const Size(1280, 700),
         objects: [
           for (var i = 0; i < 5; i++)
             deal('x$i', i, name: 'Deal $i', due: DateTime.utc(2026, 11, 10)),
         ],
       );
       final cell = _cell(DateTime(2026, 11, 10));
-      final pills = find.descendant(
-        of: cell,
-        matching: find.byType(ObjectCard),
-      );
-      final shown = pills.evaluate().length;
-      expect(shown, inInclusiveRange(1, 3));
+      expect(tester.getSize(cell).height, MonthCalendar.minCellHeight);
       expect(
-        find.descendant(of: cell, matching: find.text('+${5 - shown} more')),
+        find.descendant(of: cell, matching: find.byType(ObjectCard)),
+        findsNWidgets(2),
+      );
+      expect(
+        find.descendant(of: cell, matching: find.text('+3 more')),
         findsOneWidget,
       );
-      await tester.tap(find.text('+${5 - shown} more'));
+      await tester.tap(find.text('+3 more'));
       await tester.pumpAndSettle();
       expect(find.text('Tue 10 Nov'), findsOneWidget);
       await tester.tap(find.text('Deal 4'));
@@ -211,10 +216,87 @@ void main() {
       expect(find.text('Deal 2'), findsOneWidget);
     });
 
-    testWidgets('the cell "+" quick-adds on that day', (tester) async {
+    testWidgets('without a mouse the cell "+" is shown and quick-adds', (
+      tester,
+    ) async {
       final (_, _, rec) = await _pump(tester, objects: const []);
       await tester.tap(find.byTooltip('New deal on Fri 20 Nov'));
       expect(rec.quickAdds, [DateTime(2026, 11, 20)]);
+    });
+
+    testWidgets('with a mouse the "+" hides until hover or focus', (
+      tester,
+    ) async {
+      final (_, _, rec) = await _pump(tester, objects: const []);
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await mouse.addPointer(location: Offset.zero);
+      addTearDown(mouse.removePointer);
+      await tester.pump();
+
+      final add = find.byTooltip('New deal on Fri 20 Nov');
+      double opacity() => tester
+          .widget<AnimatedOpacity>(
+            find.ancestor(of: add, matching: find.byType(AnimatedOpacity)),
+          )
+          .opacity;
+      expect(opacity(), 0);
+      await tester.tap(add, warnIfMissed: false);
+      expect(rec.quickAdds, isEmpty);
+
+      // Keyboard focus reveals it.
+      Focus.of(
+        tester.element(
+          find.descendant(of: add, matching: find.byIcon(Icons.add)),
+        ),
+      ).requestFocus();
+      await tester.pump();
+      expect(opacity(), 1);
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pump();
+      expect(opacity(), 0);
+
+      // Hovering the cell reveals it; a click then adds.
+      await mouse.moveTo(tester.getCenter(_cell(DateTime(2026, 11, 20))));
+      await tester.pump();
+      expect(opacity(), 1);
+      await mouse.moveTo(tester.getCenter(add));
+      await mouse.down(tester.getCenter(add));
+      await mouse.up();
+      await tester.pump();
+      expect(rec.quickAdds, [DateTime(2026, 11, 20)]);
+    });
+
+    testWidgets('touch: a swipe does not drag; a long press does', (
+      tester,
+    ) async {
+      final (_, repo, _) = await _pump(
+        tester,
+        objects: [deal('a', 0, name: 'Acme', due: DateTime.utc(2026, 11, 14))],
+      );
+      final target = _cell(DateTime(2026, 11, 15));
+      var gesture = await tester.startGesture(
+        tester.getCenter(find.text('Acme')),
+      );
+      await gesture.moveTo(tester.getCenter(target));
+      await tester.pump();
+      await gesture.up();
+      await tester.pump();
+      expect(
+        _stored(repo, 'a', 'due'),
+        DateFieldValue(DateTime.utc(2026, 11, 14)),
+      );
+
+      gesture = await tester.startGesture(tester.getCenter(find.text('Acme')));
+      await tester.pump(kLongPressTimeout + const Duration(milliseconds: 50));
+      await gesture.moveTo(tester.getCenter(target));
+      await tester.pump();
+      await gesture.up();
+      await tester.pump();
+      await tester.pump();
+      expect(
+        _stored(repo, 'a', 'due'),
+        DateFieldValue(DateTime.utc(2026, 11, 15)),
+      );
     });
 
     testWidgets('drag a date-only pill to a day writes that UTC day', (
@@ -373,7 +455,7 @@ void main() {
         ],
       );
       await tester.pumpAndSettle();
-      expect(find.byType(Draggable<String>), findsNothing);
+      expect(find.byWidgetPredicate((w) => w is Draggable), findsNothing);
       expect(find.text('Mon 2 Nov · Today'), findsOneWidget);
       expect(find.text('Wed 4 Nov'), findsOneWidget);
       expect(find.text('No date (1)'), findsOneWidget);

@@ -40,6 +40,12 @@ class CalendarMode extends ViewMode {
       field is DateFieldDefinition;
 
   @override
+  String get layoutFieldLabel => 'Date field';
+
+  @override
+  String get addFieldLabel => 'Add date field';
+
+  @override
   String? unavailableReason(Collection collection) =>
       collection.fields.any(acceptsLayoutField) ? null : 'Needs a date field';
 

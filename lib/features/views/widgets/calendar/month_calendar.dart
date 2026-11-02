@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import '../../../../core/domain/domain.dart';
 import '../../../../design/design.dart';
@@ -10,6 +11,8 @@ import 'calendar_common.dart';
 import 'no_date_tray.dart';
 
 /// The desktop calendar: a month grid (Monday first) with a "No date" tray.
+// shortcut: weeks always start on Monday; upgrade to
+// MaterialLocalizations.firstDayOfWeekIndex once the app has locale settings.
 /// The shown month is local UI state, starting at [today]'s month.
 class MonthCalendar extends StatefulWidget {
   const MonthCalendar({super.key, required this.data, required this.today});
@@ -209,7 +212,7 @@ class _DayCell extends StatefulWidget {
 
   static const double pillHeight = 24;
   static const double gap = 2;
-  static const double moreHeight = 20;
+  static const double moreHeight = 24;
   static const int maxPills = 3;
 
   @override
@@ -218,6 +221,7 @@ class _DayCell extends StatefulWidget {
 
 class _DayCellState extends State<_DayCell> {
   bool _hovered = false;
+  bool _addFocused = false;
 
   /// How many pills fit in [height] for [count] items, and whether a
   /// "+N more" row is needed.
@@ -284,27 +288,51 @@ class _DayCellState extends State<_DayCell> {
                     children: [
                       _DateBadge(day: day, today: isToday, outside: outside),
                       const Spacer(),
-                      AnimatedOpacity(
-                        opacity: _hovered ? 1 : 0,
-                        duration: MotionDurations.fast,
-                        child: Tooltip(
-                          message: 'New ${data.itemLabel} on $label',
-                          child: IconButton(
-                            onPressed: () => data.quickAdd(day: day),
-                            icon: const Icon(Icons.add, size: 18),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints.tightFor(
-                              width: 28,
-                              height: 28,
-                            ),
-                            style: IconButton.styleFrom(
-                              foregroundColor: scheme.onSurfaceVariant,
-                              shape: const RoundedRectangleBorder(
-                                borderRadius: Radii.smAll,
+                      ListenableBuilder(
+                        // Touch-only screens have no hover: keep "+" shown.
+                        listenable: RendererBinding.instance.mouseTracker,
+                        builder: (context, _) {
+                          final shown =
+                              _hovered ||
+                              _addFocused ||
+                              !RendererBinding
+                                  .instance
+                                  .mouseTracker
+                                  .mouseIsConnected;
+                          // Hidden: no pointer hits, but still in the
+                          // focus order; focusing it reveals it.
+                          return IgnorePointer(
+                            ignoring: !shown,
+                            child: AnimatedOpacity(
+                              opacity: shown ? 1 : 0,
+                              duration: MotionDurations.fast,
+                              child: Focus(
+                                canRequestFocus: false,
+                                skipTraversal: true,
+                                onFocusChange: (f) =>
+                                    setState(() => _addFocused = f),
+                                child: Tooltip(
+                                  message: 'New ${data.itemLabel} on $label',
+                                  child: IconButton(
+                                    onPressed: () => data.quickAdd(day: day),
+                                    icon: const Icon(Icons.add, size: 18),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints.tightFor(
+                                      width: 28,
+                                      height: 28,
+                                    ),
+                                    style: IconButton.styleFrom(
+                                      foregroundColor: scheme.onSurfaceVariant,
+                                      shape: const RoundedRectangleBorder(
+                                        borderRadius: Radii.smAll,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ),
+                          );
+                        },
                       ),
                     ],
                   ),

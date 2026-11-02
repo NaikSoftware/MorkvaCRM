@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -77,21 +78,69 @@ class CalendarPill extends StatelessWidget {
       onTap: onTap,
     );
     final child = pill(onTap: () => data.openObject(object));
-    return Draggable<String>(
-      data: object.id,
-      feedback: Material(
-        type: MaterialType.transparency,
-        child: Container(
-          width: feedbackWidth,
-          decoration: const BoxDecoration(
-            borderRadius: Radii.smAll,
-            boxShadow: MorkvaElevation.level2,
-          ),
-          child: pill(),
+    final feedback = Material(
+      type: MaterialType.transparency,
+      child: Container(
+        width: feedbackWidth,
+        decoration: const BoxDecoration(
+          borderRadius: Radii.smAll,
+          boxShadow: MorkvaElevation.level2,
         ),
+        child: pill(),
       ),
-      childWhenDragging: Opacity(opacity: 0.4, child: child),
-      child: child,
+    );
+    final dragging = Opacity(opacity: 0.4, child: child);
+    // A mouse drags at once; touch needs a long press so swipes still scroll.
+    return _TouchDraggable(
+      data: object.id,
+      feedback: feedback,
+      childWhenDragging: dragging,
+      child: _MouseDraggable(
+        data: object.id,
+        feedback: feedback,
+        childWhenDragging: dragging,
+        child: child,
+      ),
     );
   }
+}
+
+class _MouseDraggable extends Draggable<String> {
+  const _MouseDraggable({
+    required super.child,
+    required super.feedback,
+    super.data,
+    super.childWhenDragging,
+  });
+
+  @override
+  MultiDragGestureRecognizer createRecognizer(
+    GestureMultiDragStartCallback onStart,
+  ) => ImmediateMultiDragGestureRecognizer(
+    supportedDevices: const {PointerDeviceKind.mouse},
+    allowedButtonsFilter: allowedButtonsFilter,
+  )..onStart = onStart;
+}
+
+class _TouchDraggable extends LongPressDraggable<String> {
+  const _TouchDraggable({
+    required super.child,
+    required super.feedback,
+    super.data,
+    super.childWhenDragging,
+  });
+
+  @override
+  DelayedMultiDragGestureRecognizer createRecognizer(
+    GestureMultiDragStartCallback onStart,
+  ) => DelayedMultiDragGestureRecognizer(
+    delay: delay,
+    supportedDevices: const {
+      PointerDeviceKind.touch,
+      PointerDeviceKind.stylus,
+      PointerDeviceKind.invertedStylus,
+      PointerDeviceKind.unknown,
+    },
+    allowedButtonsFilter: allowedButtonsFilter,
+  )..onStart = onStart;
 }
