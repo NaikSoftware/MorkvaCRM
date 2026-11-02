@@ -9,6 +9,7 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -141,6 +142,11 @@ void main() {
       collection: _calendarCollection,
       objects: _calendarDeals,
     );
+
+    // A desktop has a mouse: cell "+" buttons stay hidden until hover.
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: Offset.zero);
+    addTearDown(mouse.removePointer);
 
     await pumpWorkPage(tester, repository: repo());
     await tester.pumpAndSettle();
