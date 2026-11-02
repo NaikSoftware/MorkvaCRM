@@ -351,6 +351,7 @@ class _AgendaRow extends StatelessWidget {
       initialDate: _clamp(day ?? today),
       firstDate: _first,
       lastDate: _last,
+      builder: (_, child) => MondayFirst(child: child!),
     );
     if (picked == null || !context.mounted) return;
     moveObjectToDay(context, data, object.id, dayOf(picked));

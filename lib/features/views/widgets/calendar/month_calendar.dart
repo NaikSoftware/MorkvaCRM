@@ -6,12 +6,14 @@ import 'package:flutter/rendering.dart';
 import '../../../../core/domain/domain.dart';
 import '../../../../design/design.dart';
 import '../../modes/view_mode.dart';
+import '../list_parts.dart';
 import '../object_card.dart';
 import 'calendar_common.dart';
 import 'no_date_tray.dart';
 
-// shortcut: weeks always start on Monday; upgrade to
-// MaterialLocalizations.firstDayOfWeekIndex once the app has locale settings.
+// shortcut: weeks always start on Monday (date pickers too, see MondayFirst);
+// upgrade to MaterialLocalizations.firstDayOfWeekIndex once the app has
+// locale settings.
 /// The desktop calendar: a month grid (Monday first) with a "No date" tray.
 /// The shown month is local UI state, starting at [today]'s month.
 class MonthCalendar extends StatefulWidget {
@@ -504,17 +506,21 @@ Future<void> _showDay(
                 shrinkWrap: true,
                 padding: const EdgeInsets.only(bottom: Spacing.xs),
                 children: [
-                  for (final o in objects)
-                    ObjectCard(
-                      object: o,
-                      collection: state.collection,
-                      view: state.activeView,
-                      density: ObjectCardDensity.list,
-                      referenceLabels: state.referenceLabels,
-                      onTap: () {
-                        Navigator.of(dialogContext).pop();
-                        data.openObject(o);
-                      },
+                  // The List mode's rows: dot, title, subtitle, divider.
+                  for (final (i, o) in objects.indexed)
+                    ListRowFrame(
+                      divider: i < objects.length - 1,
+                      child: ObjectCard(
+                        object: o,
+                        collection: state.collection,
+                        view: state.activeView,
+                        density: ObjectCardDensity.list,
+                        referenceLabels: state.referenceLabels,
+                        onTap: () {
+                          Navigator.of(dialogContext).pop();
+                          data.openObject(o);
+                        },
+                      ),
                     ),
                 ],
               ),

@@ -208,6 +208,14 @@ void main() {
       await tester.tap(find.text('+3 more'));
       await tester.pumpAndSettle();
       expect(find.text('Tue 10 Nov'), findsOneWidget);
+      // The day's list uses List mode rows (with dividers).
+      expect(
+        find.descendant(
+          of: find.byType(Dialog),
+          matching: find.byType(ListRowFrame),
+        ),
+        findsNWidgets(5),
+      );
       await tester.tap(find.text('Deal 4'));
       await tester.pumpAndSettle();
       expect(rec.opened, ['x4']);
