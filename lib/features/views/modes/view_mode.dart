@@ -53,6 +53,9 @@ abstract class ViewMode {
   /// Whether a view in this mode needs a layout field (Board, Calendar).
   bool get needsLayoutField => false;
 
+  /// Whether objects can be dragged into a manual order (Board, List).
+  bool get supportsManualOrder => false;
+
   /// Whether [field] can be this mode's layout field.
   bool acceptsLayoutField(FieldDefinition field) => false;
 

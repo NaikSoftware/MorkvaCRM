@@ -87,9 +87,17 @@ void _maybeNudge(BuildContext context, CollectionViewsState state) {
   if (state is! ViewsReady || state.totalCount != 0) return;
   if (state.collection.fields.isEmpty) return;
   if (!_nudgedCollections.add(state.collection.id)) return;
-  final message = 'Add your first ${itemLabelOf(state.collection)}';
+  final item = itemLabelOf(state.collection);
   WidgetsBinding.instance.addPostFrameCallback((_) {
-    if (context.mounted) _notify(context, message);
+    if (!context.mounted) return;
+    _notify(
+      context,
+      'Add your first $item',
+      action: SnackBarAction(
+        label: 'New $item',
+        onPressed: () => _quickAdd(context, state),
+      ),
+    );
   });
 }
 
@@ -97,10 +105,12 @@ void _notify(
   BuildContext context,
   String message, {
   ViewUndo? undo,
+  SnackBarAction? action,
   bool error = false,
 }) {
   final messenger = ScaffoldMessenger.of(context);
   final scheme = Theme.of(context).colorScheme;
+  final wide = MediaQuery.sizeOf(context).width >= AppShell.expandedBreakpoint;
   messenger
     ..hideCurrentSnackBar()
     ..showSnackBar(
@@ -108,8 +118,11 @@ void _notify(
         content: Text(message),
         backgroundColor: error ? scheme.errorContainer : null,
         duration: const Duration(seconds: 5),
+        // Floating and 480 wide on desktop, so it never spans the rail.
+        behavior: SnackBarBehavior.floating,
+        width: wide ? 480 : null,
         action: undo == null
-            ? null
+            ? action
             : SnackBarAction(label: 'Undo', onPressed: () => undo()),
       ),
     );
@@ -182,7 +195,8 @@ Future<void> _openFilterEditor(
 /// The sort menu: a popover hanging from [anchor]'s right edge when given,
 /// else a bottom sheet. Manual order is offered on Board and List.
 Future<void> _openSortMenu(
-  BuildContext context, {
+  BuildContext context,
+  ViewModeRegistry modes, {
   Rect? anchor,
   double inset = 0,
 }) async {
@@ -200,8 +214,7 @@ Future<void> _openSortMenu(
     builder: (sheetContext) => SortMenu(
       collection: state.collection,
       current: view.sort,
-      allowManual:
-          view.mode == ViewModeIds.board || view.mode == ViewModeIds.list,
+      allowManual: modes.resolve(view.mode).supportsManualOrder,
       onChanged: cubit.setSort,
       onPicked: () => Navigator.of(sheetContext).pop(),
     ),
@@ -228,7 +241,7 @@ Future<void> _openViewSettings(BuildContext context, ViewModeRegistry modes) {
         modes: modes,
         onSort: () {
           Navigator.of(sheet).pop();
-          _openSortMenu(context);
+          _openSortMenu(context, modes);
         },
         onEditFields: (mode) {
           Navigator.of(sheet).pop();
@@ -473,7 +486,7 @@ class _PhoneFrame extends StatelessWidget {
                   onTap: () => _customize(context, collection.id),
                   child: const Row(
                     children: [
-                      Icon(Icons.edit_outlined, size: 20),
+                      Icon(Icons.tune, size: 20),
                       SizedBox(width: Spacing.sm),
                       Flexible(child: Text('Customize collection')),
                     ],
@@ -538,7 +551,7 @@ class _WorkBody extends StatelessWidget {
             'then come back to work with them here.',
         action: PrimaryButton(
           label: 'Customize',
-          icon: Icons.edit_outlined,
+          icon: Icons.tune,
           onPressed: () => _customize(context, collection.id),
         ),
       );
@@ -599,8 +612,12 @@ class _WorkBody extends StatelessWidget {
                   cubit.setFilters([...view.filters]..removeAt(i)),
               // Nothing to sort or set up while the mode can't draw yet.
               onSort: renders
-                  ? () =>
-                        _openSortMenu(context, anchor: anchor(), inset: gutter)
+                  ? () => _openSortMenu(
+                      context,
+                      modes,
+                      anchor: anchor(),
+                      inset: gutter,
+                    )
                   : null,
               onEditFields: renders ? data.editFields : null,
             );
@@ -631,7 +648,10 @@ class _WorkBody extends StatelessWidget {
                       onPressed: () => cubit.setFilters(const []),
                     ),
                   )
-                : mode.buildBody(context, data),
+                : KeyedSubtree(
+                    key: ValueKey(view.id),
+                    child: mode.buildBody(context, data),
+                  ),
           ),
         ),
       ],

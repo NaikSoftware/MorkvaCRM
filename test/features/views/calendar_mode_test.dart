@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/design/design.dart';
 import 'package:morkva_crm/features/views/views.dart';
+import 'package:morkva_crm/features/views/widgets/list_parts.dart';
 import 'package:morkva_crm/features/views/widgets/calendar/month_calendar.dart';
 import 'package:morkva_crm/features/views/widgets/calendar/no_date_tray.dart';
 
@@ -147,6 +148,17 @@ void main() {
         tester.getSize(_cell(DateTime(2026, 11, 2))).height,
         greaterThanOrEqualTo(MonthCalendar.minCellHeight - 1),
       );
+      // All six weeks fit: the last one is not hidden behind a scroll.
+      final grid = find
+          .ancestor(
+            of: _cell(DateTime(2026, 12, 6)),
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      expect(
+        tester.getBottomLeft(_cell(DateTime(2026, 12, 6))).dy,
+        lessThanOrEqualTo(tester.getBottomLeft(grid).dy + 0.5),
+      );
       // A date-only value sits on its own day whatever the machine's zone.
       expect(
         find.descendant(
@@ -176,15 +188,15 @@ void main() {
     ) async {
       final (_, _, rec) = await _pump(
         tester,
-        // Short enough that rows sit at the 112 px minimum.
-        size: const Size(1280, 700),
+        // Six 112 px week rows.
+        size: const Size(1280, 761),
         objects: [
           for (var i = 0; i < 5; i++)
             deal('x$i', i, name: 'Deal $i', due: DateTime.utc(2026, 11, 10)),
         ],
       );
       final cell = _cell(DateTime(2026, 11, 10));
-      expect(tester.getSize(cell).height, MonthCalendar.minCellHeight);
+      expect(tester.getSize(cell).height, closeTo(112, 1));
       expect(
         find.descendant(of: cell, matching: find.byType(ObjectCard)),
         findsNWidgets(2),
@@ -196,6 +208,14 @@ void main() {
       await tester.tap(find.text('+3 more'));
       await tester.pumpAndSettle();
       expect(find.text('Tue 10 Nov'), findsOneWidget);
+      // The day's list uses List mode rows (with dividers).
+      expect(
+        find.descendant(
+          of: find.byType(Dialog),
+          matching: find.byType(ListRowFrame),
+        ),
+        findsNWidgets(5),
+      );
       await tester.tap(find.text('Deal 4'));
       await tester.pumpAndSettle();
       expect(rec.opened, ['x4']);
@@ -456,16 +476,19 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byWidgetPredicate((w) => w is Draggable), findsNothing);
-      expect(find.text('Mon 2 Nov · Today'), findsOneWidget);
-      expect(find.text('Wed 4 Nov'), findsOneWidget);
-      expect(find.text('No date (1)'), findsOneWidget);
+      expect(find.text('MON 2 NOV · TODAY'), findsOneWidget);
+      expect(find.text('WED 4 NOV'), findsOneWidget);
+      // Same card and section headers as List mode.
+      expect(find.byType(ListCard), findsOneWidget);
+      expect(find.byType(ListSectionHeader), findsNWidgets(3));
+      expect(find.text('NO DATE'), findsOneWidget);
       expect(find.text('Hooli'), findsNothing);
-      await tester.tap(find.text('No date (1)'));
+      await tester.tap(find.text('NO DATE'));
       await tester.pump();
       expect(find.text('Hooli'), findsOneWidget);
       expect(
-        tester.getTopLeft(find.text('Wed 4 Nov')).dy,
-        lessThan(tester.getTopLeft(find.text('No date (1)')).dy),
+        tester.getTopLeft(find.text('WED 4 NOV')).dy,
+        lessThan(tester.getTopLeft(find.text('NO DATE')).dy),
       );
     });
 

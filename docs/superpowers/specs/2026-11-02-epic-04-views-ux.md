@@ -18,12 +18,14 @@ Tiebreak for the rule in the design doc: stored on the collection and seen by ev
 - **Build** (`/collections/:id/edit`, focused full-screen route outside the shell, as today):
   name, icon; fields, types, options + colours, required; the object editor's card layout —
   renamed **"Object form"** so it is never confused with a view's "Setup card"; delete collection.
-  - Desktop header: "✕ Close" left, `edit` icon + "Customizing · <name>" `titleLarge`, sunk
+  - Desktop header: "✕ Close" left, `tune` icon (the one Customize icon) + "Customizing · <name>" `titleLarge`, sunk
     `surfaceContainer` header band, tabs **Fields · Object form · Settings**, solid carrot
     **Done** right. Phone: ✕, one-line title, Done; tabs become a `SegmentedButton` below.
   - This epic keeps the existing editor body and its explicit Save (name/icon/description are
-    already in its header); only the header cue, deep link and "Object form" wording change.
-    The tabbed Fields · Object form · Settings layout above is the target for a later pass.
+    already in its header — a secondary "Save" while dirty, icon-only on phone) plus the primary
+    **Done** (saves a dirty draft, then returns to Work; just returns when clean). While the
+    collection is a starter, the guided picker sits under its own "Fields" heading above
+    "Object form"; the form preview fits the phone width. The tabbed Fields · Object form · Settings layout above is the target for a later pass.
   - Deep links: `/collections/:id/edit?field=<fieldId>` opens Fields with that field selected.
     Done returns to the exact view the user came from.
 - **Work** (`/collections/:id`, inside the shell, rail visible on desktop): header = collection
@@ -39,7 +41,8 @@ Tiebreak for the rule in the design doc: stored on the collection and seen by ev
   leads the default view, so it is the title there), 5 one-tap suggestion chips (Status · choice, Due date · date, Amount · number,
   Customer · reference, Notes · text) + "+ Custom field". Done always enabled → Work with an
   auto-created "All <name>" Table view showing all fields; one-time snackbar "Add your first
-  <item>". No tours.
+  <item>" with a "New <item>" action (quick add). No tours. All Work snackbars float, 480 px wide
+  on ≥840 so they never cover the rail.
 - **Work empty states**: no fields (legacy only) → "This collection has no fields yet" +
   Customize; fields but no objects → the real Table header + one ghost row "+ New <item>" and a
   "Change fields" link; Board shows real columns each with "+"; Calendar shows the month with
@@ -74,6 +77,8 @@ Tiebreak for the rule in the design doc: stored on the collection and seen by ev
 - Header tap cycles sort asc → desc → none. Footer "6 of 41".
 - Select cells render as pills in the option colour.
 - "Columns" opens the same pick-and-reorder sheet as Setup card.
+- Horizontal overflow (Table columns, Board columns, view tabs) is cued by a 24 px edge fade on
+  the side with more content, plus a visible horizontal scrollbar on pointer devices.
 
 ## 5. Board
 
@@ -89,8 +94,8 @@ Tiebreak for the rule in the design doc: stored on the collection and seen by ev
 - Every drop → snackbar with Undo (5 s). Drop into a value hidden by a filter: "Moved to Ready —
   hidden by filter" + Undo.
 - Phone: `PageView(padEnds: false, viewportFraction: (w-72)/w)` snapping one column; the next
-  column peeks at full opacity; the column header is a 44 px "In work ▾" button opening a column
-  jump list; dots only when ≤7 columns, else "2 / 9"; 88 px bottom padding so the FAB never covers
+  column peeks at full opacity; the column header is a 44 px "In work 5 ▾" button opening a column
+  jump list; dots (right under the shown column) only when ≤7 columns, else "2 / 9"; 88 px bottom padding so the FAB never covers
   a card. Holding a dragged card at the screen edge 500 ms moves one page.
 
 ## 6. Setup card / Columns sheet
@@ -107,7 +112,7 @@ Tiebreak for the rule in the design doc: stored on the collection and seen by ev
 
 - One `surfaceContainerLowest` card, radius 16; rows 56 px (64 with subtitle), 1 px
   `outlineVariant` divider inset 16. Leading 10 px colour dot when the view has a select layout
-  field; title `titleSmall` 600 ellipsis; subtitle = the next 2 card fields joined " · "
+  field (a row without a value keeps the slot as a hollow `outlineVariant` ring); title `titleSmall` 600 ellipsis; subtitle = the next 2 card fields joined " · "
   `bodySmall`; trailing one number/date in `labelLarge` tabular.
 - Optional grouping by the layout field: sticky 36 px section headers (`labelMedium` uppercase,
   count). Manual sort → long-press / hover handle reorders; dragging between sections writes the
@@ -116,15 +121,17 @@ Tiebreak for the rule in the design doc: stored on the collection and seen by ev
 ## 8. Calendar
 
 - ≥840: month grid 7 × 5–6 in a radius-16 card. Header: "November 2026" `headlineSmall`,
-  prev/next 44 px icon buttons, "Today" outlined chip, "Date: Due ▾" chip. Cells ≥112 px; date
+  prev/next 44 px icon buttons, "Today" outlined chip, "Date: Due ▾" chip. Week rows share the grid height (≥88 px; the grid scrolls only below that), so a 6-week month
+  shows every week; pills are capped by the cell height. Date
   `labelMedium` top-left; today = 28 px carrot circle; outside-month days dimmed on
   `surfaceContainerLow`. Items: 24 px pills, radius 8, `surfaceContainer`, 3 px left bar in the
   option colour, title `labelMedium`; max 3, then "+N more" (opens that day's list). Hover "+" in
   a cell creates with that date. "No date" tray: collapsible 280 px right panel with a count;
   drag tray→day sets the date, pill→tray clears it (with Undo). Drag pill→day writes the date,
   keeping the time.
-- <840: agenda — a 56 px snapping week strip on top, sticky day headers ("Mon 4 Nov", today in
-  carrot), list-density rows; "No date (5)" last, collapsed. No drag on phone: long-press →
+- <840: agenda — a 56 px snapping week strip on top, then List mode's own card, 36 px uppercase
+  sticky section headers per day ("MON 4 NOV 2", today in carrot) and divided list-density rows
+  (dot = first shown choice field); "NO DATE 5" last, collapsed. No drag on phone: long-press →
   "Move to date…" date picker.
 
 ## 9. New view dialog
@@ -146,7 +153,8 @@ Tiebreak for the rule in the design doc: stored on the collection and seen by ev
 ## 11. States
 
 - Empty: reuse `empty_state.dart`. No matches → "Nothing matches these filters" + "Clear
-  filters" (chips stay). Board without a groupable field → "Board needs a choice or reference
+  filters" (chips stay); Board and Table show it as an inline banner above
+  their columns / header row, other modes as the empty state. Board without a groupable field → "Board needs a choice or reference
   field" + "Add field". Calendar without a date field → "Calendar needs a date field" + "Add date
   field". (Others: §1.)
 - Loading: skeletons in the mode's shape, `surfaceContainer` pulse 0.5↔1 over 1.2 s (static with

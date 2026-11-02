@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -204,7 +206,7 @@ void main() {
     // Pinned at the top edge of the card.
     expect(
       t.getTopLeft(pinned).dy,
-      closeTo(t.getTopLeft(find.byType(SingleChildScrollView).last).dy, 1),
+      closeTo(t.getTopLeft(find.byType(ReorderableListView)).dy, 1),
     );
   });
 
@@ -249,12 +251,13 @@ void main() {
         );
 
     await pumpList(leads, wons);
-    final top = t.getTopLeft(find.byType(SingleChildScrollView).last).dy;
-    final wonTop = t.getTopLeft(find.text('WON')).dy - top;
+    // WON sits below LEAD's header, its 4 rows (56 px) and its add row; it is
+    // not built yet at this height.
+    const wonTop = ViewList.headerHeight + 4 * 56 + ViewList.addHeight;
     final scrollable = t.state<ScrollableState>(
       find
           .descendant(
-            of: find.byType(SingleChildScrollView).last,
+            of: find.byType(ReorderableListView),
             matching: find.byType(Scrollable),
           )
           .first,
@@ -301,5 +304,72 @@ void main() {
     );
     expect(find.text('Acme renewal'), findsOneWidget);
     expect(find.byIcon(Icons.drag_indicator), findsNothing);
+  });
+
+  group('long lists', () {
+    const flat = ViewDefinition(
+      id: 'list',
+      name: 'Flat',
+      mode: ViewModeIds.list,
+      fieldIds: ['name'],
+    );
+    List<MorkvaObject> many(int n) => [
+      for (var i = 0; i < n; i++) deal('r$i', i, name: 'Row $i'),
+    ];
+
+    testWidgets('dragging the first row to the bottom auto-scrolls', (t) async {
+      final cubit = await pumpWorkPage(
+        t,
+        repository: workRepository(collection: _with(flat), objects: many(40)),
+      );
+      final list = find.byType(ReorderableListView);
+      // The visible bottom edge (an unclipped list reaches past the window).
+      final bottom = math.min(t.getBottomLeft(list).dy, 800.0);
+      final g = await t.startGesture(t.getCenter(find.text('Row 0')));
+      await t.pump(const Duration(milliseconds: 700));
+      await g.moveBy(const Offset(0, 8));
+      await t.pump();
+      // Hold the row at the bottom edge until the list has scrolled to its end.
+      await g.moveTo(Offset(t.getCenter(list).dx, bottom - 4));
+      for (var i = 0; i < 120; i++) {
+        await t.pump(const Duration(milliseconds: 50));
+      }
+      await g.up();
+      await t.pumpAndSettle();
+      final order = _ids((cubit.state as ViewsReady).objects);
+      expect(order.indexOf('r0'), greaterThan(30));
+    });
+
+    testWidgets('rows are built lazily', (t) async {
+      await pumpWorkPage(
+        t,
+        repository: workRepository(collection: _with(flat), objects: many(300)),
+      );
+      expect(find.byType(ObjectCard).evaluate().length, lessThan(60));
+    });
+
+    testWidgets('the pinned header survives its header being unbuilt', (
+      t,
+    ) async {
+      final objects = [
+        for (var i = 0; i < 80; i++)
+          deal('l$i', i, name: 'Lead $i', stage: 'lead'),
+        deal('w', 99, name: 'Won one', stage: 'won'),
+      ];
+      await pumpWorkPage(
+        t,
+        repository: workRepository(
+          collection: _with(_grouped),
+          objects: objects,
+        ),
+      );
+      await t.drag(find.byType(ReorderableListView), const Offset(0, -2500));
+      await t.pumpAndSettle();
+      final pinned = find.byKey(const ValueKey('pinned-header'));
+      expect(
+        find.descendant(of: pinned, matching: find.text('LEAD')),
+        findsOneWidget,
+      );
+    });
   });
 }

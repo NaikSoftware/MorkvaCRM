@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../app/shell/app_shell.dart';
@@ -6,6 +7,7 @@ import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
 import '../collection_views_cubit.dart';
 import '../collection_views_state.dart';
+import '../widgets/list_parts.dart';
 import '../widgets/object_card.dart';
 import '../widgets/view_toolbar.dart';
 import 'view_mode.dart';
@@ -29,9 +31,10 @@ class ListMode extends ViewMode {
   String get description => 'Compact rows, optionally in sections.';
 
   @override
-  bool acceptsLayoutField(FieldDefinition field) =>
-      field is SingleSelectFieldDefinition ||
-      (field is ReferenceFieldDefinition && !field.multiple);
+  bool acceptsLayoutField(FieldDefinition field) => isGroupable(field);
+
+  @override
+  bool get supportsManualOrder => true;
 
   @override
   Widget buildBody(BuildContext context, ViewModeData data) =>
@@ -119,7 +122,7 @@ class ViewList extends StatefulWidget {
 
   final ViewModeData data;
 
-  static const double headerHeight = 36;
+  static const double headerHeight = ListSectionHeader.height;
   static const double addHeight = 44;
 
   @override
@@ -129,7 +132,6 @@ class ViewList extends StatefulWidget {
 class _ViewListState extends State<ViewList> {
   final _scroll = ScrollController();
   final _stackKey = GlobalKey();
-  final _headerKeys = <String?, GlobalKey>{};
 
   /// Bumped after layout when the data changed so the sticky header is
   /// recomputed against the new header positions without a scroll.
@@ -141,8 +143,6 @@ class _ViewListState extends State<ViewList> {
   void didUpdateWidget(ViewList oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (data.state.groups == oldWidget.data.state.groups) return;
-    final live = {for (final g in data.state.groups ?? const []) g.key};
-    _headerKeys.removeWhere((key, _) => !live.contains(key));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _relayout.value++;
     });
@@ -155,34 +155,53 @@ class _ViewListState extends State<ViewList> {
     super.dispose();
   }
 
-  GlobalKey _keyFor(String? groupKey) =>
-      _headerKeys.putIfAbsent(groupKey, GlobalKey.new);
+  /// The list's sliver, whose laid-out children give the item offsets (rows
+  /// are built lazily, so far-away headers have no render box).
+  RenderSliverMultiBoxAdaptor? _sliver() {
+    RenderSliverMultiBoxAdaptor? found;
+    void visit(RenderObject o) {
+      if (found != null) return;
+      if (o is RenderSliverMultiBoxAdaptor) {
+        found = o;
+      } else {
+        o.visitChildren(visit);
+      }
+    }
+
+    _stackKey.currentContext?.findRenderObject()?.visitChildren(visit);
+    return found;
+  }
 
   /// The section whose header has scrolled past the top, and how far the
   /// next header pushes it up (classic sticky headers). Null while the first
   /// header is still in view.
-  ({ViewGroup group, double dy})? _pinned() {
+  ({ViewGroup group, double dy})? _pinned(List<_Item> items) {
     final groups = data.state.groups;
-    final stack = _stackKey.currentContext?.findRenderObject();
-    if (groups == null || stack is! RenderBox || !stack.attached) return null;
-    final tops = <double?>[
-      for (final g in groups)
-        switch (_headerKeys[g.key]?.currentContext?.findRenderObject()) {
-          final RenderBox b when b.attached && b.hasSize =>
-            b.localToGlobal(Offset.zero, ancestor: stack).dy,
-          _ => null,
-        },
-    ];
-    var current = -1;
-    for (var i = 0; i < groups.length; i++) {
-      if (tops[i] != null && tops[i]! < -0.5) current = i;
+    final sliver = _sliver();
+    if (groups == null || sliver == null || !_scroll.hasClients) return null;
+    final pixels = _scroll.position.pixels;
+    // Item index → top relative to the viewport, for the built items.
+    final tops = <int, double>{};
+    for (var c = sliver.firstChild; c != null; c = sliver.childAfter(c)) {
+      final offset = sliver.childScrollOffset(c);
+      if (offset != null) tops[sliver.indexOf(c)] = offset - pixels;
     }
-    if (current < 0) return null;
-    final next = current + 1 < groups.length ? tops[current + 1] : null;
-    final dy = next == null
+    // The item covering the top edge decides the section.
+    final covering = tops.keys
+        .where((i) => i < items.length && tops[i]! < -0.5)
+        .fold<int?>(null, (a, b) => a == null || b > a ? b : a);
+    if (covering == null) return null;
+    final header = items.take(covering + 1).whereType<_Header>().lastOrNull;
+    if (header == null) return null;
+    var next = covering + 1;
+    while (next < items.length && items[next] is! _Header) {
+      next++;
+    }
+    final nextTop = tops[next];
+    final dy = nextTop == null
         ? 0.0
-        : (next - ViewList.headerHeight).clamp(-ViewList.headerHeight, 0.0);
-    return (group: groups[current], dy: dy);
+        : (nextTop - ViewList.headerHeight).clamp(-ViewList.headerHeight, 0.0);
+    return (group: header.group, dy: dy);
   }
 
   List<_Item> _items() {
@@ -272,58 +291,46 @@ class _ViewListState extends State<ViewList> {
       child: Stack(
         key: _stackKey,
         children: [
-          SingleChildScrollView(
-            controller: _scroll,
-            child: DecoratedBox(
-              position: DecorationPosition.foreground,
-              decoration: BoxDecoration(
-                borderRadius: Radii.lgAll,
-                border: Border.all(color: scheme.outlineVariant),
+          // The list is the scroll view itself (shrink-wrapped so the card
+          // hugs short lists), so a drag auto-scrolls it and rows build
+          // lazily.
+          ListCard(
+            child: ReorderableListView.builder(
+              scrollController: _scroll,
+              shrinkWrap: true,
+              buildDefaultDragHandles: false,
+              itemCount: items.length,
+              onReorderItem: (from, to) => _reorder(context, items, from, to),
+              proxyDecorator: (child, _, _) => Material(
+                color: scheme.surfaceContainerLowest,
+                elevation: 6,
+                borderRadius: Radii.mdAll,
+                child: child,
               ),
-              child: ClipRRect(
-                borderRadius: Radii.lgAll,
-                child: ColoredBox(
-                  color: scheme.surfaceContainerLowest,
-                  child: ReorderableListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    buildDefaultDragHandles: false,
-                    itemCount: items.length,
-                    onReorderItem: (from, to) =>
-                        _reorder(context, items, from, to),
-                    proxyDecorator: (child, _, _) => Material(
-                      color: scheme.surfaceContainerLowest,
-                      elevation: 6,
-                      borderRadius: Radii.mdAll,
-                      child: child,
-                    ),
-                    itemBuilder: (context, i) {
-                      final item = items[i];
-                      return switch (item) {
-                        _Header(:final group) => _SectionHeader(
-                          key: _keyFor(group.key),
-                          group: group,
-                        ),
-                        _AddItem(:final groupKey) => _AddRow(
-                          key: ValueKey(item.key),
-                          label: 'New ${data.itemLabel}',
-                          onTap: () => data.quickAdd(groupKey: groupKey),
-                        ),
-                        _RowItem(:final object) => _ObjectRow(
-                          key: ValueKey(item.key),
-                          index: i,
-                          object: object,
-                          state: state,
-                          draggable: manual,
-                          showHandle: manual && wide,
-                          divider: items.elementAtOrNull(i + 1) is _RowItem,
-                          onOpen: () => data.openObject(object),
-                        ),
-                      };
-                    },
+              itemBuilder: (context, i) {
+                final item = items[i];
+                return switch (item) {
+                  _Header(:final group) => _SectionHeader(
+                    key: ValueKey(item.key),
+                    group: group,
                   ),
-                ),
-              ),
+                  _AddItem(:final groupKey) => _AddRow(
+                    key: ValueKey(item.key),
+                    label: 'New ${data.itemLabel}',
+                    onTap: () => data.quickAdd(groupKey: groupKey),
+                  ),
+                  _RowItem(:final object) => _ObjectRow(
+                    key: ValueKey(item.key),
+                    index: i,
+                    object: object,
+                    state: state,
+                    draggable: manual,
+                    showHandle: manual && wide,
+                    divider: items.elementAtOrNull(i + 1) is _RowItem,
+                    onOpen: () => data.openObject(object),
+                  ),
+                };
+              },
             ),
           ),
           // The sticky copy of the section header under the top edge.
@@ -332,7 +339,7 @@ class _ViewListState extends State<ViewList> {
               child: ListenableBuilder(
                 listenable: Listenable.merge([_scroll, _relayout]),
                 builder: (context, _) {
-                  final pinned = _pinned();
+                  final pinned = _pinned(items);
                   if (pinned == null) return const SizedBox.shrink();
                   return Align(
                     alignment: Alignment.topCenter,
@@ -363,42 +370,8 @@ class _SectionHeader extends StatelessWidget {
   final ViewGroup group;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final style = theme.textTheme.labelMedium?.copyWith(
-      color: scheme.onSurfaceVariant,
-      letterSpacing: 0.6,
-    );
-    return Semantics(
-      header: true,
-      child: Container(
-        height: ViewList.headerHeight,
-        padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
-        color: scheme.surfaceContainerLow,
-        alignment: Alignment.centerLeft,
-        child: Row(
-          children: [
-            Flexible(
-              child: Text(
-                group.label.toUpperCase(),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: style?.copyWith(fontWeight: FontWeight.w700),
-              ),
-            ),
-            const SizedBox(width: Spacing.xs),
-            Text(
-              '${group.objects.length}',
-              style: style?.copyWith(
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      ListSectionHeader(label: group.label, count: group.objects.length);
 }
 
 class _AddRow extends StatelessWidget {
@@ -517,19 +490,7 @@ class _ObjectRowState extends State<_ObjectRow> {
         canRequestFocus: false,
         skipTraversal: true,
         onFocusChange: (f) => setState(() => _focused = f),
-        child: Stack(
-          children: [
-            row,
-            if (widget.divider)
-              Positioned(
-                left: Spacing.md,
-                right: 0,
-                bottom: 0,
-                height: 1,
-                child: ColoredBox(color: scheme.outlineVariant),
-              ),
-          ],
-        ),
+        child: ListRowFrame(divider: widget.divider, child: row),
       ),
     );
   }

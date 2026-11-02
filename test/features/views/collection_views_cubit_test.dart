@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
@@ -85,7 +87,7 @@ void main() {
         final c = await ready(r);
         expect(stateOf(c).activeView.id, ViewDefinition.defaultId);
         expect(stateOf(c).activeView.fieldIds.first, 'name');
-        expect(r.saveCount, 0);
+        expect(r.saveCount + r.saveViewsCount, 0);
       },
     );
 
@@ -152,9 +154,9 @@ void main() {
       final c = await ready();
       await c.renameView('board', '  Funnel ');
       expect(stateOf(c).collection.views[1].name, 'Funnel');
-      final saves = repo.saveCount;
+      final saves = repo.saveViewsCount;
       await c.renameView('board', '   ');
-      expect(repo.saveCount, saves);
+      expect(repo.saveViewsCount, saves);
     });
 
     test(
@@ -228,17 +230,17 @@ void main() {
       final c = await ready();
       await c.setMode(ViewModeIds.calendar, layoutFieldId: 'due');
       expect(stateOf(c).activeView.layoutFieldId, 'due');
-      final saves = repo.saveCount;
+      final saves = repo.saveViewsCount;
       await c.setMode(ViewModeIds.list);
       expect(stateOf(c).activeView.mode, ViewModeIds.list);
       expect(stateOf(c).activeView.layoutFieldId, isNull);
-      expect(repo.saveCount, saves + 1);
+      expect(repo.saveViewsCount, saves + 1);
     });
 
     test('an unchanged view is not saved again', () async {
       final c = await ready();
       await c.setFieldIds(tableView.fieldIds);
-      expect(repo.saveCount, 0);
+      expect(repo.saveViewsCount, 0);
     });
 
     test('a failed view save reverts and reports', () async {
@@ -293,7 +295,7 @@ void main() {
       final c = await ready();
       c.selectView('board');
       expect(c.moveToGroup('d3', 'lead'), isNull);
-      expect(repo.saveCount, 0);
+      expect(repo.saveViewsCount, 0);
     });
 
     test('moveToGroup needs a groupable layout field', () async {
@@ -580,16 +582,21 @@ void main() {
 
   group('fix round 1', () {
     test(
-      'an object is saved as given, not padded with fields it lacks',
+      'a move keeps stored values of fields it was not decoded with',
       () async {
-        // Decoded before 'meeting' existed: no key for it.
-        final stale = deal('d1', 0, name: 'Acme', stage: 'lead');
-        final values = {...stale.values}..remove('meeting');
-        final c = await ready(seeded([stale.copyWith(values: values)]));
+        final r = seeded([deal('d1', 0, name: 'Acme', stage: 'lead')]);
+        // A value of a field this client's schema doesn't know (yet).
+        final raw = r.objectsOf('deals').single;
+        r.seedObjects('deals', [
+          raw.copyWith(
+            values: {...raw.values, 'extra': const TextFieldValue('x')},
+          ),
+        ]);
+        final c = await ready(r);
         c.selectView('board');
         c.moveToGroup('d1', 'won');
         await pumpEventQueue();
-        expect(stored('d1').values.containsKey('meeting'), isFalse);
+        expect(stored('d1')['extra'], const TextFieldValue('x'));
         expect(stored('d1')['stage'], const SingleSelectFieldValue('won'));
       },
     );
@@ -677,5 +684,219 @@ void main() {
         expect(c.quickAddTitleField()?.id, 'name');
       },
     );
+  });
+
+  group('final fixes', () {
+    const priority = SingleSelectFieldDefinition(
+      id: 'priority',
+      name: 'Priority',
+      options: [
+        SelectOption(id: 'hi', label: 'High'),
+        SelectOption(id: 'lo', label: 'Low'),
+      ],
+    );
+    Collection withPriority(Collection c) =>
+        c.copyWith(fields: [...c.fields, priority]);
+
+    test('a field added in Build re-opens the objects stream', () async {
+      final c = await ready();
+      expect(repo.watchObjectsCalls['deals'], 1);
+      final states = <CollectionViewsState>[];
+      final sub = c.stream.listen(states.add);
+      addTearDown(sub.cancel);
+      await repo.saveCollection(withPriority(deals));
+      await pumpEventQueue();
+      expect(repo.watchObjectsCalls['deals'], 2);
+      expect(states, everyElement(isA<ViewsReady>()));
+      expect(stateOf(c).objects.first.values.containsKey('priority'), isTrue);
+      // The same fields again: no new subscription.
+      await repo.saveCollection(withPriority(deals).copyWith(name: 'Deals 2'));
+      await pumpEventQueue();
+      expect(repo.watchObjectsCalls['deals'], 2);
+      await c.close();
+      expect(repo.liveListeners, 0);
+    });
+
+    test('a move onto a field added in Build persists and sticks', () async {
+      final c = await ready();
+      await repo.saveCollection(withPriority(deals));
+      await pumpEventQueue();
+      await c.setLayoutField('priority');
+      c.moveToGroup('d1', 'hi');
+      await pumpEventQueue();
+      expect(stored('d1')['priority'], const SingleSelectFieldValue('hi'));
+      final hi = stateOf(c).groups!.firstWhere((g) => g.key == 'hi');
+      expect([for (final o in hi.objects) o.id], ['d1']);
+    });
+
+    test('a target whose fields change is watched again', () async {
+      final c = await ready();
+      await pumpEventQueue();
+      expect(repo.watchObjectsCalls['companies'], 1);
+      await repo.saveCollection(
+        companies.copyWith(
+          fields: [
+            ...companies.fields,
+            const NumberFieldDefinition(id: 'size', name: 'Size'),
+          ],
+        ),
+      );
+      await pumpEventQueue();
+      expect(repo.watchObjectsCalls['companies'], 2);
+      expect(stateOf(c).referenceLabels['k2'], 'Alpha Ltd');
+    });
+
+    test(
+      'a Build change between two unacknowledged view saves survives',
+      () async {
+        final c = await ready();
+        repo.collectionAck = Completer<void>(); // offline: writes never ack
+        unawaited(c.setSort(const ViewSort(fieldId: 'amount')));
+        await pumpEventQueue();
+        // Build saves from what it loaded, which already has the sort.
+        final loaded = (await repo.getCollection('deals'))!;
+        unawaited(repo.saveCollection(withPriority(loaded)));
+        await pumpEventQueue();
+        unawaited(c.setFilters(const []));
+        unawaited(c.renameView('all', 'Everything'));
+        await pumpEventQueue();
+        final storedDeals = (await repo.getCollection('deals'))!;
+        expect(storedDeals.fieldById('priority'), isNotNull);
+        expect(storedDeals.views.first.name, 'Everything');
+        expect(storedDeals.views.first.sort?.fieldId, 'amount');
+        expect(stateOf(c).collection.fieldById('priority'), isNotNull);
+        expect(repo.saveCount, 1); // only Build's own save
+      },
+    );
+
+    test(
+      'offline: the echoed view save clears the overlay, so a later Build '
+      'change to every view shows and survives the next view command',
+      () async {
+        final c = await ready();
+        repo.collectionAck = Completer<void>(); // offline: saves never ack
+        unawaited(c.setSort(const ViewSort(fieldId: 'amount')));
+        await pumpEventQueue();
+        // Build adds a field and shows it in every view.
+        final stored = (await repo.getCollection('deals'))!;
+        unawaited(
+          repo.saveCollection(
+            withPriority(stored).copyWith(
+              views: [
+                for (final v in stored.views)
+                  v.copyWith(fieldIds: [...v.fieldIds, 'priority']),
+              ],
+            ),
+          ),
+        );
+        await pumpEventQueue();
+        expect(stateOf(c).activeView.fieldIds, contains('priority'));
+        expect(stateOf(c).activeView.sort?.fieldId, 'amount');
+        unawaited(c.renameView('all', 'Everything'));
+        await pumpEventQueue();
+        final after = (await repo.getCollection('deals'))!;
+        expect(after.views.first.name, 'Everything');
+        for (final v in after.views) {
+          expect(v.fieldIds, contains('priority'));
+        }
+      },
+    );
+
+    test('a renamed field does not re-open the objects stream', () async {
+      final c = await ready();
+      await repo.saveCollection(
+        deals.copyWith(
+          fields: [
+            for (final f in deals.fields)
+              f.id == 'amount'
+                  ? const NumberFieldDefinition(id: 'amount', name: 'Value')
+                  : f,
+          ],
+        ),
+      );
+      await pumpEventQueue();
+      expect(repo.watchObjectsCalls['deals'], 1);
+      expect(c.state, isA<ViewsReady>());
+    });
+
+    test('a re-opened target that fails again is reported again', () async {
+      final c = await ready();
+      await pumpEventQueue();
+      repo.failObjects('companies', StateError('denied'));
+      await pumpEventQueue();
+      expect(stateOf(c).writeErrorSeq, 1);
+      // Its fields change: the target stream re-opens (replaying the error).
+      await repo.saveCollection(
+        companies.copyWith(
+          fields: [
+            ...companies.fields,
+            const NumberFieldDefinition(id: 'size', name: 'Size'),
+          ],
+        ),
+      );
+      await pumpEventQueue();
+      expect(stateOf(c).writeErrorSeq, 2);
+    });
+
+    test('a failed objects stream stays failed until retry', () async {
+      final c = await ready();
+      repo.failObjects('deals', StateError('offline'));
+      await pumpEventQueue();
+      expect(c.state, isA<ViewsError>());
+      await repo.saveCollection(deals.copyWith(name: 'Renamed'));
+      await pumpEventQueue();
+      expect(c.state, isA<ViewsError>());
+      repo.seedObjects('deals', sampleDeals());
+      await c.retry();
+      await pumpEventQueue();
+      expect(c.state, isA<ViewsReady>());
+    });
+
+    test('a failed deleteView keeps the selection and returns false', () async {
+      final c = await ready();
+      c.selectView('board');
+      repo.saveError = () => StateError('denied');
+      expect(await c.deleteView('board'), isFalse);
+      expect(stateOf(c).activeViewId, 'board');
+      expect(stateOf(c).collection.views.map((v) => v.id), ['all', 'board']);
+      expect(stateOf(c).writeError, isNotNull);
+    });
+
+    test('undoing a move writes back only the moved field', () async {
+      final c = await ready();
+      c.selectView('board');
+      final undo = c.moveToGroup('d1', 'won')!;
+      await pumpEventQueue();
+      // Someone renames it meanwhile.
+      await repo.saveObject(
+        stored(
+          'd1',
+        ).copyWith(values: {'name': const TextFieldValue('Renamed')}),
+        schema: deals,
+      );
+      await pumpEventQueue();
+      await undo();
+      await pumpEventQueue();
+      expect(stored('d1')['stage'], const SingleSelectFieldValue('lead'));
+      expect(stored('d1')['name'], const TextFieldValue('Renamed'));
+    });
+
+    test('undoing a day move writes back only the date', () async {
+      final c = await ready(
+        seeded([deal('a', 0, name: 'A', due: DateTime.utc(2026, 5, 2))]),
+      );
+      await c.setLayoutField('due');
+      final undo = c.moveToDay('a', DateTime(2026, 5, 9))!;
+      await pumpEventQueue();
+      await repo.saveObject(
+        stored('a').copyWith(values: {'name': const TextFieldValue('B')}),
+        schema: deals,
+      );
+      await pumpEventQueue();
+      await undo();
+      await pumpEventQueue();
+      expect(stored('a')['due'], DateFieldValue(DateTime.utc(2026, 5, 2)));
+      expect(stored('a')['name'], const TextFieldValue('B'));
+    });
   });
 }

@@ -114,4 +114,50 @@ void main() {
     await pump(tester, ObjectCardDensity.board, object: deal('x', 0));
     expect(find.text('Untitled'), findsOneWidget);
   });
+
+  testWidgets('list: a row without a stage keeps the dot slot, hollow', (
+    tester,
+  ) async {
+    double titleX() => tester.getTopLeft(find.textContaining('Acme')).dx;
+    BoxDecoration dot() => tester
+        .widgetList<Container>(find.byType(Container))
+        .map((c) => c.decoration)
+        .whereType<BoxDecoration>()
+        .firstWhere((d) => d.shape == BoxShape.circle);
+
+    await pump(tester, ObjectCardDensity.list);
+    final withStage = titleX();
+    expect(dot().color, isNotNull);
+
+    await pump(
+      tester,
+      ObjectCardDensity.list,
+      object: deal('d2', 0, name: 'Acme pilot'),
+    );
+    expect(titleX(), withStage);
+    expect(dot().color, isNull);
+    expect(dot().border, isNotNull);
+  });
+
+  testWidgets('list on a date layout: the dot shows the first select', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      ObjectCardDensity.list,
+      view: const ViewDefinition(
+        id: 'v',
+        name: 'V',
+        mode: ViewModeIds.calendar,
+        layoutFieldId: 'due',
+        fieldIds: ['name', 'stage'],
+      ),
+    );
+    final dots = tester
+        .widgetList<Container>(find.byType(Container))
+        .map((c) => c.decoration)
+        .whereType<BoxDecoration>()
+        .where((d) => d.shape == BoxShape.circle);
+    expect(dots.single.color, isNotNull);
+  });
 }

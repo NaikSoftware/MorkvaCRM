@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
 import '../modes/view_mode.dart';
+import 'edge_fade.dart';
 
 /// The saved views as scrollable tabs with a trailing "+". The active tab
 /// carries a ⋯ menu (also on long-press / right-click of any tab): Rename
@@ -43,8 +44,6 @@ class _ViewTabsState extends State<ViewTabs> with TickerProviderStateMixin {
   String? _renaming;
   final _renameController = TextEditingController();
   final _renameFocus = FocusNode();
-  bool _fadeStart = false;
-  bool _fadeEnd = false;
 
   int get _activeIndex {
     final i = widget.views.indexWhere((v) => v.id == widget.activeViewId);
@@ -152,20 +151,6 @@ class _ViewTabsState extends State<ViewTabs> with TickerProviderStateMixin {
     }
   }
 
-  bool _onScroll(ScrollMetricsNotification n) {
-    final m = n.metrics;
-    if (m.axis != Axis.horizontal) return false;
-    final start = m.extentBefore > 0.5;
-    final end = m.extentAfter > 0.5;
-    if (start != _fadeStart || end != _fadeEnd) {
-      setState(() {
-        _fadeStart = start;
-        _fadeEnd = end;
-      });
-    }
-    return false;
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -207,29 +192,7 @@ class _ViewTabsState extends State<ViewTabs> with TickerProviderStateMixin {
         ),
         child: Row(
           children: [
-            Flexible(
-              child: NotificationListener<ScrollMetricsNotification>(
-                onNotification: _onScroll,
-                child: ShaderMask(
-                  blendMode: BlendMode.dstIn,
-                  shaderCallback: (rect) => LinearGradient(
-                    colors: [
-                      _fadeStart ? Colors.transparent : Colors.black,
-                      Colors.black,
-                      Colors.black,
-                      _fadeEnd ? Colors.transparent : Colors.black,
-                    ],
-                    stops: [
-                      0,
-                      (24 / rect.width).clamp(0, 0.5),
-                      (1 - 24 / rect.width).clamp(0.5, 1),
-                      1,
-                    ],
-                  ).createShader(rect),
-                  child: tabs,
-                ),
-              ),
-            ),
+            Flexible(child: EdgeFade(child: tabs)),
             IconButton(
               onPressed: widget.onNewView,
               tooltip: 'New view',

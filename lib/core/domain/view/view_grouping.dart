@@ -44,12 +44,16 @@ class DayBuckets extends Equatable {
   List<Object?> get props => [days, undated];
 }
 
-/// Fields a board can group by: single-select and single reference.
+/// Whether objects can be grouped by [field] (board columns, list
+/// sections): a single-select or a single reference.
+bool isGroupable(FieldDefinition? field) =>
+    field is SingleSelectFieldDefinition ||
+    (field is ReferenceFieldDefinition && !field.multiple);
+
+/// Fields a board can group by (see [isGroupable]).
 List<FieldDefinition> groupableFields(Collection collection) => [
   for (final f in collection.fields)
-    if (f is SingleSelectFieldDefinition ||
-        (f is ReferenceFieldDefinition && !f.multiple))
-      f,
+    if (isGroupable(f)) f,
 ];
 
 /// Splits [ordered] into groups by [field], keeping each group in [ordered]'s

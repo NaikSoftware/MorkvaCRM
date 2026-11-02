@@ -15,6 +15,39 @@ bool isStarterSchema(Collection saved) =>
     saved.fields.isEmpty ||
     (saved.fields.length == 1 && saved.fields.first.type == kTextFieldType);
 
+/// The "Fields" block above the object form while the collection is still a
+/// starter (see [isStarterSchema]): a heading and [FirstRunFields]. Empty
+/// otherwise.
+class FirstRunSection extends StatelessWidget {
+  const FirstRunSection({
+    super.key,
+    required this.collection,
+    required this.registry,
+  });
+
+  final Collection collection;
+  final FieldEditorRegistry registry;
+
+  @override
+  Widget build(BuildContext context) {
+    final starter = context.select<CollectionEditorCubit, bool>((c) {
+      final s = c.state;
+      return s is CollectionEditorReady && isStarterSchema(s.saved);
+    });
+    if (!starter) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Fields', style: theme.textTheme.titleMedium),
+        const SizedBox(height: Spacing.sm),
+        FirstRunFields(collection: collection, registry: registry),
+        const SizedBox(height: Spacing.sm),
+      ],
+    );
+  }
+}
+
 /// The Build › Fields guided empty state: "What do you track for each
 /// `<item>`?" with one-tap typed suggestions and a "Custom field" fallback.
 /// Chips add through [CollectionEditorCubit]; nothing is saved until Save.
@@ -60,31 +93,47 @@ class FirstRunFields extends StatelessWidget {
             ),
           ),
           const SizedBox(height: Spacing.sm),
-          Wrap(
-            spacing: Spacing.xs,
-            runSpacing: Spacing.xs,
-            children: [
-              for (final s in _suggestions)
-                if (!used.contains(s.name.toLowerCase()))
+          LayoutBuilder(
+            builder: (context, constraints) {
+              // Narrow (phone): one full-width row per chip instead of a
+              // ragged wrap.
+              final narrow = constraints.maxWidth < 420;
+              // A chip centres its content in a forced width, so the label
+              // itself is sized to make the chip span the row (52 = avatar,
+              // paddings and border).
+              Widget label(String text) => narrow
+                  ? SizedBox(
+                      width: constraints.maxWidth - 52,
+                      child: Text(text, overflow: TextOverflow.ellipsis),
+                    )
+                  : Text(text);
+              return Wrap(
+                spacing: Spacing.xs,
+                runSpacing: Spacing.xs,
+                children: [
+                  for (final s in _suggestions)
+                    if (!used.contains(s.name.toLowerCase()))
+                      ActionChip(
+                        key: Key('suggest_${s.name}'),
+                        avatar: Icon(s.icon, size: 18),
+                        label: label('${s.name} · ${s.hint}'),
+                        onPressed: () => _add(cubit, s),
+                      ),
                   ActionChip(
-                    key: Key('suggest_${s.name}'),
-                    avatar: Icon(s.icon, size: 18),
-                    label: Text('${s.name} · ${s.hint}'),
-                    onPressed: () => _add(cubit, s),
+                    key: const Key('suggest_custom'),
+                    avatar: const Icon(Icons.add, size: 18),
+                    label: label('Custom field'),
+                    onPressed: () async {
+                      final typeId = await AddFieldSheet.show(
+                        context,
+                        editors: registry.all,
+                      );
+                      if (typeId != null) cubit.addField(typeId);
+                    },
                   ),
-              ActionChip(
-                key: const Key('suggest_custom'),
-                avatar: const Icon(Icons.add, size: 18),
-                label: const Text('Custom field'),
-                onPressed: () async {
-                  final typeId = await AddFieldSheet.show(
-                    context,
-                    editors: registry.all,
-                  );
-                  if (typeId != null) cubit.addField(typeId);
-                },
-              ),
-            ],
+                ],
+              );
+            },
           ),
         ],
       ),

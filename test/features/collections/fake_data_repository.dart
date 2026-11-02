@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:morkva_crm/api/data/data_repository.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:rxdart/rxdart.dart';
@@ -27,6 +29,13 @@ class FakeDataRepository implements DataRepository {
 
   /// Count of [saveCollection] calls, for assertions.
   int saveCount = 0;
+
+  /// Count of [saveViews] calls, for assertions.
+  int saveViewsCount = 0;
+
+  /// When set, collection writes apply (and emit) at once but only complete
+  /// once this completes — like Firestore while offline.
+  Completer<void>? collectionAck;
 
   void _emit() => _subject.add(List.unmodifiable(_collections));
 
@@ -60,6 +69,23 @@ class FakeDataRepository implements DataRepository {
       _collections = [..._collections]..[index] = collection;
     }
     _emit();
+    await collectionAck?.future;
+  }
+
+  @override
+  Future<void> saveViews(
+    String collectionId,
+    List<ViewDefinition> views,
+  ) async {
+    saveViewsCount++;
+    final error = saveError;
+    if (error != null) throw error();
+    final index = _collections.indexWhere((c) => c.id == collectionId);
+    if (index < 0) throw StateError('No collection $collectionId');
+    _collections = [..._collections]
+      ..[index] = _collections[index].copyWith(views: views);
+    _emit();
+    await collectionAck?.future;
   }
 
   @override
@@ -126,7 +152,24 @@ class FakeDataRepository implements DataRepository {
     Collection? schema,
   }) {
     watchObjectsCalls.update(collectionId, (n) => n + 1, ifAbsent: () => 1);
-    return _counted(_subjectFor(collectionId).stream);
+    final stream = _subjectFor(collectionId).stream;
+    // Decoded against [schema] like the real repository: values of fields
+    // the schema lacks are dropped, missing ones come back empty.
+    return _counted(
+      schema == null
+          ? stream
+          : stream.map(
+              (objects) => [
+                for (final o in objects)
+                  o.copyWith(
+                    values: {
+                      for (final f in schema.fields)
+                        f.id: o.values[f.id] ?? f.emptyValue(),
+                    },
+                  ),
+              ],
+            ),
+    );
   }
 
   @override
@@ -154,7 +197,10 @@ class FakeDataRepository implements DataRepository {
     if (index < 0) {
       list.add(object);
     } else {
-      list[index] = object;
+      // Merged over the stored values, like the real repository.
+      list[index] = object.copyWith(
+        values: {...list[index].values, ...object.values},
+      );
     }
     _objects[object.collectionId] = list;
     _emitObjects(object.collectionId);

@@ -105,8 +105,11 @@ class CalendarBody extends StatelessWidget {
           icon: Icons.calendar_month_outlined,
           title: 'Calendar needs a date field',
           message: 'Add a date field to place each ${data.itemLabel} on a day.',
-          actionLabel: 'Add date field',
-          onAction: () => context.go('/collections/${collection.id}/edit'),
+          action: PrimaryButton(
+            label: 'Add date field',
+            icon: Icons.add,
+            onPressed: () => context.go('/collections/${collection.id}/edit'),
+          ),
         );
       }
       return EmptyState(

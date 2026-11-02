@@ -12,8 +12,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/design/design.dart';
-import 'package:morkva_crm/features/views/modes/table_mode.dart';
-import 'package:morkva_crm/features/views/modes/view_mode.dart';
+import 'package:morkva_crm/features/views/modes/built_in_modes.dart';
+
 import 'package:morkva_crm/features/views/widgets/new_view_dialog.dart';
 
 import '../../test/features/views/views_fixtures.dart';
@@ -75,54 +75,8 @@ Future<void> _shot(WidgetTester tester, String name) async {
   });
 }
 
-class _Fake extends ViewMode {
-  const _Fake(this.id, this.label, this.icon, this.description, this.accepts);
-
-  @override
-  final String id;
-  @override
-  final String label;
-  @override
-  final IconData icon;
-  @override
-  final String description;
-  final bool Function(FieldDefinition) accepts;
-
-  @override
-  bool get needsLayoutField => true;
-  @override
-  bool acceptsLayoutField(FieldDefinition f) => accepts(f);
-  @override
-  String? unavailableReason(Collection c) =>
-      c.fields.any(accepts) ? null : 'Needs a date field';
-  @override
-  Widget buildBody(BuildContext context, ViewModeData data) => const SizedBox();
-}
-
-final _modes = ViewModeRegistry([
-  const TableMode(),
-  _Fake(
-    'board',
-    'Board',
-    Icons.view_kanban_outlined,
-    'Cards in columns',
-    (f) => f is SingleSelectFieldDefinition,
-  ),
-  _Fake(
-    'list',
-    'List',
-    Icons.view_agenda_outlined,
-    'Rows of cards',
-    (f) => true,
-  ),
-  _Fake(
-    'calendar',
-    'Calendar',
-    Icons.calendar_month_outlined,
-    'Cards on days',
-    (f) => f is DateFieldDefinition,
-  ),
-]);
+// The real modes, so the tiles show the same icons as the tabs.
+final _modes = defaultViewModeRegistry();
 
 Future<void> _open(WidgetTester tester, Collection c, Size size) async {
   tester.view.physicalSize = size;

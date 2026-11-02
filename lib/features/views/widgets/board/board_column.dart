@@ -28,6 +28,7 @@ class BoardColumn extends StatefulWidget {
     this.onJump,
     this.width = BoardColumn.defaultWidth,
     this.fill = false,
+    this.footer,
   });
 
   static const double defaultWidth = 272;
@@ -71,6 +72,9 @@ class BoardColumn extends StatefulWidget {
   /// Whether the whole area given (a phone page) takes drops, not just the
   /// column, which stays top-aligned in it.
   final bool fill;
+
+  /// Shown right under the column (phone: the page dots).
+  final Widget? footer;
 
   @override
   State<BoardColumn> createState() => _BoardColumnState();
@@ -237,9 +241,20 @@ class _BoardColumnState extends State<BoardColumn> {
             ],
           ),
         );
+        final footer = widget.footer;
+        final framed = footer == null
+            ? column
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(child: column),
+                  const SizedBox(height: Spacing.xs),
+                  SizedBox(width: widget.width, child: footer),
+                ],
+              );
         return widget.fill
-            ? Align(alignment: Alignment.topLeft, child: column)
-            : column;
+            ? Align(alignment: Alignment.topLeft, child: framed)
+            : framed;
       },
     );
   }
@@ -366,8 +381,6 @@ class _Header extends StatelessWidget {
             style: theme.textTheme.titleSmall,
           ),
         ),
-        if (onJump != null)
-          Icon(Icons.arrow_drop_down, size: 20, color: scheme.onSurfaceVariant),
         const SizedBox(width: Spacing.xs),
         Text(
           '${group.objects.length}',
@@ -376,6 +389,9 @@ class _Header extends StatelessWidget {
             fontFeatures: const [FontFeature.tabularFigures()],
           ),
         ),
+        // Phone: "Lead 5 ▾" — the caret ends the button it belongs to.
+        if (onJump != null)
+          Icon(Icons.arrow_drop_down, size: 20, color: scheme.onSurfaceVariant),
         const SizedBox(width: Spacing.xs),
       ],
     );

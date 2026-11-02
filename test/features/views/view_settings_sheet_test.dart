@@ -227,7 +227,7 @@ void main() {
     expect(_inSheet(find.text('Card fields')), findsNothing);
   });
 
-  testWidgets('no fields: no view settings; Customize uses edit', (
+  testWidgets('no fields: no view settings; Customize uses tune', (
     tester,
   ) async {
     await pumpWorkPage(
@@ -239,15 +239,15 @@ void main() {
       ),
     );
     expect(find.byTooltip('View settings'), findsNothing);
-    expect(find.byIcon(Icons.tune), findsNothing);
-    expect(
-      find.widgetWithIcon(PrimaryButton, Icons.edit_outlined),
-      findsOneWidget,
-    );
+    // Only the Customize button: tune means Customize everywhere.
+    expect(find.byIcon(Icons.tune), findsOneWidget);
+    expect(find.widgetWithIcon(PrimaryButton, Icons.tune), findsOneWidget);
     expect(find.byTooltip('More'), findsOneWidget);
   });
 
-  testWidgets('desktop no fields: one tune icon', (tester) async {
+  testWidgets('desktop no fields: both Customize actions use tune', (
+    tester,
+  ) async {
     await pumpWorkPage(
       tester,
       repository: workRepository(
@@ -255,7 +255,7 @@ void main() {
         objects: const [],
       ),
     );
-    expect(find.byIcon(Icons.tune), findsOneWidget);
+    expect(find.byIcon(Icons.tune), findsNWidgets(2));
     expect(find.text('Customize'), findsNWidgets(2));
   });
 
@@ -276,7 +276,9 @@ void main() {
     expect(_view(cubit).layoutFieldId, 'stage');
   });
 
-  testWidgets('a mode that ignores the layout field clears it', (tester) async {
+  testWidgets('a mode that can\'t use the layout field clears it', (
+    tester,
+  ) async {
     final cubit = await pumpWorkPage(tester, size: _phone);
     await _open(tester);
     await tester.tap(_inSheet(find.byIcon(const CalendarMode().icon)));
@@ -294,12 +296,22 @@ void main() {
           .selected,
       isTrue,
     );
+  });
 
-    await tester.tap(_inSheet(find.byIcon(const CalendarMode().icon)));
+  testWidgets('Board → Table → Board keeps the group-by field', (tester) async {
+    final cubit = await pumpWorkPage(tester, size: _phone);
+    await _open(tester);
+    await tester.tap(_inSheet(find.byIcon(const BoardMode().icon)));
+    await tester.pumpAndSettle();
+    await cubit.setLayoutField('company');
     await tester.pumpAndSettle();
     await tester.tap(_inSheet(find.byIcon(const TableMode().icon)));
     await tester.pumpAndSettle();
     expect(_view(cubit).mode, ViewModeIds.table);
-    expect(_view(cubit).layoutFieldId, isNull);
+    expect(_view(cubit).layoutFieldId, 'company');
+    await tester.tap(_inSheet(find.byIcon(const BoardMode().icon)));
+    await tester.pumpAndSettle();
+    expect(_view(cubit).mode, ViewModeIds.board);
+    expect(_view(cubit).layoutFieldId, 'company');
   });
 }

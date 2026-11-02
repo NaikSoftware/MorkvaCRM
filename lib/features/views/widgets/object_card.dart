@@ -63,7 +63,8 @@ class ObjectCard extends StatelessWidget {
       ),
       ObjectCardDensity.list => _ListRow(
         title: title,
-        dot: _layoutColor(),
+        hasDot: _dotField() != null,
+        dot: _selectColor(_dotField()),
         subtitle: rest.take(2).map(_text).join(' · '),
         trailing: metric == null ? null : _text(metric),
         onTap: onTap,
@@ -96,6 +97,24 @@ class ObjectCard extends StatelessWidget {
         ? null
         : collection.fieldById(view.layoutFieldId!),
   );
+
+  /// The select field a list row's dot shows: the layout field when it is
+  /// one, else — on a date layout (the calendar agenda) — the first shown
+  /// select field, like the calendar pills.
+  SingleSelectFieldDefinition? _dotField() {
+    final layout = view.layoutFieldId == null
+        ? null
+        : collection.fieldById(view.layoutFieldId!);
+    return switch (layout) {
+      final SingleSelectFieldDefinition f => f,
+      DateFieldDefinition() =>
+        view.fieldIds
+            .map(collection.fieldById)
+            .whereType<SingleSelectFieldDefinition>()
+            .firstOrNull,
+      _ => null,
+    };
+  }
 
   Color? _firstSelectColor() => _selectColor(
     view.fieldIds
@@ -242,6 +261,7 @@ class _BoardCardState extends State<_BoardCard> {
 class _ListRow extends StatelessWidget {
   const _ListRow({
     required this.title,
+    required this.hasDot,
     required this.dot,
     required this.subtitle,
     required this.trailing,
@@ -249,6 +269,10 @@ class _ListRow extends StatelessWidget {
   });
 
   final String title;
+
+  /// Whether rows of this view carry a dot; an empty value keeps the slot
+  /// with a hollow ring so titles stay aligned.
+  final bool hasDot;
   final Color? dot;
   final String subtitle;
   final String? trailing;
@@ -269,13 +293,16 @@ class _ListRow extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
             child: Row(
               children: [
-                if (dot case final color?) ...[
+                if (hasDot) ...[
                   Container(
                     width: 10,
                     height: 10,
                     decoration: BoxDecoration(
-                      color: color,
+                      color: dot,
                       shape: BoxShape.circle,
+                      border: dot == null
+                          ? Border.all(color: scheme.outlineVariant, width: 1.5)
+                          : null,
                     ),
                   ),
                   const SizedBox(width: Spacing.sm),

@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -6,6 +9,8 @@ import '../../../app/shell/app_shell.dart';
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
 import '../collection_views_cubit.dart';
+import '../widgets/edge_fade.dart';
+import '../widgets/no_matches_notice.dart';
 import '../widgets/option_pill.dart';
 import '../widgets/view_labels.dart';
 import 'view_mode.dart';
@@ -29,6 +34,9 @@ class TableMode extends ViewMode {
 
   @override
   String get fieldsLabel => 'Columns';
+
+  @override
+  bool get drawsNoMatches => true;
 
   @override
   Widget buildBody(BuildContext context, ViewModeData data) =>
@@ -113,8 +121,10 @@ class _ViewTableState extends State<ViewTable> {
           width: tableWidth,
           horizontal: _horizontal,
         );
-        // The ghost "+ New" row only stands in for an empty table.
-        final empty = state.objects.isEmpty;
+        // The ghost "+ New" row only stands in for an empty table; filters
+        // hiding everything get the banner above the header instead.
+        final noMatches = state.objects.isEmpty && state.isFiltered;
+        final empty = state.objects.isEmpty && !noMatches;
         final rowCount = empty ? 1 : state.objects.length;
         // The card hugs its rows instead of filling the body.
         final contentHeight =
@@ -142,48 +152,55 @@ class _ViewTableState extends State<ViewTable> {
                           n.metrics.axis == Axis.vertical,
                       child: Scrollbar(
                         controller: _horizontal,
+                        thumbVisibility: RendererBinding
+                            .instance
+                            .mouseTracker
+                            .mouseIsConnected,
                         notificationPredicate: (n) =>
                             n.metrics.axis == Axis.horizontal,
-                        child: SingleChildScrollView(
-                          controller: _horizontal,
-                          scrollDirection: Axis.horizontal,
-                          child: SizedBox(
-                            width: tableWidth,
-                            child: Column(
-                              children: [
-                                _HeaderRow(
-                                  layout: layout,
-                                  sort: view.sort,
-                                  onSort: _cycleSort,
-                                ),
-                                Expanded(
-                                  child: ListView.builder(
-                                    controller: _vertical,
-                                    itemExtent: ViewTable.rowHeight,
-                                    itemCount: rowCount,
-                                    itemBuilder: (context, i) {
-                                      if (empty) {
-                                        return _GhostRow(
-                                          layout: layout,
-                                          label: 'New ${data.itemLabel}',
-                                          onAdd: () => data.quickAdd(),
-                                          onChangeFields: data.editFields,
-                                        );
-                                      }
-                                      final object = state.objects[i];
-                                      return _ObjectRow(
-                                        key: ValueKey(object.id),
-                                        layout: layout,
-                                        object: object,
-                                        view: view,
-                                        collection: collection,
-                                        referenceLabels: state.referenceLabels,
-                                        onOpen: () => data.openObject(object),
-                                      );
-                                    },
+                        child: EdgeFade(
+                          child: SingleChildScrollView(
+                            controller: _horizontal,
+                            scrollDirection: Axis.horizontal,
+                            child: SizedBox(
+                              width: tableWidth,
+                              child: Column(
+                                children: [
+                                  _HeaderRow(
+                                    layout: layout,
+                                    sort: view.sort,
+                                    onSort: _cycleSort,
                                   ),
-                                ),
-                              ],
+                                  Expanded(
+                                    child: ListView.builder(
+                                      controller: _vertical,
+                                      itemExtent: ViewTable.rowHeight,
+                                      itemCount: rowCount,
+                                      itemBuilder: (context, i) {
+                                        if (empty) {
+                                          return _GhostRow(
+                                            layout: layout,
+                                            label: 'New ${data.itemLabel}',
+                                            onAdd: () => data.quickAdd(),
+                                            onChangeFields: data.editFields,
+                                          );
+                                        }
+                                        final object = state.objects[i];
+                                        return _ObjectRow(
+                                          key: ValueKey(object.id),
+                                          layout: layout,
+                                          object: object,
+                                          view: view,
+                                          collection: collection,
+                                          referenceLabels:
+                                              state.referenceLabels,
+                                          onOpen: () => data.openObject(object),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -201,12 +218,24 @@ class _ViewTableState extends State<ViewTable> {
             ),
           ),
         );
-        return Align(
-          alignment: Alignment.topCenter,
-          child: SizedBox(
-            height: contentHeight.clamp(0, constraints.maxHeight).toDouble(),
-            child: card,
-          ),
+        final notice = NoMatchesNotice(
+          onClear: () =>
+              context.read<CollectionViewsCubit>().setFilters(const []),
+        );
+        const noticeSpace = 44 + Spacing.xs;
+        final room = math.max(
+          0.0,
+          constraints.maxHeight - (noMatches ? noticeSpace : 0),
+        );
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (noMatches) ...[notice, const SizedBox(height: Spacing.xs)],
+            SizedBox(
+              height: contentHeight.clamp(0, room).toDouble(),
+              child: card,
+            ),
+          ],
         );
       },
     );
@@ -529,9 +558,32 @@ class _ObjectRowState extends State<_ObjectRow> {
     );
   }
 
-  Widget _cell(BuildContext context, FieldDefinition field) {
+  Widget _cell(BuildContext context, FieldDefinition field) => ViewTableCell(
+    field: field,
+    value: _value(field),
+    referenceLabels: widget.referenceLabels,
+  );
+}
+
+/// One Table cell's content — select pills, a check, aligned numbers — so
+/// the Columns preview can draw exactly what the Table draws.
+class ViewTableCell extends StatelessWidget {
+  const ViewTableCell({
+    super.key,
+    required this.field,
+    required this.value,
+    this.referenceLabels = const {},
+  });
+
+  final FieldDefinition field;
+  final FieldValue value;
+  final Map<String, String> referenceLabels;
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final value = _value(field);
+    final field = this.field;
+    final value = this.value;
     final Widget? content = switch ((field, value)) {
       _ when value.isEmpty => null,
       (
@@ -573,7 +625,7 @@ class _ObjectRowState extends State<_ObjectRow> {
       ),
       (BooleanFieldDefinition(), _) => null,
       _ => Text(
-        formatFieldValue(field, value, referenceLabels: widget.referenceLabels),
+        formatFieldValue(field, value, referenceLabels: referenceLabels),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         textAlign: isNumericField(field) ? TextAlign.end : TextAlign.start,

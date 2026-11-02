@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -11,6 +12,8 @@ import '../collection_views_cubit.dart';
 import '../collection_views_state.dart';
 import '../widgets/board/board_card_draggable.dart';
 import '../widgets/board/board_column.dart';
+import '../widgets/edge_fade.dart';
+import '../widgets/no_matches_notice.dart';
 import '../widgets/view_labels.dart';
 import '../widgets/view_toolbar.dart';
 import 'view_mode.dart';
@@ -40,9 +43,10 @@ class BoardMode extends ViewMode {
   bool get drawsNoMatches => true;
 
   @override
-  bool acceptsLayoutField(FieldDefinition field) =>
-      field is SingleSelectFieldDefinition ||
-      (field is ReferenceFieldDefinition && !field.multiple);
+  bool acceptsLayoutField(FieldDefinition field) => isGroupable(field);
+
+  @override
+  bool get supportsManualOrder => true;
 
   @override
   String? unavailableReason(Collection collection) =>
@@ -317,6 +321,7 @@ class _BoardViewState extends State<BoardView> {
     double width = BoardColumn.defaultWidth,
     VoidCallback? onJump,
     bool fill = false,
+    Widget? footer,
   }) {
     final data = widget.data;
     final state = data.state;
@@ -343,21 +348,26 @@ class _BoardViewState extends State<BoardView> {
       onDragStarted: (drag) => _drag = drag,
       onJump: onJump,
       fill: fill,
+      footer: footer,
     );
   }
 
   Widget _desktop(List<ViewGroup> groups, FieldDefinition field) => Scrollbar(
     controller: _horizontal,
+    // Pointer users get a visible track; touch scrolls by swiping.
+    thumbVisibility: RendererBinding.instance.mouseTracker.mouseIsConnected,
     // Lazy: a reference board can have hundreds of columns.
-    child: ListView.separated(
-      controller: _horizontal,
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.only(bottom: Spacing.sm),
-      itemCount: groups.length,
-      separatorBuilder: (_, _) => const SizedBox(width: Spacing.md),
-      itemBuilder: (context, i) => Align(
-        alignment: Alignment.topCenter,
-        child: _column(context, groups[i], field),
+    child: EdgeFade(
+      child: ListView.separated(
+        controller: _horizontal,
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.only(bottom: Spacing.sm),
+        itemCount: groups.length,
+        separatorBuilder: (_, _) => const SizedBox(width: Spacing.md),
+        itemBuilder: (context, i) => Align(
+          alignment: Alignment.topCenter,
+          child: _column(context, groups[i], field),
+        ),
       ),
     ),
   );
@@ -386,15 +396,14 @@ class _BoardViewState extends State<BoardView> {
                 width: columnWidth,
                 fill: true,
                 onJump: () => _openJumpList(groups),
+                // The dots sit under the shown column, not at the page foot.
+                footer: ValueListenableBuilder(
+                  valueListenable: _page,
+                  builder: (_, page, _) => page.clamp(0, groups.length - 1) == i
+                      ? BoardPageIndicator(count: groups.length, current: i)
+                      : const SizedBox(height: BoardPageIndicator.height),
+                ),
               ),
-            ),
-          ),
-          const SizedBox(height: Spacing.xs),
-          ValueListenableBuilder(
-            valueListenable: _page,
-            builder: (_, page, _) => BoardPageIndicator(
-              count: groups.length,
-              current: page.clamp(0, groups.length - 1),
             ),
           ),
         ],
@@ -422,7 +431,7 @@ class _BoardViewState extends State<BoardView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _NoMatchesNotice(
+        NoMatchesNotice(
           onClear: () =>
               context.read<CollectionViewsCubit>().setFilters(const []),
         ),
@@ -442,6 +451,7 @@ class BoardPageIndicator extends StatelessWidget {
   });
 
   static const int maxDots = 7;
+  static const double height = 20;
 
   final int count;
   final int current;
@@ -451,10 +461,11 @@ class BoardPageIndicator extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     return Semantics(
+      container: true,
       label: 'Column ${current + 1} of $count',
       excludeSemantics: true,
       child: SizedBox(
-        height: 20,
+        height: BoardPageIndicator.height,
         child: Center(
           child: count <= maxDots
               ? Row(
@@ -607,46 +618,6 @@ class _NoGrouping extends StatelessWidget {
           icon: Icons.view_kanban_outlined,
           onPressed: open,
         ),
-      ),
-    );
-  }
-}
-
-/// Filters hide every card: the columns stay as drop targets, with a way
-/// out above them.
-class _NoMatchesNotice extends StatelessWidget {
-  const _NoMatchesNotice({required this.onClear});
-
-  final VoidCallback onClear;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return Container(
-      padding: const EdgeInsets.only(left: Spacing.sm),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerLow,
-        borderRadius: Radii.mdAll,
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.filter_alt_off_outlined,
-            size: 18,
-            color: scheme.onSurfaceVariant,
-          ),
-          const SizedBox(width: Spacing.xs),
-          Expanded(
-            child: Text(
-              'Nothing matches these filters',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-          TextActionButton(label: 'Clear filters', onPressed: onClear),
-        ],
       ),
     );
   }

@@ -499,11 +499,13 @@ class _DateValue extends StatelessWidget {
   Widget build(BuildContext context) {
     final d = day;
     return SingleChildScrollView(
-      child: CalendarDatePicker(
-        initialDate: d == null ? null : DateTime(d.year, d.month, d.day),
-        firstDate: DateTime(1900),
-        lastDate: DateTime(2200),
-        onDateChanged: onChanged,
+      child: MondayFirst(
+        child: CalendarDatePicker(
+          initialDate: d == null ? null : DateTime(d.year, d.month, d.day),
+          firstDate: DateTime(1900),
+          lastDate: DateTime(2200),
+          onDateChanged: onChanged,
+        ),
       ),
     );
   }

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
 import '../field_editors/field_editor.dart';
+import 'first_run_fields.dart';
 import 'layout_canvas.dart';
 import 'collection_editor_cubit.dart';
 import 'collection_editor_state.dart';
@@ -244,6 +245,17 @@ class _EditorHeaderState extends State<_EditorHeader> {
     router.go(workPath);
   }
 
+  /// Done: saves a dirty draft, then returns to the Work page (stays put if
+  /// the save fails — its snackbar explains why).
+  Future<void> _done() async {
+    final router = GoRouter.of(context);
+    if (widget.state.dirty) {
+      final ok = await context.read<CollectionEditorCubit>().save();
+      if (!ok) return;
+    }
+    router.go('/collections/${widget.state.draft.id}');
+  }
+
   Future<void> _pickIcon() async {
     final cubit = context.read<CollectionEditorCubit>();
     final selection = await CollectionIconPicker.show(
@@ -348,7 +360,7 @@ class _EditorHeaderState extends State<_EditorHeader> {
                     Padding(
                       padding: const EdgeInsets.only(bottom: 5),
                       child: Icon(
-                        Icons.edit_outlined,
+                        Icons.tune,
                         size: 20,
                         color: scheme.primary,
                         // The visible "Customizing · " text names it when wide.
@@ -417,7 +429,9 @@ class _EditorHeaderState extends State<_EditorHeader> {
             ),
           ),
           const SizedBox(width: Spacing.md),
-          _SaveControl(state: state),
+          _SaveControl(state: state, compact: !wide),
+          const SizedBox(width: Spacing.xs),
+          PrimaryButton(label: 'Done', loading: state.saving, onPressed: _done),
         ],
       ),
     );
@@ -534,14 +548,26 @@ class _DescriptionLine extends StatelessWidget {
 /// The dirty-aware save control. When the draft is clean it reads as a quiet
 /// "Saved" marker; once dirty it becomes the prominent carrot Save button.
 class _SaveControl extends StatelessWidget {
-  const _SaveControl({required this.state});
+  const _SaveControl({required this.state, required this.compact});
 
   final CollectionEditorReady state;
+
+  /// Phone header: no "Saved" marker, an icon-only Save.
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+
+    if (compact) {
+      if (!state.dirty || state.saving) return const SizedBox.shrink();
+      return IconActionButton(
+        icon: Icons.save_outlined,
+        tooltip: 'Save',
+        onPressed: () => context.read<CollectionEditorCubit>().save(),
+      );
+    }
 
     if (!state.dirty && !state.saving) {
       return Row(
@@ -559,7 +585,8 @@ class _SaveControl extends StatelessWidget {
       );
     }
 
-    return PrimaryButton(
+    // Secondary: Done is the header's one primary action.
+    return SecondaryButton(
       label: 'Save',
       icon: Icons.save_outlined,
       loading: state.saving,
@@ -625,6 +652,7 @@ class _TwoPaneLayout extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              FirstRunSection(collection: state.draft, registry: registry),
               const _ObjectFormHeading(),
               LayoutCanvas(collection: state.draft, registry: registry),
             ],
@@ -903,6 +931,10 @@ class _NarrowLayoutState extends State<_NarrowLayout> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          FirstRunSection(
+            collection: widget.state.draft,
+            registry: widget.registry,
+          ),
           const _ObjectFormHeading(),
           LayoutCanvas(
             collection: widget.state.draft,
