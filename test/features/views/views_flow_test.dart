@@ -236,13 +236,7 @@ void main() {
           findsOneWidget,
         );
       }
-      // The default view predates the Status field, so show it via Columns.
-      await tester.tap(find.text('Columns'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.bySemanticsLabel('Status').last);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Save').last);
-      await tester.pumpAndSettle();
+      // Status was added in Build, so the editor save put it in this view.
       // Acme's row (same baseline) shows its stored Status;
       final todo = find.descendant(of: table, matching: find.text('To do'));
       expect(todo, findsOneWidget);
