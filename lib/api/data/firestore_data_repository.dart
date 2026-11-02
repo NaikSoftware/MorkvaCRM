@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:rxdart/rxdart.dart';
 
@@ -67,13 +68,51 @@ class FirestoreDataRepository implements DataRepository {
   /// Object ids with a local write not yet confirmed by the server.
   final Set<String> _pendingObjects = {};
 
-  /// Active Firestore listener subscriptions feeding the watch subjects,
-  /// cancelled on [dispose].
+  /// Live Firestore listener subscriptions feeding the watch subjects. A
+  /// listener starts with its subject's first subscriber and is cancelled when
+  /// the last one leaves (and on [dispose]).
   final List<StreamSubscription<dynamic>> _subscriptions = [];
 
-  /// Active watch subjects, closed on [dispose] so consumers receive a done
-  /// event. [BehaviorSubject]s so a late subscriber replays the latest value.
+  /// Watch subjects that have listeners, closed on [dispose] so consumers
+  /// receive a done event. A subject leaves this list when its last listener
+  /// does (and rejoins if it is listened to again), so abandoned watches don't
+  /// pile up. [BehaviorSubject]s so a late subscriber replays the latest value.
   final List<Subject<dynamic>> _subjects = [];
+
+  /// How many Firestore listeners are live, for leak tests.
+  @visibleForTesting
+  int get activeListenerCount => _subscriptions.length;
+
+  /// How many watch subjects are tracked, for leak tests.
+  @visibleForTesting
+  int get trackedSubjectCount => _subjects.length;
+
+  /// A replaying stream whose Firestore listener ([listen]) runs only while
+  /// the stream has subscribers, so an abandoned watch costs no listener.
+  Stream<T> _watch<T>(
+    StreamSubscription<dynamic> Function(BehaviorSubject<T> subject) listen,
+  ) {
+    StreamSubscription<dynamic>? source;
+    late final BehaviorSubject<T> subject;
+    subject = BehaviorSubject<T>(
+      onListen: () {
+        if (source != null || _workspaceId == null) return;
+        _subjects.add(subject);
+        final started = listen(subject);
+        source = started;
+        _subscriptions.add(started);
+      },
+      onCancel: () {
+        _subjects.remove(subject);
+        final running = source;
+        source = null;
+        if (running == null) return;
+        _subscriptions.remove(running);
+        unawaited(running.cancel());
+      },
+    );
+    return subject.stream;
+  }
 
   String get _wid {
     final id = _workspaceId;
@@ -96,24 +135,21 @@ class FirestoreDataRepository implements DataRepository {
 
   @override
   Stream<List<Collection>> watchCollections() {
-    final subject = BehaviorSubject<List<Collection>>();
-    _subjects.add(subject);
-
-    final subscription = _refs
-        .collections(_wid)
-        .snapshots()
-        .listen(
-          (snapshot) {
-            if (subject.isClosed) return;
-            subject.add(snapshot.docs.map(_collectionFromDoc).toList());
-          },
-          onError: (Object error, StackTrace stackTrace) {
-            if (!subject.isClosed) subject.addError(error, stackTrace);
-          },
-        );
-
-    _subscriptions.add(subscription);
-    return subject.stream;
+    final wid = _wid;
+    return _watch<List<Collection>>(
+      (subject) => _refs
+          .collections(wid)
+          .snapshots()
+          .listen(
+            (snapshot) {
+              if (subject.isClosed) return;
+              subject.add(snapshot.docs.map(_collectionFromDoc).toList());
+            },
+            onError: (Object error, StackTrace stackTrace) {
+              if (!subject.isClosed) subject.addError(error, stackTrace);
+            },
+          ),
+    );
   }
 
   @override
@@ -135,6 +171,16 @@ class FirestoreDataRepository implements DataRepository {
     await _refs
         .collection(_wid, collection.id)
         .set(collection.toJson(), SetOptions(merge: false));
+  }
+
+  @override
+  Future<void> saveViews(
+    String collectionId,
+    List<ViewDefinition> views,
+  ) async {
+    await _refs.collection(_wid, collectionId).update({
+      'views': views.map((v) => v.toJson()).toList(),
+    });
   }
 
   @override
@@ -160,8 +206,7 @@ class FirestoreDataRepository implements DataRepository {
     String collectionId, {
     Collection? schema,
   }) {
-    final subject = BehaviorSubject<List<MorkvaObject>>();
-    _subjects.add(subject);
+    final wid = _wid;
     Collection? resolved = schema;
 
     Future<Collection?> ensureSchema() async {
@@ -172,31 +217,30 @@ class FirestoreDataRepository implements DataRepository {
     // includeMetadataChanges so the metadata-only transition (hasPendingWrites
     // true→false) fires — that is what confirms our own writes and lets the
     // sync status settle to synced.
-    final subscription = _refs
-        .objectsByCollection(_wid, collectionId)
-        .snapshots(includeMetadataChanges: true)
-        .listen(
-          (snapshot) async {
-            final collection = await ensureSchema();
-            if (subject.isClosed) return;
-            if (collection == null) {
-              subject.add(const []);
-              return;
-            }
-            _processSnapshotMeta(snapshot);
-            final objects = snapshot.docs
-                .map((doc) => _objectFromData(doc.id, doc.data(), collection))
-                .toList();
-            if (!subject.isClosed) subject.add(objects);
-          },
-          onError: (Object error, StackTrace stackTrace) {
-            _syncStatus.reportError('Failed to watch objects', cause: error);
-            if (!subject.isClosed) subject.addError(error, stackTrace);
-          },
-        );
-
-    _subscriptions.add(subscription);
-    return subject.stream;
+    return _watch<List<MorkvaObject>>(
+      (subject) => _refs
+          .objectsByCollection(wid, collectionId)
+          .snapshots(includeMetadataChanges: true)
+          .listen(
+            (snapshot) async {
+              final collection = await ensureSchema();
+              if (subject.isClosed) return;
+              if (collection == null) {
+                subject.add(const []);
+                return;
+              }
+              _processSnapshotMeta(snapshot);
+              final objects = snapshot.docs
+                  .map((doc) => _objectFromData(doc.id, doc.data(), collection))
+                  .toList();
+              if (!subject.isClosed) subject.add(objects);
+            },
+            onError: (Object error, StackTrace stackTrace) {
+              _syncStatus.reportError('Failed to watch objects', cause: error);
+              if (!subject.isClosed) subject.addError(error, stackTrace);
+            },
+          ),
+    );
   }
 
   @override
@@ -240,18 +284,31 @@ class FirestoreDataRepository implements DataRepository {
     try {
       final newRev = await _db.runTransaction<int>((transaction) async {
         final snapshot = await transaction.get(docRef);
-        final currentRev = (snapshot.data()?['rev'] as num?)?.toInt() ?? 0;
+        final current = snapshot.data();
+        final currentRev = (current?['rev'] as num?)?.toInt() ?? 0;
         final nextRev = currentRev + 1;
+        // Merged so values this client's (possibly older) schema doesn't
+        // carry survive; a present key with an empty value still clears.
+        final storedValues =
+            (current?['values'] as Map?)?.cast<String, dynamic>() ?? const {};
         transaction.set(docRef, {
           'collectionId': object.collectionId,
           'rev': nextRev,
           'createdAt': json['createdAt'],
           'updatedAt': json['updatedAt'],
-          'values': encodedValues,
+          'values': {...storedValues, ...encodedValues},
         });
         return nextRev;
       });
       _localRev[object.id] = newRev;
+      // A transaction completes only once the server committed it, so the
+      // write is settled here — no open listener is needed for that.
+      if (_pendingObjects.remove(object.id) && _pendingObjects.isEmpty) {
+        _syncStatus.reportSnapshotMeta(
+          isFromCache: false,
+          hasPendingWrites: false,
+        );
+      }
     } catch (error) {
       _pendingObjects.remove(object.id);
       _syncStatus.reportError('Failed to save object', cause: error);
@@ -287,14 +344,16 @@ class FirestoreDataRepository implements DataRepository {
     }
   }
 
-  /// Encodes each schema field's canonical JSON value to its native Firestore
-  /// representation. Values for ids not in [schema] are dropped.
+  /// Encodes the canonical JSON value of each schema field present in
+  /// [rawValues] to its native Firestore representation. Ids not in [schema]
+  /// and schema fields missing from [rawValues] are left out.
   Map<String, dynamic> _encodeValues(
     Map<String, dynamic> rawValues,
     Collection schema,
   ) {
     final encoded = <String, dynamic>{};
     for (final field in schema.fields) {
+      if (!rawValues.containsKey(field.id)) continue;
       encoded[field.id] = _codec.encode(field, rawValues[field.id]);
     }
     return encoded;

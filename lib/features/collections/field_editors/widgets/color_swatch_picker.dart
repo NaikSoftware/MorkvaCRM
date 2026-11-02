@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../../../design/design.dart';
@@ -35,18 +37,25 @@ class ColorSwatchPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      // The 44dp hit boxes already carry ~16dp of visual gap between the 28dp
-      // discs, so no extra inter-swatch spacing is needed.
-      spacing: 0,
-      runSpacing: 0,
+    final swatches = <Widget>[
+      _NoneSwatch(selected: selected == null, onTap: () => onChanged(null)),
+      for (final hex in palette)
+        _ColorSwatch(
+          hex: hex,
+          selected: _sameHex(selected, hex),
+          onTap: () => onChanged(hex),
+        ),
+    ];
+    // A fixed 5 × 2 grid (none + 9 colours), so no swatch is ever orphaned
+    // on a row of its own. The 44dp hit boxes already carry the visual gap.
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _NoneSwatch(selected: selected == null, onTap: () => onChanged(null)),
-        for (final hex in palette)
-          _ColorSwatch(
-            hex: hex,
-            selected: _sameHex(selected, hex),
-            onTap: () => onChanged(hex),
+        for (var i = 0; i < swatches.length; i += 5)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: swatches.sublist(i, math.min(i + 5, swatches.length)),
           ),
       ],
     );
@@ -54,15 +63,6 @@ class ColorSwatchPicker extends StatelessWidget {
 
   static bool _sameHex(String? a, String b) =>
       a != null && a.toUpperCase() == b.toUpperCase();
-}
-
-/// Parses a `#RRGGBB` string into a [Color]; falls back to grey on malformed
-/// input so a bad stored value never crashes the picker.
-Color colorFromHex(String hex) {
-  final cleaned = hex.replaceAll('#', '').trim();
-  final value = int.tryParse(cleaned, radix: 16);
-  if (value == null || cleaned.length != 6) return const Color(0xFF9E9E9E);
-  return Color(0xFF000000 | value);
 }
 
 class _ColorSwatch extends StatelessWidget {

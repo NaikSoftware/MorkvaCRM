@@ -19,7 +19,7 @@ class SingleSelectFieldEditor extends FieldEditor {
   String get description => 'Pick exactly one option from a fixed set.';
 
   @override
-  IconData get icon => Icons.radio_button_checked;
+  IconData get icon => Icons.arrow_drop_down_circle_outlined;
 
   @override
   FieldDefinition createDefault({required String id, required String name}) =>

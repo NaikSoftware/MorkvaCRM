@@ -6,7 +6,7 @@ const int kLayoutColumns = 12;
 /// One field placed in a row, occupying [span] of the row's 12 columns.
 class LayoutCell extends Equatable {
   const LayoutCell({required this.fieldId, int span = kLayoutColumns})
-      : span = span < 1 ? 1 : (span > kLayoutColumns ? kLayoutColumns : span);
+    : span = span < 1 ? 1 : (span > kLayoutColumns ? kLayoutColumns : span);
 
   final String fieldId;
 
@@ -19,9 +19,9 @@ class LayoutCell extends Equatable {
   Map<String, dynamic> toJson() => {'fieldId': fieldId, 'span': span};
 
   factory LayoutCell.fromJson(Map<String, dynamic> json) => LayoutCell(
-        fieldId: json['fieldId'] as String,
-        span: (json['span'] as num?)?.toInt() ?? kLayoutColumns,
-      );
+    fieldId: json['fieldId'] as String,
+    span: (json['span'] as num?)?.toInt() ?? kLayoutColumns,
+  );
 
   @override
   List<Object?> get props => [fieldId, span];
@@ -38,17 +38,17 @@ class LayoutRow extends Equatable {
       LayoutRow(id: id ?? this.id, cells: cells ?? this.cells);
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'cells': cells.map((c) => c.toJson()).toList(),
-      };
+    'id': id,
+    'cells': cells.map((c) => c.toJson()).toList(),
+  };
 
   factory LayoutRow.fromJson(Map<String, dynamic> json) => LayoutRow(
-        id: json['id'] as String,
-        cells: ((json['cells'] as List?) ?? const [])
-            .cast<Map<String, dynamic>>()
-            .map(LayoutCell.fromJson)
-            .toList(),
-      );
+    id: json['id'] as String,
+    cells: ((json['cells'] as List?) ?? const [])
+        .cast<Map<String, dynamic>>()
+        .map(LayoutCell.fromJson)
+        .toList(),
+  );
 
   @override
   List<Object?> get props => [id, cells];
@@ -75,30 +75,29 @@ class LayoutSection extends Equatable {
     Object? title = _unset,
     bool? collapsed,
     List<LayoutRow>? rows,
-  }) =>
-      LayoutSection(
-        id: id ?? this.id,
-        title: identical(title, _unset) ? this.title : title as String?,
-        collapsed: collapsed ?? this.collapsed,
-        rows: rows ?? this.rows,
-      );
+  }) => LayoutSection(
+    id: id ?? this.id,
+    title: identical(title, _unset) ? this.title : title as String?,
+    collapsed: collapsed ?? this.collapsed,
+    rows: rows ?? this.rows,
+  );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        if (title != null) 'title': title,
-        'collapsed': collapsed,
-        'rows': rows.map((r) => r.toJson()).toList(),
-      };
+    'id': id,
+    if (title != null) 'title': title,
+    'collapsed': collapsed,
+    'rows': rows.map((r) => r.toJson()).toList(),
+  };
 
   factory LayoutSection.fromJson(Map<String, dynamic> json) => LayoutSection(
-        id: json['id'] as String,
-        title: json['title'] as String?,
-        collapsed: json['collapsed'] as bool? ?? false,
-        rows: ((json['rows'] as List?) ?? const [])
-            .cast<Map<String, dynamic>>()
-            .map(LayoutRow.fromJson)
-            .toList(),
-      );
+    id: json['id'] as String,
+    title: json['title'] as String?,
+    collapsed: json['collapsed'] as bool? ?? false,
+    rows: ((json['rows'] as List?) ?? const [])
+        .cast<Map<String, dynamic>>()
+        .map(LayoutRow.fromJson)
+        .toList(),
+  );
 
   @override
   List<Object?> get props => [id, title, collapsed, rows];
@@ -128,15 +127,15 @@ class CardLayout extends Equatable {
       CardLayout(sections: sections ?? this.sections);
 
   Map<String, dynamic> toJson() => {
-        'sections': sections.map((s) => s.toJson()).toList(),
-      };
+    'sections': sections.map((s) => s.toJson()).toList(),
+  };
 
   factory CardLayout.fromJson(Map<String, dynamic> json) => CardLayout(
-        sections: ((json['sections'] as List?) ?? const [])
-            .cast<Map<String, dynamic>>()
-            .map(LayoutSection.fromJson)
-            .toList(),
-      );
+    sections: ((json['sections'] as List?) ?? const [])
+        .cast<Map<String, dynamic>>()
+        .map(LayoutSection.fromJson)
+        .toList(),
+  );
 
   @override
   List<Object?> get props => [sections];
@@ -150,7 +149,10 @@ class CardLayout extends Equatable {
           id: 'sec_main',
           rows: [
             for (final id in fieldIds)
-              LayoutRow(id: 'row_$id', cells: [LayoutCell(fieldId: id)]),
+              LayoutRow(
+                id: 'row_$id',
+                cells: [LayoutCell(fieldId: id)],
+              ),
           ],
         ),
       ],
@@ -185,11 +187,16 @@ class CardLayout extends Equatable {
     if (missing.isNotEmpty) {
       final lastIndex = cleaned.length - 1;
       final last = cleaned[lastIndex];
-      cleaned[lastIndex] = last.copyWith(rows: [
-        ...last.rows,
-        for (final id in missing)
-          LayoutRow(id: 'row_$id', cells: [LayoutCell(fieldId: id)]),
-      ]);
+      cleaned[lastIndex] = last.copyWith(
+        rows: [
+          ...last.rows,
+          for (final id in missing)
+            LayoutRow(
+              id: 'row_$id',
+              cells: [LayoutCell(fieldId: id)],
+            ),
+        ],
+      );
     }
 
     return CardLayout(sections: cleaned);
@@ -200,22 +207,26 @@ class CardLayout extends Equatable {
       CardLayout(sections: sections.map(f).toList());
 
   /// Maps the section with [sectionId] through [f]; others pass through.
-  CardLayout _mapSection(String sectionId, LayoutSection Function(LayoutSection) f) =>
-      _mapSections((s) => s.id == sectionId ? f(s) : s);
+  CardLayout _mapSection(
+    String sectionId,
+    LayoutSection Function(LayoutSection) f,
+  ) => _mapSections((s) => s.id == sectionId ? f(s) : s);
 
   CardLayout setCellSpan(String rowId, String fieldId, int span) =>
-      _mapSections((section) => section.copyWith(
-            rows: section.rows.map((row) {
-              if (row.id != rowId) return row;
-              final i = row.cells.indexWhere((c) => c.fieldId == fieldId);
-              if (i < 0) return row;
-              final maxSpan = kLayoutColumns - (row.cells.length - 1);
-              final clamped = span.clamp(1, maxSpan < 1 ? 1 : maxSpan);
-              final cells = [...row.cells];
-              cells[i] = cells[i].copyWith(span: clamped);
-              return row.copyWith(cells: _normalizeRow(cells, keepIndex: i));
-            }).toList(),
-          ));
+      _mapSections(
+        (section) => section.copyWith(
+          rows: section.rows.map((row) {
+            if (row.id != rowId) return row;
+            final i = row.cells.indexWhere((c) => c.fieldId == fieldId);
+            if (i < 0) return row;
+            final maxSpan = kLayoutColumns - (row.cells.length - 1);
+            final clamped = span.clamp(1, maxSpan < 1 ? 1 : maxSpan);
+            final cells = [...row.cells];
+            cells[i] = cells[i].copyWith(span: clamped);
+            return row.copyWith(cells: _normalizeRow(cells, keepIndex: i));
+          }).toList(),
+        ),
+      );
 
   /// Removes the cell for [fieldId] from wherever it sits; returns the new
   /// section list (with emptied rows pruned) and the detached cell.
@@ -245,59 +256,78 @@ class CardLayout extends Equatable {
     // occupant — i.e. this is a drop onto the cell's own (single-cell) row.
     // That is a no-op; return [this] so the cell is preserved instead of being
     // dropped on the floor (the insert below would find no matching row).
-    final targetSurvived =
-        detached.any((s) => s.rows.any((r) => r.id == targetRowId));
+    final targetSurvived = detached.any(
+      (s) => s.rows.any((r) => r.id == targetRowId),
+    );
     if (!targetSurvived) return this;
-    final next = detached.map((section) => section.copyWith(
-          rows: section.rows.map((row) {
-            if (row.id != targetRowId) return row;
-            final i = index.clamp(0, row.cells.length);
-            final cells = [...row.cells]..insert(i, cell);
-            return row.copyWith(cells: _normalizeRow(cells));
-          }).toList(),
-        )).toList();
+    final next = detached
+        .map(
+          (section) => section.copyWith(
+            rows: section.rows.map((row) {
+              if (row.id != targetRowId) return row;
+              final i = index.clamp(0, row.cells.length);
+              final cells = [...row.cells]..insert(i, cell);
+              return row.copyWith(cells: _normalizeRow(cells));
+            }).toList(),
+          ),
+        )
+        .toList();
     return CardLayout(sections: next);
   }
 
   CardLayout moveCellToNewRow(
-      String fieldId, String sectionId, int rowIndex, String newRowId) {
+    String fieldId,
+    String sectionId,
+    int rowIndex,
+    String newRowId,
+  ) {
     final (detached, cell) = _detach(fieldId);
     if (cell == null) return this;
     final next = detached.map((section) {
       if (section.id != sectionId) return section;
       final i = rowIndex.clamp(0, section.rows.length);
       final rows = [...section.rows]
-        ..insert(i, LayoutRow(id: newRowId, cells: [cell.copyWith(span: kLayoutColumns)]));
+        ..insert(
+          i,
+          LayoutRow(
+            id: newRowId,
+            cells: [cell.copyWith(span: kLayoutColumns)],
+          ),
+        );
       return section.copyWith(rows: rows);
     }).toList();
     return CardLayout(sections: next);
   }
 
   CardLayout reorderCellInRow(String rowId, int oldIndex, int newIndex) =>
-      _mapSections((section) => section.copyWith(
-            rows: section.rows.map((row) {
-              if (row.id != rowId) return row;
-              if (oldIndex < 0 || oldIndex >= row.cells.length) return row;
-              var target = newIndex;
-              if (target > oldIndex) target -= 1;
-              target = target.clamp(0, row.cells.length - 1);
-              if (target == oldIndex) return row;
-              final cells = [...row.cells];
-              final moved = cells.removeAt(oldIndex);
-              cells.insert(target, moved);
-              return row.copyWith(cells: cells);
-            }).toList(),
-          ));
+      _mapSections(
+        (section) => section.copyWith(
+          rows: section.rows.map((row) {
+            if (row.id != rowId) return row;
+            if (oldIndex < 0 || oldIndex >= row.cells.length) return row;
+            var target = newIndex;
+            if (target > oldIndex) target -= 1;
+            target = target.clamp(0, row.cells.length - 1);
+            if (target == oldIndex) return row;
+            final cells = [...row.cells];
+            final moved = cells.removeAt(oldIndex);
+            cells.insert(target, moved);
+            return row.copyWith(cells: cells);
+          }).toList(),
+        ),
+      );
 
   CardLayout addSection(String newSectionId, {String? title}) {
     final clean = title?.trim();
-    return CardLayout(sections: [
-      ...sections,
-      LayoutSection(
-        id: newSectionId,
-        title: (clean == null || clean.isEmpty) ? null : clean,
-      ),
-    ]);
+    return CardLayout(
+      sections: [
+        ...sections,
+        LayoutSection(
+          id: newSectionId,
+          title: (clean == null || clean.isEmpty) ? null : clean,
+        ),
+      ],
+    );
   }
 
   CardLayout renameSection(String sectionId, String? title) {

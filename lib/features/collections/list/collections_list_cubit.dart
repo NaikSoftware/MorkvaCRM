@@ -45,7 +45,8 @@ class CollectionsListCubit extends Cubit<CollectionsListState> {
     );
   }
 
-  /// Creates a new, empty collection and returns its generated id.
+  /// Creates a new collection (one "Name" text field, the default view) and
+  /// returns its generated id.
   ///
   /// The caller typically navigates to `/collections/:id` with the returned id.
   /// The new collection appears in the list via the watch stream.
@@ -56,6 +57,9 @@ class CollectionsListCubit extends Cubit<CollectionsListState> {
   }) async {
     final id = _ids.collectionId();
     final trimmedDescription = description?.trim();
+    // Every new collection starts with a "Name" text field so its default
+    // view has a title column.
+    final fields = [TextFieldDefinition(id: _ids.fieldId(), name: 'Name')];
     final collection = Collection(
       id: id,
       name: name.trim(),
@@ -63,7 +67,9 @@ class CollectionsListCubit extends Cubit<CollectionsListState> {
           ? null
           : trimmedDescription,
       icon: icon,
-      fields: const [],
+      fields: fields,
+      layout: CardLayout.synthesize([for (final f in fields) f.id]),
+      views: [ViewDefinition.defaultFor(fields)],
     );
     await _repository.saveCollection(collection);
     return id;
@@ -71,8 +77,8 @@ class CollectionsListCubit extends Cubit<CollectionsListState> {
 
   /// Renames the collection [id], optionally updating its description.
   ///
-  /// Preserves the existing field schema. A no-op (other than surfacing) if the
-  /// collection is not currently known to the list.
+  /// Preserves the existing field schema, layout and views. A no-op (other
+  /// than surfacing) if the collection is not currently known to the list.
   Future<void> renameCollection(
     String id,
     String name, {
@@ -82,16 +88,14 @@ class CollectionsListCubit extends Cubit<CollectionsListState> {
     final existing = _findById(id);
     if (existing == null) return;
     final trimmedDescription = description?.trim();
-    // Build directly (not copyWith) so a cleared description / icon can become
-    // null — copyWith's `?? this.x` cannot null an existing value.
-    final updated = Collection(
-      id: existing.id,
+    // copyWith keeps layout and views; its sentinels let description / icon
+    // be cleared to null.
+    final updated = existing.copyWith(
       name: name.trim(),
       description: (trimmedDescription == null || trimmedDescription.isEmpty)
           ? null
           : trimmedDescription,
       icon: icon,
-      fields: existing.fields,
     );
     await _repository.saveCollection(updated);
   }

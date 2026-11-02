@@ -82,8 +82,10 @@ class CollectionEditorCubit extends Cubit<CollectionEditorState> {
 
   /// Loads the collection [collectionId] into an editable draft.
   ///
-  /// Emits [CollectionEditorNotFound] when the id does not resolve.
-  Future<void> load(String collectionId) async {
+  /// Emits [CollectionEditorNotFound] when the id does not resolve. When
+  /// [selectFieldId] names a field of the collection it starts selected (the
+  /// `?field=` deep link); an unknown id is ignored.
+  Future<void> load(String collectionId, {String? selectFieldId}) async {
     emit(const CollectionEditorLoading());
     final Collection? collection;
     try {
@@ -113,6 +115,9 @@ class CollectionEditorCubit extends Cubit<CollectionEditorState> {
         saved: collection,
         persistedFieldIds: collection.fields.map((f) => f.id).toSet(),
         availableCollections: available,
+        selectedFieldId: collection.fields.any((f) => f.id == selectFieldId)
+            ? selectFieldId
+            : null,
       ),
     );
   }
@@ -135,7 +140,9 @@ class CollectionEditorCubit extends Cubit<CollectionEditorState> {
     final name = _uniqueFieldName(ready.draft, editor.displayLabel);
     final field = editor.createDefault(id: fieldId, name: name);
     final fields = [...ready.draft.fields, field];
-    final layout = ready.draft.layout.reconcile(fields.map((f) => f.id).toList());
+    final layout = ready.draft.layout.reconcile(
+      fields.map((f) => f.id).toList(),
+    );
     emit(
       ready.copyWith(
         draft: ready.draft.copyWith(fields: fields, layout: layout),
@@ -219,7 +226,9 @@ class CollectionEditorCubit extends Cubit<CollectionEditorState> {
     final fields = ready.draft.fields.where((f) => f.id != fieldId).toList();
     if (fields.length == ready.draft.fields.length) return;
     final clearSelection = ready.selectedFieldId == fieldId;
-    final layout = ready.draft.layout.reconcile(fields.map((f) => f.id).toList());
+    final layout = ready.draft.layout.reconcile(
+      fields.map((f) => f.id).toList(),
+    );
     emit(
       ready.copyWith(
         draft: ready.draft.copyWith(fields: fields, layout: layout),
@@ -258,15 +267,12 @@ class CollectionEditorCubit extends Cubit<CollectionEditorState> {
     final ready = _ready;
     if (ready == null) return;
     final trimmedDescription = description?.trim();
-    // Build directly so a cleared description becomes null (copyWith can't null).
-    final draft = Collection(
-      id: ready.draft.id,
+    // copyWith keeps layout and views; its sentinel lets description clear.
+    final draft = ready.draft.copyWith(
       name: name,
       description: (trimmedDescription == null || trimmedDescription.isEmpty)
           ? null
           : trimmedDescription,
-      icon: ready.draft.icon,
-      fields: ready.draft.fields,
     );
     emit(ready.copyWith(draft: draft, clearError: true));
   }
@@ -277,7 +283,9 @@ class CollectionEditorCubit extends Cubit<CollectionEditorState> {
     final ready = _ready;
     if (ready == null) return;
     if (ready.draft.icon == icon) return;
-    emit(ready.copyWith(draft: ready.draft.copyWith(icon: icon), clearError: true));
+    emit(
+      ready.copyWith(draft: ready.draft.copyWith(icon: icon), clearError: true),
+    );
   }
 
   /// Selects [fieldId] (drives the properties panel), or clears selection if
@@ -302,9 +310,7 @@ class CollectionEditorCubit extends Cubit<CollectionEditorState> {
     if (sectionId == null) {
       emit(ready.copyWith(clearSectionSelection: true, clearSelection: true));
     } else {
-      emit(
-        ready.copyWith(selectedSectionId: sectionId, clearSelection: true),
-      );
+      emit(ready.copyWith(selectedSectionId: sectionId, clearSelection: true));
     }
   }
 
@@ -333,8 +339,10 @@ class CollectionEditorCubit extends Cubit<CollectionEditorState> {
     }
 
     emit(ready.copyWith(saving: true, clearError: true));
+    // New fields show up in every existing view until the user hides them.
+    final toSave = ready.draft.withNewFieldsInViews(ready.saved);
     try {
-      await _repository.saveCollection(ready.draft);
+      await _repository.saveCollection(toSave);
     } catch (error) {
       if (!isClosed) {
         final current = _ready;
@@ -352,7 +360,8 @@ class CollectionEditorCubit extends Cubit<CollectionEditorState> {
       emit(
         current.copyWith(
           saving: false,
-          saved: current.draft,
+          draft: current.draft.copyWith(views: toSave.views),
+          saved: toSave,
           persistedFieldIds: current.draft.fields.map((f) => f.id).toSet(),
           clearError: true,
         ),
@@ -442,10 +451,12 @@ class CollectionEditorCubit extends Cubit<CollectionEditorState> {
   void _emitLayout(CardLayout layout) {
     final ready = _ready;
     if (ready == null) return;
-    emit(ready.copyWith(
-      draft: ready.draft.copyWith(layout: layout),
-      clearError: true,
-    ));
+    emit(
+      ready.copyWith(
+        draft: ready.draft.copyWith(layout: layout),
+        clearError: true,
+      ),
+    );
   }
 
   /// Sets the span of cell [fieldId] within [rowId] (neighbour absorbs overflow).
@@ -465,7 +476,12 @@ class CollectionEditorCubit extends Cubit<CollectionEditorState> {
     final ready = _ready;
     if (ready == null) return;
     _emitLayout(
-      ready.draft.layout.moveCellToNewRow(fieldId, sectionId, rowIndex, _ids.rowId()),
+      ready.draft.layout.moveCellToNewRow(
+        fieldId,
+        sectionId,
+        rowIndex,
+        _ids.rowId(),
+      ),
     );
   }
 
@@ -502,7 +518,9 @@ class CollectionEditorCubit extends Cubit<CollectionEditorState> {
   void moveRowToSection(String rowId, String targetSectionId, int index) {
     final ready = _ready;
     if (ready == null) return;
-    _emitLayout(ready.draft.layout.moveRowToSection(rowId, targetSectionId, index));
+    _emitLayout(
+      ready.draft.layout.moveRowToSection(rowId, targetSectionId, index),
+    );
   }
 
   void deleteSection(String sectionId) {

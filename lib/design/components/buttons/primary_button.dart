@@ -36,9 +36,7 @@ class PrimaryButton extends StatelessWidget {
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
 
     final fg = scheme.onPrimary;
-    final bg = enabled
-        ? scheme.primary
-        : scheme.primary.withValues(alpha: 0.38);
+    final bg = scheme.primary;
 
     final content = AnimatedSize(
       duration: reduceMotion ? MotionDurations.none : MotionDurations.fast,
@@ -72,11 +70,16 @@ class PrimaryButton extends StatelessWidget {
       onPressed: enabled ? onPressed : null,
       semanticLabel: label,
       borderRadius: Radii.mdAll,
-      child: Container(
-        height: 44,
-        padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
-        decoration: BoxDecoration(color: bg, borderRadius: Radii.mdAll),
-        child: content,
+      // Disabled: the whole button at 38 % (fill and label), not just the
+      // fill, so it never reads as enabled. Loading stays fully opaque.
+      child: Opacity(
+        opacity: onPressed == null && !loading ? 0.38 : 1,
+        child: Container(
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
+          decoration: BoxDecoration(color: bg, borderRadius: Radii.mdAll),
+          child: content,
+        ),
       ),
     );
   }

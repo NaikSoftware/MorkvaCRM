@@ -21,6 +21,9 @@ void main() {
         TextFieldDefinition(id: 'body', name: 'Body', multiline: true),
       ],
       layout: CardLayout.synthesize(['title', 'body']),
+      views: const [
+        ViewDefinition(id: 'all', name: 'All', fieldIds: ['title', 'body']),
+      ],
     );
 
     test('collection round-trips through JSON identically', () {

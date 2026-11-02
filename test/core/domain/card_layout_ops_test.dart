@@ -1,14 +1,22 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
 
-CardLayout twoFieldRow() => CardLayout(sections: [
-      LayoutSection(id: 's1', rows: [
-        LayoutRow(id: 'r1', cells: [
-          LayoutCell(fieldId: 'a', span: 6),
-          LayoutCell(fieldId: 'b', span: 6),
-        ]),
-      ]),
-    ]);
+CardLayout twoFieldRow() => CardLayout(
+  sections: [
+    LayoutSection(
+      id: 's1',
+      rows: [
+        LayoutRow(
+          id: 'r1',
+          cells: [
+            LayoutCell(fieldId: 'a', span: 6),
+            LayoutCell(fieldId: 'b', span: 6),
+          ],
+        ),
+      ],
+    ),
+  ],
+);
 
 void main() {
   group('setCellSpan', () {
@@ -47,12 +55,23 @@ void main() {
     });
 
     test('moveCellToRow normalizes the target row to ≤ 12', () {
-      final layout = CardLayout(sections: [
-        LayoutSection(id: 's1', rows: [
-          LayoutRow(id: 'r1', cells: [LayoutCell(fieldId: 'a', span: 12)]),
-          LayoutRow(id: 'r2', cells: [LayoutCell(fieldId: 'b', span: 12)]),
-        ]),
-      ]);
+      final layout = CardLayout(
+        sections: [
+          LayoutSection(
+            id: 's1',
+            rows: [
+              LayoutRow(
+                id: 'r1',
+                cells: [LayoutCell(fieldId: 'a', span: 12)],
+              ),
+              LayoutRow(
+                id: 'r2',
+                cells: [LayoutCell(fieldId: 'b', span: 12)],
+              ),
+            ],
+          ),
+        ],
+      );
       final out = layout.moveCellToRow('b', 'r1', 1);
       final r1 = out.sections.single.rows.firstWhere((r) => r.id == 'r1');
       expect(r1.cells.map((c) => c.fieldId), ['a', 'b']);
@@ -63,12 +82,23 @@ void main() {
 
     test('moveCellToRow onto the cell\'s own single-cell row is a no-op '
         '(field is preserved, not dropped)', () {
-      final layout = CardLayout(sections: [
-        LayoutSection(id: 's1', rows: [
-          LayoutRow(id: 'r1', cells: [LayoutCell(fieldId: 'a', span: 12)]),
-          LayoutRow(id: 'r2', cells: [LayoutCell(fieldId: 'b', span: 12)]),
-        ]),
-      ]);
+      final layout = CardLayout(
+        sections: [
+          LayoutSection(
+            id: 's1',
+            rows: [
+              LayoutRow(
+                id: 'r1',
+                cells: [LayoutCell(fieldId: 'a', span: 12)],
+              ),
+              LayoutRow(
+                id: 'r2',
+                cells: [LayoutCell(fieldId: 'b', span: 12)],
+              ),
+            ],
+          ),
+        ],
+      );
       // Dropping 'a' onto r1 (where it is already the sole cell) must not lose it.
       final out = layout.moveCellToRow('a', 'r1', 1);
       expect(out.fieldIds.toSet(), {'a', 'b'});
@@ -85,7 +115,9 @@ void main() {
     });
 
     test('renameSection blanks to null', () {
-      final out = twoFieldRow().addSection('s2', title: 'X').renameSection('s2', '  ');
+      final out = twoFieldRow()
+          .addSection('s2', title: 'X')
+          .renameSection('s2', '  ');
       expect(out.sections.last.title, isNull);
     });
 
@@ -95,7 +127,9 @@ void main() {
     });
 
     test('deleteSection re-homes rows into the previous section', () {
-      final layout = twoFieldRow().addSection('s2').moveRowToSection('r1', 's2', 0);
+      final layout = twoFieldRow()
+          .addSection('s2')
+          .moveRowToSection('r1', 's2', 0);
       // r1 now lives in s2; deleting s2 sends it back to s1
       final out = layout.deleteSection('s2');
       expect(out.sections.map((s) => s.id), ['s1']);

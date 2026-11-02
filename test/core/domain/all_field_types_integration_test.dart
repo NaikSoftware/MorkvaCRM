@@ -91,6 +91,23 @@ void main() {
       'f_auto',
       'f_calc',
     ]),
+    views: const [
+      ViewDefinition(id: 'all', name: 'All', fieldIds: ['f_text', 'f_number']),
+      ViewDefinition(
+        id: 'board',
+        name: 'Board',
+        mode: ViewModeIds.board,
+        layoutFieldId: 'f_single',
+        filters: [
+          ViewFilter(
+            fieldId: 'f_date',
+            op: FilterOp.after,
+            operand: '2026-01-01',
+          ),
+        ],
+        sort: ViewSort(fieldId: ViewSort.createdAt),
+      ),
+    ],
   );
 
   final ts = DateTime.utc(2026, 6, 16, 9, 0, 0, 0, 42);

@@ -47,6 +47,18 @@ void main() {
       ),
     ],
     layout: CardLayout.synthesize(['name', 'age', 'vip', 'joined', 'tags']),
+    views: const [
+      ViewDefinition(
+        id: 'all',
+        name: 'All',
+        fieldIds: ['name', 'age'],
+        filters: [
+          ViewFilter(fieldId: 'tags', op: FilterOp.anyOf, operand: ['a']),
+        ],
+        sort: ViewSort(fieldId: 'age', ascending: false),
+        manualOrder: ['obj-1'],
+      ),
+    ],
   );
 
   MorkvaObject buildObject(Collection schema, {String id = 'obj-1'}) =>
@@ -194,6 +206,71 @@ void main() {
       );
     });
 
+    test('saving an object decoded with an older schema keeps the values of '
+        'fields added since', () async {
+      final oldSchema = buildCollection();
+      final newSchema = oldSchema.copyWith(
+        fields: [
+          ...oldSchema.fields,
+          const TextFieldDefinition(id: 'city', name: 'City'),
+        ],
+      );
+      // Another client (new schema) stored a city.
+      await repository.saveObject(
+        MorkvaObject.create(
+          id: 'obj-1',
+          collection: newSchema,
+          createdAt: DateTime.utc(2026, 1, 1),
+          updatedAt: DateTime.utc(2026, 1, 1),
+          values: {
+            'name': const TextFieldValue('Ada'),
+            'city': const TextFieldValue('Kyiv'),
+          },
+        ),
+        schema: newSchema,
+      );
+      // This client decoded it with the old schema, edits and saves it
+      // against the current schema.
+      final stale = (await repository.getObject(
+        'contacts',
+        'obj-1',
+        schema: oldSchema,
+      ))!;
+      expect(stale.values.containsKey('city'), isFalse);
+      await repository.saveObject(
+        stale.copyWith(
+          values: {...stale.values, 'name': const TextFieldValue('Grace')},
+        ),
+        schema: newSchema,
+      );
+
+      final saved = (await repository.getObject(
+        'contacts',
+        'obj-1',
+        schema: newSchema,
+      ))!;
+      expect(saved['name'], const TextFieldValue('Grace'));
+      expect(saved['city'], const TextFieldValue('Kyiv'));
+    });
+
+    test('a present empty value still clears the stored one', () async {
+      final schema = buildCollection();
+      final object = buildObject(schema);
+      await repository.saveObject(object, schema: schema);
+      await repository.saveObject(
+        object.copyWith(
+          values: {...object.values, 'age': const NumberFieldValue(null)},
+        ),
+        schema: schema,
+      );
+      final saved = await repository.getObject(
+        schema.id,
+        object.id,
+        schema: schema,
+      );
+      expect(saved!['age'], const NumberFieldValue(null));
+    });
+
     test('rev increments 0 → 1 → 2 across saves', () async {
       final schema = buildCollection();
       final object = buildObject(schema);
@@ -303,6 +380,66 @@ void main() {
         expect(syncStatus.state, isNot(isA<SyncConflict>()));
       },
     );
+  });
+
+  group('listener release', () {
+    test('a save settles to synced even with no listener left', () async {
+      final schema = buildCollection();
+      final sub = repository
+          .watchObjects(schema.id, schema: schema)
+          .listen((_) {});
+      await Future<void>.delayed(Duration.zero);
+      // The page goes away before the write is acknowledged.
+      final save = repository.saveObject(buildObject(schema), schema: schema);
+      await sub.cancel();
+      expect(repository.activeListenerCount, 0);
+      await save;
+      expect(syncStatus.state, const SyncSynced());
+    });
+
+    test('a watch holds a Firestore listener only while listened to', () async {
+      final schema = buildCollection();
+      final objects = repository.watchObjects(schema.id, schema: schema);
+      final collections = repository.watchCollections();
+      expect(repository.activeListenerCount, 0);
+
+      final a = objects.listen((_) {});
+      final b = collections.listen((_) {});
+      expect(repository.activeListenerCount, 2);
+
+      await a.cancel();
+      await b.cancel();
+      expect(repository.activeListenerCount, 0);
+    });
+
+    test('re-watching after cancel does not grow the listener count', () async {
+      final schema = buildCollection();
+      for (var i = 0; i < 3; i++) {
+        final sub = repository
+            .watchObjects(schema.id, schema: schema)
+            .listen((_) {});
+        await Future<void>.delayed(Duration.zero);
+        await sub.cancel();
+      }
+      final live = repository
+          .watchObjects(schema.id, schema: schema)
+          .listen((_) {});
+      expect(repository.activeListenerCount, 1);
+      expect(repository.trackedSubjectCount, 1);
+      await live.cancel();
+      expect(repository.trackedSubjectCount, 0);
+    });
+
+    test('saveViews replaces only the views', () async {
+      final schema = buildCollection();
+      await repository.saveCollection(schema);
+      const view = ViewDefinition(id: 'v1', name: 'Mine', fieldIds: []);
+      await repository.saveViews(schema.id, const [view]);
+      final loaded = (await repository.getCollection(schema.id))!;
+      expect(loaded.views.single.name, 'Mine');
+      expect(loaded.fields, schema.fields);
+      expect(loaded.layout, schema.layout);
+    });
   });
 
   group('lifecycle', () {

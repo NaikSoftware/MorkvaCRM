@@ -130,7 +130,7 @@ class _AdaptiveDraggable<T extends Object> extends StatelessWidget {
 /// - Per-group "+ Add field" and global "+ Add group" buttons.
 ///
 /// The canvas always uses the 12-column grid; no narrow stacking.
-/// A [SingleChildScrollView] with minWidth 380 keeps it usable when the pane is
+/// A [SingleChildScrollView] with minWidth 280 keeps it usable when the pane is
 /// dragged narrow.
 class LayoutCanvas extends StatelessWidget {
   const LayoutCanvas({
@@ -169,59 +169,65 @@ class LayoutCanvas extends StatelessWidget {
           borderRadius: Radii.lgAll,
         ),
         padding: const EdgeInsets.all(Spacing.md),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final contentWidth = constraints.maxWidth.isFinite
-                ? constraints.maxWidth.clamp(380.0, double.infinity)
-                : 380.0;
-            return SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: SizedBox(
-                width: contentWidth,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Collection title
-                    Text(
-                      collection.name.trim().isEmpty
-                          ? 'Untitled collection'
-                          : collection.name,
-                      style: Theme.of(context).textTheme.titleMedium,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final contentWidth = constraints.maxWidth.isFinite
+                    ? constraints.maxWidth.clamp(280.0, double.infinity)
+                    : 280.0;
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: SizedBox(
+                    width: contentWidth,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Collection title
+                        Text(
+                          collection.name.trim().isEmpty
+                              ? 'Untitled collection'
+                              : collection.name,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: Spacing.md),
+                        // Sections
+                        for (var i = 0; i < sectionCount; i++)
+                          _SectionView(
+                            section: collection.layout.sections[i],
+                            sectionIndex: i,
+                            registry: registry,
+                            collection: collection,
+                            showDelete: sectionCount > 1,
+                            selectedFieldId: selectedFieldId,
+                            selectedSectionId: selectedSectionId,
+                          ),
+                        // Trailing between-section drop target for reordering
+                        if (sectionCount > 1)
+                          _BetweenSectionDropTarget(sectionIndex: sectionCount),
+                        // Add group button
+                        const SizedBox(height: Spacing.xs),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: TextButton.icon(
+                            key: const Key('add_section'),
+                            onPressed: () => context
+                                .read<CollectionEditorCubit>()
+                                .addSection(title: 'New group'),
+                            icon: const Icon(Icons.add, size: 18),
+                            label: const Text('Add group'),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: Spacing.md),
-                    // Sections
-                    for (var i = 0; i < sectionCount; i++)
-                      _SectionView(
-                        section: collection.layout.sections[i],
-                        sectionIndex: i,
-                        registry: registry,
-                        collection: collection,
-                        showDelete: sectionCount > 1,
-                        selectedFieldId: selectedFieldId,
-                        selectedSectionId: selectedSectionId,
-                      ),
-                    // Trailing between-section drop target for reordering
-                    if (sectionCount > 1)
-                      _BetweenSectionDropTarget(sectionIndex: sectionCount),
-                    // Add group button
-                    const SizedBox(height: Spacing.xs),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton.icon(
-                        key: const Key('add_section'),
-                        onPressed: () => context
-                            .read<CollectionEditorCubit>()
-                            .addSection(title: 'New group'),
-                        icon: const Icon(Icons.add, size: 18),
-                        label: const Text('Add group'),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
+                  ),
+                );
+              },
+            ),
+          ],
         ),
       ),
     );
@@ -812,69 +818,69 @@ class _RowView extends StatelessWidget {
         // the full row height rather than sitting shorter than the cards.
         return IntrinsicHeight(
           child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Row gutter grip (hover-revealed, draggable for row-move)
-            _RowGutterGrip(row: row),
-            // Cells
-            for (var i = 0; i < row.cells.length; i++) ...[
-              if (i > 0) const SizedBox(width: Spacing.sm),
-              Expanded(
-                flex: row.cells[i].span,
-                // The resize handle is a SIBLING of the draggable cell, not a
-                // child. Kept outside _DraggableCell so a horizontal drag on the
-                // right edge wins its own gesture arena instead of being
-                // swallowed by the cell's immediate Draggable. Every cell gets a
-                // handle — including a lone full-width field, which can be
-                // dragged narrower to free columns for a neighbour.
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    _DraggableCell(
-                      fieldId: row.cells[i].fieldId,
-                      child: _LayoutCellTile(
-                        field: collection.fieldById(row.cells[i].fieldId),
-                        registry: registry,
-                        isSelected: selectedFieldId == row.cells[i].fieldId,
-                      ),
-                    ),
-                    Positioned(
-                      top: 0,
-                      bottom: 0,
-                      right: -Spacing.xs,
-                      width: 20,
-                      child: _ResizeHandle(
-                        key: Key('resize_${row.id}_${row.cells[i].fieldId}'),
-                        rowId: row.id,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Row gutter grip (hover-revealed, draggable for row-move)
+              _RowGutterGrip(row: row),
+              // Cells
+              for (var i = 0; i < row.cells.length; i++) ...[
+                if (i > 0) const SizedBox(width: Spacing.sm),
+                Expanded(
+                  flex: row.cells[i].span,
+                  // The resize handle is a SIBLING of the draggable cell, not a
+                  // child. Kept outside _DraggableCell so a horizontal drag on the
+                  // right edge wins its own gesture arena instead of being
+                  // swallowed by the cell's immediate Draggable. Every cell gets a
+                  // handle — including a lone full-width field, which can be
+                  // dragged narrower to free columns for a neighbour.
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      _DraggableCell(
                         fieldId: row.cells[i].fieldId,
-                        currentSpan: row.cells[i].span,
-                        columnWidth: columnWidth,
+                        child: _LayoutCellTile(
+                          field: collection.fieldById(row.cells[i].fieldId),
+                          registry: registry,
+                          isSelected: selectedFieldId == row.cells[i].fieldId,
+                        ),
                       ),
-                    ),
-                  ],
+                      Positioned(
+                        top: 0,
+                        bottom: 0,
+                        right: -Spacing.xs,
+                        width: 20,
+                        child: _ResizeHandle(
+                          key: Key('resize_${row.id}_${row.cells[i].fieldId}'),
+                          rowId: row.id,
+                          fieldId: row.cells[i].fieldId,
+                          currentSpan: row.cells[i].span,
+                          columnWidth: columnWidth,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-            // Trailing slot. When the row has unused columns it expands to fill
-            // them, so shrinking a cell reveals a real, droppable gap; when the
-            // row is full it stays a thin slot.
-            if (freeColumns > 0)
-              Expanded(
-                flex: freeColumns,
-                child: _RowDropTarget(
+              ],
+              // Trailing slot. When the row has unused columns it expands to fill
+              // them, so shrinking a cell reveals a real, droppable gap; when the
+              // row is full it stays a thin slot.
+              if (freeColumns > 0)
+                Expanded(
+                  flex: freeColumns,
+                  child: _RowDropTarget(
+                    key: Key('rowdrop_${row.id}'),
+                    rowId: row.id,
+                    cellCount: row.cells.length,
+                    fill: true,
+                  ),
+                )
+              else
+                _RowDropTarget(
                   key: Key('rowdrop_${row.id}'),
                   rowId: row.id,
                   cellCount: row.cells.length,
-                  fill: true,
                 ),
-              )
-            else
-              _RowDropTarget(
-                key: Key('rowdrop_${row.id}'),
-                rowId: row.id,
-                cellCount: row.cells.length,
-              ),
-          ],
+            ],
           ),
         );
       },

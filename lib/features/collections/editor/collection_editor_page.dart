@@ -5,13 +5,14 @@ import 'package:go_router/go_router.dart';
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
 import '../field_editors/field_editor.dart';
+import 'first_run_fields.dart';
 import 'layout_canvas.dart';
 import 'collection_editor_cubit.dart';
 import 'collection_editor_state.dart';
 import 'field_config_panel.dart';
 import 'section_config_panel.dart';
 
-/// Host for `/collections/:id` — the full schema editor.
+/// Host for `/collections/:id/edit` — the full schema editor.
 ///
 /// Renders the [CollectionEditorCubit] over its three states (loading, a
 /// friendly not-found, and the ready editor). The ready editor frames an
@@ -135,7 +136,7 @@ class _ReadyEditor extends StatelessWidget {
           final ok = await cubit.save();
           if (!ok) return; // validation/save failed → stay, snackbar shown.
         }
-        router.go('/');
+        router.go('/collections/${state.draft.id}');
       },
       child: Scaffold(
         backgroundColor: scheme.surface,
@@ -230,8 +231,9 @@ class _EditorHeaderState extends State<_EditorHeader> {
   Future<void> _back() async {
     // Defer to PopScope's leave guard via Navigator/router.
     final router = GoRouter.of(context);
+    final workPath = '/collections/${widget.state.draft.id}';
     if (!widget.state.dirty) {
-      router.go('/');
+      router.go(workPath);
       return;
     }
     final action = await _confirmLeave(context);
@@ -240,7 +242,18 @@ class _EditorHeaderState extends State<_EditorHeader> {
       final ok = await context.read<CollectionEditorCubit>().save();
       if (!ok) return;
     }
-    router.go('/');
+    router.go(workPath);
+  }
+
+  /// Done: saves a dirty draft, then returns to the Work page (stays put if
+  /// the save fails — its snackbar explains why).
+  Future<void> _done() async {
+    final router = GoRouter.of(context);
+    if (widget.state.dirty) {
+      final ok = await context.read<CollectionEditorCubit>().save();
+      if (!ok) return;
+    }
+    router.go('/collections/${widget.state.draft.id}');
   }
 
   Future<void> _pickIcon() async {
@@ -308,6 +321,7 @@ class _EditorHeaderState extends State<_EditorHeader> {
     final state = widget.state;
     final cubit = context.read<CollectionEditorCubit>();
     final description = state.draft.description;
+    final wide = MediaQuery.sizeOf(context).width >= 600;
 
     return Container(
       width: double.infinity,
@@ -316,13 +330,14 @@ class _EditorHeaderState extends State<_EditorHeader> {
         vertical: Spacing.sm,
       ),
       decoration: BoxDecoration(
+        color: scheme.surfaceContainer,
         border: Border(bottom: BorderSide(color: scheme.outlineVariant)),
       ),
       child: Row(
         children: [
           IconActionButton(
-            icon: Icons.arrow_back,
-            tooltip: 'Back to collections',
+            icon: Icons.close,
+            tooltip: 'Close',
             onPressed: _back,
           ),
           const SizedBox(width: Spacing.xs),
@@ -337,40 +352,73 @@ class _EditorHeaderState extends State<_EditorHeader> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _NameEditAffordance(
-                  focused: _nameFocus.hasFocus,
-                  hovered: _nameHovered,
-                  onHover: (value) => setState(() => _nameHovered = value),
-                  field: TextField(
-                    controller: _nameController,
-                    focusNode: _nameFocus,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                    cursorColor: scheme.primary,
-                    textInputAction: TextInputAction.done,
-                    onChanged: (value) => cubit.renameCollection(
-                      value,
-                      description: state.draft.description,
-                    ),
-                    decoration: InputDecoration(
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
-                      // Opt out of the global filled/rounded input theme so the
-                      // title reads as a heading, not an input chip — our own
-                      // hover/focus underline is the only affordance.
-                      filled: false,
-                      fillColor: Colors.transparent,
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      hintText: 'Collection name',
-                      hintStyle: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: scheme.onSurfaceVariant,
+                Row(
+                  key: const Key('customizing-cue'),
+                  // Sit the cue on the name's text line, above its 3 px underline gap.
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 5),
+                      child: Icon(
+                        Icons.tune,
+                        size: 20,
+                        color: scheme.primary,
+                        // The visible "Customizing · " text names it when wide.
+                        semanticLabel: wide ? null : 'Customizing',
                       ),
                     ),
-                  ),
+                    const SizedBox(width: Spacing.xs),
+                    // Below 600 px the prefix collapses to just the icon so the
+                    // name keeps its room next to the glyph and Save control.
+                    if (wide)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 3),
+                        child: Text(
+                          'Customizing · ',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    Flexible(
+                      child: _NameEditAffordance(
+                        focused: _nameFocus.hasFocus,
+                        hovered: _nameHovered,
+                        onHover: (value) =>
+                            setState(() => _nameHovered = value),
+                        field: TextField(
+                          controller: _nameController,
+                          focusNode: _nameFocus,
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                          cursorColor: scheme.primary,
+                          textInputAction: TextInputAction.done,
+                          onChanged: (value) => cubit.renameCollection(
+                            value,
+                            description: state.draft.description,
+                          ),
+                          decoration: InputDecoration(
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
+                            // Opt out of the global filled/rounded input theme so the
+                            // title reads as a heading, not an input chip — our own
+                            // hover/focus underline is the only affordance.
+                            filled: false,
+                            fillColor: Colors.transparent,
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            hintText: 'Collection name',
+                            hintStyle: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: Spacing.xxs),
                 _DescriptionLine(
@@ -381,7 +429,9 @@ class _EditorHeaderState extends State<_EditorHeader> {
             ),
           ),
           const SizedBox(width: Spacing.md),
-          _SaveControl(state: state),
+          _SaveControl(state: state, compact: !wide),
+          const SizedBox(width: Spacing.xs),
+          PrimaryButton(label: 'Done', loading: state.saving, onPressed: _done),
         ],
       ),
     );
@@ -498,14 +548,26 @@ class _DescriptionLine extends StatelessWidget {
 /// The dirty-aware save control. When the draft is clean it reads as a quiet
 /// "Saved" marker; once dirty it becomes the prominent carrot Save button.
 class _SaveControl extends StatelessWidget {
-  const _SaveControl({required this.state});
+  const _SaveControl({required this.state, required this.compact});
 
   final CollectionEditorReady state;
+
+  /// Phone header: no "Saved" marker, an icon-only Save.
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+
+    if (compact) {
+      if (!state.dirty || state.saving) return const SizedBox.shrink();
+      return IconActionButton(
+        icon: Icons.save_outlined,
+        tooltip: 'Save',
+        onPressed: () => context.read<CollectionEditorCubit>().save(),
+      );
+    }
 
     if (!state.dirty && !state.saving) {
       return Row(
@@ -523,7 +585,8 @@ class _SaveControl extends StatelessWidget {
       );
     }
 
-    return PrimaryButton(
+    // Secondary: Done is the header's one primary action.
+    return SecondaryButton(
       label: 'Save',
       icon: Icons.save_outlined,
       loading: state.saving,
@@ -535,6 +598,32 @@ class _SaveControl extends StatelessWidget {
 // ---------------------------------------------------------------------------
 // Layouts
 // ---------------------------------------------------------------------------
+
+/// "Object form" caption above the layout canvas: the stored card layout every
+/// view shares, named so it is never confused with a view's "Setup card".
+class _ObjectFormHeading extends StatelessWidget {
+  const _ObjectFormHeading();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Spacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Object form', style: theme.textTheme.titleMedium),
+          Text(
+            'How a card looks when opened',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 /// The docked 2-pane layout for wide screens.
 ///
@@ -560,7 +649,14 @@ class _TwoPaneLayout extends StatelessWidget {
       panes: [
         SingleChildScrollView(
           padding: const EdgeInsets.all(Spacing.lg),
-          child: LayoutCanvas(collection: state.draft, registry: registry),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              FirstRunSection(collection: state.draft, registry: registry),
+              const _ObjectFormHeading(),
+              LayoutCanvas(collection: state.draft, registry: registry),
+            ],
+          ),
         ),
         _ConfigRegion(
           state: state,
@@ -832,9 +928,19 @@ class _NarrowLayoutState extends State<_NarrowLayout> {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(Spacing.lg),
-      child: LayoutCanvas(
-        collection: widget.state.draft,
-        registry: widget.registry,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          FirstRunSection(
+            collection: widget.state.draft,
+            registry: widget.registry,
+          ),
+          const _ObjectFormHeading(),
+          LayoutCanvas(
+            collection: widget.state.draft,
+            registry: widget.registry,
+          ),
+        ],
       ),
     );
   }
@@ -919,10 +1025,12 @@ class _SheetSaveStatus extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
 
+    final primaryText =
+        theme.extension<MorkvaSemanticColors>()?.primaryText ?? scheme.primary;
     final (IconData icon, String label, Color color) = state.saving
         ? (Icons.sync, 'Saving…', scheme.onSurfaceVariant)
         : state.dirty
-        ? (Icons.edit_outlined, 'Unsaved changes', scheme.primary)
+        ? (Icons.edit_outlined, 'Unsaved changes', primaryText)
         : (Icons.check_circle_outline, 'Saved', scheme.secondary);
 
     return Row(

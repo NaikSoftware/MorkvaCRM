@@ -9,11 +9,14 @@ import '../../api/api.dart';
 import '../../features/auth/session_loading_page.dart';
 import '../../features/auth/sign_in_page.dart';
 import '../../features/collections/collections.dart';
+import '../../features/views/views.dart';
 import '../shell/app_shell_scaffold.dart';
 
 /// The app's route table.
 ///
-/// Three top-level routes: the auth-gated app shell at `/`, the public sign-in
+/// Three top-level routes: the auth-gated app shell at `/` (a collection's
+/// Work page `/collections/:id` and its editor `/collections/:id/edit` nest
+/// under it), the public sign-in
 /// screen at `/sign-in`, and a neutral `/loading` interstitial. Routing is
 /// gated on two signals merged into [GoRouter.refreshListenable]: the
 /// [authCubit] auth state and [sessionReady] (the [DataRepository] has been
@@ -29,6 +32,7 @@ GoRouter createAppRouter(
   // open-for-extension (mirrors the domain FieldTypeRegistry); shared by the
   // schema editor page and its cubit.
   final fieldEditorRegistry = defaultFieldEditorRegistry();
+  final viewModes = defaultViewModeRegistry();
 
   return GoRouter(
     initialLocation: '/',
@@ -70,26 +74,47 @@ GoRouter createAppRouter(
       }
     },
     routes: [
-      GoRoute(path: '/', builder: (context, state) => const AppShellScaffold()),
-      // Full-screen schema editor for one collection. A focused mode outside
-      // the shell nav. Same auth+session gate as `/` (the redirect above holds
-      // any protected location on `/loading` until the workspace is ready), so
-      // the repository is initialized before the cubit loads. The editor cubit
-      // loads a one-shot snapshot of the workspace collections itself (for the
-      // reference picker's target choices), so no live list stream is needed
-      // here.
       GoRoute(
-        path: '/collections/:id',
-        builder: (context, state) {
-          final id = state.pathParameters['id']!;
-          final repository = context.read<DataRepository>();
-          return BlocProvider(
-            create: (_) =>
-                CollectionEditorCubit(repository, fieldEditorRegistry)
-                  ..load(id),
-            child: CollectionEditorPage(registry: fieldEditorRegistry),
-          );
-        },
+        path: '/',
+        builder: (context, state) => const AppShellScaffold(),
+        routes: [
+          // A collection's Work surface. Nested under `/` so back returns
+          // Home; on wide screens the page draws the shell rail itself. Same
+          // auth+session gate as `/` (the redirect above holds any protected
+          // location on `/loading` until the workspace is ready), so the
+          // repository is initialized before the cubit subscribes.
+          GoRoute(
+            path: 'collections/:id',
+            builder: (context, state) {
+              final id = state.pathParameters['id']!;
+              return BlocProvider(
+                create: (context) =>
+                    CollectionViewsCubit(context.read<DataRepository>(), id)
+                      ..initialize(),
+                child: CollectionViewsPage(modes: viewModes),
+              );
+            },
+            routes: [
+              // Build: the full-screen schema editor, a focused mode outside
+              // the shell nav. Its cubit loads a one-shot snapshot of the
+              // workspace collections itself (for the reference picker).
+              GoRoute(
+                path: 'edit',
+                builder: (context, state) {
+                  final id = state.pathParameters['id']!;
+                  final repository = context.read<DataRepository>();
+                  final fieldId = state.uri.queryParameters['field'];
+                  return BlocProvider(
+                    create: (_) =>
+                        CollectionEditorCubit(repository, fieldEditorRegistry)
+                          ..load(id, selectFieldId: fieldId),
+                    child: CollectionEditorPage(registry: fieldEditorRegistry),
+                  );
+                },
+              ),
+            ],
+          ),
+        ],
       ),
       GoRoute(
         path: '/sign-in',

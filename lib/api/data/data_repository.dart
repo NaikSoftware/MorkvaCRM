@@ -27,6 +27,11 @@ abstract interface class DataRepository {
   /// Creates or updates [collection].
   Future<void> saveCollection(Collection collection);
 
+  /// Replaces only the saved views of the existing collection [collectionId],
+  /// leaving its fields and layout as stored (so a client with an older copy
+  /// of the schema cannot revert them).
+  Future<void> saveViews(String collectionId, List<ViewDefinition> views);
+
   /// Deletes the collection identified by [collectionId].
   Future<void> deleteCollection(String collectionId);
 

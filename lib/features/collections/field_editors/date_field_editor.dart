@@ -121,6 +121,7 @@ class _DateBoundRow extends StatelessWidget {
                 initialDate: value ?? DateTime.now().toUtc(),
                 firstDate: DateTime.utc(1900),
                 lastDate: DateTime.utc(2100),
+                builder: (_, child) => MondayFirst(child: child!),
               );
               if (picked != null) {
                 onChanged(DateTime.utc(picked.year, picked.month, picked.day));

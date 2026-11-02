@@ -1,0 +1,375 @@
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:morkva_crm/core/domain/domain.dart';
+import 'package:morkva_crm/design/design.dart';
+import 'package:morkva_crm/features/views/views.dart';
+
+import 'views_fixtures.dart';
+import 'work_page_harness.dart';
+
+const _grouped = ViewDefinition(
+  id: 'list',
+  name: 'Stages',
+  mode: ViewModeIds.list,
+  layoutFieldId: 'stage',
+  fieldIds: ['name', 'amount'],
+);
+
+Collection _with(ViewDefinition v) => deals.copyWith(views: [v]);
+
+double _y(WidgetTester t, String text) => t.getCenter(find.text(text)).dy;
+
+/// Half the height of the row (or section header) showing [text].
+double _half(WidgetTester t, String text) {
+  final card = find.ancestor(
+    of: find.text(text),
+    matching: find.byType(ObjectCard),
+  );
+  return card.evaluate().isEmpty
+      ? ViewList.headerHeight / 2
+      : t.getSize(card.first).height / 2;
+}
+
+/// Long-press [from], drag it onto [over] (into its lower half, or its upper
+/// half with [up]) and drop it.
+Future<void> _drag(
+  WidgetTester t,
+  String from,
+  String over, {
+  bool up = false,
+}) async {
+  final g = await t.startGesture(t.getCenter(find.text(from)));
+  await t.pump(const Duration(milliseconds: 700));
+  await g.moveBy(Offset(0, up ? -8 : 8));
+  await t.pump();
+  final dy = _half(t, over) * (up ? -3 : 0.6);
+  await g.moveTo(t.getCenter(find.text(over)) + Offset(0, dy));
+  await t.pump();
+  await g.up();
+  await t.pumpAndSettle();
+}
+
+List<String> _ids(Iterable<MorkvaObject> os) => [for (final o in os) o.id];
+
+void main() {
+  test('accepts groupable fields only; needs none', () {
+    const mode = ListMode();
+    expect(mode.needsLayoutField, isFalse);
+    expect(mode.acceptsLayoutField(stageField), isTrue);
+    expect(mode.acceptsLayoutField(companyField), isTrue);
+    expect(mode.acceptsLayoutField(dueField), isFalse);
+    expect(defaultViewModeRegistry().byId(ViewModeIds.list), isA<ListMode>());
+  });
+
+  testWidgets('sections with counts, rows and per-section add', (t) async {
+    await pumpWorkPage(
+      t,
+      repository: workRepository(collection: _with(_grouped)),
+    );
+    for (final h in ['LEAD', 'WON', 'LOST', 'NO STAGE']) {
+      expect(find.text(h), findsOneWidget);
+    }
+    expect(find.text('Group: Stage'), findsOneWidget);
+    expect(_y(t, 'Acme renewal'), lessThan(_y(t, 'WON')));
+    expect(_y(t, 'Globex pilot'), greaterThan(_y(t, 'WON')));
+    expect(find.widgetWithText(InkWell, 'New deal'), findsNWidgets(4));
+  });
+
+  testWidgets('no layout field: one flat list, group chip says None', (
+    t,
+  ) async {
+    const flat = ViewDefinition(
+      id: 'list',
+      name: 'Flat',
+      mode: ViewModeIds.list,
+      fieldIds: ['name'],
+    );
+    await pumpWorkPage(t, repository: workRepository(collection: _with(flat)));
+    expect(find.text('Group: None'), findsOneWidget);
+    expect(find.text('LEAD'), findsNothing);
+    expect(find.text('Hooli'), findsOneWidget);
+  });
+
+  testWidgets('group chip menu clears the layout field', (t) async {
+    final cubit = await pumpWorkPage(
+      t,
+      repository: workRepository(collection: _with(_grouped)),
+    );
+    await t.tap(find.text('Group: Stage'));
+    await t.pumpAndSettle();
+    await t.tap(find.widgetWithText(CheckedPopupMenuItem<String>, 'None'));
+    await t.pumpAndSettle();
+    expect(find.text('Group: None'), findsOneWidget);
+    expect((cubit.state as ViewsReady).activeView.layoutFieldId, isNull);
+  });
+
+  testWidgets('long-press drag to another section writes the value', (t) async {
+    final cubit = await pumpWorkPage(
+      t,
+      repository: workRepository(collection: _with(_grouped)),
+    );
+    await _drag(t, 'Initech', 'Globex pilot');
+    await t.pump();
+    final state = cubit.state as ViewsReady;
+    expect(
+      state.objectById('d3')!['stage'],
+      const SingleSelectFieldValue('won'),
+    );
+    expect(find.text('Moved to Won'), findsOneWidget);
+  });
+
+  testWidgets('a sorted view cannot be dragged', (t) async {
+    final sorted = _grouped.copyWith(sort: const ViewSort(fieldId: 'name'));
+    final cubit = await pumpWorkPage(
+      t,
+      repository: workRepository(collection: _with(sorted)),
+    );
+    await _drag(t, 'Initech', 'Globex pilot');
+    expect(
+      (cubit.state as ViewsReady).objectById('d3')!['stage'],
+      const SingleSelectFieldValue('lead'),
+    );
+  });
+
+  testWidgets('reorders within a section; undo restores the order', (t) async {
+    final cubit = await pumpWorkPage(
+      t,
+      repository: workRepository(collection: _with(_grouped)),
+    );
+    List<String> lead() =>
+        _ids((cubit.state as ViewsReady).groups!.first.objects);
+    final before = lead();
+    expect(before, ['d1', 'd3']);
+    await _drag(t, 'Initech', 'Acme renewal', up: true);
+    await t.pump();
+    expect(lead(), ['d3', 'd1']);
+    expect(find.text('Order changed'), findsOneWidget);
+    await t.tap(find.text('Undo'));
+    await t.pumpAndSettle();
+    expect(lead(), before);
+  });
+
+  testWidgets('dropping above the first header lands first in section 1', (
+    t,
+  ) async {
+    final cubit = await pumpWorkPage(
+      t,
+      repository: workRepository(collection: _with(_grouped)),
+    );
+    await _drag(t, 'Initech', 'LEAD', up: true);
+    await t.pump();
+    expect(_ids((cubit.state as ViewsReady).groups!.first.objects), [
+      'd3',
+      'd1',
+    ]);
+  });
+
+  testWidgets('reorders a flat list and undo restores it', (t) async {
+    const flat = ViewDefinition(
+      id: 'list',
+      name: 'Flat',
+      mode: ViewModeIds.list,
+      fieldIds: ['name'],
+    );
+    final cubit = await pumpWorkPage(
+      t,
+      repository: workRepository(collection: _with(flat)),
+    );
+    List<String> order() => _ids((cubit.state as ViewsReady).objects);
+    final before = order();
+    await _drag(t, 'Globex pilot', 'Acme renewal', up: true);
+    await t.pump();
+    expect(order().take(2), ['d2', 'd1']);
+    await t.tap(find.text('Undo'));
+    await t.pumpAndSettle();
+    expect(order(), before);
+  });
+
+  testWidgets('the section header sticks while its section scrolls', (t) async {
+    await pumpWorkPage(
+      t,
+      size: const Size(1280, 520),
+      repository: workRepository(collection: _with(_grouped)),
+    );
+    final pinned = find.byKey(const ValueKey('pinned-header'));
+    expect(pinned, findsNothing);
+    await t.drag(find.byType(ReorderableListView), const Offset(0, -300));
+    await t.pumpAndSettle();
+    expect(pinned, findsOneWidget);
+    expect(
+      find.descendant(of: pinned, matching: find.text('WON')),
+      findsOneWidget,
+    );
+    // Pinned at the top edge of the card.
+    expect(
+      t.getTopLeft(pinned).dy,
+      closeTo(t.getTopLeft(find.byType(ReorderableListView)).dy, 1),
+    );
+  });
+
+  testWidgets('the pinned header follows data changes without a scroll', (
+    t,
+  ) async {
+    t.view.physicalSize = const Size(1280, 250);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    final leads = [
+      for (var i = 0; i < 4; i++)
+        deal('l$i', i, name: 'Lead $i', stage: 'lead'),
+    ];
+    final wons = [
+      for (var i = 0; i < 8; i++)
+        deal('w$i', 9 + i, name: 'Won $i', stage: 'won'),
+    ];
+    ViewModeData dataFor(List<MorkvaObject> lead, List<MorkvaObject> won) =>
+        ViewModeData(
+          state: ViewsReady(
+            collection: _with(_grouped),
+            activeViewId: 'list',
+            objects: [...lead, ...won],
+            totalCount: lead.length + won.length,
+            groups: [
+              ViewGroup(key: 'lead', label: 'Lead', objects: lead),
+              ViewGroup(key: 'won', label: 'Won', objects: won),
+            ],
+          ),
+          itemLabel: 'deal',
+          openObject: (_) {},
+          quickAdd: ({groupKey, day}) {},
+          editFields: () {},
+          notify: (_, {undo}) {},
+        );
+    Future<void> pumpList(List<MorkvaObject> lead, List<MorkvaObject> won) =>
+        t.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light,
+            home: Scaffold(body: ViewList(data: dataFor(lead, won))),
+          ),
+        );
+
+    await pumpList(leads, wons);
+    // WON sits below LEAD's header, its 4 rows (56 px) and its add row; it is
+    // not built yet at this height.
+    const wonTop = ViewList.headerHeight + 4 * 56 + ViewList.addHeight;
+    final scrollable = t.state<ScrollableState>(
+      find
+          .descendant(
+            of: find.byType(ReorderableListView),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    // LEAD is pinned, its section's end just below the top edge.
+    scrollable.position.jumpTo(wonTop - 10);
+    await t.pump();
+    final pinned = find.byKey(const ValueKey('pinned-header'));
+    expect(
+      find.descendant(of: pinned, matching: find.text('LEAD')),
+      findsOneWidget,
+    );
+
+    // A lead moves to Won: same total height and scroll offset (so no scroll
+    // notification), but WON's header is now above the edge.
+    await pumpList(leads.take(3).toList(), [leads.last, ...wons]);
+    expect(
+      find.descendant(of: pinned, matching: find.text('WON')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('the drag handle brightens on keyboard focus', (t) async {
+    await pumpWorkPage(
+      t,
+      repository: workRepository(collection: _with(_grouped)),
+    );
+    double alpha() =>
+        t.widget<Icon>(find.byIcon(Icons.drag_indicator).first).color!.a;
+    final resting = alpha();
+    // Tab through the page until focus lands inside the first row.
+    for (var i = 0; i < 30 && alpha() == resting; i++) {
+      await t.sendKeyEvent(LogicalKeyboardKey.tab);
+      await t.pump();
+    }
+    expect(alpha(), greaterThan(resting));
+  });
+
+  testWidgets('phone width renders without the hover handle', (t) async {
+    await pumpWorkPage(
+      t,
+      size: const Size(390, 844),
+      repository: workRepository(collection: _with(_grouped)),
+    );
+    expect(find.text('Acme renewal'), findsOneWidget);
+    expect(find.byIcon(Icons.drag_indicator), findsNothing);
+  });
+
+  group('long lists', () {
+    const flat = ViewDefinition(
+      id: 'list',
+      name: 'Flat',
+      mode: ViewModeIds.list,
+      fieldIds: ['name'],
+    );
+    List<MorkvaObject> many(int n) => [
+      for (var i = 0; i < n; i++) deal('r$i', i, name: 'Row $i'),
+    ];
+
+    testWidgets('dragging the first row to the bottom auto-scrolls', (t) async {
+      final cubit = await pumpWorkPage(
+        t,
+        repository: workRepository(collection: _with(flat), objects: many(40)),
+      );
+      final list = find.byType(ReorderableListView);
+      // The visible bottom edge (an unclipped list reaches past the window).
+      final bottom = math.min(t.getBottomLeft(list).dy, 800.0);
+      final g = await t.startGesture(t.getCenter(find.text('Row 0')));
+      await t.pump(const Duration(milliseconds: 700));
+      await g.moveBy(const Offset(0, 8));
+      await t.pump();
+      // Hold the row at the bottom edge until the list has scrolled to its end.
+      await g.moveTo(Offset(t.getCenter(list).dx, bottom - 4));
+      for (var i = 0; i < 120; i++) {
+        await t.pump(const Duration(milliseconds: 50));
+      }
+      await g.up();
+      await t.pumpAndSettle();
+      final order = _ids((cubit.state as ViewsReady).objects);
+      expect(order.indexOf('r0'), greaterThan(30));
+    });
+
+    testWidgets('rows are built lazily', (t) async {
+      await pumpWorkPage(
+        t,
+        repository: workRepository(collection: _with(flat), objects: many(300)),
+      );
+      expect(find.byType(ObjectCard).evaluate().length, lessThan(60));
+    });
+
+    testWidgets('the pinned header survives its header being unbuilt', (
+      t,
+    ) async {
+      final objects = [
+        for (var i = 0; i < 80; i++)
+          deal('l$i', i, name: 'Lead $i', stage: 'lead'),
+        deal('w', 99, name: 'Won one', stage: 'won'),
+      ];
+      await pumpWorkPage(
+        t,
+        repository: workRepository(
+          collection: _with(_grouped),
+          objects: objects,
+        ),
+      );
+      await t.drag(find.byType(ReorderableListView), const Offset(0, -2500));
+      await t.pumpAndSettle();
+      final pinned = find.byKey(const ValueKey('pinned-header'));
+      expect(
+        find.descendant(of: pinned, matching: find.text('LEAD')),
+        findsOneWidget,
+      );
+    });
+  });
+}

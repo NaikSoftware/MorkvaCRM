@@ -75,6 +75,12 @@ class FakeDataRepository implements DataRepository {
   Future<void> saveCollection(Collection collection) async {}
 
   @override
+  Future<void> saveViews(
+    String collectionId,
+    List<ViewDefinition> views,
+  ) async {}
+
+  @override
   Future<void> deleteCollection(String collectionId) async {}
 
   @override

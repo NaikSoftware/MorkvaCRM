@@ -105,8 +105,7 @@ class _OptionSetEditorState extends State<OptionSetEditor> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Options', style: theme.textTheme.titleSmall),
-        const SizedBox(height: Spacing.xs),
+        // The config panel already heads this section "Options".
         if (widget.options.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: Spacing.xs),
