@@ -220,13 +220,14 @@ class _BoardViewState extends State<BoardView> {
       return;
     }
     final target = (_page.value + step).clamp(0, count - 1);
-    if (target != _page.value) {
-      await pages.animateToPage(
-        target,
-        duration: MotionDurations.base,
-        curve: MotionCurves.standard,
-      );
-    }
+    // At the first / last page: keep the spent timer so it doesn't re-arm
+    // until the pointer leaves the edge.
+    if (target == _page.value) return;
+    await pages.animateToPage(
+      target,
+      duration: MotionDurations.base,
+      curve: MotionCurves.standard,
+    );
     _edgeTimer = null;
     final drag = _drag;
     if (!mounted || drag == null) return;
