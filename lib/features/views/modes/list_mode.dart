@@ -140,6 +140,7 @@ class _ViewListState extends State<ViewList> {
   @override
   void didUpdateWidget(ViewList oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (data.state.groups == oldWidget.data.state.groups) return;
     final live = {for (final g in data.state.groups ?? const []) g.key};
     _headerKeys.removeWhere((key, _) => !live.contains(key));
     WidgetsBinding.instance.addPostFrameCallback((_) {

@@ -27,8 +27,6 @@ class SignInPage extends StatelessWidget {
   /// Comfortable max measure for the centered sign-in card on wide screens.
   static const double _cardMaxWidth = 400;
 
-  /// At/above this width we show the focused, centered card layout.
-
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;

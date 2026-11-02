@@ -309,6 +309,7 @@ class _EditorHeaderState extends State<_EditorHeader> {
     final state = widget.state;
     final cubit = context.read<CollectionEditorCubit>();
     final description = state.draft.description;
+    final wide = MediaQuery.sizeOf(context).width >= 600;
 
     return Container(
       width: double.infinity,
@@ -351,15 +352,13 @@ class _EditorHeaderState extends State<_EditorHeader> {
                         size: 20,
                         color: scheme.primary,
                         // The visible "Customizing · " text names it when wide.
-                        semanticLabel: MediaQuery.sizeOf(context).width >= 600
-                            ? null
-                            : 'Customizing',
+                        semanticLabel: wide ? null : 'Customizing',
                       ),
                     ),
                     const SizedBox(width: Spacing.xs),
                     // Below 600 px the prefix collapses to just the icon so the
                     // name keeps its room next to the glyph and Save control.
-                    if (MediaQuery.sizeOf(context).width >= 600)
+                    if (wide)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 3),
                         child: Text(
