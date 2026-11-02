@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../../../core/domain/domain.dart';
@@ -25,6 +27,7 @@ class BoardColumn extends StatefulWidget {
     this.onDragStarted,
     this.onJump,
     this.width = BoardColumn.defaultWidth,
+    this.fill = false,
   });
 
   static const double defaultWidth = 272;
@@ -65,12 +68,19 @@ class BoardColumn extends StatefulWidget {
 
   final double width;
 
+  /// Whether the whole area given (a phone page) takes drops, not just the
+  /// column, which stays top-aligned in it.
+  final bool fill;
+
   @override
   State<BoardColumn> createState() => _BoardColumnState();
 }
 
 class _BoardColumnState extends State<BoardColumn> {
   final _keys = <String, GlobalKey>{};
+
+  /// One drag payload per card, kept as long as the card (see [BoardDrag]).
+  final _drags = <String, BoardDrag>{};
   final _scroll = ScrollController();
   EdgeDraggingAutoScroller? _autoScroller;
 
@@ -179,6 +189,7 @@ class _BoardColumnState extends State<BoardColumn> {
     final scheme = Theme.of(context).colorScheme;
     final ids = {for (final o in widget.group.objects) o.id};
     _keys.removeWhere((id, _) => !ids.contains(id));
+    _drags.removeWhere((id, _) => !ids.contains(id));
 
     return DragTarget<BoardDrag>(
       onMove: _move,
@@ -187,7 +198,7 @@ class _BoardColumnState extends State<BoardColumn> {
       builder: (context, candidates, _) {
         final drag = candidates.whereType<BoardDrag>().firstOrNull;
         final hovered = drag != null;
-        return Container(
+        final column = Container(
           width: widget.width,
           padding: const EdgeInsets.fromLTRB(
             BoardColumn.padding,
@@ -226,6 +237,9 @@ class _BoardColumnState extends State<BoardColumn> {
             ],
           ),
         );
+        return widget.fill
+            ? Align(alignment: Alignment.topLeft, child: column)
+            : column;
       },
     );
   }
@@ -233,6 +247,9 @@ class _BoardColumnState extends State<BoardColumn> {
   Widget _cards(BuildContext context, BoardDrag? drag) {
     final scheme = Theme.of(context).colorScheme;
     final objects = widget.group.objects;
+    final onlyDragged =
+        objects.isEmpty ||
+        (objects.length == 1 && objects.first.id == drag?.object.id);
     final ghost = drag == null
         ? null
         : Padding(
@@ -242,12 +259,14 @@ class _BoardColumnState extends State<BoardColumn> {
               color: scheme.primary,
               strokeWidth: 2,
               fill: scheme.primary.withValues(alpha: 0.06),
-              height: drag.height,
+              // Alone in the column, the ghost keeps the empty zone's
+              // height, so the column doesn't shrink out from under the
+              // pointer and flicker.
+              height: onlyDragged
+                  ? math.max(drag.height, BoardColumn.emptyHeight)
+                  : drag.height,
             ),
           );
-    final onlyDragged =
-        objects.isEmpty ||
-        (objects.length == 1 && objects.first.id == drag?.object.id);
     if (objects.isEmpty && ghost == null) return _EmptyZone(widget: widget);
 
     final slots = <Widget>[];
@@ -277,7 +296,10 @@ class _BoardColumnState extends State<BoardColumn> {
       key: key,
       padding: const EdgeInsets.only(bottom: BoardColumn.cardGap),
       child: BoardCardDraggable(
-        drag: BoardDrag(object: object, fromKey: widget.group.key),
+        drag: _drags.putIfAbsent(
+          object.id,
+          () => BoardDrag(object: object, fromKey: widget.group.key),
+        )..object = object,
         width: widget.width - 2 * BoardColumn.padding,
         onDragStarted: widget.onDragStarted,
         child: ObjectCard(

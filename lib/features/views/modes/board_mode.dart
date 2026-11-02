@@ -280,6 +280,16 @@ class _BoardViewState extends State<BoardView> {
     return next;
   }
 
+  /// Wide again: forget the pager, so a later phone layout starts it afresh
+  /// on [_page] rather than a stale position.
+  void _dropPager() {
+    final pages = _pages;
+    if (pages == null) return;
+    _pages = null;
+    // Still attached during this build.
+    WidgetsBinding.instance.addPostFrameCallback((_) => pages.dispose());
+  }
+
   Future<void> _openJumpList(List<ViewGroup> groups) async {
     final picked = await showModalBottomSheet<int>(
       context: context,
@@ -306,6 +316,7 @@ class _BoardViewState extends State<BoardView> {
     FieldDefinition field, {
     double width = BoardColumn.defaultWidth,
     VoidCallback? onJump,
+    bool fill = false,
   }) {
     final data = widget.data;
     final state = data.state;
@@ -331,6 +342,7 @@ class _BoardViewState extends State<BoardView> {
           : null,
       onDragStarted: (drag) => _drag = drag,
       onJump: onJump,
+      fill: fill,
     );
   }
 
@@ -366,15 +378,14 @@ class _BoardViewState extends State<BoardView> {
               padEnds: false,
               itemCount: groups.length,
               onPageChanged: (i) => _page.value = i,
-              itemBuilder: (context, i) => Align(
-                alignment: Alignment.topLeft,
-                child: _column(
-                  context,
-                  groups[i],
-                  field,
-                  width: columnWidth,
-                  onJump: () => _openJumpList(groups),
-                ),
+              // The whole page takes drops for its column.
+              itemBuilder: (context, i) => _column(
+                context,
+                groups[i],
+                field,
+                width: columnWidth,
+                fill: true,
+                onJump: () => _openJumpList(groups),
               ),
             ),
           ),
@@ -400,6 +411,7 @@ class _BoardViewState extends State<BoardView> {
     if (groups == null || field == null) return _NoGrouping(data: data);
 
     _compact = MediaQuery.sizeOf(context).width < AppShell.expandedBreakpoint;
+    if (!_compact) _dropPager();
     final columns = Listener(
       onPointerMove: _pointerMove,
       onPointerUp: _pointerEnd,

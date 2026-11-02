@@ -32,6 +32,10 @@ Future<CollectionViewsCubit> _pumpBoard(
 Finder _column(String label) =>
     find.ancestor(of: find.text(label), matching: find.byType(BoardColumn));
 
+/// The visible column panel (the column widget fills its page).
+Finder _panel(String label) =>
+    find.descendant(of: _column(label), matching: find.byType(Container)).first;
+
 double _leftOf(WidgetTester tester, String label) =>
     tester.getTopLeft(_column(label)).dx;
 
@@ -77,7 +81,9 @@ void main() {
       expect(pager.controller!.viewportFraction, (_w - 72) / _w);
 
       expect(_leftOf(tester, 'Lead'), 16);
-      expect(tester.getSize(_column('Lead')).width, _pageWidth - 12);
+      expect(tester.getSize(_panel('Lead')).width, _pageWidth - 12);
+      // The whole page takes drops for its column.
+      expect(tester.getSize(_column('Lead')).width, _pageWidth);
       // The next column peeks in at full opacity.
       expect(_leftOf(tester, 'Won'), 16 + _pageWidth);
       expect(_leftOf(tester, 'Won'), lessThan(390 - 16));
@@ -178,10 +184,7 @@ void main() {
         ),
       );
       final fab = tester.getRect(find.byType(FloatingActionButton));
-      expect(
-        tester.getRect(_column('Lead')).bottom,
-        lessThanOrEqualTo(fab.top),
-      );
+      expect(tester.getRect(_panel('Lead')).bottom, lessThanOrEqualTo(fab.top));
       expect(
         tester.getRect(find.byType(BoardPageIndicator)).bottom,
         lessThanOrEqualTo(fab.top),
@@ -253,6 +256,70 @@ void main() {
       await gesture.up();
       await tester.pumpAndSettle();
       expect(_stageOf(cubit, 'd3'), 'lost');
+    });
+
+    testWidgets('edge hold still works after the columns rebuild', (
+      tester,
+    ) async {
+      final cubit = await _pumpBoard(tester);
+      // Any state change rebuilds the columns (and their cards).
+      await cubit.renameView('board', 'Deals board');
+      await tester.pumpAndSettle();
+      final gesture = await _lift(tester, 'Initech');
+      final y = tester.getCenter(_column('Lead')).dy;
+      await gesture.moveTo(Offset(390 - 16 - 20, y));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 520));
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(_page(tester), 1);
+      await gesture.up();
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('a drop below a short column lands in it', (tester) async {
+      final cubit = await _pumpBoard(tester);
+      final gesture = await _lift(tester, 'Initech');
+      // Over the peeking "Won", well below its last card, out of the edge zone.
+      final below = Offset(
+        16 + _pageWidth + 4,
+        tester.getBottomLeft(_panel('Won')).dy + 150,
+      );
+      await gesture.moveTo(below);
+      await tester.pump();
+      await gesture.moveBy(const Offset(0, 1));
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+      expect(_stageOf(cubit, 'd3'), 'won');
+    });
+
+    testWidgets('phone → desktop → phone keeps the page', (tester) async {
+      await _pumpBoard(tester);
+      await tester.tap(
+        find.descendant(
+          of: _column('Lead'),
+          matching: find.byKey(const ValueKey('column-jump')),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(ColumnJumpList),
+          matching: find.text('Lost'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(_page(tester), 2);
+
+      tester.view.physicalSize = const Size(1280, 800);
+      await tester.pumpAndSettle();
+      expect(find.byType(PageView), findsNothing);
+      tester.view.physicalSize = _phone;
+      await tester.pumpAndSettle();
+      // The pager and its indicator agree.
+      final page = _page(tester);
+      expect(find.bySemanticsLabel('Column ${page + 1} of 4'), findsOneWidget);
+      expect(_leftOf(tester, ['Lead', 'Won', 'Lost', 'No Stage'][page]), 16);
     });
   });
 }

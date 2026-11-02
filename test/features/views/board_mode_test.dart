@@ -481,6 +481,104 @@ void main() {
       expect(company, now);
     });
 
+    testWidgets('board and column auto-scroll after the columns rebuild', (
+      tester,
+    ) async {
+      final cubit = await _pumpBoard(
+        tester,
+        repository: manyCompanies(60, [
+          for (var i = 0; i < 30; i++)
+            deal('c$i', i, name: 'Card $i', company: 'k0'),
+        ]),
+      );
+      // Any state change rebuilds the columns (and their cards).
+      await cubit.renameView('board', 'Renamed');
+      await tester.pumpAndSettle();
+
+      // Column: hold near its bottom.
+      final list = find.descendant(
+        of: _column('Company 000'),
+        matching: find.byType(Scrollable),
+      );
+      final column = tester.state<ScrollableState>(list).position;
+      var gesture = await tester.startGesture(
+        tester.getCenter(find.text('Card 1')),
+        kind: PointerDeviceKind.mouse,
+      );
+      await gesture.moveBy(const Offset(0, 6));
+      await tester.pump();
+      await gesture.moveTo(tester.getBottomLeft(list) + const Offset(60, -12));
+      await tester.pump();
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      // More than one step.
+      expect(column.pixels, greaterThan(40));
+      await gesture.moveTo(tester.getCenter(_column('Company 000')));
+      await tester.pump(const Duration(milliseconds: 300));
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      // Board: hold at the right edge.
+      gesture = await tester.startGesture(
+        tester.getCenter(
+          find
+              .descendant(
+                of: _column('Company 000'),
+                matching: find.byType(ObjectCard),
+              )
+              .hitTestable()
+              .first,
+        ),
+        kind: PointerDeviceKind.mouse,
+      );
+      await gesture.moveBy(const Offset(0, 6));
+      await tester.pump();
+      await gesture.moveTo(
+        tester.getTopRight(_board()) + const Offset(-10, 40),
+      );
+      await tester.pump();
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      expect(
+        tester.state<ScrollableState>(_board()).position.pixels,
+        greaterThan(40),
+      );
+      await gesture.up();
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('a ghost alone in a column keeps the empty height', (
+      tester,
+    ) async {
+      await _pumpBoard(
+        tester,
+        repository: workRepository(
+          objects: [deal('d1', 0, name: 'Acme', stage: 'lead')],
+        ),
+      );
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.text('Acme')),
+        kind: PointerDeviceKind.mouse,
+      );
+      await gesture.moveBy(const Offset(0, 6));
+      await tester.pump();
+      await gesture.moveTo(tester.getCenter(_column('Won')));
+      await tester.pump();
+      await gesture.moveBy(const Offset(0, 1));
+      await tester.pump();
+      final ghost = find.descendant(
+        of: _column('Won'),
+        matching: find.byWidgetPredicate(
+          (w) => w is DashedRRect && w.strokeWidth == 2,
+        ),
+      );
+      expect(tester.getSize(ghost).height, BoardColumn.emptyHeight);
+      await gesture.up();
+      await tester.pumpAndSettle();
+    });
+
     testWidgets('another finger does not stop the drag auto-scroll', (
       tester,
     ) async {

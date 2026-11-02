@@ -538,7 +538,7 @@ class _WorkBody extends StatelessWidget {
             'then come back to work with them here.',
         action: PrimaryButton(
           label: 'Customize',
-          icon: Icons.tune,
+          icon: Icons.edit_outlined,
           onPressed: () => _customize(context, collection.id),
         ),
       );

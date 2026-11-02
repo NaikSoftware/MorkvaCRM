@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
+import 'package:morkva_crm/design/design.dart';
 import 'package:morkva_crm/features/views/views.dart';
 import 'package:morkva_crm/features/views/widgets/fields_editor_sheet.dart';
 import 'package:morkva_crm/features/views/widgets/view_settings_sheet.dart';
@@ -200,7 +201,9 @@ void main() {
     expect(_inSheet(find.text('Card fields')), findsNothing);
   });
 
-  testWidgets('no fields: no view settings, one tune', (tester) async {
+  testWidgets('no fields: no view settings; Customize uses edit', (
+    tester,
+  ) async {
     await pumpWorkPage(
       tester,
       size: _phone,
@@ -210,7 +213,50 @@ void main() {
       ),
     );
     expect(find.byTooltip('View settings'), findsNothing);
-    expect(find.byIcon(Icons.tune), findsOneWidget);
+    expect(find.byIcon(Icons.tune), findsNothing);
+    expect(
+      find.widgetWithIcon(PrimaryButton, Icons.edit_outlined),
+      findsOneWidget,
+    );
     expect(find.byTooltip('More'), findsOneWidget);
+  });
+
+  testWidgets('desktop no fields: one tune icon', (tester) async {
+    await pumpWorkPage(
+      tester,
+      repository: workRepository(
+        collection: const Collection(id: 'deals', name: 'Deals'),
+        objects: const [],
+      ),
+    );
+    expect(find.byIcon(Icons.tune), findsOneWidget);
+    expect(find.text('Customize'), findsNWidgets(2));
+  });
+
+  testWidgets('a mode that ignores the layout field clears it', (tester) async {
+    final cubit = await pumpWorkPage(tester, size: _phone);
+    await _open(tester);
+    await tester.tap(_inSheet(find.byIcon(const CalendarMode().icon)));
+    await tester.pumpAndSettle();
+    expect(_view(cubit).layoutFieldId, 'due');
+
+    // List can't group by a date: no "Group: Due".
+    await tester.tap(_inSheet(find.byIcon(const ListMode().icon)));
+    await tester.pumpAndSettle();
+    expect(_view(cubit).mode, ViewModeIds.list);
+    expect(_view(cubit).layoutFieldId, isNull);
+    expect(
+      tester
+          .widget<ChoiceChip>(_inSheet(find.widgetWithText(ChoiceChip, 'None')))
+          .selected,
+      isTrue,
+    );
+
+    await tester.tap(_inSheet(find.byIcon(const CalendarMode().icon)));
+    await tester.pumpAndSettle();
+    await tester.tap(_inSheet(find.byIcon(const TableMode().icon)));
+    await tester.pumpAndSettle();
+    expect(_view(cubit).mode, ViewModeIds.table);
+    expect(_view(cubit).layoutFieldId, isNull);
   });
 }

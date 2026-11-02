@@ -10,10 +10,15 @@ import '../../../../core/domain/domain.dart';
 import '../../../../design/design.dart';
 
 /// What a board card carries while dragged.
+///
+/// Keep one per card for the card's lifetime: [Draggable] builds its gesture
+/// recognizer once, and that recognizer writes [pointer] and the avatar to
+/// the instance it was first given.
 class BoardDrag {
   BoardDrag({required this.object, required this.fromKey});
 
-  final MorkvaObject object;
+  /// The card's object; refreshed as the card rebuilds.
+  MorkvaObject object;
 
   /// Group key of the column the card was lifted from (null = `No <field>`).
   final String? fromKey;
@@ -32,7 +37,12 @@ class BoardDrag {
   /// dropped. A scrolling list ignores pointers, so stop it first.
   void retarget({VoidCallback? then}) {
     final avatar = _avatar;
-    if (avatar == null || avatar.ended) return;
+    if (avatar == null) {
+      // No avatar to refresh: at least keep scrolling.
+      then?.call();
+      return;
+    }
+    if (avatar.ended) return;
     SchedulerBinding.instance
       ..addPostFrameCallback((_) {
         if (avatar.ended) return;
@@ -45,18 +55,24 @@ class BoardDrag {
 
 /// The avatar of a lifted card, remembering when it was dropped.
 class _HeldDrag implements Drag {
-  _HeldDrag(this._inner);
+  _HeldDrag(this._inner, this._position);
 
   final Drag _inner;
   bool ended = false;
 
+  /// The pointer's last global position.
+  Offset _position;
+
   /// A zero move: hit tests again at the same position.
   void refresh() {
-    if (!ended) _inner.update(DragUpdateDetails(globalPosition: Offset.zero));
+    if (!ended) _inner.update(DragUpdateDetails(globalPosition: _position));
   }
 
   @override
-  void update(DragUpdateDetails details) => _inner.update(details);
+  void update(DragUpdateDetails details) {
+    _position = details.globalPosition;
+    _inner.update(details);
+  }
 
   @override
   void end(DragEndDetails details) {
@@ -157,7 +173,7 @@ class _CardDraggable extends Draggable<BoardDrag> {
     return recognizer
       ..onStart = (position) {
         final avatar = switch (onStart(position)) {
-          final drag? => _HeldDrag(drag),
+          final drag? => _HeldDrag(drag, position),
           null => null,
         };
         data!

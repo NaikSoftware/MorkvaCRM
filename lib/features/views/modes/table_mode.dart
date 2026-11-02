@@ -640,24 +640,35 @@ class _GhostRow extends StatelessWidget {
                     children: [
                       Icon(Icons.add, size: 20, color: link),
                       const SizedBox(width: Spacing.xs),
-                      Text(
-                        label,
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          color: link,
+                      // Both shrink with ellipses on a narrow (phone) table.
+                      Flexible(
+                        child: Text(
+                          label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            color: link,
+                          ),
                         ),
                       ),
                       if (onChangeFields case final onTap?) ...[
                         const SizedBox(width: Spacing.md),
-                        TextButton.icon(
-                          onPressed: onTap,
-                          icon: const Icon(
-                            Icons.view_column_outlined,
-                            size: 18,
-                          ),
-                          label: const Text('Change fields'),
-                          style: TextButton.styleFrom(
-                            foregroundColor: scheme.onSurfaceVariant,
-                            minimumSize: const Size(44, 44),
+                        Flexible(
+                          child: TextButton.icon(
+                            onPressed: onTap,
+                            icon: const Icon(
+                              Icons.view_column_outlined,
+                              size: 18,
+                            ),
+                            label: const Text(
+                              'Change fields',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            style: TextButton.styleFrom(
+                              foregroundColor: scheme.onSurfaceVariant,
+                              minimumSize: const Size(44, 44),
+                            ),
                           ),
                         ),
                       ],
