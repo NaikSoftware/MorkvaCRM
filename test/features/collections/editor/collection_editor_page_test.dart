@@ -70,6 +70,10 @@ Future<CollectionEditorCubit> _pumpPage(
         builder: (_, _) => const Scaffold(body: Text('home')),
       ),
       GoRoute(
+        path: '/collections/:id',
+        builder: (_, _) => const Scaffold(body: Text('work')),
+      ),
+      GoRoute(
         path: '/collections/:id/edit',
         builder: (context, state) => BlocProvider.value(
           value: cubit,
@@ -98,6 +102,52 @@ Future<CollectionEditorCubit> _pumpPage(
 // ---------------------------------------------------------------------------
 
 void main() {
+  group('CollectionEditorPage — Build entry/exit', () {
+    testWidgets('header cues Customizing and Close returns to Work', (
+      tester,
+    ) async {
+      await _pumpPage(tester);
+      expect(find.byKey(const Key('customizing-cue')), findsOneWidget);
+      expect(find.text('Customizing · '), findsOneWidget);
+      expect(find.text('Object form'), findsOneWidget);
+      expect(find.text('How a card looks when opened'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Close'));
+      await tester.pumpAndSettle();
+      expect(find.text('work'), findsOneWidget);
+    });
+
+    testWidgets('Close on a dirty draft confirms; Discard goes to Work', (
+      tester,
+    ) async {
+      final cubit = await _pumpPage(tester);
+      cubit.renameCollection('Renamed');
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Close'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Discard'));
+      await tester.pumpAndSettle();
+      expect(find.text('work'), findsOneWidget);
+    });
+
+    testWidgets('phone 360: cue collapses to the icon, no overflow', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(360, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final cubit = await _pumpPage(tester, surfaceWidth: 360);
+      cubit.renameCollection('A rather long collection name for a phone');
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('customizing-cue')), findsOneWidget);
+      expect(find.text('Customizing · '), findsNothing);
+      expect(find.text('Object form'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  });
+
   group('CollectionEditorPage — 2-pane layout (wide)', () {
     // ── Two panes render ─────────────────────────────────────────────────────
 

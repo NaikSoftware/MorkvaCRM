@@ -12,6 +12,8 @@ import '../auth/conflict_warning_banner.dart';
 import 'collection_views_cubit.dart';
 import 'collection_views_state.dart';
 import 'modes/view_mode.dart';
+import 'widgets/fields_editor_sheet.dart';
+import 'widgets/new_view_dialog.dart';
 import 'widgets/object_detail_sheet.dart';
 import 'widgets/quick_add_dialog.dart';
 import 'widgets/view_labels.dart';
@@ -39,25 +41,28 @@ class CollectionViewsPage extends StatelessWidget {
           (prev is! ViewsReady || prev.writeErrorSeq != next.writeErrorSeq),
       listener: (context, state) =>
           _notify(context, (state as ViewsReady).writeError!, error: true),
-      builder: (context, state) => LayoutBuilder(
-        builder: (context, constraints) {
-          final compact = constraints.maxWidth < AppShell.expandedBreakpoint;
-          final ready = state is ViewsReady ? state : null;
-          final body = switch (state) {
-            ViewsLoading() => ViewsSkeleton(compact: compact),
-            ViewsNotFound() => const _NotFound(),
-            ViewsError() => const _ErrorCard(),
-            final ViewsReady s => _WorkBody(
-              state: s,
-              modes: modes,
-              compact: compact,
-            ),
-          };
-          return compact
-              ? _PhoneFrame(state: ready, body: body)
-              : _WideFrame(state: ready, body: body);
-        },
-      ),
+      builder: (context, state) {
+        _maybeNudge(context, state);
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < AppShell.expandedBreakpoint;
+            final ready = state is ViewsReady ? state : null;
+            final body = switch (state) {
+              ViewsLoading() => ViewsSkeleton(compact: compact),
+              ViewsNotFound() => const _NotFound(),
+              ViewsError() => const _ErrorCard(),
+              final ViewsReady s => _WorkBody(
+                state: s,
+                modes: modes,
+                compact: compact,
+              ),
+            };
+            return compact
+                ? _PhoneFrame(state: ready, body: body)
+                : _WideFrame(state: ready, body: body);
+          },
+        );
+      },
     );
   }
 }
@@ -65,6 +70,24 @@ class CollectionViewsPage extends StatelessWidget {
 // -----------------------------------------------------------------------------
 // Page actions. The stubs are swapped for the real sheets by later work.
 // -----------------------------------------------------------------------------
+
+/// Collections whose "Add your first `<item>`" nudge was shown this session.
+final _nudgedCollections = <String>{};
+
+/// Test hook: forget the session's nudges.
+@visibleForTesting
+void resetFirstItemNudges() => _nudgedCollections.clear();
+
+/// Once per session per collection, a gentle prompt when it has no objects.
+void _maybeNudge(BuildContext context, CollectionViewsState state) {
+  if (state is! ViewsReady || state.totalCount != 0) return;
+  if (state.collection.fields.isEmpty) return;
+  if (!_nudgedCollections.add(state.collection.id)) return;
+  final message = 'Add your first ${itemLabelOf(state.collection)}';
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (context.mounted) _notify(context, message);
+  });
+}
 
 void _notify(
   BuildContext context,
@@ -92,12 +115,24 @@ void _comingSoon(BuildContext context, String what) =>
     _notify(context, '$what is coming soon');
 
 /// Columns (Table) / Setup card (other modes), named by the mode.
-void _openFieldsEditor(BuildContext context, ViewMode mode) =>
-    _comingSoon(context, mode.fieldsLabel);
+void _openFieldsEditor(BuildContext context, ViewMode mode) {
+  final cubit = context.read<CollectionViewsCubit>();
+  if (cubit.state case final ViewsReady state) {
+    FieldsEditorSheet.show(
+      context,
+      title: mode.fieldsLabel,
+      collection: state.collection,
+      view: state.activeView,
+      object: state.objects.firstOrNull,
+      referenceLabels: state.referenceLabels,
+      onSave: cubit.setFieldIds,
+    );
+  }
+}
+
 void _openFilterEditor(BuildContext context, {int? index}) =>
     _comingSoon(context, 'Filtering');
 void _openSortMenu(BuildContext context) => _comingSoon(context, 'Sorting');
-void _openNewView(BuildContext context) => _comingSoon(context, 'New view');
 void _openViewSettings(BuildContext context) =>
     _comingSoon(context, 'View settings');
 
@@ -153,6 +188,26 @@ Future<void> _openObject(
   if (delete != true || !context.mounted) return;
   final undo = cubit.deleteObject(object.id);
   if (undo != null) _notify(context, 'Deleted "$title"', undo: undo);
+}
+
+Future<void> _openNewView(
+  BuildContext context,
+  Collection collection,
+  ViewModeRegistry modes,
+) async {
+  final cubit = context.read<CollectionViewsCubit>();
+  final request = await NewViewDialog.show(
+    context,
+    collection: collection,
+    modes: modes,
+    onAddField: () => _customize(context, collection.id),
+  );
+  if (request == null) return;
+  await cubit.createView(
+    request.name,
+    mode: request.mode,
+    layoutFieldId: request.layoutFieldId,
+  );
 }
 
 Future<void> _deleteView(BuildContext context, ViewDefinition view) async {
@@ -401,7 +456,7 @@ class _WorkBody extends StatelessWidget {
           modes: modes,
           horizontalPadding: gutter,
           onSelect: cubit.selectView,
-          onNewView: () => _openNewView(context),
+          onNewView: () => _openNewView(context, collection, modes),
           onRename: cubit.renameView,
           onDuplicate: cubit.duplicateView,
           onDelete: (id) => _deleteView(
