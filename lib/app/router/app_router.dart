@@ -103,10 +103,11 @@ GoRouter createAppRouter(
                 builder: (context, state) {
                   final id = state.pathParameters['id']!;
                   final repository = context.read<DataRepository>();
+                  final fieldId = state.uri.queryParameters['field'];
                   return BlocProvider(
                     create: (_) =>
                         CollectionEditorCubit(repository, fieldEditorRegistry)
-                          ..load(id),
+                          ..load(id, selectFieldId: fieldId),
                     child: CollectionEditorPage(registry: fieldEditorRegistry),
                   );
                 },

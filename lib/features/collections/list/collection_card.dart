@@ -4,7 +4,7 @@ import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
 
 /// What an overflow-menu selection on a [CollectionCard] resolves to.
-enum CollectionCardAction { rename, delete }
+enum CollectionCardAction { customize, rename, delete }
 
 /// One collection tile on the Home surface.
 ///
@@ -120,6 +120,14 @@ class _OverflowMenu extends StatelessWidget {
       splashRadius: 20,
       onSelected: onAction,
       itemBuilder: (context) => [
+        const PopupMenuItem(
+          value: CollectionCardAction.customize,
+          child: ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.tune),
+            title: Text('Customize'),
+          ),
+        ),
         const PopupMenuItem(
           value: CollectionCardAction.rename,
           child: ListTile(
