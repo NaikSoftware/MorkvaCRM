@@ -65,7 +65,7 @@ final class ViewsReady extends CollectionViewsState {
   final DayBuckets? days;
 
   /// Referenced object id → label, for the reference fields the active view
-  /// shows or lays out by. Pass to `formatFieldValue`.
+  /// shows, lays out by or filters on. Pass to `formatFieldValue`.
   final Map<String, String> referenceLabels;
 
   /// The last failed write, for a snackbar. A new failure bumps

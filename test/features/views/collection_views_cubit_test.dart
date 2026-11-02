@@ -466,6 +466,41 @@ void main() {
       expect(repo.watchObjectsCalls, {'deals': 1, 'companies': 1});
     });
 
+    test('a reference filter on a hidden field gets target labels', () async {
+      final c = await ready();
+      c.selectView('board'); // shows name, amount; lays out by stage
+      await c.setFilters(const [
+        ViewFilter(fieldId: 'company', op: FilterOp.anyOf, operand: ['k1']),
+      ]);
+      await pumpEventQueue();
+      expect(stateOf(c).referenceLabels['k1'], 'Zeta Corp');
+    });
+
+    test('referenceChoices watches the target on demand, once', () async {
+      final r = FakeDataRepository([
+        deals.copyWith(views: const [boardView]),
+        companies,
+      ]);
+      r.seedObjects('deals', sampleDeals());
+      r.seedObjects('companies', [
+        company('k1', 'Zeta Corp', 0),
+        company('k2', 'Alpha Ltd', 1),
+        company('k3', 'Mid Inc', 2),
+      ]);
+      final c = await ready(r);
+      expect(repo.watchObjectsCalls['companies'], isNull);
+      expect(c.referenceChoices('company'), isEmpty);
+      await pumpEventQueue();
+      expect(c.referenceChoices('company'), {
+        'k2': 'Alpha Ltd',
+        'k3': 'Mid Inc',
+        'k1': 'Zeta Corp',
+      });
+      expect(repo.watchObjectsCalls['companies'], 1);
+      expect(c.referenceChoices('stage'), isEmpty);
+      expect(c.referenceChoices('missing'), isEmpty);
+    });
+
     test('labels follow target changes', () async {
       final c = await ready();
       await pumpEventQueue();

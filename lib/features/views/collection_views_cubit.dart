@@ -108,34 +108,59 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
     if (!isClosed) emit(ViewsError('$error'));
   }
 
+  /// The reference fields of [collection] that [view] shows, lays out by or
+  /// filters on.
+  static Iterable<ReferenceFieldDefinition> _viewReferences(
+    Collection collection,
+    ViewDefinition view,
+  ) {
+    final ids = {
+      view.layoutFieldId,
+      ...view.fieldIds,
+      for (final f in view.filters) f.fieldId,
+    };
+    return collection.fields.whereType<ReferenceFieldDefinition>().where(
+      (f) => ids.contains(f.id),
+    );
+  }
+
   /// Watches the target collections of the active view's reference fields,
   /// once each.
   void _watchTargets(Collection collection, ViewDefinition view) {
-    final ids = {view.layoutFieldId, ...view.fieldIds};
-    for (final field in collection.fields) {
-      if (field is! ReferenceFieldDefinition || !ids.contains(field.id)) {
-        continue;
-      }
-      final targetId = field.targetCollectionId;
-      if (targetId == collectionId || _targetSubs.containsKey(targetId)) {
-        continue;
-      }
-      final target = _collections.where((c) => c.id == targetId).firstOrNull;
-      if (target == null) continue;
-      _targetSubs[targetId] = _repository
-          .watchObjects(targetId, schema: target)
-          .listen(
-            (objects) {
-              if (isClosed) return;
-              _targetObjects[targetId] = objects;
-              _emitReady();
-            },
-            onError: (Object _) {
-              if (isClosed || !_failedTargets.add(targetId)) return;
-              _reportWriteError("Couldn't load ${target.name} names");
-            },
-          );
+    _viewReferences(collection, view).forEach(_watchTarget);
+  }
+
+  void _watchTarget(ReferenceFieldDefinition field) {
+    final targetId = field.targetCollectionId;
+    if (targetId == collectionId || _targetSubs.containsKey(targetId)) return;
+    final target = _collections.where((c) => c.id == targetId).firstOrNull;
+    if (target == null) return;
+    _targetSubs[targetId] = _repository
+        .watchObjects(targetId, schema: target)
+        .listen(
+          (objects) {
+            if (isClosed) return;
+            _targetObjects[targetId] = objects;
+            _emitReady();
+          },
+          onError: (Object _) {
+            if (isClosed || !_failedTargets.add(targetId)) return;
+            _reportWriteError("Couldn't load ${target.name} names");
+          },
+        );
+  }
+
+  /// Object id → label of the objects reference field [fieldId] can point
+  /// at, in the target's default order; empty while they load (a state
+  /// follows once they arrive) or when [fieldId] is not a reference.
+  Map<String, String> referenceChoices(String fieldId) {
+    final collection = _collection;
+    final field = collection?.fieldById(fieldId);
+    if (collection == null || field is! ReferenceFieldDefinition) {
+      return const {};
     }
+    _watchTarget(field);
+    return _labelsFor(field.targetCollectionId, collection);
   }
 
   static Collection _withViews(Collection c) => c.views.isNotEmpty
@@ -199,11 +224,9 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
 
     final all = _allObjects;
     final applied = applyView(collection, view, all);
-    final shownIds = {view.layoutFieldId, ...view.fieldIds};
     final labelsByTarget = {
-      for (final f in collection.fields)
-        if (f is ReferenceFieldDefinition && shownIds.contains(f.id))
-          f.targetCollectionId: _labelsFor(f.targetCollectionId, collection),
+      for (final f in _viewReferences(collection, view))
+        f.targetCollectionId: _labelsFor(f.targetCollectionId, collection),
     };
     final layout = view.layoutFieldId == null
         ? null
