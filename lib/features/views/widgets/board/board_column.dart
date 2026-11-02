@@ -295,23 +295,29 @@ class _Header extends StatelessWidget {
             ),
           ),
           const SizedBox(width: Spacing.xs),
-          Flexible(
-            child: Text(
-              group.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.titleSmall,
+          // Name and count share one flex, so "+" and ⋯ sit flush right.
+          Expanded(
+            child: Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    group.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleSmall,
+                  ),
+                ),
+                const SizedBox(width: Spacing.xs),
+                Text(
+                  '${group.objects.length}',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(width: Spacing.xs),
-          Text(
-            '${group.objects.length}',
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: scheme.onSurfaceVariant,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
-          ),
-          const Spacer(),
           IconButton(
             tooltip: 'New $itemLabel in ${group.label}',
             onPressed: onAdd,
