@@ -44,7 +44,49 @@ void main() {
             operand: ['lead', 'won'],
           ),
         ),
-        'Stage is Lead, Won',
+        'Stage is any of Lead, Won',
+      );
+      expect(
+        of(
+          const ViewFilter(
+            fieldId: 'stage',
+            op: FilterOp.noneOf,
+            operand: ['lost'],
+          ),
+        ),
+        'Stage is not Lost',
+      );
+      expect(
+        of(
+          const ViewFilter(
+            fieldId: 'name',
+            op: FilterOp.equals,
+            operand: 'Acme',
+          ),
+        ),
+        'Name is Acme',
+      );
+      expect(
+        of(
+          const ViewFilter(
+            fieldId: 'due',
+            op: FilterOp.before,
+            operand: '2026-11-02',
+          ),
+        ),
+        'Due is before Nov 2, 2026',
+      );
+      expect(
+        filterLabel(
+          const ViewFilter(
+            fieldId: 'company',
+            op: FilterOp.anyOf,
+            operand: ['k1', 'k9'],
+          ),
+          deals,
+          referenceLabels: const {'k1': 'Zeta Corp'},
+        ),
+        'Company is any of Zeta Corp, Unknown item',
       );
       expect(
         of(

@@ -44,7 +44,12 @@ bool isMetricField(FieldDefinition field) =>
     isNumericField(field) || field is DateFieldDefinition;
 
 /// Short text for a filter chip: "Stage is Lead, Won", "Amount > 100".
-String filterLabel(ViewFilter filter, Collection collection) {
+/// Reference ids show as their [referenceLabels] entry when known.
+String filterLabel(
+  ViewFilter filter,
+  Collection collection, {
+  Map<String, String> referenceLabels = const {},
+}) {
   final field = collection.fieldById(filter.fieldId);
   if (field == null) return 'Unknown field';
   final operand = filter.operand;
@@ -56,28 +61,54 @@ String filterLabel(ViewFilter filter, Collection collection) {
           MultiSelectFieldDefinition(
             :final options,
           ) => options.where((o) => o.id == id).firstOrNull?.label ?? id,
+          ReferenceFieldDefinition() => referenceLabels[id] ?? 'Unknown item',
           _ => id,
         },
     ].join(', '),
     null => '',
+    final String day when field is DateFieldDefinition =>
+      switch (DateTime.tryParse(day)) {
+        final d? => formatFieldValue(
+          DateFieldDefinition(id: field.id, name: field.name),
+          DateFieldValue(DateTime.utc(d.year, d.month, d.day)),
+        ),
+        null => day,
+      },
     _ => '$operand',
   };
+  final count = operand is List ? operand.whereType<String>().length : 0;
+  final has =
+      field is MultiSelectFieldDefinition ||
+      (field is ReferenceFieldDefinition && field.multiple);
+  // One value reads as plain "is" / "has"; several keep "any of".
   final op = switch (filter.op) {
-    FilterOp.isEmpty => 'is empty',
-    FilterOp.isNotEmpty => 'is not empty',
-    FilterOp.equals => '=',
-    FilterOp.notEquals => '≠',
-    FilterOp.contains => 'contains',
-    FilterOp.notContains => 'does not contain',
-    FilterOp.greaterThan => '>',
-    FilterOp.lessThan => '<',
-    FilterOp.before => 'before',
-    FilterOp.after => 'after',
-    FilterOp.onDay => 'on',
-    FilterOp.anyOf => 'is',
-    FilterOp.noneOf => 'is not',
-    FilterOp.isTrue => 'is checked',
-    FilterOp.isFalse => 'is not checked',
+    FilterOp.anyOf when count == 1 => has ? 'has' : 'is',
+    FilterOp.noneOf when count == 1 => has ? 'has no' : 'is not',
+    final op => operatorLabel(op, field),
   };
   return [field.name, op, if (value.isNotEmpty) value].join(' ');
 }
+
+/// The words for [op] on [field], shared by filter chips and the builder.
+String operatorLabel(FilterOp op, FieldDefinition field) => switch (op) {
+  FilterOp.isEmpty => 'is empty',
+  FilterOp.isNotEmpty => 'is not empty',
+  FilterOp.equals => field is TextFieldDefinition ? 'is' : '=',
+  FilterOp.notEquals => '≠',
+  FilterOp.contains => 'contains',
+  FilterOp.notContains => 'does not contain',
+  FilterOp.greaterThan => '>',
+  FilterOp.lessThan => '<',
+  FilterOp.before => 'is before',
+  FilterOp.after => 'is after',
+  FilterOp.onDay => 'is on',
+  FilterOp.anyOf =>
+    field is MultiSelectFieldDefinition ||
+            (field is ReferenceFieldDefinition && field.multiple)
+        ? 'has any of'
+        : 'is any of',
+  FilterOp.noneOf =>
+    field is MultiSelectFieldDefinition ? 'has none of' : 'is none of',
+  FilterOp.isTrue => 'is checked',
+  FilterOp.isFalse => 'is not checked',
+};

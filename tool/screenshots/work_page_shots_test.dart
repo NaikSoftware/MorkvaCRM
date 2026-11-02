@@ -308,4 +308,60 @@ void main() {
       await cubit.close();
     }
   });
+
+  testWidgets('filter and sort shots', (tester) async {
+    await tester.runAsync(_loadFonts);
+    final repo = workRepository(collection: _shotDeals, objects: _richDeals);
+
+    Future<void> openStage({Size size = const Size(1280, 800)}) async {
+      await pumpWorkPage(tester, repository: repo, size: size);
+      await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsLabel('Add filter'));
+      await tester.pumpAndSettle();
+    }
+
+    await openStage();
+    await _shot(tester, 'filter-fields-1280');
+    await tester.tap(find.bySemanticsLabel('Stage').last);
+    await tester.pumpAndSettle();
+    await _shot(tester, 'filter-operators-1280');
+    await tester.tap(find.bySemanticsLabel('is any of'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsLabel('Lead'));
+    await tester.pump();
+    await tester.tap(find.bySemanticsLabel('Won'));
+    await tester.pumpAndSettle();
+    await _shot(tester, 'filter-select-1280');
+    await tester.tap(find.text('Add filter'));
+    await tester.pumpAndSettle();
+    await _shot(tester, 'filter-applied-1280');
+
+    await tester.tap(find.bySemanticsLabel('Add filter'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsLabel('Due').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsLabel('is before'));
+    await tester.pumpAndSettle();
+    await _shot(tester, 'filter-date-1280');
+    await tester.tapAt(const Offset(1200, 780));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.bySemanticsLabel('Sort'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsLabel('Amount').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsLabel('Amount').first);
+    await tester.pumpAndSettle();
+    await _shot(tester, 'sort-1280');
+
+    await openStage(size: const Size(390, 844));
+    await _shot(tester, 'filter-fields-390');
+    await tester.tap(find.bySemanticsLabel('Amount').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsLabel('>'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).last, '12a');
+    await tester.pumpAndSettle();
+    await _shot(tester, 'filter-number-390');
+  });
 }

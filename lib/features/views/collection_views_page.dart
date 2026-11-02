@@ -12,11 +12,14 @@ import '../auth/conflict_warning_banner.dart';
 import 'collection_views_cubit.dart';
 import 'collection_views_state.dart';
 import 'modes/view_mode.dart';
+import 'widgets/filter_builder.dart';
 import 'widgets/fields_editor_sheet.dart';
 import 'widgets/new_view_dialog.dart';
 import 'widgets/object_detail_sheet.dart';
 import 'widgets/quick_add_dialog.dart';
+import 'widgets/sort_menu.dart';
 import 'widgets/view_labels.dart';
+import 'widgets/view_popover.dart';
 import 'widgets/view_tabs.dart';
 import 'widgets/view_toolbar.dart';
 import 'widgets/views_skeleton.dart';
@@ -130,9 +133,83 @@ void _openFieldsEditor(BuildContext context, ViewMode mode) {
   }
 }
 
-void _openFilterEditor(BuildContext context, {int? index}) =>
-    _comingSoon(context, 'Filtering');
-void _openSortMenu(BuildContext context) => _comingSoon(context, 'Sorting');
+/// Adds a filter, or edits the one at [index]. A popover hanging from
+/// [anchor] (the toolbar) when given, else a bottom sheet.
+Future<void> _openFilterEditor(
+  BuildContext context, {
+  int? index,
+  Rect? anchor,
+  double inset = 0,
+}) async {
+  final cubit = context.read<CollectionViewsCubit>();
+  final opened = cubit.state;
+  if (opened is! ViewsReady) return;
+  final initial = index == null
+      ? null
+      : opened.activeView.filters.elementAtOrNull(index);
+  final result = await showViewPopover<ViewFilter>(
+    context,
+    compact: anchor == null,
+    anchor: anchor ?? Rect.zero,
+    horizontalInset: inset,
+    label: initial == null ? 'Add filter' : 'Edit filter',
+    // Rebuilds as reference choices arrive.
+    builder: (sheetContext) =>
+        BlocBuilder<CollectionViewsCubit, CollectionViewsState>(
+          bloc: cubit,
+          builder: (_, state) => FilterBuilder(
+            collection: state is ViewsReady
+                ? state.collection
+                : opened.collection,
+            initial: initial,
+            referenceChoices: (id) =>
+                state is ViewsReady ? state.referenceChoices[id] : null,
+            onLoadChoices: cubit.loadReferenceChoices,
+            onApply: (f) => Navigator.of(sheetContext).pop(f),
+          ),
+        ),
+  );
+  if (result == null) return;
+  final current = cubit.state;
+  if (current is! ViewsReady) return;
+  final filters = [...current.activeView.filters];
+  if (index != null && index < filters.length) {
+    filters[index] = result;
+  } else {
+    filters.add(result);
+  }
+  await cubit.setFilters(filters);
+}
+
+/// The sort menu: a popover hanging from [anchor]'s right edge when given,
+/// else a bottom sheet. Manual order is offered on Board and List.
+Future<void> _openSortMenu(
+  BuildContext context, {
+  Rect? anchor,
+  double inset = 0,
+}) async {
+  final cubit = context.read<CollectionViewsCubit>();
+  final state = cubit.state;
+  if (state is! ViewsReady) return;
+  final view = state.activeView;
+  await showViewPopover<void>(
+    context,
+    compact: anchor == null,
+    anchor: anchor ?? Rect.zero,
+    alignEnd: true,
+    horizontalInset: inset,
+    label: 'Sort',
+    builder: (sheetContext) => SortMenu(
+      collection: state.collection,
+      current: view.sort,
+      allowManual:
+          view.mode == ViewModeIds.board || view.mode == ViewModeIds.list,
+      onChanged: cubit.setSort,
+      onPicked: () => Navigator.of(sheetContext).pop(),
+    ),
+  );
+}
+
 void _openViewSettings(BuildContext context) =>
     _comingSoon(context, 'View settings');
 
@@ -464,19 +541,32 @@ class _WorkBody extends StatelessWidget {
             collection.views.firstWhere((v) => v.id == id),
           ),
         ),
-        ViewToolbar(
-          collection: collection,
-          view: view,
-          compact: compact,
-          fieldsLabel: mode.fieldsLabel,
-          horizontalPadding: gutter,
-          settingsChip: mode.buildSettingsChip(context, data),
-          onAddFilter: () => _openFilterEditor(context),
-          onEditFilter: (i) => _openFilterEditor(context, index: i),
-          onRemoveFilter: (i) =>
-              cubit.setFilters([...view.filters]..removeAt(i)),
-          onSort: () => _openSortMenu(context),
-          onEditFields: data.editFields,
+        Builder(
+          builder: (toolbar) {
+            Rect? anchor() => compact ? null : globalRectOf(toolbar);
+            return ViewToolbar(
+              collection: collection,
+              view: view,
+              compact: compact,
+              fieldsLabel: mode.fieldsLabel,
+              horizontalPadding: gutter,
+              referenceLabels: state.referenceLabels,
+              settingsChip: mode.buildSettingsChip(context, data),
+              onAddFilter: () =>
+                  _openFilterEditor(context, anchor: anchor(), inset: gutter),
+              onEditFilter: (i) => _openFilterEditor(
+                context,
+                index: i,
+                anchor: anchor(),
+                inset: gutter,
+              ),
+              onRemoveFilter: (i) =>
+                  cubit.setFilters([...view.filters]..removeAt(i)),
+              onSort: () =>
+                  _openSortMenu(context, anchor: anchor(), inset: gutter),
+              onEditFields: data.editFields,
+            );
+          },
         ),
         if (!known)
           _UnknownModeNotice(modeId: view.mode, fallback: mode, gutter: gutter),

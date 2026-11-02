@@ -24,6 +24,7 @@ class ViewToolbar extends StatelessWidget {
     required this.onEditFields,
     this.settingsChip,
     this.horizontalPadding = Spacing.lg,
+    this.referenceLabels = const {},
   });
 
   final Collection collection;
@@ -37,6 +38,7 @@ class ViewToolbar extends StatelessWidget {
   final VoidCallback onEditFields;
   final Widget? settingsChip;
   final double horizontalPadding;
+  final Map<String, String> referenceLabels;
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +49,11 @@ class ViewToolbar extends StatelessWidget {
         children: [
           for (var i = 0; i < view.filters.length; i++) ...[
             _FilterChip(
-              label: filterLabel(view.filters[i], collection),
+              label: filterLabel(
+                view.filters[i],
+                collection,
+                referenceLabels: referenceLabels,
+              ),
               onPressed: () => onEditFilter(i),
               onRemove: () => onRemoveFilter(i),
             ),

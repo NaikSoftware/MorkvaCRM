@@ -44,6 +44,9 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
   final Map<String, List<MorkvaObject>> _targetObjects = {};
   final Set<String> _failedTargets = {};
 
+  /// Reference fields whose choices a filter builder asked for.
+  final Set<String> _choiceFields = {};
+
   List<Collection> _collections = const [];
   Collection? _streamCollection;
   Collection? _localCollection;
@@ -108,34 +111,65 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
     if (!isClosed) emit(ViewsError('$error'));
   }
 
+  /// The reference fields of [collection] that [view] shows, lays out by or
+  /// filters on.
+  static Iterable<ReferenceFieldDefinition> _viewReferences(
+    Collection collection,
+    ViewDefinition view,
+  ) {
+    final ids = {
+      view.layoutFieldId,
+      ...view.fieldIds,
+      for (final f in view.filters) f.fieldId,
+    };
+    return collection.fields.whereType<ReferenceFieldDefinition>().where(
+      (f) => ids.contains(f.id),
+    );
+  }
+
   /// Watches the target collections of the active view's reference fields,
   /// once each.
   void _watchTargets(Collection collection, ViewDefinition view) {
-    final ids = {view.layoutFieldId, ...view.fieldIds};
-    for (final field in collection.fields) {
-      if (field is! ReferenceFieldDefinition || !ids.contains(field.id)) {
-        continue;
-      }
-      final targetId = field.targetCollectionId;
-      if (targetId == collectionId || _targetSubs.containsKey(targetId)) {
-        continue;
-      }
-      final target = _collections.where((c) => c.id == targetId).firstOrNull;
-      if (target == null) continue;
-      _targetSubs[targetId] = _repository
-          .watchObjects(targetId, schema: target)
-          .listen(
-            (objects) {
-              if (isClosed) return;
-              _targetObjects[targetId] = objects;
-              _emitReady();
-            },
-            onError: (Object _) {
-              if (isClosed || !_failedTargets.add(targetId)) return;
-              _reportWriteError("Couldn't load ${target.name} names");
-            },
-          );
+    _viewReferences(collection, view).forEach(_watchTarget);
+    _choiceReferences(collection).forEach(_watchTarget);
+  }
+
+  Iterable<ReferenceFieldDefinition> _choiceReferences(Collection collection) =>
+      collection.fields.whereType<ReferenceFieldDefinition>().where(
+        (f) => _choiceFields.contains(f.id),
+      );
+
+  void _watchTarget(ReferenceFieldDefinition field) {
+    if (isClosed) return;
+    final targetId = field.targetCollectionId;
+    if (targetId == collectionId || _targetSubs.containsKey(targetId)) return;
+    final target = _collections.where((c) => c.id == targetId).firstOrNull;
+    if (target == null) return;
+    _targetSubs[targetId] = _repository
+        .watchObjects(targetId, schema: target)
+        .listen(
+          (objects) {
+            if (isClosed) return;
+            _targetObjects[targetId] = objects;
+            _emitReady();
+          },
+          onError: (Object _) {
+            if (isClosed || !_failedTargets.add(targetId)) return;
+            _reportWriteError("Couldn't load ${target.name} names");
+          },
+        );
+  }
+
+  /// Starts loading what reference field [fieldId] can point at; the
+  /// states that follow carry it in [ViewsReady.referenceChoices].
+  void loadReferenceChoices(String fieldId) {
+    if (isClosed) return;
+    final field = _collection?.fieldById(fieldId);
+    if (field is! ReferenceFieldDefinition || !_choiceFields.add(fieldId)) {
+      return;
     }
+    _watchTarget(field);
+    _emitReady();
   }
 
   static Collection _withViews(Collection c) => c.views.isNotEmpty
@@ -163,14 +197,18 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
 
   /// Labels of [targetId]'s objects in the target's own default order (its
   /// first view's order, unfiltered): the first text field, or 'Untitled'.
-  Map<String, String> _labelsFor(String targetId, Collection self) {
+  /// Null while they load; empty when the target is gone or failed.
+  Map<String, String>? _labelsFor(String targetId, Collection self) {
     final target = targetId == collectionId
         ? self
         : _collections.where((c) => c.id == targetId).firstOrNull;
     final objects = targetId == collectionId
         ? _allObjects
         : _targetObjects[targetId];
-    if (target == null || objects == null) return const {};
+    if (target == null) return const {};
+    if (objects == null) {
+      return _failedTargets.contains(targetId) ? const {} : null;
+    }
     final view =
         (target.views.firstOrNull ?? ViewDefinition.defaultFor(target.fields))
             .copyWith(filters: const []);
@@ -199,11 +237,10 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
 
     final all = _allObjects;
     final applied = applyView(collection, view, all);
-    final shownIds = {view.layoutFieldId, ...view.fieldIds};
     final labelsByTarget = {
-      for (final f in collection.fields)
-        if (f is ReferenceFieldDefinition && shownIds.contains(f.id))
-          f.targetCollectionId: _labelsFor(f.targetCollectionId, collection),
+      for (final f in _viewReferences(collection, view))
+        f.targetCollectionId:
+            _labelsFor(f.targetCollectionId, collection) ?? const {},
     };
     final layout = view.layoutFieldId == null
         ? null
@@ -230,6 +267,10 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
             : null,
         referenceLabels: {
           for (final labels in labelsByTarget.values) ...labels,
+        },
+        referenceChoices: {
+          for (final f in _choiceReferences(collection))
+            f.id: ?_labelsFor(f.targetCollectionId, collection),
         },
         writeError: _writeError,
         writeErrorSeq: _writeErrorSeq,

@@ -41,6 +41,7 @@ final class ViewsReady extends CollectionViewsState {
     this.groups,
     this.days,
     this.referenceLabels = const {},
+    this.referenceChoices = const {},
     this.writeError,
     this.writeErrorSeq = 0,
   });
@@ -65,8 +66,12 @@ final class ViewsReady extends CollectionViewsState {
   final DayBuckets? days;
 
   /// Referenced object id → label, for the reference fields the active view
-  /// shows or lays out by. Pass to `formatFieldValue`.
+  /// shows, lays out by or filters on. Pass to `formatFieldValue`.
   final Map<String, String> referenceLabels;
+
+  /// Reference field id → (object id → label) of what it can point at, for
+  /// fields passed to `loadReferenceChoices` whose targets have loaded.
+  final Map<String, Map<String, String>> referenceChoices;
 
   /// The last failed write, for a snackbar. A new failure bumps
   /// [writeErrorSeq], so listeners can tell repeats apart.
@@ -97,6 +102,7 @@ final class ViewsReady extends CollectionViewsState {
     groups,
     days,
     referenceLabels,
+    referenceChoices,
     writeError,
     writeErrorSeq,
   ];
