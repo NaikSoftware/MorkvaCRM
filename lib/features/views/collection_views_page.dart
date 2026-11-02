@@ -87,9 +87,17 @@ void _maybeNudge(BuildContext context, CollectionViewsState state) {
   if (state is! ViewsReady || state.totalCount != 0) return;
   if (state.collection.fields.isEmpty) return;
   if (!_nudgedCollections.add(state.collection.id)) return;
-  final message = 'Add your first ${itemLabelOf(state.collection)}';
+  final item = itemLabelOf(state.collection);
   WidgetsBinding.instance.addPostFrameCallback((_) {
-    if (context.mounted) _notify(context, message);
+    if (!context.mounted) return;
+    _notify(
+      context,
+      'Add your first $item',
+      action: SnackBarAction(
+        label: 'New $item',
+        onPressed: () => _quickAdd(context, state),
+      ),
+    );
   });
 }
 
@@ -97,10 +105,12 @@ void _notify(
   BuildContext context,
   String message, {
   ViewUndo? undo,
+  SnackBarAction? action,
   bool error = false,
 }) {
   final messenger = ScaffoldMessenger.of(context);
   final scheme = Theme.of(context).colorScheme;
+  final wide = MediaQuery.sizeOf(context).width >= AppShell.expandedBreakpoint;
   messenger
     ..hideCurrentSnackBar()
     ..showSnackBar(
@@ -108,8 +118,11 @@ void _notify(
         content: Text(message),
         backgroundColor: error ? scheme.errorContainer : null,
         duration: const Duration(seconds: 5),
+        // Floating and 480 wide on desktop, so it never spans the rail.
+        behavior: SnackBarBehavior.floating,
+        width: wide ? 480 : null,
         action: undo == null
-            ? null
+            ? action
             : SnackBarAction(label: 'Undo', onPressed: () => undo()),
       ),
     );

@@ -39,7 +39,8 @@ Tiebreak for the rule in the design doc: stored on the collection and seen by ev
   leads the default view, so it is the title there), 5 one-tap suggestion chips (Status · choice, Due date · date, Amount · number,
   Customer · reference, Notes · text) + "+ Custom field". Done always enabled → Work with an
   auto-created "All <name>" Table view showing all fields; one-time snackbar "Add your first
-  <item>". No tours.
+  <item>" with a "New <item>" action (quick add). No tours. All Work snackbars float, 480 px wide
+  on ≥840 so they never cover the rail.
 - **Work empty states**: no fields (legacy only) → "This collection has no fields yet" +
   Customize; fields but no objects → the real Table header + one ghost row "+ New <item>" and a
   "Change fields" link; Board shows real columns each with "+"; Calendar shows the month with

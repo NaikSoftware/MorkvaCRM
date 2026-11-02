@@ -220,12 +220,30 @@ void main() {
   });
 
   group('states', () {
+    testWidgets('the nudge action opens quick add', (tester) async {
+      await pumpWorkPage(tester, repository: workRepository(objects: []));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(SnackBarAction, 'New deal'));
+      await tester.pumpAndSettle();
+      expect(find.byType(QuickAddDialog), findsOneWidget);
+    });
+
+    testWidgets('mode bodies are keyed by view', (tester) async {
+      final cubit = await pumpWorkPage(tester);
+      expect(find.byKey(const ValueKey('all')), findsOneWidget);
+      cubit.selectView('board');
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('board')), findsOneWidget);
+      expect(find.byKey(const ValueKey('all')), findsNothing);
+    });
+
     testWidgets('no objects: header plus a ghost row and Change fields', (
       tester,
     ) async {
       await pumpWorkPage(tester, repository: workRepository(objects: []));
       expect(find.bySemanticsLabel('Sort by Amount'), findsOneWidget);
-      expect(find.text('New deal'), findsNWidgets(2));
+      // The ghost row, the New button and the first-item nudge's action.
+      expect(find.text('New deal'), findsNWidgets(3));
       expect(find.text('Change fields'), findsOneWidget);
     });
 
@@ -234,6 +252,11 @@ void main() {
       await pumpWorkPage(tester, repository: repo);
       await tester.pump();
       expect(find.text('Add your first deal'), findsOneWidget);
+      // Floating, 480 wide on desktop (never over the rail), with an action.
+      final bar = tester.widget<SnackBar>(find.byType(SnackBar));
+      expect(bar.width, 480);
+      expect(bar.behavior, SnackBarBehavior.floating);
+      expect(find.widgetWithText(SnackBarAction, 'New deal'), findsOneWidget);
       ScaffoldMessenger.of(
         tester.element(find.byType(Scaffold).first),
       ).hideCurrentSnackBar();
