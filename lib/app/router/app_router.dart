@@ -105,23 +105,9 @@ GoRouter createAppRouter(
                   final repository = context.read<DataRepository>();
                   final fieldId = state.uri.queryParameters['field'];
                   return BlocProvider(
-                    create: (_) {
-                      final cubit = CollectionEditorCubit(
-                        repository,
-                        fieldEditorRegistry,
-                      );
-                      // `?field=<id>` deep link: select that field once loaded
-                      // (ignored if the id is not one of the collection's).
-                      cubit.load(id).then((_) {
-                        final s = cubit.state;
-                        if (fieldId != null &&
-                            s is CollectionEditorReady &&
-                            s.draft.fields.any((f) => f.id == fieldId)) {
-                          cubit.selectField(fieldId);
-                        }
-                      });
-                      return cubit;
-                    },
+                    create: (_) =>
+                        CollectionEditorCubit(repository, fieldEditorRegistry)
+                          ..load(id, selectFieldId: fieldId),
                     child: CollectionEditorPage(registry: fieldEditorRegistry),
                   );
                 },

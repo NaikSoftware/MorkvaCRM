@@ -340,16 +340,32 @@ class _EditorHeaderState extends State<_EditorHeader> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  key: const Key('customizing-cue'),
+                  // Sit the cue on the name's text line, above its 3 px underline gap.
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Icon(Icons.edit_outlined, size: 20, color: scheme.primary),
-                    const SizedBox(width: Spacing.xs),
-                    Text(
-                      'Customizing · ',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: scheme.onSurfaceVariant,
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 5),
+                      child: Icon(
+                        Icons.edit_outlined,
+                        size: 20,
+                        color: scheme.primary,
+                        semanticLabel: 'Customizing',
                       ),
                     ),
+                    const SizedBox(width: Spacing.xs),
+                    // Below 600 px the prefix collapses to just the icon so the
+                    // name keeps its room next to the glyph and Save control.
+                    if (MediaQuery.sizeOf(context).width >= 600)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 3),
+                        child: Text(
+                          'Customizing · ',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
                     Flexible(
                       child: _NameEditAffordance(
                         focused: _nameFocus.hasFocus,
@@ -554,6 +570,32 @@ class _SaveControl extends StatelessWidget {
 // Layouts
 // ---------------------------------------------------------------------------
 
+/// "Object form" caption above the layout canvas: the stored card layout every
+/// view shares, named so it is never confused with a view's "Setup card".
+class _ObjectFormHeading extends StatelessWidget {
+  const _ObjectFormHeading();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Spacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Object form', style: theme.textTheme.titleMedium),
+          Text(
+            'How a card looks when opened',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// The docked 2-pane layout for wide screens.
 ///
 /// Left pane (weight 3): the [LayoutCanvas] in a vertically scrollable
@@ -578,7 +620,13 @@ class _TwoPaneLayout extends StatelessWidget {
       panes: [
         SingleChildScrollView(
           padding: const EdgeInsets.all(Spacing.lg),
-          child: LayoutCanvas(collection: state.draft, registry: registry),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const _ObjectFormHeading(),
+              LayoutCanvas(collection: state.draft, registry: registry),
+            ],
+          ),
         ),
         _ConfigRegion(
           state: state,
@@ -850,9 +898,15 @@ class _NarrowLayoutState extends State<_NarrowLayout> {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(Spacing.lg),
-      child: LayoutCanvas(
-        collection: widget.state.draft,
-        registry: widget.registry,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _ObjectFormHeading(),
+          LayoutCanvas(
+            collection: widget.state.draft,
+            registry: widget.registry,
+          ),
+        ],
       ),
     );
   }

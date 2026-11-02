@@ -33,24 +33,15 @@ const _collection = Collection(
     TextFieldDefinition(id: 'f1', name: 'Title'),
     TextFieldDefinition(id: 'f2', name: 'Notes'),
   ],
-  layout: CardLayout(
-    sections: [
-      LayoutSection(
-        id: 's1',
-        title: 'Main',
-        rows: [
-          LayoutRow(
-            id: 'r1',
-            cells: [
-              LayoutCell(fieldId: 'f1', span: 6),
-              LayoutCell(fieldId: 'f2', span: 6),
-            ],
-          ),
-        ],
-      ),
-      LayoutSection(id: 's2', title: 'Extra'),
-    ],
-  ),
+  layout: CardLayout(sections: [
+    LayoutSection(id: 's1', title: 'Main', rows: [
+      LayoutRow(id: 'r1', cells: [
+        LayoutCell(fieldId: 'f1', span: 6),
+        LayoutCell(fieldId: 'f2', span: 6),
+      ]),
+    ]),
+    LayoutSection(id: 's2', title: 'Extra'),
+  ]),
 );
 
 // ---------------------------------------------------------------------------
@@ -116,29 +107,62 @@ void main() {
       tester,
     ) async {
       await _pumpPage(tester);
+      expect(find.byKey(const Key('customizing-cue')), findsOneWidget);
       expect(find.text('Customizing · '), findsOneWidget);
-      expect(find.byIcon(Icons.edit_outlined), findsAtLeast(1));
+      expect(find.text('Object form'), findsOneWidget);
+      expect(find.text('How a card looks when opened'), findsOneWidget);
 
       await tester.tap(find.byTooltip('Close'));
       await tester.pumpAndSettle();
       expect(find.text('work'), findsOneWidget);
+    });
+
+    testWidgets('Close on a dirty draft confirms; Discard goes to Work', (
+      tester,
+    ) async {
+      final cubit = await _pumpPage(tester);
+      cubit.renameCollection('Renamed');
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Close'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Discard'));
+      await tester.pumpAndSettle();
+      expect(find.text('work'), findsOneWidget);
+    });
+
+    testWidgets('phone 360: cue collapses to the icon, no overflow', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(360, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final cubit = await _pumpPage(tester, surfaceWidth: 360);
+      cubit.renameCollection('A rather long collection name for a phone');
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('customizing-cue')), findsOneWidget);
+      expect(find.text('Customizing · '), findsNothing);
+      expect(find.text('Object form'), findsOneWidget);
+      expect(tester.takeException(), isNull);
     });
   });
 
   group('CollectionEditorPage — 2-pane layout (wide)', () {
     // ── Two panes render ─────────────────────────────────────────────────────
 
-    testWidgets('renders LayoutCanvas and inspector region in two panes', (
-      tester,
-    ) async {
-      await _pumpPage(tester);
+    testWidgets(
+      'renders LayoutCanvas and inspector region in two panes',
+      (tester) async {
+        await _pumpPage(tester);
 
-      // LayoutCanvas is present (canvas renders the collection name header).
-      expect(find.text('Tasks'), findsAtLeast(1));
+        // LayoutCanvas is present (canvas renders the collection name header).
+        expect(find.text('Tasks'), findsAtLeast(1));
 
-      // Placeholder is visible when nothing is selected.
-      expect(find.text('Select a field or group to edit it.'), findsOneWidget);
-    });
+        // Placeholder is visible when nothing is selected.
+        expect(find.text('Select a field or group to edit it.'), findsOneWidget);
+      },
+    );
 
     // ── Empty inspector placeholder when nothing selected ────────────────────
 
@@ -152,10 +176,7 @@ void main() {
         expect(state.selectedFieldId, isNull);
         expect(state.selectedSectionId, isNull);
 
-        expect(
-          find.text('Select a field or group to edit it.'),
-          findsOneWidget,
-        );
+        expect(find.text('Select a field or group to edit it.'), findsOneWidget);
         expect(find.byType(FieldConfigPanel), findsNothing);
         expect(find.byType(SectionConfigPanel), findsNothing);
       },
@@ -163,79 +184,90 @@ void main() {
 
     // ── Field selection shows FieldConfigPanel ───────────────────────────────
 
-    testWidgets('after selectField the inspector shows FieldConfigPanel', (
-      tester,
-    ) async {
-      final cubit = await _pumpPage(tester);
+    testWidgets(
+      'after selectField the inspector shows FieldConfigPanel',
+      (tester) async {
+        final cubit = await _pumpPage(tester);
 
-      cubit.selectField('f1');
-      await tester.pumpAndSettle();
+        cubit.selectField('f1');
+        await tester.pumpAndSettle();
 
-      expect(find.byType(FieldConfigPanel), findsOneWidget);
-      expect(find.byType(SectionConfigPanel), findsNothing);
-      expect(find.text('Select a field or group to edit it.'), findsNothing);
-    });
+        expect(find.byType(FieldConfigPanel), findsOneWidget);
+        expect(find.byType(SectionConfigPanel), findsNothing);
+        expect(
+          find.text('Select a field or group to edit it.'),
+          findsNothing,
+        );
+      },
+    );
 
     // ── Section selection shows SectionConfigPanel ───────────────────────────
 
-    testWidgets('after selectSection the inspector shows SectionConfigPanel', (
-      tester,
-    ) async {
-      final cubit = await _pumpPage(tester);
+    testWidgets(
+      'after selectSection the inspector shows SectionConfigPanel',
+      (tester) async {
+        final cubit = await _pumpPage(tester);
 
-      cubit.selectSection('s1');
-      await tester.pumpAndSettle();
+        cubit.selectSection('s1');
+        await tester.pumpAndSettle();
 
-      expect(find.byType(SectionConfigPanel), findsOneWidget);
-      expect(find.byType(FieldConfigPanel), findsNothing);
-      expect(find.text('Select a field or group to edit it.'), findsNothing);
-    });
+        expect(find.byType(SectionConfigPanel), findsOneWidget);
+        expect(find.byType(FieldConfigPanel), findsNothing);
+        expect(
+          find.text('Select a field or group to edit it.'),
+          findsNothing,
+        );
+      },
+    );
 
     // ── Switching selection replaces the inspector ───────────────────────────
 
-    testWidgets('switching from field to section swaps the inspector widget', (
-      tester,
-    ) async {
-      final cubit = await _pumpPage(tester);
+    testWidgets(
+      'switching from field to section swaps the inspector widget',
+      (tester) async {
+        final cubit = await _pumpPage(tester);
 
-      cubit.selectField('f1');
-      await tester.pumpAndSettle();
-      expect(find.byType(FieldConfigPanel), findsOneWidget);
+        cubit.selectField('f1');
+        await tester.pumpAndSettle();
+        expect(find.byType(FieldConfigPanel), findsOneWidget);
 
-      cubit.selectSection('s1');
-      await tester.pumpAndSettle();
-      expect(find.byType(SectionConfigPanel), findsOneWidget);
-      expect(find.byType(FieldConfigPanel), findsNothing);
-    });
+        cubit.selectSection('s1');
+        await tester.pumpAndSettle();
+        expect(find.byType(SectionConfigPanel), findsOneWidget);
+        expect(find.byType(FieldConfigPanel), findsNothing);
+      },
+    );
 
     // ── Selection alone does not make the draft dirty ────────────────────────
 
-    testWidgets('selection changes do not make the draft dirty', (
-      tester,
-    ) async {
-      final cubit = await _pumpPage(tester);
+    testWidgets(
+      'selection changes do not make the draft dirty',
+      (tester) async {
+        final cubit = await _pumpPage(tester);
 
-      cubit.selectField('f1');
-      await tester.pumpAndSettle();
-      expect((cubit.state as CollectionEditorReady).dirty, isFalse);
+        cubit.selectField('f1');
+        await tester.pumpAndSettle();
+        expect((cubit.state as CollectionEditorReady).dirty, isFalse);
 
-      cubit.selectSection('s1');
-      await tester.pumpAndSettle();
-      expect((cubit.state as CollectionEditorReady).dirty, isFalse);
+        cubit.selectSection('s1');
+        await tester.pumpAndSettle();
+        expect((cubit.state as CollectionEditorReady).dirty, isFalse);
 
-      cubit.selectField(null);
-      await tester.pumpAndSettle();
-      expect((cubit.state as CollectionEditorReady).dirty, isFalse);
-    });
+        cubit.selectField(null);
+        await tester.pumpAndSettle();
+        expect((cubit.state as CollectionEditorReady).dirty, isFalse);
+      },
+    );
 
     // ── FieldList is no longer in the page ───────────────────────────────────
 
-    testWidgets('the page header renders (collection name editable)', (
-      tester,
-    ) async {
-      await _pumpPage(tester);
-      // Header contains the collection name as the editable title field.
-      expect(find.text('Tasks'), findsAtLeast(1));
-    });
+    testWidgets(
+      'the page header renders (collection name editable)',
+      (tester) async {
+        await _pumpPage(tester);
+        // Header contains the collection name as the editable title field.
+        expect(find.text('Tasks'), findsAtLeast(1));
+      },
+    );
   });
 }

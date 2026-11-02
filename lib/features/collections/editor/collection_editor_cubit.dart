@@ -82,8 +82,10 @@ class CollectionEditorCubit extends Cubit<CollectionEditorState> {
 
   /// Loads the collection [collectionId] into an editable draft.
   ///
-  /// Emits [CollectionEditorNotFound] when the id does not resolve.
-  Future<void> load(String collectionId) async {
+  /// Emits [CollectionEditorNotFound] when the id does not resolve. When
+  /// [selectFieldId] names a field of the collection it starts selected (the
+  /// `?field=` deep link); an unknown id is ignored.
+  Future<void> load(String collectionId, {String? selectFieldId}) async {
     emit(const CollectionEditorLoading());
     final Collection? collection;
     try {
@@ -113,6 +115,9 @@ class CollectionEditorCubit extends Cubit<CollectionEditorState> {
         saved: collection,
         persistedFieldIds: collection.fields.map((f) => f.id).toSet(),
         availableCollections: available,
+        selectedFieldId: collection.fields.any((f) => f.id == selectFieldId)
+            ? selectFieldId
+            : null,
       ),
     );
   }

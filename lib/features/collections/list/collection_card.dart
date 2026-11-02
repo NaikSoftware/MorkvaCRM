@@ -72,9 +72,8 @@ class CollectionCard extends StatelessWidget {
             const SizedBox(height: Spacing.xs),
             Text(
               collection.description!,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
+              style: theme.textTheme.bodySmall
+                  ?.copyWith(color: scheme.onSurfaceVariant),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -92,9 +91,8 @@ class CollectionCard extends StatelessWidget {
                 fieldCount == 0
                     ? 'No fields yet'
                     : '$fieldCount ${fieldCount == 1 ? 'field' : 'fields'}',
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
+                style: theme.textTheme.labelMedium
+                    ?.copyWith(color: scheme.onSurfaceVariant),
               ),
             ],
           ),
@@ -103,6 +101,7 @@ class CollectionCard extends StatelessWidget {
     );
   }
 }
+
 
 /// The borderless rename / delete menu. Kept compact so it doesn't compete with
 /// the card title; delete is tinted with the error role as a quiet warning.
