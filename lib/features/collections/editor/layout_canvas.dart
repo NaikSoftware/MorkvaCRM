@@ -175,7 +175,14 @@ class LayoutCanvas extends StatelessWidget {
           borderRadius: Radii.lgAll,
         ),
         padding: const EdgeInsets.all(Spacing.md),
-        child: LayoutBuilder(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Outside the horizontally-sized canvas so it never clips on phones.
+            if (starter)
+              FirstRunFields(collection: collection, registry: registry),
+            LayoutBuilder(
           builder: (context, constraints) {
             final contentWidth = constraints.maxWidth.isFinite
                 ? constraints.maxWidth.clamp(380.0, double.infinity)
@@ -196,8 +203,6 @@ class LayoutCanvas extends StatelessWidget {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: Spacing.md),
-                    if (starter)
-                      FirstRunFields(collection: collection, registry: registry),
                     // Sections
                     for (var i = 0; i < sectionCount; i++)
                       _SectionView(
@@ -230,6 +235,8 @@ class LayoutCanvas extends StatelessWidget {
               ),
             );
           },
+        ),
+          ],
         ),
       ),
     );

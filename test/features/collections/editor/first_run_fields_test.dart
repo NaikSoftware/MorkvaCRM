@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/design/theme/app_theme.dart';
 import 'package:morkva_crm/features/collections/editor/collection_editor_cubit.dart';
+import 'package:morkva_crm/features/collections/list/collections_list_cubit.dart';
 import 'package:morkva_crm/features/collections/editor/collection_editor_state.dart';
 import 'package:morkva_crm/features/collections/editor/layout_canvas.dart';
 import 'package:morkva_crm/features/collections/field_editors/built_in_field_editors.dart';
@@ -17,18 +18,21 @@ Collection _deals(List<FieldDefinition> fields) =>
 
 Future<CollectionEditorCubit> _pump(
   WidgetTester tester,
-  List<Collection> collections,
-) async {
-  tester.view.physicalSize = const Size(900, 1200);
+  List<Collection> collections, {
+  Size size = const Size(900, 1200),
+  FakeDataRepository? repo,
+  String id = 'c1',
+}) async {
+  tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
   final registry = defaultFieldEditorRegistry();
   final cubit = CollectionEditorCubit(
-    FakeDataRepository(collections),
+    repo ?? FakeDataRepository(collections),
     registry,
   );
-  await cubit.load('c1');
+  await cubit.load(id);
   addTearDown(cubit.close);
   await tester.pumpWidget(
     MaterialApp(
@@ -125,7 +129,9 @@ void main() {
     expect(_ready(cubit).selectedFieldId, ref.id);
   });
 
-  testWidgets('Customer targets an obviously matching collection', (t) async {
+  testWidgets('Customer never guesses a target, even with a Customers one', (
+    t,
+  ) async {
     final cubit = await _pump(t, [
       _deals(const [_name]),
       const Collection(id: 'c2', name: 'Customers'),
@@ -133,7 +139,29 @@ void main() {
     await t.tap(find.byKey(const Key('suggest_Customer')));
     await t.pumpAndSettle();
     final ref = _ready(cubit).draft.fields.last as ReferenceFieldDefinition;
-    expect(ref.targetCollectionId, 'c2');
+    expect(ref.targetCollectionId, '');
+  });
+
+  testWidgets('phone width: every chip lies inside the card', (t) async {
+    await _pump(t, [
+      _deals(const [_name]),
+    ], size: const Size(390, 844));
+    final card = t.getRect(find.byKey(const Key('first_run_card')));
+    expect(card.right, lessThanOrEqualTo(390));
+    for (final c in find.byType(ActionChip).evaluate()) {
+      final r = t.getRect(find.byWidget(c.widget));
+      expect(card.contains(r.topLeft) && card.contains(r.bottomRight), isTrue);
+    }
+  });
+
+  testWidgets('a collection from the real create path shows its Name field', (
+    t,
+  ) async {
+    final repo = FakeDataRepository();
+    final id = await CollectionsListCubit(repo).createCollection('Deals');
+    await _pump(t, const [], repo: repo, id: id);
+    expect(find.text('Name'), findsOneWidget);
+    expect(find.text('What do you track for each deal?'), findsOneWidget);
   });
 
   testWidgets('Custom field opens the add-field sheet', (t) async {

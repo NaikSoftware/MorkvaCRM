@@ -17,6 +17,7 @@ import 'package:go_router/go_router.dart';
 import 'package:morkva_crm/features/collections/editor/collection_editor_cubit.dart';
 import 'package:morkva_crm/features/collections/editor/collection_editor_page.dart';
 import 'package:morkva_crm/features/collections/field_editors/built_in_field_editors.dart';
+import 'package:morkva_crm/features/collections/list/collections_list_cubit.dart';
 import 'package:morkva_crm/features/views/views.dart';
 import '../../test/features/collections/fake_data_repository.dart';
 import 'package:flutter/services.dart';
@@ -239,18 +240,12 @@ void main() {
       tester.view.physicalSize = size;
       tester.view.devicePixelRatio = 1;
       final registry = defaultFieldEditorRegistry();
-      final cubit = CollectionEditorCubit(
-        FakeDataRepository([
-          const Collection(
-            id: 'c1',
-            name: 'Deals',
-            fields: [TextFieldDefinition(id: 'f1', name: 'Name')],
-          ),
-          const Collection(id: 'c2', name: 'Customers'),
-        ]),
-        registry,
-      );
-      await cubit.load('c1');
+      final repo = FakeDataRepository([
+        const Collection(id: 'c2', name: 'Customers'),
+      ]);
+      final id = await CollectionsListCubit(repo).createCollection('Deals');
+      final cubit = CollectionEditorCubit(repo, registry);
+      await cubit.load(id);
       final router = GoRouter(
         initialLocation: '/e',
         routes: [

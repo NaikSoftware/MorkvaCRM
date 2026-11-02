@@ -209,6 +209,18 @@ void main() {
       expect(find.text('Add your first deal'), findsNothing);
     });
 
+    testWidgets('no nudge while loading, nor once objects arrive', (
+      tester,
+    ) async {
+      final cubit = await pumpWorkPage(tester, initialize: false);
+      await tester.pump();
+      expect(find.text('Add your first deal'), findsNothing);
+      cubit.initialize();
+      await tester.pump();
+      await tester.pump();
+      expect(find.text('Add your first deal'), findsNothing);
+    });
+
     testWidgets('no nudge when the collection has objects', (tester) async {
       await pumpWorkPage(tester);
       await tester.pump();
@@ -224,6 +236,7 @@ void main() {
         ),
       );
       expect(find.text('This collection has no fields yet'), findsOneWidget);
+      expect(find.text('Add your first deal'), findsNothing);
       expect(find.byType(FloatingActionButton), findsNothing);
     });
 

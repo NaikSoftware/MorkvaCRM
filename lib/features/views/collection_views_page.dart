@@ -79,6 +79,7 @@ void resetFirstItemNudges() => _nudgedCollections.clear();
 /// Once per session per collection, a gentle prompt when it has no objects.
 void _maybeNudge(BuildContext context, CollectionViewsState state) {
   if (state is! ViewsReady || state.totalCount != 0) return;
+  if (state.collection.fields.isEmpty) return;
   if (!_nudgedCollections.add(state.collection.id)) return;
   final message = 'Add your first ${itemLabelOf(state.collection)}';
   WidgetsBinding.instance.addPostFrameCallback((_) {

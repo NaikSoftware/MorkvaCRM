@@ -37,6 +37,7 @@ class FirstRunFields extends StatelessWidget {
     final used = {for (final f in collection.fields) f.name.toLowerCase()};
 
     return Container(
+      key: const Key('first_run_card'),
       margin: const EdgeInsets.only(bottom: Spacing.md),
       padding: const EdgeInsets.all(Spacing.md),
       decoration: BoxDecoration(
@@ -111,30 +112,10 @@ class FirstRunFields extends StatelessWidget {
         ),
       );
     }
-
-    if (s.typeId == kReferenceFieldType) {
-      // Never guess a target: pick an obvious one, otherwise leave the field
-      // selected so the regular config panel asks for it.
-      final target = ready.availableCollections
-          .where((c) => c.id != collection.id && _targetName.hasMatch(c.name))
-          .firstOrNull;
-      if (target != null) {
-        cubit.updateField(
-          ReferenceFieldDefinition(
-            id: id,
-            name: s.name,
-            targetCollectionId: target.id,
-          ),
-        );
-      }
-    }
+    // Customer: no target is guessed; the new field stays selected so the
+    // config panel asks for one.
   }
 }
-
-final _targetName = RegExp(
-  'customer|client|compan|contact',
-  caseSensitive: false,
-);
 
 class _Suggestion {
   const _Suggestion(
