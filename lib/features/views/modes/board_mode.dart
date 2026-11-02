@@ -115,8 +115,11 @@ class BoardView extends StatefulWidget {
 
 class _BoardViewState extends State<BoardView> {
   final _horizontal = ScrollController();
-  final _scrollableKey = GlobalKey();
   EdgeDraggingAutoScroller? _autoScroller;
+
+  /// A card is lifted. Tracked here, not via the card's Draggable, which
+  /// skips its end callbacks once its column scrolls out and is disposed.
+  bool _dragging = false;
 
   @override
   void dispose() {
@@ -125,13 +128,27 @@ class _BoardViewState extends State<BoardView> {
     super.dispose();
   }
 
-  void _dragUpdate(Offset pointer) {
-    final scrollContext = _scrollableKey.currentContext;
-    if (scrollContext == null) return;
-    _autoScroller ??= EdgeDraggingAutoScroller(
-      Scrollable.of(scrollContext),
-      velocityScalar: 7,
-    );
+  /// Where the held pointer is, for re-checking the edge after each step.
+  Offset? _pointer;
+
+  void _pointerMove(PointerMoveEvent event) {
+    _pointer = event.position;
+    _autoScroll();
+  }
+
+  void _autoScroll() {
+    final pointer = _pointer;
+    if (!_dragging || pointer == null || !_horizontal.hasClients) return;
+    final board = _horizontal.position.context;
+    if (board is! ScrollableState) return;
+    if (_autoScroller?.scrollable != board) {
+      _autoScroller = EdgeDraggingAutoScroller(
+        board,
+        velocityScalar: 7,
+        // Keep going while the pointer rests near the edge.
+        onScrollViewScrolled: _autoScroll,
+      );
+    }
     _autoScroller!.startAutoScrollIfNecessary(
       Rect.fromLTRB(
         pointer.dx - BoardColumn.autoScrollEdge,
@@ -142,7 +159,11 @@ class _BoardViewState extends State<BoardView> {
     );
   }
 
-  void _dragEnd() => _autoScroller?.stopAutoScroll();
+  void _pointerEnd(PointerEvent _) {
+    _dragging = false;
+    _pointer = null;
+    _autoScroller?.stopAutoScroll();
+  }
 
   void _drop(ViewGroup to, BoardDrag drag, String? beforeId) {
     final cubit = context.read<CollectionViewsCubit>();
@@ -171,20 +192,24 @@ class _BoardViewState extends State<BoardView> {
     if (groups == null || field == null) return _NoGrouping(data: data);
 
     final itemsLabel = collection.name.trim().toLowerCase();
-    final columns = Scrollbar(
-      controller: _horizontal,
-      child: SingleChildScrollView(
+    final columns = Listener(
+      onPointerMove: _pointerMove,
+      onPointerUp: _pointerEnd,
+      onPointerCancel: _pointerEnd,
+      child: Scrollbar(
         controller: _horizontal,
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.only(bottom: Spacing.sm),
-        child: Row(
-          // Below the Scrollable, so Scrollable.of finds the board's.
-          key: _scrollableKey,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            for (final (i, group) in groups.indexed) ...[
-              if (i > 0) const SizedBox(width: Spacing.md),
-              BoardColumn(
+        // Lazy: a reference board can have hundreds of columns.
+        child: ListView.separated(
+          controller: _horizontal,
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.only(bottom: Spacing.sm),
+          itemCount: groups.length,
+          separatorBuilder: (_, _) => const SizedBox(width: Spacing.md),
+          itemBuilder: (context, i) {
+            final group = groups[i];
+            return Align(
+              alignment: Alignment.topCenter,
+              child: BoardColumn(
                 key: ValueKey(('column', group.key)),
                 group: group,
                 collection: collection,
@@ -197,13 +222,14 @@ class _BoardViewState extends State<BoardView> {
                 onAdd: () => data.quickAdd(groupKey: group.key),
                 onDrop: (drag, beforeId) => _drop(group, drag, beforeId),
                 onEditOptions: field is SingleSelectFieldDefinition
-                    ? () => context.go('/collections/${collection.id}/edit')
+                    ? () => context.go(
+                        '/collections/${collection.id}/edit?field=${field.id}',
+                      )
                     : null,
-                onDragUpdate: _dragUpdate,
-                onDragEnd: _dragEnd,
+                onDragStarted: () => _dragging = true,
               ),
-            ],
-          ],
+            );
+          },
         ),
       ),
     );

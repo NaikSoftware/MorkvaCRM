@@ -1,7 +1,9 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
+import 'package:morkva_crm/design/design.dart';
 import 'package:morkva_crm/features/views/views.dart';
 import 'package:morkva_crm/features/views/widgets/board/board_card_draggable.dart';
 import 'package:morkva_crm/features/views/widgets/board/board_column.dart';
@@ -157,6 +159,23 @@ void main() {
       expect(tester.getSize(zone).height, BoardColumn.emptyHeight);
     });
 
+    testWidgets('header buttons are exactly 44 px', (tester) async {
+      await _pumpBoard(tester);
+      expect(
+        tester.getSize(find.byTooltip('New deal in Won')),
+        const Size.square(44),
+      );
+      expect(
+        tester.getSize(
+          find.descendant(
+            of: _column('Won'),
+            matching: find.byTooltip('Column options'),
+          ),
+        ),
+        const Size.square(44),
+      );
+    });
+
     testWidgets('"+" opens quick add pre-filled with the column', (
       tester,
     ) async {
@@ -179,6 +198,12 @@ void main() {
       await tester.tap(find.text('Edit options'));
       await tester.pumpAndSettle();
       expect(find.text('editor:deals'), findsOneWidget);
+      expect(
+        GoRouterState.of(
+          tester.element(find.text('editor:deals')),
+        ).uri.queryParameters['field'],
+        'stage',
+      );
     });
   });
 
@@ -276,7 +301,14 @@ void main() {
             .descendant(of: _column('Won'), matching: find.byType(Container))
             .first,
       );
-      expect(wonColumn.foregroundDecoration, isNotNull);
+      expect(
+        (wonColumn.foregroundDecoration! as BoxDecoration).border,
+        isA<Border>().having((b) => b.top.width, 'width', 2),
+      );
+      expect(
+        (wonColumn.decoration! as BoxDecoration).color,
+        AppTheme.light.colorScheme.surfaceContainerHigh,
+      );
       // The source slot has collapsed.
       final slot = find.descendant(
         of: _column('Lead'),
@@ -310,6 +342,112 @@ void main() {
       await gesture.up();
       await tester.pumpAndSettle();
       expect(_stageOf(cubit, 'd3'), 'won');
+    });
+  });
+
+  group('scale', () {
+    /// Deals grouped by Company, with [count] companies.
+    FakeDataRepository manyCompanies(int count, List<MorkvaObject> objects) {
+      final repo = FakeDataRepository([
+        deals.copyWith(views: [boardView.copyWith(layoutFieldId: 'company')]),
+        companies,
+      ]);
+      repo.seedObjects('deals', objects);
+      repo.seedObjects('companies', [
+        for (var i = 0; i < count; i++)
+          company('k$i', 'Company ${i.toString().padLeft(3, '0')}', i),
+      ]);
+      return repo;
+    }
+
+    testWidgets('columns are built lazily', (tester) async {
+      await _pumpBoard(tester, repository: manyCompanies(200, const []));
+      final built = find.byType(BoardColumn).evaluate().length;
+      expect(built, greaterThan(0));
+      expect(built, lessThan(10));
+    });
+
+    testWidgets('holding a card near a column bottom scrolls that column', (
+      tester,
+    ) async {
+      final cubit = await pumpWorkPage(
+        tester,
+        size: const Size(1280, 600),
+        repository: workRepository(
+          objects: [
+            for (var i = 0; i < 30; i++)
+              deal('c$i', i, name: 'Card $i', stage: 'lead'),
+          ],
+        ),
+      );
+      cubit.selectView('board');
+      await tester.pumpAndSettle();
+      final list = find.descendant(
+        of: _column('Lead'),
+        matching: find.byType(Scrollable),
+      );
+      final position = tester.state<ScrollableState>(list).position;
+      expect(position.pixels, 0);
+
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.text('Card 1')),
+        kind: PointerDeviceKind.mouse,
+      );
+      await gesture.moveBy(const Offset(0, 6));
+      await tester.pump();
+      await gesture.moveTo(tester.getBottomLeft(list) + const Offset(60, -12));
+      await tester.pump();
+      await gesture.moveBy(const Offset(0, 1));
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      expect(position.pixels, greaterThan(0));
+      // The board itself did not scroll vertically or sideways.
+      await gesture.up();
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('board auto-scroll stops on release even after the source '
+        'column is gone', (tester) async {
+      await _pumpBoard(
+        tester,
+        repository: manyCompanies(60, [
+          deal('d1', 0, name: 'Acme renewal', company: 'k0'),
+        ]),
+      );
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.text('Acme renewal')),
+        kind: PointerDeviceKind.mouse,
+      );
+      await gesture.moveBy(const Offset(0, 6));
+      await tester.pump();
+      final board = find
+          .ancestor(
+            of: find.byType(BoardColumn).first,
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      final edge = tester.getTopRight(board) + const Offset(-10, 120);
+      await gesture.moveTo(edge);
+      await tester.pump();
+      for (var i = 0; i < 120; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      final position = tester.state<ScrollableState>(board).position;
+      expect(position.pixels, greaterThan(BoardColumn.width * 2));
+      // The source column scrolled out and was disposed.
+      expect(_column('Company 000'), findsNothing);
+
+      await gesture.up();
+      await tester.pump();
+      // Let the step already in flight finish.
+      await tester.pump(const Duration(milliseconds: 300));
+      final stopped = position.pixels;
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      expect(position.pixels, stopped);
+      await tester.pumpAndSettle();
     });
   });
 

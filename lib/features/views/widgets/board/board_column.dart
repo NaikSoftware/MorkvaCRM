@@ -22,8 +22,7 @@ class BoardColumn extends StatefulWidget {
     required this.onAdd,
     required this.onDrop,
     this.onEditOptions,
-    this.onDragUpdate,
-    this.onDragEnd,
+    this.onDragStarted,
   });
 
   static const double width = 272;
@@ -55,8 +54,9 @@ class BoardColumn extends StatefulWidget {
 
   /// Opens the field's options in Build (select fields only).
   final VoidCallback? onEditOptions;
-  final ValueChanged<Offset>? onDragUpdate;
-  final VoidCallback? onDragEnd;
+
+  /// A card of this column was lifted.
+  final VoidCallback? onDragStarted;
 
   @override
   State<BoardColumn> createState() => _BoardColumnState();
@@ -65,7 +65,6 @@ class BoardColumn extends StatefulWidget {
 class _BoardColumnState extends State<BoardColumn> {
   final _keys = <String, GlobalKey>{};
   final _scroll = ScrollController();
-  final _listKey = GlobalKey();
   EdgeDraggingAutoScroller? _autoScroller;
 
   /// Where the ghost sits among the cards other than the dragged one.
@@ -103,20 +102,29 @@ class _BoardColumnState extends State<BoardColumn> {
     _autoScroll(centre);
   }
 
-  void _autoScroll(Offset point) {
-    final listContext = _listKey.currentContext;
-    final box = listContext?.findRenderObject() as RenderBox?;
-    // The scroller asserts its probe fits the viewport; tiny lists don't scroll.
-    if (box == null ||
-        !_scroll.hasClients ||
-        _scroll.position.maxScrollExtent <= 0 ||
-        box.size.height <= 2 * BoardColumn.autoScrollEdge) {
+  /// The held card's centre, for re-checking the edge after each step.
+  Offset? _point;
+
+  void _autoScroll([Offset? at]) {
+    final point = at ?? _point;
+    _point = point;
+    if (point == null || !_scroll.hasClients) return;
+    final position = _scroll.position;
+    // The list's own Scrollable (Scrollable.of from above it would find the
+    // board's). The scroller asserts its probe fits the viewport.
+    final list = position.context;
+    if (list is! ScrollableState ||
+        position.maxScrollExtent <= 0 ||
+        position.viewportDimension <= 2 * BoardColumn.autoScrollEdge) {
       return;
     }
-    _autoScroller ??= EdgeDraggingAutoScroller(
-      Scrollable.of(listContext!),
-      velocityScalar: 7,
-    );
+    if (_autoScroller?.scrollable != list) {
+      _autoScroller = EdgeDraggingAutoScroller(
+        list,
+        velocityScalar: 7,
+        onScrollViewScrolled: _autoScroll,
+      );
+    }
     _autoScroller!.startAutoScrollIfNecessary(
       Rect.fromLTRB(
         point.dx,
@@ -128,6 +136,7 @@ class _BoardColumnState extends State<BoardColumn> {
   }
 
   void _clear() {
+    _point = null;
     _autoScroller?.stopAutoScroll();
     if (_insertAt != null) setState(() => _insertAt = null);
   }
@@ -171,12 +180,15 @@ class _BoardColumnState extends State<BoardColumn> {
                 : scheme.surfaceContainerLow,
             borderRadius: Radii.lgAll,
           ),
-          foregroundDecoration: hovered
-              ? BoxDecoration(
-                  borderRadius: Radii.lgAll,
-                  border: Border.all(color: scheme.primary, width: 2),
-                )
-              : null,
+          // Always set, so hovering doesn't change the tree (and reset the
+          // list's scroll position).
+          foregroundDecoration: BoxDecoration(
+            borderRadius: Radii.lgAll,
+            border: Border.all(
+              color: hovered ? scheme.primary : Colors.transparent,
+              width: 2,
+            ),
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -230,7 +242,6 @@ class _BoardColumnState extends State<BoardColumn> {
     if (onlyDragged && ghost == null) slots.add(_EmptyZone(widget: widget));
 
     return ListView(
-      key: _listKey,
       controller: _scroll,
       shrinkWrap: true,
       padding: EdgeInsets.zero,
@@ -246,8 +257,7 @@ class _BoardColumnState extends State<BoardColumn> {
       child: BoardCardDraggable(
         drag: BoardDrag(object: object, fromKey: widget.group.key),
         width: BoardColumn.width - 2 * BoardColumn.padding,
-        onDragUpdate: widget.onDragUpdate,
-        onDragEnd: widget.onDragEnd,
+        onDragStarted: widget.onDragStarted,
         child: ObjectCard(
           object: object,
           collection: widget.collection,
@@ -259,6 +269,14 @@ class _BoardColumnState extends State<BoardColumn> {
     );
   }
 }
+
+/// Header buttons: exactly 44 px, visual and hit area alike.
+final _square44 = IconButton.styleFrom(
+  fixedSize: const Size.square(44),
+  minimumSize: const Size.square(44),
+  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+  padding: EdgeInsets.zero,
+);
 
 class _Header extends StatelessWidget {
   const _Header({
@@ -319,6 +337,7 @@ class _Header extends StatelessWidget {
             ),
           ),
           IconButton(
+            style: _square44,
             tooltip: 'New $itemLabel in ${group.label}',
             onPressed: onAdd,
             icon: const Icon(Icons.add, size: 20),
@@ -326,6 +345,7 @@ class _Header extends StatelessWidget {
           ),
           if (onEditOptions case final edit?)
             PopupMenuButton<void>(
+              style: _square44,
               tooltip: 'Column options',
               icon: Icon(
                 Icons.more_horiz,

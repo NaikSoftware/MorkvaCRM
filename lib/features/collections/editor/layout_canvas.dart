@@ -7,6 +7,7 @@ import '../../../design/design.dart';
 import '../field_editors/field_editor.dart';
 import '../field_editors/widgets/preview_affordances.dart';
 import 'add_field_sheet.dart';
+import 'first_run_fields.dart';
 import 'collection_editor_cubit.dart';
 import 'collection_editor_state.dart';
 
@@ -156,6 +157,11 @@ class LayoutCanvas extends StatelessWidget {
       return s is CollectionEditorReady ? s.selectedSectionId : null;
     });
 
+    final starter = context.select<CollectionEditorCubit, bool>((c) {
+      final s = c.state;
+      return s is CollectionEditorReady && isStarterSchema(s.saved);
+    });
+
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTap: () {
@@ -169,7 +175,14 @@ class LayoutCanvas extends StatelessWidget {
           borderRadius: Radii.lgAll,
         ),
         padding: const EdgeInsets.all(Spacing.md),
-        child: LayoutBuilder(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Outside the horizontally-sized canvas so it never clips on phones.
+            if (starter)
+              FirstRunFields(collection: collection, registry: registry),
+            LayoutBuilder(
           builder: (context, constraints) {
             final contentWidth = constraints.maxWidth.isFinite
                 ? constraints.maxWidth.clamp(380.0, double.infinity)
@@ -222,6 +235,8 @@ class LayoutCanvas extends StatelessWidget {
               ),
             );
           },
+        ),
+          ],
         ),
       ),
     );

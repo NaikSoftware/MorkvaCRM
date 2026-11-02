@@ -44,6 +44,21 @@ void main() {
     },
   );
 
+  test('load selects a known field id (deep link)', () async {
+    await cubit.load('c1', selectFieldId: 'f_title');
+    expect(ready().selectedFieldId, 'f_title');
+  });
+
+  test('load ignores an unknown field id', () async {
+    await cubit.load('c1', selectFieldId: 'ghost');
+    expect(ready().selectedFieldId, isNull);
+  });
+
+  test('load without a field id selects nothing', () async {
+    await cubit.load('c1');
+    expect(ready().selectedFieldId, isNull);
+  });
+
   test('load of a missing id emits not-found', () async {
     await cubit.load('nope');
     expect(cubit.state, isA<CollectionEditorNotFound>());

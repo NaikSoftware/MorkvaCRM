@@ -30,8 +30,7 @@ class BoardCardDraggable extends StatelessWidget {
     required this.drag,
     required this.width,
     required this.child,
-    this.onDragUpdate,
-    this.onDragEnd,
+    this.onDragStarted,
   });
 
   final BoardDrag drag;
@@ -39,8 +38,7 @@ class BoardCardDraggable extends StatelessWidget {
   /// Width of the lifted copy (the overlay doesn't constrain it).
   final double width;
   final Widget child;
-  final ValueChanged<Offset>? onDragUpdate;
-  final VoidCallback? onDragEnd;
+  final VoidCallback? onDragStarted;
 
   static const double liftScale = 1.03;
   static const double tiltRadians = 2 * math.pi / 180;
@@ -50,9 +48,10 @@ class BoardCardDraggable extends StatelessWidget {
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
     return _CardDraggable(
       data: drag,
-      onDragStarted: () => drag.height = context.size?.height ?? 0,
-      onDragUpdate: (d) => onDragUpdate?.call(d.globalPosition),
-      onDragEnd: (_) => onDragEnd?.call(),
+      onDragStarted: () {
+        drag.height = context.size?.height ?? 0;
+        onDragStarted?.call();
+      },
       feedback: Transform.rotate(
         angle: tiltRadians,
         child: Transform.scale(
@@ -98,8 +97,6 @@ class _CardDraggable extends Draggable<BoardDrag> {
     required super.data,
     super.childWhenDragging,
     super.onDragStarted,
-    super.onDragUpdate,
-    super.onDragEnd,
   });
 
   @override

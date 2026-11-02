@@ -10,7 +10,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/gestures.dart';
-import 'package:flutter/rendering.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
@@ -129,6 +129,10 @@ Future<CollectionViewsCubit> _board(
     ),
   );
   cubit.selectView('board');
+  // The app's ScaffoldMessenger outlives re-pumps; drop earlier snackbars.
+  tester
+      .state<ScaffoldMessengerState>(find.byType(ScaffoldMessenger).first)
+      .clearSnackBars();
   await tester.pumpAndSettle();
   return cubit;
 }

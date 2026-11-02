@@ -64,6 +64,12 @@ abstract class ViewMode {
   /// (Board keeps its columns); otherwise the page shows "Nothing matches".
   bool get drawsNoMatches => false;
 
+  /// Heading of the layout-field picker in the new-view dialog.
+  String get layoutFieldLabel => 'Group by';
+
+  /// Link shown on an unavailable tile that opens the collection editor.
+  String get addFieldLabel => 'Add field';
+
   /// Label of the toolbar button that edits the shown fields.
   String get fieldsLabel => 'Setup card';
 
