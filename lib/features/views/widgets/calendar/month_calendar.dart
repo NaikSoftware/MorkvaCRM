@@ -391,20 +391,25 @@ class _MoreButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Material(
-      type: MaterialType.transparency,
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: Radii.smAll,
-        child: Container(
-          height: _DayCell.moreHeight,
-          alignment: Alignment.centerLeft,
-          padding: const EdgeInsets.symmetric(horizontal: Spacing.xxs),
-          child: Text(
-            '+$count more',
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: primaryTextColor(context),
-              fontWeight: FontWeight.w600,
+    return Semantics(
+      button: true,
+      label: 'Show all, $count more',
+      excludeSemantics: true,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: Radii.smAll,
+          child: Container(
+            height: _DayCell.moreHeight,
+            alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.symmetric(horizontal: Spacing.xxs),
+            child: Text(
+              '+$count more',
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: primaryTextColor(context),
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ),

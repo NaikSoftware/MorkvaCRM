@@ -13,7 +13,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/design/design.dart';
 
@@ -133,8 +132,6 @@ final _calendarCollection = deals.copyWith(
 
 void main() {
   // flutter_test draws elevation shadows as black outlines by default.
-  // The theme's fonts are preloaded from FONTS_DIR; never hit the network.
-  GoogleFonts.config.allowRuntimeFetching = false;
   setUp(() => debugDisableShadows = false);
   tearDown(() => debugDisableShadows = true);
 
