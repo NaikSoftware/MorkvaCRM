@@ -753,7 +753,9 @@ void main() {
         repo.collectionAck = Completer<void>(); // offline: writes never ack
         unawaited(c.setSort(const ViewSort(fieldId: 'amount')));
         await pumpEventQueue();
-        unawaited(repo.saveCollection(withPriority(deals)));
+        // Build saves from what it loaded, which already has the sort.
+        final loaded = (await repo.getCollection('deals'))!;
+        unawaited(repo.saveCollection(withPriority(loaded)));
         await pumpEventQueue();
         unawaited(c.setFilters(const []));
         unawaited(c.renameView('all', 'Everything'));
@@ -766,6 +768,75 @@ void main() {
         expect(repo.saveCount, 1); // only Build's own save
       },
     );
+
+    test(
+      'offline: the echoed view save clears the overlay, so a later Build '
+      'change to every view shows and survives the next view command',
+      () async {
+        final c = await ready();
+        repo.collectionAck = Completer<void>(); // offline: saves never ack
+        unawaited(c.setSort(const ViewSort(fieldId: 'amount')));
+        await pumpEventQueue();
+        // Build adds a field and shows it in every view.
+        final stored = (await repo.getCollection('deals'))!;
+        unawaited(
+          repo.saveCollection(
+            withPriority(stored).copyWith(
+              views: [
+                for (final v in stored.views)
+                  v.copyWith(fieldIds: [...v.fieldIds, 'priority']),
+              ],
+            ),
+          ),
+        );
+        await pumpEventQueue();
+        expect(stateOf(c).activeView.fieldIds, contains('priority'));
+        expect(stateOf(c).activeView.sort?.fieldId, 'amount');
+        unawaited(c.renameView('all', 'Everything'));
+        await pumpEventQueue();
+        final after = (await repo.getCollection('deals'))!;
+        expect(after.views.first.name, 'Everything');
+        for (final v in after.views) {
+          expect(v.fieldIds, contains('priority'));
+        }
+      },
+    );
+
+    test('a renamed field does not re-open the objects stream', () async {
+      final c = await ready();
+      await repo.saveCollection(
+        deals.copyWith(
+          fields: [
+            for (final f in deals.fields)
+              f.id == 'amount'
+                  ? const NumberFieldDefinition(id: 'amount', name: 'Value')
+                  : f,
+          ],
+        ),
+      );
+      await pumpEventQueue();
+      expect(repo.watchObjectsCalls['deals'], 1);
+      expect(c.state, isA<ViewsReady>());
+    });
+
+    test('a re-opened target that fails again is reported again', () async {
+      final c = await ready();
+      await pumpEventQueue();
+      repo.failObjects('companies', StateError('denied'));
+      await pumpEventQueue();
+      expect(stateOf(c).writeErrorSeq, 1);
+      // Its fields change: the target stream re-opens (replaying the error).
+      await repo.saveCollection(
+        companies.copyWith(
+          fields: [
+            ...companies.fields,
+            const NumberFieldDefinition(id: 'size', name: 'Size'),
+          ],
+        ),
+      );
+      await pumpEventQueue();
+      expect(stateOf(c).writeErrorSeq, 2);
+    });
 
     test('a failed objects stream stays failed until retry', () async {
       final c = await ready();

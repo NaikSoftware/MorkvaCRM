@@ -129,7 +129,8 @@ Commands: `selectView`, `createView(name, mode, layoutFieldId?)`, `renameView`, 
 `deleteView` (never the last), `setFilters`, `setSort`, `setFieldIds`, `setLayoutField`,
 `moveToGroup(objectId, groupKey, {beforeId})`, `moveToDay(objectId, day)`, `reorder(objectId,
 {beforeId})`, `quickAdd(title, {groupKey, day})`, `deleteObject`. View changes persist via
-`saveViews` (only the views are overlaid locally until acknowledged); object changes via
+`saveViews` (only the views are overlaid locally, until the stream echoes them or the write is
+acknowledged — offline Firestore acks only on reconnect, but echoes local writes at once); object changes via
 `saveObject`, applied optimistically then confirmed by the stream. Undo of a move writes back only
 the moved field (saves merge values).
 

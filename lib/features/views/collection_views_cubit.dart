@@ -109,7 +109,13 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
       return;
     }
     _notFound = false;
-    _streamCollection = _withViews(collection.first);
+    final streamed = _withViews(collection.first);
+    _streamCollection = streamed;
+    // Firestore echoes a local write in the stream at once, offline too,
+    // while the write's future completes only on server ack: clear the
+    // overlay on the echo, or it would mask later changes (Build) forever.
+    final local = _localViews;
+    if (local != null && _sameViews(streamed.views, local)) _localViews = null;
     if (_choiceFields.isNotEmpty) {
       _choiceFields.removeWhere(
         (id) => collection.first.fieldById(id) is! ReferenceFieldDefinition,
@@ -120,10 +126,17 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
     _emitReady();
   }
 
+  /// What decoding a stored value depends on: renames and option edits
+  /// don't, so they don't re-open a stream.
+  static Object _decodeKey(FieldDefinition f) =>
+      (f.id, f.type, f is DateFieldDefinition ? f.includeTime : null);
+
   static bool _sameFields(List<FieldDefinition>? a, List<FieldDefinition> b) =>
       a != null &&
       a.length == b.length &&
-      [for (var i = 0; i < a.length; i++) a[i] == b[i]].every((s) => s);
+      [
+        for (var i = 0; i < a.length; i++) _decodeKey(a[i]) == _decodeKey(b[i]),
+      ].every((s) => s);
 
   /// (Re-)opens the objects stream when [collection]'s fields changed. The
   /// old objects stay shown until the new stream's first emission.
@@ -200,6 +213,8 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
     final target = _collections.where((c) => c.id == targetId).firstOrNull;
     if (target == null) return;
     _targetSchemas[targetId] = target.fields;
+    // A re-opened stream may fail again; report that again too.
+    _failedTargets.remove(targetId);
     _targetSubs[targetId] = _repository
         .watchObjects(targetId, schema: target)
         .listen(
