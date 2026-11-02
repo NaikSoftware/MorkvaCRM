@@ -284,6 +284,14 @@ class FirestoreDataRepository implements DataRepository {
         return nextRev;
       });
       _localRev[object.id] = newRev;
+      // A transaction completes only once the server committed it, so the
+      // write is settled here — no open listener is needed for that.
+      if (_pendingObjects.remove(object.id) && _pendingObjects.isEmpty) {
+        _syncStatus.reportSnapshotMeta(
+          isFromCache: false,
+          hasPendingWrites: false,
+        );
+      }
     } catch (error) {
       _pendingObjects.remove(object.id);
       _syncStatus.reportError('Failed to save object', cause: error);

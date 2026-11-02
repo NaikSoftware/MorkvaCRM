@@ -501,6 +501,19 @@ void main() {
       expect(stateOf(c).writeError, contains('Companies'));
     });
 
+    test('a target failing again after retry is reported again', () async {
+      final c = await ready();
+      await pumpEventQueue();
+      repo.failObjects('companies', StateError('denied'));
+      await pumpEventQueue();
+      expect(stateOf(c).writeErrorSeq, 1);
+      await c.retry();
+      await pumpEventQueue();
+      repo.failObjects('companies', StateError('denied'));
+      await pumpEventQueue();
+      expect(stateOf(c).writeErrorSeq, 2);
+    });
+
     test('retry cancels its old subscriptions first', () async {
       final c = await ready();
       await pumpEventQueue();

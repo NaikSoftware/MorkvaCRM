@@ -714,6 +714,7 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
     _collectionsSub = null;
     _objectsSub = null;
     _targetSubs.clear();
+    _failedTargets.clear();
   }
 
   @override

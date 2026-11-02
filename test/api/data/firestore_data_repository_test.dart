@@ -383,6 +383,20 @@ void main() {
   });
 
   group('listener release', () {
+    test('a save settles to synced even with no listener left', () async {
+      final schema = buildCollection();
+      final sub = repository
+          .watchObjects(schema.id, schema: schema)
+          .listen((_) {});
+      await Future<void>.delayed(Duration.zero);
+      // The page goes away before the write is acknowledged.
+      final save = repository.saveObject(buildObject(schema), schema: schema);
+      await sub.cancel();
+      expect(repository.activeListenerCount, 0);
+      await save;
+      expect(syncStatus.state, const SyncSynced());
+    });
+
     test('a watch holds a Firestore listener only while listened to', () async {
       final schema = buildCollection();
       final objects = repository.watchObjects(schema.id, schema: schema);
