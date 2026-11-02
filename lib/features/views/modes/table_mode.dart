@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -6,6 +7,7 @@ import '../../../app/shell/app_shell.dart';
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
 import '../collection_views_cubit.dart';
+import '../widgets/edge_fade.dart';
 import '../widgets/option_pill.dart';
 import '../widgets/view_labels.dart';
 import 'view_mode.dart';
@@ -142,48 +144,55 @@ class _ViewTableState extends State<ViewTable> {
                           n.metrics.axis == Axis.vertical,
                       child: Scrollbar(
                         controller: _horizontal,
+                        thumbVisibility: RendererBinding
+                            .instance
+                            .mouseTracker
+                            .mouseIsConnected,
                         notificationPredicate: (n) =>
                             n.metrics.axis == Axis.horizontal,
-                        child: SingleChildScrollView(
-                          controller: _horizontal,
-                          scrollDirection: Axis.horizontal,
-                          child: SizedBox(
-                            width: tableWidth,
-                            child: Column(
-                              children: [
-                                _HeaderRow(
-                                  layout: layout,
-                                  sort: view.sort,
-                                  onSort: _cycleSort,
-                                ),
-                                Expanded(
-                                  child: ListView.builder(
-                                    controller: _vertical,
-                                    itemExtent: ViewTable.rowHeight,
-                                    itemCount: rowCount,
-                                    itemBuilder: (context, i) {
-                                      if (empty) {
-                                        return _GhostRow(
-                                          layout: layout,
-                                          label: 'New ${data.itemLabel}',
-                                          onAdd: () => data.quickAdd(),
-                                          onChangeFields: data.editFields,
-                                        );
-                                      }
-                                      final object = state.objects[i];
-                                      return _ObjectRow(
-                                        key: ValueKey(object.id),
-                                        layout: layout,
-                                        object: object,
-                                        view: view,
-                                        collection: collection,
-                                        referenceLabels: state.referenceLabels,
-                                        onOpen: () => data.openObject(object),
-                                      );
-                                    },
+                        child: EdgeFade(
+                          child: SingleChildScrollView(
+                            controller: _horizontal,
+                            scrollDirection: Axis.horizontal,
+                            child: SizedBox(
+                              width: tableWidth,
+                              child: Column(
+                                children: [
+                                  _HeaderRow(
+                                    layout: layout,
+                                    sort: view.sort,
+                                    onSort: _cycleSort,
                                   ),
-                                ),
-                              ],
+                                  Expanded(
+                                    child: ListView.builder(
+                                      controller: _vertical,
+                                      itemExtent: ViewTable.rowHeight,
+                                      itemCount: rowCount,
+                                      itemBuilder: (context, i) {
+                                        if (empty) {
+                                          return _GhostRow(
+                                            layout: layout,
+                                            label: 'New ${data.itemLabel}',
+                                            onAdd: () => data.quickAdd(),
+                                            onChangeFields: data.editFields,
+                                          );
+                                        }
+                                        final object = state.objects[i];
+                                        return _ObjectRow(
+                                          key: ValueKey(object.id),
+                                          layout: layout,
+                                          object: object,
+                                          view: view,
+                                          collection: collection,
+                                          referenceLabels:
+                                              state.referenceLabels,
+                                          onOpen: () => data.openObject(object),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),

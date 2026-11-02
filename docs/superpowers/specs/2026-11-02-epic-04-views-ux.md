@@ -74,6 +74,8 @@ Tiebreak for the rule in the design doc: stored on the collection and seen by ev
 - Header tap cycles sort asc → desc → none. Footer "6 of 41".
 - Select cells render as pills in the option colour.
 - "Columns" opens the same pick-and-reorder sheet as Setup card.
+- Horizontal overflow (Table columns, Board columns, view tabs) is cued by a 24 px edge fade on
+  the side with more content, plus a visible horizontal scrollbar on pointer devices.
 
 ## 5. Board
 
@@ -116,7 +118,8 @@ Tiebreak for the rule in the design doc: stored on the collection and seen by ev
 ## 8. Calendar
 
 - ≥840: month grid 7 × 5–6 in a radius-16 card. Header: "November 2026" `headlineSmall`,
-  prev/next 44 px icon buttons, "Today" outlined chip, "Date: Due ▾" chip. Cells ≥112 px; date
+  prev/next 44 px icon buttons, "Today" outlined chip, "Date: Due ▾" chip. Week rows share the grid height (≥88 px; the grid scrolls only below that), so a 6-week month
+  shows every week; pills are capped by the cell height. Date
   `labelMedium` top-left; today = 28 px carrot circle; outside-month days dimmed on
   `surfaceContainerLow`. Items: 24 px pills, radius 8, `surfaceContainer`, 3 px left bar in the
   option colour, title `labelMedium`; max 3, then "+N more" (opens that day's list). Hover "+" in

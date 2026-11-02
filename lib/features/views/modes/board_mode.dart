@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -11,6 +12,7 @@ import '../collection_views_cubit.dart';
 import '../collection_views_state.dart';
 import '../widgets/board/board_card_draggable.dart';
 import '../widgets/board/board_column.dart';
+import '../widgets/edge_fade.dart';
 import '../widgets/view_labels.dart';
 import '../widgets/view_toolbar.dart';
 import 'view_mode.dart';
@@ -349,16 +351,20 @@ class _BoardViewState extends State<BoardView> {
 
   Widget _desktop(List<ViewGroup> groups, FieldDefinition field) => Scrollbar(
     controller: _horizontal,
+    // Pointer users get a visible track; touch scrolls by swiping.
+    thumbVisibility: RendererBinding.instance.mouseTracker.mouseIsConnected,
     // Lazy: a reference board can have hundreds of columns.
-    child: ListView.separated(
-      controller: _horizontal,
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.only(bottom: Spacing.sm),
-      itemCount: groups.length,
-      separatorBuilder: (_, _) => const SizedBox(width: Spacing.md),
-      itemBuilder: (context, i) => Align(
-        alignment: Alignment.topCenter,
-        child: _column(context, groups[i], field),
+    child: EdgeFade(
+      child: ListView.separated(
+        controller: _horizontal,
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.only(bottom: Spacing.sm),
+        itemCount: groups.length,
+        separatorBuilder: (_, _) => const SizedBox(width: Spacing.md),
+        itemBuilder: (context, i) => Align(
+          alignment: Alignment.topCenter,
+          child: _column(context, groups[i], field),
+        ),
       ),
     ),
   );
