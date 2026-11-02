@@ -135,7 +135,7 @@ class _ReadyEditor extends StatelessWidget {
           final ok = await cubit.save();
           if (!ok) return; // validation/save failed → stay, snackbar shown.
         }
-        router.go('/');
+        router.go('/collections/${state.draft.id}');
       },
       child: Scaffold(
         backgroundColor: scheme.surface,
@@ -230,8 +230,9 @@ class _EditorHeaderState extends State<_EditorHeader> {
   Future<void> _back() async {
     // Defer to PopScope's leave guard via Navigator/router.
     final router = GoRouter.of(context);
+    final workPath = '/collections/${widget.state.draft.id}';
     if (!widget.state.dirty) {
-      router.go('/');
+      router.go(workPath);
       return;
     }
     final action = await _confirmLeave(context);
@@ -240,7 +241,7 @@ class _EditorHeaderState extends State<_EditorHeader> {
       final ok = await context.read<CollectionEditorCubit>().save();
       if (!ok) return;
     }
-    router.go('/');
+    router.go(workPath);
   }
 
   Future<void> _pickIcon() async {
@@ -316,13 +317,14 @@ class _EditorHeaderState extends State<_EditorHeader> {
         vertical: Spacing.sm,
       ),
       decoration: BoxDecoration(
+        color: scheme.surfaceContainer,
         border: Border(bottom: BorderSide(color: scheme.outlineVariant)),
       ),
       child: Row(
         children: [
           IconActionButton(
-            icon: Icons.arrow_back,
-            tooltip: 'Back to collections',
+            icon: Icons.close,
+            tooltip: 'Close',
             onPressed: _back,
           ),
           const SizedBox(width: Spacing.xs),
@@ -337,40 +339,56 @@ class _EditorHeaderState extends State<_EditorHeader> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _NameEditAffordance(
-                  focused: _nameFocus.hasFocus,
-                  hovered: _nameHovered,
-                  onHover: (value) => setState(() => _nameHovered = value),
-                  field: TextField(
-                    controller: _nameController,
-                    focusNode: _nameFocus,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                    cursorColor: scheme.primary,
-                    textInputAction: TextInputAction.done,
-                    onChanged: (value) => cubit.renameCollection(
-                      value,
-                      description: state.draft.description,
-                    ),
-                    decoration: InputDecoration(
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
-                      // Opt out of the global filled/rounded input theme so the
-                      // title reads as a heading, not an input chip — our own
-                      // hover/focus underline is the only affordance.
-                      filled: false,
-                      fillColor: Colors.transparent,
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      hintText: 'Collection name',
-                      hintStyle: theme.textTheme.titleLarge?.copyWith(
+                Row(
+                  children: [
+                    Icon(Icons.edit_outlined, size: 20, color: scheme.primary),
+                    const SizedBox(width: Spacing.xs),
+                    Text(
+                      'Customizing · ',
+                      style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w600,
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
-                  ),
+                    Flexible(
+                      child: _NameEditAffordance(
+                        focused: _nameFocus.hasFocus,
+                        hovered: _nameHovered,
+                        onHover: (value) =>
+                            setState(() => _nameHovered = value),
+                        field: TextField(
+                          controller: _nameController,
+                          focusNode: _nameFocus,
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                          cursorColor: scheme.primary,
+                          textInputAction: TextInputAction.done,
+                          onChanged: (value) => cubit.renameCollection(
+                            value,
+                            description: state.draft.description,
+                          ),
+                          decoration: InputDecoration(
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
+                            // Opt out of the global filled/rounded input theme so the
+                            // title reads as a heading, not an input chip — our own
+                            // hover/focus underline is the only affordance.
+                            filled: false,
+                            fillColor: Colors.transparent,
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            hintText: 'Collection name',
+                            hintStyle: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: Spacing.xxs),
                 _DescriptionLine(
@@ -919,10 +937,12 @@ class _SheetSaveStatus extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
 
+    final primaryText =
+        theme.extension<MorkvaSemanticColors>()?.primaryText ?? scheme.primary;
     final (IconData icon, String label, Color color) = state.saving
         ? (Icons.sync, 'Saving…', scheme.onSurfaceVariant)
         : state.dirty
-        ? (Icons.edit_outlined, 'Unsaved changes', scheme.primary)
+        ? (Icons.edit_outlined, 'Unsaved changes', primaryText)
         : (Icons.check_circle_outline, 'Saved', scheme.secondary);
 
     return Row(

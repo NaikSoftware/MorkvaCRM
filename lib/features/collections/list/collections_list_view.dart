@@ -155,6 +155,8 @@ class _CollectionsContent extends StatelessWidget {
   ) async {
     final cubit = context.read<CollectionsListCubit>();
     switch (action) {
+      case CollectionCardAction.customize:
+        context.go('/collections/${collection.id}/edit');
       case CollectionCardAction.rename:
         final result = await CollectionFormDialog.rename(
           context,

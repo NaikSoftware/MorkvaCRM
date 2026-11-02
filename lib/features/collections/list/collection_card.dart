@@ -4,7 +4,7 @@ import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
 
 /// What an overflow-menu selection on a [CollectionCard] resolves to.
-enum CollectionCardAction { rename, delete }
+enum CollectionCardAction { customize, rename, delete }
 
 /// One collection tile on the Home surface.
 ///
@@ -72,8 +72,9 @@ class CollectionCard extends StatelessWidget {
             const SizedBox(height: Spacing.xs),
             Text(
               collection.description!,
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: scheme.onSurfaceVariant),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -91,8 +92,9 @@ class CollectionCard extends StatelessWidget {
                 fieldCount == 0
                     ? 'No fields yet'
                     : '$fieldCount ${fieldCount == 1 ? 'field' : 'fields'}',
-                style: theme.textTheme.labelMedium
-                    ?.copyWith(color: scheme.onSurfaceVariant),
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
@@ -101,7 +103,6 @@ class CollectionCard extends StatelessWidget {
     );
   }
 }
-
 
 /// The borderless rename / delete menu. Kept compact so it doesn't compete with
 /// the card title; delete is tinted with the error role as a quiet warning.
@@ -120,6 +121,14 @@ class _OverflowMenu extends StatelessWidget {
       splashRadius: 20,
       onSelected: onAction,
       itemBuilder: (context) => [
+        const PopupMenuItem(
+          value: CollectionCardAction.customize,
+          child: ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.tune),
+            title: Text('Customize'),
+          ),
+        ),
         const PopupMenuItem(
           value: CollectionCardAction.rename,
           child: ListTile(
