@@ -97,11 +97,27 @@ void main() {
       expect(find.text('editor:deals'), findsOneWidget);
     });
 
-    testWidgets('Columns is a stub for now', (tester) async {
+    testWidgets('Columns opens the fields editor', (tester) async {
       await pumpWorkPage(tester);
       await tester.tap(find.text('Columns'));
+      await tester.pumpAndSettle();
+      expect(find.text('PREVIEW'), findsOneWidget);
+    });
+
+    testWidgets('Columns Save writes the view fieldIds', (tester) async {
+      final cubit = await pumpWorkPage(tester);
+      await tester.tap(find.text('Columns'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Company').last);
       await tester.pump();
-      expect(find.text('Columns is coming soon'), findsOneWidget);
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+      expect((cubit.state as ViewsReady).activeView.fieldIds, [
+        'name',
+        'amount',
+        'stage',
+      ]);
+      expect(find.text('PREVIEW'), findsNothing);
     });
 
     testWidgets('switching tabs shows the other view', (tester) async {

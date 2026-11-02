@@ -12,6 +12,7 @@ import '../auth/conflict_warning_banner.dart';
 import 'collection_views_cubit.dart';
 import 'collection_views_state.dart';
 import 'modes/view_mode.dart';
+import 'widgets/fields_editor_sheet.dart';
 import 'widgets/object_detail_sheet.dart';
 import 'widgets/quick_add_dialog.dart';
 import 'widgets/view_labels.dart';
@@ -92,8 +93,21 @@ void _comingSoon(BuildContext context, String what) =>
     _notify(context, '$what is coming soon');
 
 /// Columns (Table) / Setup card (other modes), named by the mode.
-void _openFieldsEditor(BuildContext context, ViewMode mode) =>
-    _comingSoon(context, mode.fieldsLabel);
+void _openFieldsEditor(BuildContext context, ViewMode mode) {
+  final cubit = context.read<CollectionViewsCubit>();
+  if (cubit.state case final ViewsReady state) {
+    FieldsEditorSheet.show(
+      context,
+      title: mode.fieldsLabel,
+      collection: state.collection,
+      view: state.activeView,
+      object: state.objects.firstOrNull,
+      referenceLabels: state.referenceLabels,
+      onSave: cubit.setFieldIds,
+    );
+  }
+}
+
 void _openFilterEditor(BuildContext context, {int? index}) =>
     _comingSoon(context, 'Filtering');
 void _openSortMenu(BuildContext context) => _comingSoon(context, 'Sorting');
