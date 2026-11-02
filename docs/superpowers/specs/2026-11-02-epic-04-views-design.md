@@ -77,6 +77,10 @@ Rule: **what changes the shape of the data is Build; what changes how you look a
   "Object form" wording for the card layout. No three-tab restructure.
 - **Concurrency**: views and the schema share the collection doc; last write wins (the editor
   saves via `copyWith`, so it carries views through untouched).
+- **Object saves merge values**: `saveObject` writes only the value keys the object carries and
+  merges them over the stored `values`, so an object decoded with an older schema never erases a
+  newer field's value (a present empty value still clears). Values of deleted fields stay in the
+  document. Repository `watch*` streams hold their Firestore listener only while listened to.
 
 ## Model (pure Dart, `lib/core/domain/view/`)
 
