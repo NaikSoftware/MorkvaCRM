@@ -7,6 +7,7 @@ export 'collection_views_cubit.dart';
 export 'collection_views_page.dart';
 export 'collection_views_state.dart';
 export 'modes/built_in_modes.dart';
+export 'modes/list_mode.dart';
 export 'modes/table_mode.dart';
 export 'modes/view_mode.dart';
 export 'widgets/object_card.dart';
