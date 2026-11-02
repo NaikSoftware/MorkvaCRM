@@ -13,6 +13,7 @@ import '../collection_views_state.dart';
 import '../widgets/board/board_card_draggable.dart';
 import '../widgets/board/board_column.dart';
 import '../widgets/edge_fade.dart';
+import '../widgets/no_matches_notice.dart';
 import '../widgets/view_labels.dart';
 import '../widgets/view_toolbar.dart';
 import 'view_mode.dart';
@@ -429,7 +430,7 @@ class _BoardViewState extends State<BoardView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _NoMatchesNotice(
+        NoMatchesNotice(
           onClear: () =>
               context.read<CollectionViewsCubit>().setFilters(const []),
         ),
@@ -614,46 +615,6 @@ class _NoGrouping extends StatelessWidget {
           icon: Icons.view_kanban_outlined,
           onPressed: open,
         ),
-      ),
-    );
-  }
-}
-
-/// Filters hide every card: the columns stay as drop targets, with a way
-/// out above them.
-class _NoMatchesNotice extends StatelessWidget {
-  const _NoMatchesNotice({required this.onClear});
-
-  final VoidCallback onClear;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return Container(
-      padding: const EdgeInsets.only(left: Spacing.sm),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerLow,
-        borderRadius: Radii.mdAll,
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.filter_alt_off_outlined,
-            size: 18,
-            color: scheme.onSurfaceVariant,
-          ),
-          const SizedBox(width: Spacing.xs),
-          Expanded(
-            child: Text(
-              'Nothing matches these filters',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-          TextActionButton(label: 'Clear filters', onPressed: onClear),
-        ],
       ),
     );
   }

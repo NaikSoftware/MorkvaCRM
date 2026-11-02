@@ -153,7 +153,8 @@ Tiebreak for the rule in the design doc: stored on the collection and seen by ev
 ## 11. States
 
 - Empty: reuse `empty_state.dart`. No matches → "Nothing matches these filters" + "Clear
-  filters" (chips stay). Board without a groupable field → "Board needs a choice or reference
+  filters" (chips stay); Board and Table show it as an inline banner above
+  their columns / header row, other modes as the empty state. Board without a groupable field → "Board needs a choice or reference
   field" + "Add field". Calendar without a date field → "Calendar needs a date field" + "Add date
   field". (Others: §1.)
 - Loading: skeletons in the mode's shape, `surfaceContainer` pulse 0.5↔1 over 1.2 s (static with

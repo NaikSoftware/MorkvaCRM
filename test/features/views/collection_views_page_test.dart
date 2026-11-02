@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/design/design.dart';
 import 'package:morkva_crm/features/views/views.dart';
+import 'package:morkva_crm/features/views/widgets/no_matches_notice.dart';
 
 import 'views_fixtures.dart';
 import 'work_page_harness.dart';
@@ -307,6 +308,10 @@ void main() {
       ]);
       await tester.pumpAndSettle();
       expect(find.text('Nothing matches these filters'), findsOneWidget);
+      // The Table keeps its header under the same inline banner as Board.
+      expect(find.byType(NoMatchesNotice), findsOneWidget);
+      expect(find.bySemanticsLabel('Sort by Amount'), findsOneWidget);
+      expect(find.text('0 of 5'), findsOneWidget);
       expect(find.text('Name contains zzz'), findsOneWidget);
       await tester.tap(find.text('Clear filters'));
       await tester.pumpAndSettle();
