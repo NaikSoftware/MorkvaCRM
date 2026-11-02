@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../../../core/domain/domain.dart';
@@ -23,9 +25,12 @@ class BoardColumn extends StatefulWidget {
     required this.onDrop,
     this.onEditOptions,
     this.onDragStarted,
+    this.onJump,
+    this.width = BoardColumn.defaultWidth,
+    this.fill = false,
   });
 
-  static const double width = 272;
+  static const double defaultWidth = 272;
   static const double padding = Spacing.sm;
   static const double cardGap = Spacing.xs;
   static const double emptyHeight = 72;
@@ -56,7 +61,16 @@ class BoardColumn extends StatefulWidget {
   final VoidCallback? onEditOptions;
 
   /// A card of this column was lifted.
-  final VoidCallback? onDragStarted;
+  final ValueChanged<BoardDrag>? onDragStarted;
+
+  /// When set (phone), the column name is a button opening a jump list.
+  final VoidCallback? onJump;
+
+  final double width;
+
+  /// Whether the whole area given (a phone page) takes drops, not just the
+  /// column, which stays top-aligned in it.
+  final bool fill;
 
   @override
   State<BoardColumn> createState() => _BoardColumnState();
@@ -64,6 +78,9 @@ class BoardColumn extends StatefulWidget {
 
 class _BoardColumnState extends State<BoardColumn> {
   final _keys = <String, GlobalKey>{};
+
+  /// One drag payload per card, kept as long as the card (see [BoardDrag]).
+  final _drags = <String, BoardDrag>{};
   final _scroll = ScrollController();
   EdgeDraggingAutoScroller? _autoScroller;
 
@@ -84,8 +101,7 @@ class _BoardColumnState extends State<BoardColumn> {
 
   void _move(DragTargetDetails<BoardDrag> details) {
     final drag = details.data;
-    final centre =
-        details.offset + Offset(BoardColumn.width / 2, drag.height / 2);
+    final centre = details.offset + Offset(widget.width / 2, drag.height / 2);
     final others = _others(drag);
     var index = others.length;
     for (var i = 0; i < others.length; i++) {
@@ -99,7 +115,21 @@ class _BoardColumnState extends State<BoardColumn> {
       }
     }
     if (index != _insertAt) setState(() => _insertAt = index);
+    _drag = drag;
     _autoScroll(centre);
+  }
+
+  /// The card held over this column, while it is.
+  BoardDrag? _drag;
+
+  /// After each auto-scroll step the cards moved under a still pointer:
+  /// re-hit-test so the ghost (and the drop) follow.
+  void _scrolled() {
+    final drag = _drag;
+    if (_point == null || drag == null) return;
+    // Pause a frame: a scrolling list ignores hit tests.
+    _autoScroller?.stopAutoScroll();
+    drag.retarget(then: () => _autoScroll());
   }
 
   /// The held card's centre, for re-checking the edge after each step.
@@ -122,7 +152,7 @@ class _BoardColumnState extends State<BoardColumn> {
       _autoScroller = EdgeDraggingAutoScroller(
         list,
         velocityScalar: 7,
-        onScrollViewScrolled: _autoScroll,
+        onScrollViewScrolled: _scrolled,
       );
     }
     _autoScroller!.startAutoScrollIfNecessary(
@@ -137,6 +167,7 @@ class _BoardColumnState extends State<BoardColumn> {
 
   void _clear() {
     _point = null;
+    _drag = null;
     _autoScroller?.stopAutoScroll();
     if (_insertAt != null) setState(() => _insertAt = null);
   }
@@ -158,6 +189,7 @@ class _BoardColumnState extends State<BoardColumn> {
     final scheme = Theme.of(context).colorScheme;
     final ids = {for (final o in widget.group.objects) o.id};
     _keys.removeWhere((id, _) => !ids.contains(id));
+    _drags.removeWhere((id, _) => !ids.contains(id));
 
     return DragTarget<BoardDrag>(
       onMove: _move,
@@ -166,8 +198,8 @@ class _BoardColumnState extends State<BoardColumn> {
       builder: (context, candidates, _) {
         final drag = candidates.whereType<BoardDrag>().firstOrNull;
         final hovered = drag != null;
-        return Container(
-          width: BoardColumn.width,
+        final column = Container(
+          width: widget.width,
           padding: const EdgeInsets.fromLTRB(
             BoardColumn.padding,
             BoardColumn.padding,
@@ -198,12 +230,16 @@ class _BoardColumnState extends State<BoardColumn> {
                 itemLabel: widget.itemLabel,
                 onAdd: widget.onAdd,
                 onEditOptions: widget.onEditOptions,
+                onJump: widget.onJump,
               ),
               const SizedBox(height: Spacing.xs),
               Flexible(child: _cards(context, drag)),
             ],
           ),
         );
+        return widget.fill
+            ? Align(alignment: Alignment.topLeft, child: column)
+            : column;
       },
     );
   }
@@ -211,6 +247,9 @@ class _BoardColumnState extends State<BoardColumn> {
   Widget _cards(BuildContext context, BoardDrag? drag) {
     final scheme = Theme.of(context).colorScheme;
     final objects = widget.group.objects;
+    final onlyDragged =
+        objects.isEmpty ||
+        (objects.length == 1 && objects.first.id == drag?.object.id);
     final ghost = drag == null
         ? null
         : Padding(
@@ -220,12 +259,14 @@ class _BoardColumnState extends State<BoardColumn> {
               color: scheme.primary,
               strokeWidth: 2,
               fill: scheme.primary.withValues(alpha: 0.06),
-              height: drag.height,
+              // Alone in the column, the ghost keeps the empty zone's
+              // height, so the column doesn't shrink out from under the
+              // pointer and flicker.
+              height: onlyDragged
+                  ? math.max(drag.height, BoardColumn.emptyHeight)
+                  : drag.height,
             ),
           );
-    final onlyDragged =
-        objects.isEmpty ||
-        (objects.length == 1 && objects.first.id == drag?.object.id);
     if (objects.isEmpty && ghost == null) return _EmptyZone(widget: widget);
 
     final slots = <Widget>[];
@@ -255,8 +296,11 @@ class _BoardColumnState extends State<BoardColumn> {
       key: key,
       padding: const EdgeInsets.only(bottom: BoardColumn.cardGap),
       child: BoardCardDraggable(
-        drag: BoardDrag(object: object, fromKey: widget.group.key),
-        width: BoardColumn.width - 2 * BoardColumn.padding,
+        drag: _drags.putIfAbsent(
+          object.id,
+          () => BoardDrag(object: object, fromKey: widget.group.key),
+        )..object = object,
+        width: widget.width - 2 * BoardColumn.padding,
         onDragStarted: widget.onDragStarted,
         child: ObjectCard(
           object: object,
@@ -284,12 +328,14 @@ class _Header extends StatelessWidget {
     required this.itemLabel,
     required this.onAdd,
     required this.onEditOptions,
+    required this.onJump,
   });
 
   final ViewGroup group;
   final String itemLabel;
   final VoidCallback onAdd;
   final VoidCallback? onEditOptions;
+  final VoidCallback? onJump;
 
   @override
   Widget build(BuildContext context) {
@@ -299,42 +345,68 @@ class _Header extends StatelessWidget {
       final hex? => colorFromHex(hex),
       null => null,
     };
+    final name = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const SizedBox(width: Spacing.xxs),
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: color ?? scheme.outline,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: Spacing.xs),
+        Flexible(
+          child: Text(
+            group.label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.titleSmall,
+          ),
+        ),
+        if (onJump != null)
+          Icon(Icons.arrow_drop_down, size: 20, color: scheme.onSurfaceVariant),
+        const SizedBox(width: Spacing.xs),
+        Text(
+          '${group.objects.length}',
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: scheme.onSurfaceVariant,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+        const SizedBox(width: Spacing.xs),
+      ],
+    );
     return SizedBox(
       height: 44,
       child: Row(
         children: [
-          const SizedBox(width: Spacing.xxs),
-          Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(
-              color: color ?? scheme.outline,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: Spacing.xs),
           // Name and count share one flex, so "+" and ⋯ sit flush right.
           Expanded(
-            child: Row(
-              children: [
-                Flexible(
-                  child: Text(
-                    group.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleSmall,
+            child: switch (onJump) {
+              final jump? => Align(
+                alignment: Alignment.centerLeft,
+                child: Semantics(
+                  button: true,
+                  label:
+                      '${group.label}, ${group.objects.length}. '
+                      'Jump to column',
+                  excludeSemantics: true,
+                  child: Material(
+                    type: MaterialType.transparency,
+                    child: InkWell(
+                      key: const ValueKey('column-jump'),
+                      onTap: jump,
+                      borderRadius: Radii.smAll,
+                      child: SizedBox(height: 44, child: name),
+                    ),
                   ),
                 ),
-                const SizedBox(width: Spacing.xs),
-                Text(
-                  '${group.objects.length}',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
-                ),
-              ],
-            ),
+              ),
+              null => name,
+            },
           ),
           IconButton(
             style: _square44,

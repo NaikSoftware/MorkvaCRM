@@ -171,6 +171,24 @@ void main() {
   });
 
   group('phone', () {
+    testWidgets('an empty one-column table fits at 390', (tester) async {
+      const narrow = Collection(
+        id: 'deals',
+        name: 'Deals',
+        fields: [TextFieldDefinition(id: 'name', name: 'Name')],
+        views: [
+          ViewDefinition(id: 'all', name: 'All', fieldIds: ['name']),
+        ],
+      );
+      await pumpWorkPage(
+        tester,
+        size: _phone,
+        repository: workRepository(collection: narrow, objects: const []),
+      );
+      expect(find.text('Change fields'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('pushed-route header, FAB, chips row only', (tester) async {
       await pumpWorkPage(tester, size: _phone);
       expect(find.byType(NavigationRail), findsNothing);

@@ -6,6 +6,15 @@ import '../../../design/design.dart';
 
 final _fieldEditors = defaultFieldEditorRegistry();
 
+/// What a view is sorted by ("Amount", "Created"), or null for manual order.
+String? sortLabel(ViewSort? sort, Collection collection) =>
+    switch (sort?.fieldId) {
+      null => null,
+      ViewSort.createdAt => 'Created',
+      ViewSort.updatedAt => 'Updated',
+      final id => collection.fieldById(id)?.name,
+    };
+
 /// The noun for one object of [collection]: its name, lower-cased and naively
 /// singularized ("Deals" → "deal", "Companies" → "company").
 String itemLabelOf(Collection collection) {
