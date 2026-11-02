@@ -486,7 +486,7 @@ class _PhoneFrame extends StatelessWidget {
                   onTap: () => _customize(context, collection.id),
                   child: const Row(
                     children: [
-                      Icon(Icons.edit_outlined, size: 20),
+                      Icon(Icons.tune, size: 20),
                       SizedBox(width: Spacing.sm),
                       Flexible(child: Text('Customize collection')),
                     ],
@@ -551,7 +551,7 @@ class _WorkBody extends StatelessWidget {
             'then come back to work with them here.',
         action: PrimaryButton(
           label: 'Customize',
-          icon: Icons.edit_outlined,
+          icon: Icons.tune,
           onPressed: () => _customize(context, collection.id),
         ),
       );

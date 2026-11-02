@@ -180,7 +180,14 @@ class _Body extends StatelessWidget {
                     ),
                   for (final f in layoutFields)
                     ChoiceChip(
-                      avatar: Icon(fieldTypeIcon(f), size: 18),
+                      // The selected fill marks the pick; a checkmark would
+                      // replace the type icon.
+                      showCheckmark: false,
+                      avatar: Icon(
+                        fieldTypeIcon(f),
+                        size: 18,
+                        color: scheme.onSurfaceVariant,
+                      ),
                       label: Text(f.name),
                       selected: state.layoutField?.id == f.id,
                       onSelected: (_) => cubit.setLayoutField(f.id),

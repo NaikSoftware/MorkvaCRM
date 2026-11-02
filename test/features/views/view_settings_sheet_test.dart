@@ -227,7 +227,7 @@ void main() {
     expect(_inSheet(find.text('Card fields')), findsNothing);
   });
 
-  testWidgets('no fields: no view settings; Customize uses edit', (
+  testWidgets('no fields: no view settings; Customize uses tune', (
     tester,
   ) async {
     await pumpWorkPage(
@@ -239,15 +239,15 @@ void main() {
       ),
     );
     expect(find.byTooltip('View settings'), findsNothing);
-    expect(find.byIcon(Icons.tune), findsNothing);
-    expect(
-      find.widgetWithIcon(PrimaryButton, Icons.edit_outlined),
-      findsOneWidget,
-    );
+    // Only the Customize button: tune means Customize everywhere.
+    expect(find.byIcon(Icons.tune), findsOneWidget);
+    expect(find.widgetWithIcon(PrimaryButton, Icons.tune), findsOneWidget);
     expect(find.byTooltip('More'), findsOneWidget);
   });
 
-  testWidgets('desktop no fields: one tune icon', (tester) async {
+  testWidgets('desktop no fields: both Customize actions use tune', (
+    tester,
+  ) async {
     await pumpWorkPage(
       tester,
       repository: workRepository(
@@ -255,7 +255,7 @@ void main() {
         objects: const [],
       ),
     );
-    expect(find.byIcon(Icons.tune), findsOneWidget);
+    expect(find.byIcon(Icons.tune), findsNWidgets(2));
     expect(find.text('Customize'), findsNWidgets(2));
   });
 

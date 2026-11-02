@@ -196,4 +196,16 @@ void main() {
         .first;
     expect(t.state<ScrollableState>(canvasScroll).position.maxScrollExtent, 0);
   });
+
+  testWidgets('phone: suggestion chips are equal full-width rows', (t) async {
+    await _pump(t, [
+      _deals(const [_name]),
+    ], size: const Size(390, 1200));
+    final widths = {
+      for (final k in ['Status', 'Due date', 'Amount', 'Customer', 'Notes'])
+        t.getSize(find.byKey(Key('suggest_$k'))).width,
+      t.getSize(find.byKey(const Key('suggest_custom'))).width,
+    };
+    expect(widths, hasLength(1));
+  });
 }

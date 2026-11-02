@@ -93,31 +93,45 @@ class FirstRunFields extends StatelessWidget {
             ),
           ),
           const SizedBox(height: Spacing.sm),
-          Wrap(
-            spacing: Spacing.xs,
-            runSpacing: Spacing.xs,
-            children: [
-              for (final s in _suggestions)
-                if (!used.contains(s.name.toLowerCase()))
-                  ActionChip(
-                    key: Key('suggest_${s.name}'),
-                    avatar: Icon(s.icon, size: 18),
-                    label: Text('${s.name} · ${s.hint}'),
-                    onPressed: () => _add(cubit, s),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              // Narrow (phone): one full-width row per chip instead of a
+              // ragged wrap.
+              final narrow = constraints.maxWidth < 420;
+              Widget sized(Widget chip) => narrow
+                  ? SizedBox(width: constraints.maxWidth, child: chip)
+                  : chip;
+              return Wrap(
+                spacing: Spacing.xs,
+                runSpacing: Spacing.xs,
+                children: [
+                  for (final s in _suggestions)
+                    if (!used.contains(s.name.toLowerCase()))
+                      sized(
+                        ActionChip(
+                          key: Key('suggest_${s.name}'),
+                          avatar: Icon(s.icon, size: 18),
+                          label: Text('${s.name} · ${s.hint}'),
+                          onPressed: () => _add(cubit, s),
+                        ),
+                      ),
+                  sized(
+                    ActionChip(
+                      key: const Key('suggest_custom'),
+                      avatar: const Icon(Icons.add, size: 18),
+                      label: const Text('Custom field'),
+                      onPressed: () async {
+                        final typeId = await AddFieldSheet.show(
+                          context,
+                          editors: registry.all,
+                        );
+                        if (typeId != null) cubit.addField(typeId);
+                      },
+                    ),
                   ),
-              ActionChip(
-                key: const Key('suggest_custom'),
-                avatar: const Icon(Icons.add, size: 18),
-                label: const Text('Custom field'),
-                onPressed: () async {
-                  final typeId = await AddFieldSheet.show(
-                    context,
-                    editors: registry.all,
-                  );
-                  if (typeId != null) cubit.addField(typeId);
-                },
-              ),
-            ],
+                ],
+              );
+            },
           ),
         ],
       ),
