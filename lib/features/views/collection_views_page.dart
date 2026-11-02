@@ -41,25 +41,28 @@ class CollectionViewsPage extends StatelessWidget {
           (prev is! ViewsReady || prev.writeErrorSeq != next.writeErrorSeq),
       listener: (context, state) =>
           _notify(context, (state as ViewsReady).writeError!, error: true),
-      builder: (context, state) => LayoutBuilder(
-        builder: (context, constraints) {
-          final compact = constraints.maxWidth < AppShell.expandedBreakpoint;
-          final ready = state is ViewsReady ? state : null;
-          final body = switch (state) {
-            ViewsLoading() => ViewsSkeleton(compact: compact),
-            ViewsNotFound() => const _NotFound(),
-            ViewsError() => const _ErrorCard(),
-            final ViewsReady s => _WorkBody(
-              state: s,
-              modes: modes,
-              compact: compact,
-            ),
-          };
-          return compact
-              ? _PhoneFrame(state: ready, body: body)
-              : _WideFrame(state: ready, body: body);
-        },
-      ),
+      builder: (context, state) {
+        _maybeNudge(context, state);
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < AppShell.expandedBreakpoint;
+            final ready = state is ViewsReady ? state : null;
+            final body = switch (state) {
+              ViewsLoading() => ViewsSkeleton(compact: compact),
+              ViewsNotFound() => const _NotFound(),
+              ViewsError() => const _ErrorCard(),
+              final ViewsReady s => _WorkBody(
+                state: s,
+                modes: modes,
+                compact: compact,
+              ),
+            };
+            return compact
+                ? _PhoneFrame(state: ready, body: body)
+                : _WideFrame(state: ready, body: body);
+          },
+        );
+      },
     );
   }
 }
@@ -67,6 +70,24 @@ class CollectionViewsPage extends StatelessWidget {
 // -----------------------------------------------------------------------------
 // Page actions. The stubs are swapped for the real sheets by later work.
 // -----------------------------------------------------------------------------
+
+/// Collections whose "Add your first `<item>`" nudge was shown this session.
+final _nudgedCollections = <String>{};
+
+/// Test hook: forget the session's nudges.
+@visibleForTesting
+void resetFirstItemNudges() => _nudgedCollections.clear();
+
+/// Once per session per collection, a gentle prompt when it has no objects.
+void _maybeNudge(BuildContext context, CollectionViewsState state) {
+  if (state is! ViewsReady || state.totalCount != 0) return;
+  if (state.collection.fields.isEmpty) return;
+  if (!_nudgedCollections.add(state.collection.id)) return;
+  final message = 'Add your first ${itemLabelOf(state.collection)}';
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (context.mounted) _notify(context, message);
+  });
+}
 
 void _notify(
   BuildContext context,
