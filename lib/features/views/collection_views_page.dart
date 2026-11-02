@@ -182,7 +182,8 @@ Future<void> _openFilterEditor(
 /// The sort menu: a popover hanging from [anchor]'s right edge when given,
 /// else a bottom sheet. Manual order is offered on Board and List.
 Future<void> _openSortMenu(
-  BuildContext context, {
+  BuildContext context,
+  ViewModeRegistry modes, {
   Rect? anchor,
   double inset = 0,
 }) async {
@@ -200,8 +201,7 @@ Future<void> _openSortMenu(
     builder: (sheetContext) => SortMenu(
       collection: state.collection,
       current: view.sort,
-      allowManual:
-          view.mode == ViewModeIds.board || view.mode == ViewModeIds.list,
+      allowManual: modes.resolve(view.mode).supportsManualOrder,
       onChanged: cubit.setSort,
       onPicked: () => Navigator.of(sheetContext).pop(),
     ),
@@ -228,7 +228,7 @@ Future<void> _openViewSettings(BuildContext context, ViewModeRegistry modes) {
         modes: modes,
         onSort: () {
           Navigator.of(sheet).pop();
-          _openSortMenu(context);
+          _openSortMenu(context, modes);
         },
         onEditFields: (mode) {
           Navigator.of(sheet).pop();
@@ -599,8 +599,12 @@ class _WorkBody extends StatelessWidget {
                   cubit.setFilters([...view.filters]..removeAt(i)),
               // Nothing to sort or set up while the mode can't draw yet.
               onSort: renders
-                  ? () =>
-                        _openSortMenu(context, anchor: anchor(), inset: gutter)
+                  ? () => _openSortMenu(
+                      context,
+                      modes,
+                      anchor: anchor(),
+                      inset: gutter,
+                    )
                   : null,
               onEditFields: renders ? data.editFields : null,
             );
@@ -631,7 +635,10 @@ class _WorkBody extends StatelessWidget {
                       onPressed: () => cubit.setFilters(const []),
                     ),
                   )
-                : mode.buildBody(context, data),
+                : KeyedSubtree(
+                    key: ValueKey(view.id),
+                    child: mode.buildBody(context, data),
+                  ),
           ),
         ),
       ],

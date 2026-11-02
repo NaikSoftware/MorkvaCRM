@@ -55,11 +55,16 @@ class _Body extends StatelessWidget {
   final VoidCallback onSort;
   final ValueChanged<ViewMode> onEditFields;
 
-  /// Switches mode in one write, keeping the layout field only when the new
-  /// mode uses it; a mode that needs one gets the first fitting field.
+  /// Switches mode in one write. The layout field stays when the new mode
+  /// accepts it or uses none at all (Board → Table → Board keeps Stage); a
+  /// mode that needs one and can't take it gets the first fitting field.
   Future<void> _switchTo(BuildContext context, ViewMode mode) {
     final current = state.layoutField;
-    final keep = current != null && mode.acceptsLayoutField(current);
+    final usesLayout =
+        mode.needsLayoutField ||
+        state.collection.fields.any(mode.acceptsLayoutField);
+    final keep =
+        current != null && (mode.acceptsLayoutField(current) || !usesLayout);
     final first = mode.needsLayoutField
         ? state.collection.fields.where(mode.acceptsLayoutField).firstOrNull
         : null;
@@ -89,8 +94,7 @@ class _Body extends StatelessWidget {
     final caption = theme.textTheme.bodySmall?.copyWith(
       color: scheme.onSurfaceVariant,
     );
-    final allowManual =
-        view.mode == ViewModeIds.board || view.mode == ViewModeIds.list;
+    final allowManual = modes.resolve(view.mode).supportsManualOrder;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.only(bottom: Spacing.md),

@@ -40,9 +40,10 @@ class BoardMode extends ViewMode {
   bool get drawsNoMatches => true;
 
   @override
-  bool acceptsLayoutField(FieldDefinition field) =>
-      field is SingleSelectFieldDefinition ||
-      (field is ReferenceFieldDefinition && !field.multiple);
+  bool acceptsLayoutField(FieldDefinition field) => isGroupable(field);
+
+  @override
+  bool get supportsManualOrder => true;
 
   @override
   String? unavailableReason(Collection collection) =>

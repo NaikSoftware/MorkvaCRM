@@ -276,7 +276,9 @@ void main() {
     expect(_view(cubit).layoutFieldId, 'stage');
   });
 
-  testWidgets('a mode that ignores the layout field clears it', (tester) async {
+  testWidgets('a mode that can\'t use the layout field clears it', (
+    tester,
+  ) async {
     final cubit = await pumpWorkPage(tester, size: _phone);
     await _open(tester);
     await tester.tap(_inSheet(find.byIcon(const CalendarMode().icon)));
@@ -294,12 +296,22 @@ void main() {
           .selected,
       isTrue,
     );
+  });
 
-    await tester.tap(_inSheet(find.byIcon(const CalendarMode().icon)));
+  testWidgets('Board → Table → Board keeps the group-by field', (tester) async {
+    final cubit = await pumpWorkPage(tester, size: _phone);
+    await _open(tester);
+    await tester.tap(_inSheet(find.byIcon(const BoardMode().icon)));
+    await tester.pumpAndSettle();
+    await cubit.setLayoutField('company');
     await tester.pumpAndSettle();
     await tester.tap(_inSheet(find.byIcon(const TableMode().icon)));
     await tester.pumpAndSettle();
     expect(_view(cubit).mode, ViewModeIds.table);
-    expect(_view(cubit).layoutFieldId, isNull);
+    expect(_view(cubit).layoutFieldId, 'company');
+    await tester.tap(_inSheet(find.byIcon(const BoardMode().icon)));
+    await tester.pumpAndSettle();
+    expect(_view(cubit).mode, ViewModeIds.board);
+    expect(_view(cubit).layoutFieldId, 'company');
   });
 }
