@@ -357,4 +357,147 @@ void main() {
       expect(item.enabled, isFalse);
     });
   });
+
+  group('filters and sort', () {
+    ViewsReady ready(CollectionViewsCubit c) => c.state as ViewsReady;
+
+    testWidgets('+ Filter → popover under the toolbar → a saved chip', (
+      tester,
+    ) async {
+      final cubit = await pumpWorkPage(tester);
+      await tester.tap(find.bySemanticsLabel('Add filter'));
+      await tester.pumpAndSettle();
+      expect(find.text('Filter by'), findsOneWidget);
+      expect(find.byType(BottomSheet), findsNothing);
+      expect(
+        tester.getTopLeft(find.byType(FilterBuilder)).dy,
+        greaterThan(tester.getBottomLeft(find.byType(ViewToolbar)).dy),
+      );
+      expect(tester.getSize(find.byType(FilterBuilder)).width, 360);
+      await tester.tap(find.bySemanticsLabel('Stage').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsLabel('is any of'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsLabel('Won'));
+      await tester.pump();
+      await tester.tap(find.text('Add filter'));
+      await tester.pumpAndSettle();
+      expect(find.byType(FilterBuilder), findsNothing);
+      expect(ready(cubit).activeView.filters, const [
+        ViewFilter(fieldId: 'stage', op: FilterOp.anyOf, operand: ['won']),
+      ]);
+      expect(find.text('Stage is Won'), findsOneWidget);
+      expect(find.text('1 of 5'), findsOneWidget);
+    });
+
+    testWidgets('tapping a chip reopens at the value step and replaces it', (
+      tester,
+    ) async {
+      final cubit = await pumpWorkPage(tester);
+      await cubit.setFilters(const [
+        ViewFilter(fieldId: 'name', op: FilterOp.isNotEmpty),
+        ViewFilter(fieldId: 'amount', op: FilterOp.greaterThan, operand: 100),
+      ]);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Amount > 100'));
+      await tester.pumpAndSettle();
+      expect(find.text('Amount >'), findsOneWidget);
+      await tester.enterText(find.byType(TextField).last, '1000');
+      await tester.tap(find.text('Update filter'));
+      await tester.pumpAndSettle();
+      expect(ready(cubit).activeView.filters, const [
+        ViewFilter(fieldId: 'name', op: FilterOp.isNotEmpty),
+        ViewFilter(fieldId: 'amount', op: FilterOp.greaterThan, operand: 1000),
+      ]);
+    });
+
+    testWidgets('outside tap dismisses without saving', (tester) async {
+      final cubit = await pumpWorkPage(tester);
+      await tester.tap(find.bySemanticsLabel('Add filter'));
+      await tester.pumpAndSettle();
+      await tester.tapAt(const Offset(1200, 780));
+      await tester.pumpAndSettle();
+      expect(find.byType(FilterBuilder), findsNothing);
+      expect(ready(cubit).activeView.filters, isEmpty);
+    });
+
+    testWidgets('a reference filter lists target names; the chip names them', (
+      tester,
+    ) async {
+      final cubit = await pumpWorkPage(tester);
+      cubit.selectView('board');
+      await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsLabel('Add filter'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsLabel('Company').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsLabel('is any of'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsLabel('Zeta Corp'));
+      await tester.pump();
+      await tester.tap(find.text('Add filter'));
+      await tester.pumpAndSettle();
+      expect(ready(cubit).activeView.filters.single.operand, ['k1']);
+      expect(find.text('Company is Zeta Corp'), findsOneWidget);
+    });
+
+    testWidgets('Sort popover: pick a field, then flip the direction', (
+      tester,
+    ) async {
+      final cubit = await pumpWorkPage(tester);
+      await tester.tap(find.bySemanticsLabel('Sort'));
+      await tester.pumpAndSettle();
+      expect(find.byType(SortMenu), findsOneWidget);
+      expect(find.bySemanticsLabel('Manual'), findsNothing);
+      // Right-aligned with the toolbar cluster.
+      expect(
+        tester.getTopRight(find.byType(SortMenu)).dx,
+        closeTo(tester.getTopRight(find.byType(ViewToolbar)).dx - 24, 1),
+      );
+      await tester.tap(find.bySemanticsLabel('Amount').last);
+      await tester.pumpAndSettle();
+      expect(find.byType(SortMenu), findsNothing);
+      expect(ready(cubit).activeView.sort, const ViewSort(fieldId: 'amount'));
+      expect(_rowTitles(tester).first, 'Initech');
+
+      await tester.tap(find.bySemanticsLabel('Amount').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Desc'));
+      await tester.pumpAndSettle();
+      expect(
+        ready(cubit).activeView.sort,
+        const ViewSort(fieldId: 'amount', ascending: false),
+      );
+      expect(find.byType(SortMenu), findsOneWidget);
+    });
+
+    testWidgets('Board offers Manual, which clears the sort', (tester) async {
+      final cubit = await pumpWorkPage(tester);
+      cubit.selectView('board');
+      await cubit.setSort(const ViewSort(fieldId: 'name'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsLabel('Name').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsLabel('Manual'));
+      await tester.pumpAndSettle();
+      expect(ready(cubit).activeView.sort, isNull);
+    });
+
+    testWidgets('phone: chips row + Filter opens a bottom sheet', (
+      tester,
+    ) async {
+      final cubit = await pumpWorkPage(tester, size: _phone);
+      await tester.tap(find.bySemanticsLabel('Add filter'));
+      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsOneWidget);
+      await tester.tap(find.bySemanticsLabel('Name').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsLabel('is empty'));
+      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsNothing);
+      expect(ready(cubit).activeView.filters, const [
+        ViewFilter(fieldId: 'name', op: FilterOp.isEmpty),
+      ]);
+    });
+  });
 }

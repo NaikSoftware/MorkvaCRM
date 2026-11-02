@@ -44,7 +44,12 @@ bool isMetricField(FieldDefinition field) =>
     isNumericField(field) || field is DateFieldDefinition;
 
 /// Short text for a filter chip: "Stage is Lead, Won", "Amount > 100".
-String filterLabel(ViewFilter filter, Collection collection) {
+/// Reference ids show as their [referenceLabels] entry when known.
+String filterLabel(
+  ViewFilter filter,
+  Collection collection, {
+  Map<String, String> referenceLabels = const {},
+}) {
   final field = collection.fieldById(filter.fieldId);
   if (field == null) return 'Unknown field';
   final operand = filter.operand;
@@ -56,10 +61,19 @@ String filterLabel(ViewFilter filter, Collection collection) {
           MultiSelectFieldDefinition(
             :final options,
           ) => options.where((o) => o.id == id).firstOrNull?.label ?? id,
+          ReferenceFieldDefinition() => referenceLabels[id] ?? id,
           _ => id,
         },
     ].join(', '),
     null => '',
+    final String day when field is DateFieldDefinition =>
+      switch (DateTime.tryParse(day)) {
+        final d? => formatFieldValue(
+          DateFieldDefinition(id: field.id, name: field.name),
+          DateFieldValue(DateTime.utc(d.year, d.month, d.day)),
+        ),
+        null => day,
+      },
     _ => '$operand',
   };
   final op = switch (filter.op) {
