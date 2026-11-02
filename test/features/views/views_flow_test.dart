@@ -6,7 +6,7 @@ import 'package:morkva_crm/app/app.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/features/views/views.dart';
 import 'package:morkva_crm/features/views/widgets/board/board_column.dart';
-import 'package:morkva_crm/features/views/widgets/object_card.dart';
+import 'package:morkva_crm/features/views/widgets/calendar/no_date_tray.dart';
 
 import '../../widget_test.dart' show FakeAuthRepository;
 import '../collections/fake_data_repository.dart';
@@ -47,21 +47,41 @@ void main() {
       }
       final cid = (await repo.getCollections()).single.id;
       expect(repo.objectsOf(cid), hasLength(3));
-      await tester.tap(find.byTooltip('New view'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Board'));
-      await tester.pumpAndSettle();
-      await tester.tap(
+      // Table first: header cells and rows.
+      expect(find.byType(ViewTable), findsOneWidget);
+      expect(
         find.descendant(
-          of: find.byType(AlertDialog),
-          matching: find.text('Status'),
+          of: find.byType(ViewTable),
+          matching: find.text('Name'),
         ),
+        findsOneWidget,
       );
-      await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField).last, 'Pipeline');
-      await tester.pump();
-      await tester.tap(find.text('Create view'));
-      await tester.pumpAndSettle();
+
+      Future<void> createView(
+        String mode,
+        String name, {
+        String? layoutField,
+      }) async {
+        await tester.tap(find.byTooltip('New view'));
+        await tester.pumpAndSettle();
+        final dialog = find.byType(AlertDialog);
+        await tester.tap(
+          find.descendant(of: dialog, matching: find.text(mode)),
+        );
+        await tester.pumpAndSettle();
+        if (layoutField != null) {
+          await tester.tap(
+            find.descendant(of: dialog, matching: find.text(layoutField)),
+          );
+          await tester.pumpAndSettle();
+        }
+        await tester.enterText(find.byType(TextField).last, name);
+        await tester.pump();
+        await tester.tap(find.text('Create view'));
+        await tester.pumpAndSettle();
+      }
+
+      await createView('Board', 'Pipeline', layoutField: 'Status');
       Finder column(String label) => find.ancestor(
         of: find.text(label),
         matching: find.byType(BoardColumn),
@@ -105,9 +125,21 @@ void main() {
         );
         await gesture.moveBy(const Offset(0, 6));
         await tester.pump();
-        // The sidebar covers the board's left 280 px: aim at the visible right
-        // part of the column.
-        final to = tester.getTopRight(column('To do')) + const Offset(-24, 80);
+        // Aim at the visible part of the column: ensureVisible can leave it
+        // partly scrolled under the board's left clip edge (x 281, right of
+        // the 256 px rail), where a drop at the column's own centre misses.
+        final viewport = tester.getRect(
+          find
+              .ancestor(of: column('To do'), matching: find.byType(Scrollable))
+              .first,
+        );
+        final col = tester.getRect(column('To do'));
+        final to = Offset(
+          (col.left.clamp(viewport.left, viewport.right) +
+                  col.right.clamp(viewport.left, viewport.right)) /
+              2,
+          col.center.dy,
+        );
         final from = tester.getCenter(find.text('Acme').first);
         for (var i = 1; i <= 10; i++) {
           await gesture.moveTo(Offset.lerp(from, to, i / 10)!);
@@ -155,19 +187,7 @@ void main() {
       expect(find.text('Initech'), findsOneWidget);
 
       // List view.
-      await tester.tap(find.byTooltip('New view'));
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.descendant(
-          of: find.byType(AlertDialog),
-          matching: find.text('List'),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField).last, 'Plain');
-      await tester.pump();
-      await tester.tap(find.text('Create view'));
-      await tester.pumpAndSettle();
+      await createView('List', 'Plain');
       for (final n in ['Acme', 'Globex', 'Initech']) {
         expect(find.text(n), findsOneWidget);
       }
@@ -193,25 +213,44 @@ void main() {
       await tester.tap(find.byTooltip('Close'));
       await tester.pumpAndSettle();
       expect((await repo.getCollections()).single.fields, hasLength(3));
-      await tester.tap(find.byTooltip('New view'));
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.descendant(
-          of: find.byType(AlertDialog),
-          matching: find.text('Calendar'),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField).last, 'Schedule');
-      await tester.pump();
-      await tester.tap(find.text('Create view'));
-      await tester.pumpAndSettle();
+      await createView('Calendar', 'Schedule');
       // Calendar renders the month grid; undated objects wait in "No date".
       expect(find.text('Today'), findsOneWidget);
-      expect(find.text('No date'), findsOneWidget);
+      final tray = find.byType(NoDateTray);
+      expect(tray, findsOneWidget);
       for (final n in ['Acme', 'Globex', 'Initech']) {
-        expect(find.text(n), findsOneWidget);
+        expect(
+          find.descendant(of: tray, matching: find.text(n)),
+          findsOneWidget,
+        );
       }
+
+      // Back to the Table: rows, and Acme's stored Status shows in its row.
+      await tester.tap(find.text('All'));
+      await tester.pumpAndSettle();
+      final table = find.byType(ViewTable);
+      expect(table, findsOneWidget);
+      for (final n in ['Acme', 'Globex', 'Initech']) {
+        expect(
+          find.descendant(of: table, matching: find.text(n)),
+          findsOneWidget,
+        );
+      }
+      // The default view predates the Status field, so show it via Columns.
+      await tester.tap(find.text('Columns'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsLabel('Status').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Save').last);
+      await tester.pumpAndSettle();
+      // Acme's row (same baseline) shows its stored Status;
+      final todo = find.descendant(of: table, matching: find.text('To do'));
+      expect(todo, findsOneWidget);
+      expect(
+        (tester.getCenter(todo).dy - tester.getCenter(find.text('Acme')).dy)
+            .abs(),
+        lessThan(8),
+      );
     },
   );
 }
