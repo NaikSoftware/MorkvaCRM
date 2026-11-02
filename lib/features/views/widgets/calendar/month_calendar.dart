@@ -22,7 +22,8 @@ class MonthCalendar extends StatefulWidget {
   /// Local midnight of today.
   final DateTime today;
 
-  static const double minCellHeight = 112;
+  /// Week rows share the grid's height; below this they scroll instead.
+  static const double minCellHeight = 88;
   static const double weekdayRowHeight = 32;
 
   @override
@@ -273,6 +274,7 @@ class _DayCellState extends State<_DayCell> {
                     : BorderSide(color: scheme.outlineVariant),
               ),
             ),
+            // 2 px at the bottom so a 112 px cell fits 2 pills + "+N more".
             padding: const EdgeInsets.fromLTRB(
               Spacing.xxs,
               Spacing.xxs,

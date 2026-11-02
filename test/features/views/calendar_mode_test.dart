@@ -147,6 +147,17 @@ void main() {
         tester.getSize(_cell(DateTime(2026, 11, 2))).height,
         greaterThanOrEqualTo(MonthCalendar.minCellHeight - 1),
       );
+      // All six weeks fit: the last one is not hidden behind a scroll.
+      final grid = find
+          .ancestor(
+            of: _cell(DateTime(2026, 12, 6)),
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      expect(
+        tester.getBottomLeft(_cell(DateTime(2026, 12, 6))).dy,
+        lessThanOrEqualTo(tester.getBottomLeft(grid).dy + 0.5),
+      );
       // A date-only value sits on its own day whatever the machine's zone.
       expect(
         find.descendant(
@@ -176,15 +187,15 @@ void main() {
     ) async {
       final (_, _, rec) = await _pump(
         tester,
-        // Short enough that rows sit at the 112 px minimum.
-        size: const Size(1280, 700),
+        // Six 112 px week rows.
+        size: const Size(1280, 761),
         objects: [
           for (var i = 0; i < 5; i++)
             deal('x$i', i, name: 'Deal $i', due: DateTime.utc(2026, 11, 10)),
         ],
       );
       final cell = _cell(DateTime(2026, 11, 10));
-      expect(tester.getSize(cell).height, MonthCalendar.minCellHeight);
+      expect(tester.getSize(cell).height, closeTo(112, 1));
       expect(
         find.descendant(of: cell, matching: find.byType(ObjectCard)),
         findsNWidgets(2),
