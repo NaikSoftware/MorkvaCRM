@@ -13,6 +13,7 @@ import 'collection_views_cubit.dart';
 import 'collection_views_state.dart';
 import 'modes/view_mode.dart';
 import 'widgets/fields_editor_sheet.dart';
+import 'widgets/new_view_dialog.dart';
 import 'widgets/object_detail_sheet.dart';
 import 'widgets/quick_add_dialog.dart';
 import 'widgets/view_labels.dart';
@@ -111,7 +112,6 @@ void _openFieldsEditor(BuildContext context, ViewMode mode) {
 void _openFilterEditor(BuildContext context, {int? index}) =>
     _comingSoon(context, 'Filtering');
 void _openSortMenu(BuildContext context) => _comingSoon(context, 'Sorting');
-void _openNewView(BuildContext context) => _comingSoon(context, 'New view');
 void _openViewSettings(BuildContext context) =>
     _comingSoon(context, 'View settings');
 
@@ -167,6 +167,26 @@ Future<void> _openObject(
   if (delete != true || !context.mounted) return;
   final undo = cubit.deleteObject(object.id);
   if (undo != null) _notify(context, 'Deleted "$title"', undo: undo);
+}
+
+Future<void> _openNewView(
+  BuildContext context,
+  Collection collection,
+  ViewModeRegistry modes,
+) async {
+  final cubit = context.read<CollectionViewsCubit>();
+  final request = await NewViewDialog.show(
+    context,
+    collection: collection,
+    modes: modes,
+    onAddField: () => _customize(context, collection.id),
+  );
+  if (request == null) return;
+  await cubit.createView(
+    request.name,
+    mode: request.mode,
+    layoutFieldId: request.layoutFieldId,
+  );
 }
 
 Future<void> _deleteView(BuildContext context, ViewDefinition view) async {
@@ -415,7 +435,7 @@ class _WorkBody extends StatelessWidget {
           modes: modes,
           horizontalPadding: gutter,
           onSelect: cubit.selectView,
-          onNewView: () => _openNewView(context),
+          onNewView: () => _openNewView(context, collection, modes),
           onRename: cubit.renameView,
           onDuplicate: cubit.duplicateView,
           onDelete: (id) => _deleteView(
