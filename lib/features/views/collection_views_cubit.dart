@@ -377,11 +377,10 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
     return true;
   }
 
-  /// Switches the active view's mode; [layoutFieldId], when given, becomes
-  /// its layout field too.
+  /// Switches the active view's mode and sets its layout field to
+  /// [layoutFieldId] in the same write (null clears it).
   Future<void> setMode(String mode, {String? layoutFieldId}) => _updateActive(
-    (v) =>
-        v.copyWith(mode: mode, layoutFieldId: layoutFieldId ?? v.layoutFieldId),
+    (v) => v.copyWith(mode: mode, layoutFieldId: layoutFieldId),
   );
 
   Future<void> setFilters(List<ViewFilter> filters) =>

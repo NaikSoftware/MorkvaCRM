@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
@@ -6,10 +8,34 @@ import 'package:morkva_crm/features/views/views.dart';
 import 'package:morkva_crm/features/views/widgets/fields_editor_sheet.dart';
 import 'package:morkva_crm/features/views/widgets/view_settings_sheet.dart';
 
+import '../collections/fake_data_repository.dart';
 import 'views_fixtures.dart';
 import 'work_page_harness.dart';
 
 const _phone = Size(390, 844);
+
+/// Holds every collection save until [release] (a server ack while offline).
+class _SlowRepository extends FakeDataRepository {
+  _SlowRepository(super.initial);
+
+  final _held = <Completer<void>>[];
+
+  @override
+  Future<void> saveCollection(Collection collection) async {
+    final ack = Completer<void>();
+    _held.add(ack);
+    await ack.future;
+    return super.saveCollection(collection);
+  }
+
+  /// Acknowledges the held saves in order, and any they lead to.
+  Future<void> release(WidgetTester tester) async {
+    while (_held.isNotEmpty) {
+      _held.removeAt(0).complete();
+      await tester.pump();
+    }
+  }
+}
 
 ViewDefinition _view(CollectionViewsCubit cubit) =>
     (cubit.state as ViewsReady).activeView;
@@ -231,6 +257,23 @@ void main() {
     );
     expect(find.byIcon(Icons.tune), findsOneWidget);
     expect(find.text('Customize'), findsNWidgets(2));
+  });
+
+  testWidgets('rapid mode switches with slow saves end consistent', (
+    tester,
+  ) async {
+    final repo = _SlowRepository([deals, companies]);
+    repo.seedObjects('deals', sampleDeals());
+    final cubit = await pumpWorkPage(tester, size: _phone, repository: repo);
+    await _open(tester);
+    for (final mode in const [CalendarMode(), ListMode(), BoardMode()]) {
+      await tester.tap(_inSheet(find.byIcon(mode.icon)));
+      await tester.pump();
+    }
+    await repo.release(tester);
+    await tester.pumpAndSettle();
+    expect(_view(cubit).mode, ViewModeIds.board);
+    expect(_view(cubit).layoutFieldId, 'stage');
   });
 
   testWidgets('a mode that ignores the layout field clears it', (tester) async {

@@ -224,6 +224,17 @@ void main() {
       },
     );
 
+    test('setMode sets the layout field exactly, in one save', () async {
+      final c = await ready();
+      await c.setMode(ViewModeIds.calendar, layoutFieldId: 'due');
+      expect(stateOf(c).activeView.layoutFieldId, 'due');
+      final saves = repo.saveCount;
+      await c.setMode(ViewModeIds.list);
+      expect(stateOf(c).activeView.mode, ViewModeIds.list);
+      expect(stateOf(c).activeView.layoutFieldId, isNull);
+      expect(repo.saveCount, saves + 1);
+    });
+
     test('an unchanged view is not saved again', () async {
       final c = await ready();
       await c.setFieldIds(tableView.fieldIds);

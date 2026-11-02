@@ -55,20 +55,18 @@ class _Body extends StatelessWidget {
   final VoidCallback onSort;
   final ValueChanged<ViewMode> onEditFields;
 
-  /// Switches mode, keeping the layout field only when the new mode uses
-  /// it; a mode that needs one gets the first fitting field.
-  Future<void> _switchTo(BuildContext context, ViewMode mode) async {
-    final cubit = context.read<CollectionViewsCubit>();
+  /// Switches mode in one write, keeping the layout field only when the new
+  /// mode uses it; a mode that needs one gets the first fitting field.
+  Future<void> _switchTo(BuildContext context, ViewMode mode) {
     final current = state.layoutField;
-    if (current != null && mode.acceptsLayoutField(current)) {
-      return cubit.setMode(mode.id);
-    }
+    final keep = current != null && mode.acceptsLayoutField(current);
     final first = mode.needsLayoutField
         ? state.collection.fields.where(mode.acceptsLayoutField).firstOrNull
         : null;
-    // setMode keeps the old field when given null, so clear it separately.
-    await cubit.setMode(mode.id, layoutFieldId: first?.id);
-    if (first == null && current != null) await cubit.setLayoutField(null);
+    return context.read<CollectionViewsCubit>().setMode(
+      mode.id,
+      layoutFieldId: keep ? current.id : first?.id,
+    );
   }
 
   @override
