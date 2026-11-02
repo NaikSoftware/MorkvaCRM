@@ -476,29 +476,63 @@ void main() {
       expect(stateOf(c).referenceLabels['k1'], 'Zeta Corp');
     });
 
-    test('referenceChoices watches the target on demand, once', () async {
+    FakeDataRepository boardOnly(List<MorkvaObject> targets) {
       final r = FakeDataRepository([
         deals.copyWith(views: const [boardView]),
         companies,
       ]);
       r.seedObjects('deals', sampleDeals());
-      r.seedObjects('companies', [
-        company('k1', 'Zeta Corp', 0),
-        company('k2', 'Alpha Ltd', 1),
-        company('k3', 'Mid Inc', 2),
-      ]);
-      final c = await ready(r);
+      r.seedObjects('companies', targets);
+      return r;
+    }
+
+    test('loadReferenceChoices watches the target on demand, once', () async {
+      final c = await ready(
+        boardOnly([
+          company('k1', 'Zeta Corp', 0),
+          company('k2', 'Alpha Ltd', 1),
+          company('k3', 'Mid Inc', 2),
+        ]),
+      );
       expect(repo.watchObjectsCalls['companies'], isNull);
-      expect(c.referenceChoices('company'), isEmpty);
+      c.loadReferenceChoices('company');
+      expect(stateOf(c).referenceChoices, isEmpty, reason: 'still loading');
       await pumpEventQueue();
-      expect(c.referenceChoices('company'), {
-        'k2': 'Alpha Ltd',
-        'k3': 'Mid Inc',
-        'k1': 'Zeta Corp',
+      expect(stateOf(c).referenceChoices, {
+        'company': {'k2': 'Alpha Ltd', 'k3': 'Mid Inc', 'k1': 'Zeta Corp'},
       });
+      c.loadReferenceChoices('company');
+      c.loadReferenceChoices('stage');
+      c.loadReferenceChoices('missing');
+      await pumpEventQueue();
       expect(repo.watchObjectsCalls['companies'], 1);
-      expect(c.referenceChoices('stage'), isEmpty);
-      expect(c.referenceChoices('missing'), isEmpty);
+      expect(stateOf(c).referenceChoices.keys, ['company']);
+    });
+
+    test('an empty target still emits (loaded, nothing to pick)', () async {
+      final c = await ready(boardOnly(const []));
+      final states = <CollectionViewsState>[];
+      final sub = c.stream.listen(states.add);
+      addTearDown(sub.cancel);
+      c.loadReferenceChoices('company');
+      await pumpEventQueue();
+      expect(stateOf(c).referenceChoices, {'company': <String, String>{}});
+      expect(states, isNotEmpty);
+    });
+
+    test('a failing choice target settles as empty', () async {
+      final c = await ready(boardOnly(const []));
+      repo.failObjects('companies', StateError('denied'));
+      c.loadReferenceChoices('company');
+      await pumpEventQueue();
+      expect(stateOf(c).referenceChoices['company'], isEmpty);
+    });
+
+    test('loadReferenceChoices after close is a no-op', () async {
+      final c = await ready(boardOnly(const []));
+      await c.close();
+      c.loadReferenceChoices('company');
+      expect(repo.watchObjectsCalls['companies'], isNull);
     });
 
     test('labels follow target changes', () async {

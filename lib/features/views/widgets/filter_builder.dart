@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/domain/domain.dart';
@@ -18,17 +19,21 @@ class FilterBuilder extends StatefulWidget {
     required this.onApply,
     this.initial,
     this.referenceChoices = _noChoices,
+    this.onLoadChoices,
   });
 
   final Collection collection;
   final ViewFilter? initial;
   final ValueChanged<ViewFilter> onApply;
 
-  /// Object id → label of what a reference field can point at; empty while
+  /// Object id → label of what a reference field can point at; null while
   /// loading.
-  final Map<String, String> Function(String fieldId) referenceChoices;
+  final Map<String, String>? Function(String fieldId) referenceChoices;
 
-  static Map<String, String> _noChoices(String _) => const {};
+  /// Asks for a reference field's choices once it is picked.
+  final ValueChanged<String>? onLoadChoices;
+
+  static Map<String, String>? _noChoices(String _) => const {};
 
   @override
   State<FilterBuilder> createState() => _FilterBuilderState();
@@ -41,30 +46,6 @@ bool _valueless(FilterOp op) => const {
   FilterOp.isTrue,
   FilterOp.isFalse,
 }.contains(op);
-
-/// Builder-facing operator names ("is any of" rather than the chip's "is").
-String operatorLabel(FilterOp op, FieldDefinition field) => switch (op) {
-  FilterOp.isEmpty => 'is empty',
-  FilterOp.isNotEmpty => 'is not empty',
-  FilterOp.equals => field is TextFieldDefinition ? 'is' : '=',
-  FilterOp.notEquals => '≠',
-  FilterOp.contains => 'contains',
-  FilterOp.notContains => 'does not contain',
-  FilterOp.greaterThan => '>',
-  FilterOp.lessThan => '<',
-  FilterOp.before => 'is before',
-  FilterOp.after => 'is after',
-  FilterOp.onDay => 'is on',
-  FilterOp.anyOf =>
-    field is MultiSelectFieldDefinition ||
-            (field is ReferenceFieldDefinition && field.multiple)
-        ? 'has any of'
-        : 'is any of',
-  FilterOp.noneOf =>
-    field is MultiSelectFieldDefinition ? 'has none of' : 'is none of',
-  FilterOp.isTrue => 'is checked',
-  FilterOp.isFalse => 'is not checked',
-};
 
 /// [day] as the bare `YYYY-MM-DD` a date filter stores.
 String dateOperand(DateTime day) =>
@@ -86,6 +67,7 @@ class _FilterBuilderState extends State<FilterBuilder> {
         : widget.collection.fieldById(initial.fieldId);
     if (initial == null || field == null) return;
     _field = field;
+    _loadChoices(field);
     if (operatorsFor(field).contains(initial.op)) {
       _op = _valueless(initial.op) ? null : initial.op;
       _operand = initial.operand;
@@ -96,17 +78,26 @@ class _FilterBuilderState extends State<FilterBuilder> {
   Object? get _valid => switch (_operand) {
     final String s when s.trim().isNotEmpty => s.trim(),
     final num n when n.isFinite => n,
-    final List<Object?> l when l.isNotEmpty => [...l.whereType<String>()],
+    final List<Object?> l when l.whereType<String>().isNotEmpty => [
+      ...l.whereType<String>(),
+    ],
     _ => null,
   };
 
-  void _pickField(FieldDefinition field) => setState(() {
-    if (field.id != _field?.id) {
-      _op = null;
-      _operand = null;
-    }
-    _field = field;
-  });
+  void _loadChoices(FieldDefinition field) {
+    if (field is ReferenceFieldDefinition) widget.onLoadChoices?.call(field.id);
+  }
+
+  void _pickField(FieldDefinition field) {
+    _loadChoices(field);
+    setState(() {
+      if (field.id != _field?.id) {
+        _op = null;
+        _operand = null;
+      }
+      _field = field;
+    });
+  }
 
   void _pickOp(FilterOp op) {
     final field = _field!;
@@ -157,9 +148,7 @@ class _FilterBuilderState extends State<FilterBuilder> {
           field: f,
           op: o,
           operand: _operand,
-          referenceChoices: f is ReferenceFieldDefinition
-              ? widget.referenceChoices(f.id)
-              : const {},
+          referenceChoices: widget.referenceChoices(f.id),
           onChanged: (v) => setState(() => _operand = v),
           onSubmit: _apply,
         ),
@@ -369,12 +358,13 @@ class _ValueStep extends StatelessWidget {
   final FieldDefinition field;
   final FilterOp op;
   final Object? operand;
-  final Map<String, String> referenceChoices;
+  final Map<String, String>? referenceChoices;
   final ValueChanged<Object?> onChanged;
   final VoidCallback onSubmit;
 
   @override
   Widget build(BuildContext context) {
+    final choices = referenceChoices;
     final ids = switch (operand) {
       final List<Object?> l => l.whereType<String>().toList(),
       _ => const <String>[],
@@ -395,13 +385,14 @@ class _ValueStep extends StatelessWidget {
         empty: 'This field has no options yet',
         pills: true,
       ),
+      ReferenceFieldDefinition() when choices == null => const _Loading(),
       ReferenceFieldDefinition() => _CheckList(
         entries: [
-          for (final MapEntry(:key, :value) in referenceChoices.entries)
+          for (final MapEntry(:key, :value) in choices!.entries)
             (id: key, label: value, color: null),
           // Picked earlier but gone from the target: still uncheckable.
           for (final id in ids)
-            if (!referenceChoices.containsKey(id))
+            if (!choices.containsKey(id))
               (id: id, label: 'Missing item', color: null),
         ],
         selected: ids,
@@ -544,10 +535,20 @@ class _CheckList extends StatefulWidget {
 
 class _CheckListState extends State<_CheckList> {
   String _query = '';
+  late List<String> _selected = [...widget.selected];
+
+  @override
+  void didUpdateWidget(_CheckList old) {
+    super.didUpdateWidget(old);
+    if (!listEquals(widget.selected, _selected)) {
+      _selected = [...widget.selected];
+    }
+  }
 
   void _toggle(String id) {
-    final next = [...widget.selected];
+    final next = [..._selected];
     if (!next.remove(id)) next.add(id);
+    _selected = next;
     widget.onChanged(next);
   }
 
@@ -585,10 +586,13 @@ class _CheckListState extends State<_CheckList> {
                   children: [
                     for (final e in shown)
                       _Row(
-                        leading: ExcludeSemantics(
-                          child: Checkbox(
-                            value: widget.selected.contains(e.id),
-                            onChanged: (_) => _toggle(e.id),
+                        // The row is the one tab stop; the box only shows.
+                        leading: ExcludeFocus(
+                          child: ExcludeSemantics(
+                            child: Checkbox(
+                              value: _selected.contains(e.id),
+                              onChanged: (_) => _toggle(e.id),
+                            ),
                           ),
                         ),
                         label: e.label,
@@ -601,7 +605,7 @@ class _CheckListState extends State<_CheckList> {
                                 ),
                               )
                             : null,
-                        checked: widget.selected.contains(e.id),
+                        checked: _selected.contains(e.id),
                         onTap: () => _toggle(e.id),
                       ),
                   ],
@@ -687,6 +691,43 @@ class _Row extends StatelessWidget {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Loading extends StatelessWidget {
+  const _Loading();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Semantics(
+      liveRegion: true,
+      label: 'Loading items',
+      excludeSemantics: true,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          Spacing.md,
+          Spacing.xs,
+          Spacing.md,
+          Spacing.lg,
+        ),
+        child: Row(
+          children: [
+            const SizedBox.square(
+              dimension: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: Spacing.sm),
+            Text(
+              'Loading items…',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
         ),
       ),
     );

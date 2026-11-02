@@ -59,6 +59,7 @@ class _SortMenuState extends State<SortMenu> {
     final rows = <(String?, String, IconData)>[
       if (widget.allowManual) (null, 'Manual', Icons.drag_indicator),
       for (final f in widget.collection.fields)
+        // Files have no meaningful order (only their count would sort).
         if (f is! FileFieldDefinition) (f.id, f.name, fieldTypeIcon(f)),
       (ViewSort.createdAt, 'Created', Icons.schedule),
       (ViewSort.updatedAt, 'Updated', Icons.update),

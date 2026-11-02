@@ -162,7 +162,9 @@ Future<void> _openFilterEditor(
                 ? state.collection
                 : opened.collection,
             initial: initial,
-            referenceChoices: cubit.referenceChoices,
+            referenceChoices: (id) =>
+                state is ViewsReady ? state.referenceChoices[id] : null,
+            onLoadChoices: cubit.loadReferenceChoices,
             onApply: (f) => Navigator.of(sheetContext).pop(f),
           ),
         ),

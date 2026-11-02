@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/design/design.dart';
@@ -491,6 +492,42 @@ void main() {
       await tester.pumpAndSettle();
       expect(ready(cubit).activeView.filters.single.operand, ['k1']);
       expect(find.text('Company is Zeta Corp'), findsOneWidget);
+    });
+
+    testWidgets('names load into an open builder for a hidden reference', (
+      tester,
+    ) async {
+      final repo = workRepository(
+        collection: deals.copyWith(views: const [boardView]),
+      );
+      final cubit = await pumpWorkPage(tester, repository: repo);
+      await tester.pumpAndSettle();
+      expect(repo.watchObjectsCalls['companies'], isNull);
+      await tester.tap(find.bySemanticsLabel('Add filter'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsLabel('Company').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsLabel('is any of'));
+      await tester.pumpAndSettle();
+      expect(find.bySemanticsLabel('Zeta Corp'), findsOneWidget);
+      expect(find.bySemanticsLabel('Alpha Ltd'), findsOneWidget);
+      await tester.tap(find.bySemanticsLabel('Alpha Ltd'));
+      await tester.pump();
+      await tester.tap(find.text('Add filter'));
+      await tester.pumpAndSettle();
+      expect(ready(cubit).activeView.filters.single.operand, ['k2']);
+      expect(find.text('Company is Alpha Ltd'), findsOneWidget);
+    });
+
+    testWidgets('Esc closes the filter popover without saving', (tester) async {
+      final cubit = await pumpWorkPage(tester);
+      await tester.tap(find.bySemanticsLabel('Add filter'));
+      await tester.pumpAndSettle();
+      expect(find.byType(FilterBuilder), findsOneWidget);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      expect(find.byType(FilterBuilder), findsNothing);
+      expect(ready(cubit).activeView.filters, isEmpty);
     });
 
     testWidgets('Sort popover: pick a field, then flip the direction', (

@@ -24,7 +24,8 @@ void main() {
   Future<void> pump(
     WidgetTester tester, {
     ViewFilter? initial,
-    Map<String, String> choices = const {},
+    Map<String, String>? choices = const {},
+    ValueChanged<String>? onLoad,
   }) async {
     applied = [];
     await tester.pumpWidget(
@@ -39,6 +40,7 @@ void main() {
                 collection: _collection,
                 initial: initial,
                 referenceChoices: (_) => choices,
+                onLoadChoices: onLoad,
                 onApply: applied.add,
               ),
             ),
@@ -178,7 +180,93 @@ void main() {
     expect(applied.single.operand, ['k2']);
   });
 
-  testWidgets('reference: no choices yet shows a hint', (tester) async {
+  testWidgets('two toggles within one frame both count', (tester) async {
+    await pump(tester);
+    await pick(tester, 'Stage');
+    await pick(tester, 'is any of');
+    await tester.tap(find.bySemanticsLabel('Lead'));
+    await tester.tap(find.bySemanticsLabel('Won'));
+    await tester.pump();
+    await tester.tap(find.text('Add filter'));
+    expect(applied.single.operand, ['lead', 'won']);
+  });
+
+  testWidgets('checklist rows are one tab stop each', (tester) async {
+    await pump(tester);
+    await pick(tester, 'Stage');
+    await pick(tester, 'is any of');
+    for (final box in tester.widgetList<Checkbox>(find.byType(Checkbox))) {
+      expect(
+        find.ancestor(
+          of: find.byWidget(box),
+          matching: find.byType(ExcludeFocus),
+        ),
+        findsOneWidget,
+      );
+    }
+  });
+
+  testWidgets('reference: choices are requested on pick, loading shown', (
+    tester,
+  ) async {
+    final requested = <String>[];
+    await pump(tester, choices: null, onLoad: requested.add);
+    await pick(tester, 'Company');
+    expect(requested, ['company']);
+    await tester.tap(find.bySemanticsLabel('is any of'));
+    await tester.pump(); // the spinner never settles
+    expect(find.text('Loading items…'), findsOneWidget);
+    expect(find.text('Nothing to link to yet'), findsNothing);
+  });
+
+  testWidgets('reference: editing while loading shows no "Missing item"', (
+    tester,
+  ) async {
+    final requested = <String>[];
+    await pump(
+      tester,
+      choices: null,
+      onLoad: requested.add,
+      initial: const ViewFilter(
+        fieldId: 'company',
+        op: FilterOp.anyOf,
+        operand: ['k1'],
+      ),
+    );
+    expect(requested, ['company']);
+    expect(find.text('Loading items…'), findsOneWidget);
+    expect(find.text('Missing item'), findsNothing);
+    expect(applyButton(tester).onPressed, isNotNull);
+  });
+
+  testWidgets('reference: a vanished pick stays uncheckable', (tester) async {
+    await pump(
+      tester,
+      choices: const {'k1': 'Zeta Corp'},
+      initial: const ViewFilter(
+        fieldId: 'company',
+        op: FilterOp.anyOf,
+        operand: ['k9'],
+      ),
+    );
+    expect(find.text('Missing item'), findsOneWidget);
+  });
+
+  testWidgets('a list operand with no ids does not count as a value', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      initial: const ViewFilter(
+        fieldId: 'stage',
+        op: FilterOp.anyOf,
+        operand: [1, null],
+      ),
+    );
+    expect(applyButton(tester).onPressed, isNull);
+  });
+
+  testWidgets('reference: loaded but empty shows a hint', (tester) async {
     await pump(tester);
     await pick(tester, 'Company');
     await pick(tester, 'is any of');
