@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../modes/table_mode.dart';
 import 'object_card.dart';
 import 'view_labels.dart';
 
@@ -580,22 +581,38 @@ class _ColumnsPreview extends StatelessWidget {
               ],
             ),
             const SizedBox(height: Spacing.xxs),
-            Row(
-              children: [
-                for (final (i, f) in fields.indexed)
-                  cell(
-                    object == null
-                        ? '—'
-                        : formatFieldValue(
-                            f,
-                            object[f.id] ?? f.emptyValue(),
-                            referenceLabels: s.widget.referenceLabels,
-                          ),
-                    i == 0
-                        ? theme.textTheme.titleSmall
-                        : theme.textTheme.bodyMedium,
-                  ),
-              ],
+            // The value row is drawn by the Table's own cells.
+            SizedBox(
+              height: ViewTable.rowHeight,
+              child: Row(
+                children: [
+                  for (final (i, f) in fields.indexed)
+                    if (object == null || i == 0)
+                      cell(
+                        object == null
+                            ? '—'
+                            : formatFieldValue(
+                                f,
+                                object[f.id] ?? f.emptyValue(),
+                                referenceLabels: s.widget.referenceLabels,
+                              ),
+                        i == 0
+                            ? theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              )
+                            : theme.textTheme.bodyMedium,
+                      )
+                    else
+                      SizedBox(
+                        width: 120,
+                        child: ViewTableCell(
+                          field: f,
+                          value: object[f.id] ?? f.emptyValue(),
+                          referenceLabels: s.widget.referenceLabels,
+                        ),
+                      ),
+                ],
+              ),
             ),
           ],
         ),

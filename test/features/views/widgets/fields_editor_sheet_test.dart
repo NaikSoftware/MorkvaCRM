@@ -3,6 +3,7 @@ import 'dart:ui' show CheckedState;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/design/design.dart';
+import 'package:morkva_crm/features/views/views.dart';
 import 'package:morkva_crm/features/views/widgets/fields_editor_sheet.dart';
 
 import 'package:morkva_crm/core/domain/domain.dart';
@@ -168,4 +169,30 @@ void main() {
       expect(find.text('PREVIEW'), findsNothing);
     },
   );
+
+  testWidgets('the Columns preview draws cells like the Table', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: FieldsEditorSheet(
+            title: 'Columns',
+            collection: deals,
+            view: tableView,
+            object: deal('d1', 0, name: 'Acme', stage: 'won', company: 'k2'),
+            referenceLabels: const {'k2': 'Alpha Ltd'},
+            onSave: (_) {},
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    // Stage as the Table's option pill, Company by its label.
+    expect(
+      find.ancestor(of: find.text('Won'), matching: find.byType(OptionPill)),
+      findsOneWidget,
+    );
+    expect(find.text('Alpha Ltd'), findsOneWidget);
+    expect(find.byType(ViewTableCell), findsNWidgets(3));
+  });
 }

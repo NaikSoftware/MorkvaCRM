@@ -538,9 +538,32 @@ class _ObjectRowState extends State<_ObjectRow> {
     );
   }
 
-  Widget _cell(BuildContext context, FieldDefinition field) {
+  Widget _cell(BuildContext context, FieldDefinition field) => ViewTableCell(
+    field: field,
+    value: _value(field),
+    referenceLabels: widget.referenceLabels,
+  );
+}
+
+/// One Table cell's content — select pills, a check, aligned numbers — so
+/// the Columns preview can draw exactly what the Table draws.
+class ViewTableCell extends StatelessWidget {
+  const ViewTableCell({
+    super.key,
+    required this.field,
+    required this.value,
+    this.referenceLabels = const {},
+  });
+
+  final FieldDefinition field;
+  final FieldValue value;
+  final Map<String, String> referenceLabels;
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final value = _value(field);
+    final field = this.field;
+    final value = this.value;
     final Widget? content = switch ((field, value)) {
       _ when value.isEmpty => null,
       (
@@ -582,7 +605,7 @@ class _ObjectRowState extends State<_ObjectRow> {
       ),
       (BooleanFieldDefinition(), _) => null,
       _ => Text(
-        formatFieldValue(field, value, referenceLabels: widget.referenceLabels),
+        formatFieldValue(field, value, referenceLabels: referenceLabels),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         textAlign: isNumericField(field) ? TextAlign.end : TextAlign.start,

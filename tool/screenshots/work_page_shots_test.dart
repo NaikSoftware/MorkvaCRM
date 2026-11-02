@@ -245,6 +245,10 @@ void main() {
                     collection: _shotDeals,
                     view: boardPage ? boardView : _shotDeals.views.first,
                     object: _richDeals.first,
+                    referenceLabels: const {
+                      'k1': 'Zeta Corp',
+                      'k2': 'Alpha Ltd',
+                    },
                     onSave: (_) {},
                   ),
                   child: const Text('open'),
