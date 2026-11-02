@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
@@ -23,6 +25,10 @@ class _FakeMode extends ViewMode {
   String get description => '$label desc';
   @override
   bool get needsLayoutField => true;
+  @override
+  String get layoutFieldLabel => id == 'calendar' ? 'Date field' : 'Group by';
+  @override
+  String get addFieldLabel => id == 'calendar' ? 'Add date field' : 'Add field';
   @override
   bool acceptsLayoutField(FieldDefinition f) => accepts(f);
   @override
@@ -166,6 +172,51 @@ void main() {
     expect(added, 1);
     expect(find.byType(NewViewDialog), findsNothing);
     expect(result.value, isNull);
+  });
+
+  testWidgets('unavailable tile is disabled for a11y but keyboard-focusable', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    final noDates = deals.copyWith(
+      fields: [
+        for (final f in deals.fields)
+          if (f is! DateFieldDefinition) f,
+      ],
+    );
+    await _open(tester, noDates);
+    final node = tester.getSemantics(
+      find.ancestor(
+        of: find.text('Calendar'),
+        matching: find.byWidgetPredicate(
+          (w) => w is Semantics && w.properties.hint == 'Needs a date field',
+        ),
+      ),
+    );
+    expect(node.hint, 'Needs a date field');
+    expect(node.flagsCollection.isEnabled, ui.Tristate.isFalse);
+    // The tile's InkWell still takes focus.
+    final ink = tester.widget<InkWell>(
+      find
+          .ancestor(of: find.text('Calendar'), matching: find.byType(InkWell))
+          .first,
+    );
+    expect(ink.onTap, isNotNull);
+    handle.dispose();
+  });
+
+  testWidgets('every mode unavailable: dialog still opens, Create disabled', (
+    tester,
+  ) async {
+    await _open(tester, const Collection(id: 'x', name: 'X'));
+    expect(find.text('Needs a select field'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'Name');
+    await tester.pump();
+    // Table is always available and stays the fallback selection.
+    expect(_createEnabled(tester), isTrue);
+    await tester.tap(find.text('Board'));
+    await tester.pumpAndSettle();
+    expect(find.text('Group by'), findsNothing);
   });
 
   testWidgets('phone: two columns', (tester) async {

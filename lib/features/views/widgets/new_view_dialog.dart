@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/shell/app_shell.dart';
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
 import '../modes/view_mode.dart';
@@ -112,7 +113,8 @@ class _NewViewDialogState extends State<NewViewDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final wide = MediaQuery.sizeOf(context).width >= 840;
+    final wide =
+        MediaQuery.sizeOf(context).width >= AppShell.expandedBreakpoint;
     final tiles = <Widget>[
       for (final m in widget.modes.modes)
         _ModeTile(
@@ -122,6 +124,7 @@ class _NewViewDialogState extends State<NewViewDialog> {
           reason: m.unavailableReason(widget.collection),
           selected: identical(m, _mode),
           onSelect: () => _select(m),
+          addFieldLabel: m.addFieldLabel,
           onAddField: _addField,
         ),
       const _ModeTile(
@@ -133,7 +136,9 @@ class _NewViewDialogState extends State<NewViewDialog> {
     ];
     final columns = wide ? 5 : 2;
     final candidates = _candidates(_mode);
-    final isDate = candidates.any((f) => f is DateFieldDefinition);
+    final duration = MediaQuery.disableAnimationsOf(context)
+        ? MotionDurations.none
+        : MotionDurations.slow;
 
     return AlertDialog(
       title: const Text('New view'),
@@ -174,23 +179,26 @@ class _NewViewDialogState extends State<NewViewDialog> {
                   ),
                 ],
                 AnimatedSize(
-                  duration: MediaQuery.disableAnimationsOf(context)
-                      ? MotionDurations.none
-                      : MotionDurations.slow,
+                  duration: duration,
                   curve: MotionCurves.emphasized,
                   alignment: Alignment.topCenter,
-                  child: _mode.needsLayoutField && candidates.isNotEmpty
-                      ? Padding(
-                          padding: const EdgeInsets.only(top: Spacing.md),
-                          child: _LayoutFieldPicker(
-                            label: isDate ? 'Date field' : 'Group by',
-                            fields: candidates,
-                            selectedId: _layoutFieldId,
-                            onSelect: (id) =>
-                                setState(() => _layoutFieldId = id),
-                          ),
-                        )
-                      : const SizedBox(width: double.infinity),
+                  // Size + fade reveal (UX §9).
+                  child: AnimatedSwitcher(
+                    duration: duration,
+                    child: _mode.needsLayoutField && candidates.isNotEmpty
+                        ? Padding(
+                            key: ValueKey(_mode.id),
+                            padding: const EdgeInsets.only(top: Spacing.md),
+                            child: _LayoutFieldPicker(
+                              label: _mode.layoutFieldLabel,
+                              fields: candidates,
+                              selectedId: _layoutFieldId,
+                              onSelect: (id) =>
+                                  setState(() => _layoutFieldId = id),
+                            ),
+                          )
+                        : const SizedBox(width: double.infinity),
+                  ),
                 ),
               ],
             ),
@@ -256,6 +264,7 @@ class _ModeTile extends StatelessWidget {
     this.reason,
     this.selected = false,
     this.onSelect,
+    this.addFieldLabel = 'Add field',
     this.onAddField,
   });
 
@@ -265,6 +274,7 @@ class _ModeTile extends StatelessWidget {
   final String? reason;
   final bool selected;
   final VoidCallback? onSelect;
+  final String addFieldLabel;
 
   /// Shown as a link under the reason; null for tiles with no fix (Gallery).
   final VoidCallback? onAddField;
@@ -276,9 +286,6 @@ class _ModeTile extends StatelessWidget {
     final linkColor =
         theme.extension<MorkvaSemanticColors>()?.primaryText ?? scheme.primary;
     final unavailable = reason != null;
-    final linkLabel = (reason ?? '').toLowerCase().contains('date')
-        ? 'Add date field'
-        : 'Add field';
 
     final tile = Material(
       color: selected ? scheme.primaryContainer : scheme.surfaceContainerLowest,
@@ -327,7 +334,7 @@ class _ModeTile extends StatelessWidget {
                       child: Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          linkLabel,
+                          addFieldLabel,
                           style: theme.textTheme.labelMedium?.copyWith(
                             color: linkColor,
                             decoration: TextDecoration.underline,
@@ -347,6 +354,8 @@ class _ModeTile extends StatelessWidget {
     return Semantics(
       container: true,
       selected: selected,
+      enabled: !unavailable,
+      hint: reason,
       child: reason == null ? tile : Tooltip(message: reason, child: tile),
     );
   }
