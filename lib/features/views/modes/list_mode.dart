@@ -114,13 +114,60 @@ class _AddItem extends _Item {
 }
 
 /// The List mode body.
-class ViewList extends StatelessWidget {
+class ViewList extends StatefulWidget {
   const ViewList({super.key, required this.data});
 
   final ViewModeData data;
 
   static const double headerHeight = 36;
   static const double addHeight = 44;
+
+  @override
+  State<ViewList> createState() => _ViewListState();
+}
+
+class _ViewListState extends State<ViewList> {
+  final _scroll = ScrollController();
+  final _stackKey = GlobalKey();
+  final _headerKeys = <String?, GlobalKey>{};
+
+  ViewModeData get data => widget.data;
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  GlobalKey _keyFor(String? groupKey) =>
+      _headerKeys.putIfAbsent(groupKey, GlobalKey.new);
+
+  /// The section whose header has scrolled past the top, and how far the
+  /// next header pushes it up (classic sticky headers). Null while the first
+  /// header is still in view.
+  ({ViewGroup group, double dy})? _pinned() {
+    final groups = data.state.groups;
+    final stack = _stackKey.currentContext?.findRenderObject();
+    if (groups == null || stack is! RenderBox || !stack.attached) return null;
+    final tops = <double?>[
+      for (final g in groups)
+        switch (_headerKeys[g.key]?.currentContext?.findRenderObject()) {
+          final RenderBox b when b.attached && b.hasSize =>
+            b.localToGlobal(Offset.zero, ancestor: stack).dy,
+          _ => null,
+        },
+    ];
+    var current = -1;
+    for (var i = 0; i < groups.length; i++) {
+      if (tops[i] != null && tops[i]! < -0.5) current = i;
+    }
+    if (current < 0) return null;
+    final next = current + 1 < groups.length ? tops[current + 1] : null;
+    final dy = next == null
+        ? 0.0
+        : (next - ViewList.headerHeight).clamp(-ViewList.headerHeight, 0.0);
+    return (group: groups[current], dy: dy);
+  }
 
   List<_Item> _items() {
     final groups = data.state.groups;
@@ -145,7 +192,7 @@ class ViewList extends StatelessWidget {
     final next = List.of(items)
       ..removeAt(from)
       ..insert(to, moved);
-    final beforeId = switch (next.elementAtOrNull(to + 1)) {
+    String? beforeId = switch (next.elementAtOrNull(to + 1)) {
       _RowItem(:final object) => object.id,
       _ => null,
     };
@@ -159,10 +206,24 @@ class ViewList extends StatelessWidget {
       return;
     }
     // The section is the nearest header above the drop; above the first one
-    // it is the first section.
-    final header =
-        next.take(to).whereType<_Header>().lastOrNull ??
-        next.whereType<_Header>().first;
+    // it is the first section, and the row lands before that section's
+    // first row.
+    final above = next.take(to).whereType<_Header>().lastOrNull;
+    final header = above ?? next.whereType<_Header>().first;
+    if (above == null) {
+      beforeId = next
+          .skipWhile((e) => e is! _Header)
+          .whereType<_RowItem>()
+          .where((r) => r != moved)
+          .firstOrNull
+          ?.object
+          .id;
+      // Rows of later sections must not count.
+      final firstGroupRows = groups.first.objects.map((o) => o.id);
+      if (beforeId != null && !firstGroupRows.contains(beforeId)) {
+        beforeId = null;
+      }
+    }
     final before = data.state.groups!
         .where((g) => g.objects.any((o) => o.id == moved.object.id))
         .firstOrNull;
@@ -192,57 +253,89 @@ class ViewList extends StatelessWidget {
 
     return Align(
       alignment: Alignment.topCenter,
-      child: SingleChildScrollView(
-        child: DecoratedBox(
-          position: DecorationPosition.foreground,
-          decoration: BoxDecoration(
-            borderRadius: Radii.lgAll,
-            border: Border.all(color: scheme.outlineVariant),
-          ),
-          child: ClipRRect(
-            borderRadius: Radii.lgAll,
-            child: ColoredBox(
-              color: scheme.surfaceContainerLowest,
-              child: ReorderableListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                buildDefaultDragHandles: false,
-                itemCount: items.length,
-                onReorderItem: (from, to) => _reorder(context, items, from, to),
-                proxyDecorator: (child, _, _) => Material(
+      child: Stack(
+        key: _stackKey,
+        children: [
+          SingleChildScrollView(
+            controller: _scroll,
+            child: DecoratedBox(
+              position: DecorationPosition.foreground,
+              decoration: BoxDecoration(
+                borderRadius: Radii.lgAll,
+                border: Border.all(color: scheme.outlineVariant),
+              ),
+              child: ClipRRect(
+                borderRadius: Radii.lgAll,
+                child: ColoredBox(
                   color: scheme.surfaceContainerLowest,
-                  elevation: 6,
-                  borderRadius: Radii.mdAll,
-                  child: child,
+                  child: ReorderableListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    buildDefaultDragHandles: false,
+                    itemCount: items.length,
+                    onReorderItem: (from, to) =>
+                        _reorder(context, items, from, to),
+                    proxyDecorator: (child, _, _) => Material(
+                      color: scheme.surfaceContainerLowest,
+                      elevation: 6,
+                      borderRadius: Radii.mdAll,
+                      child: child,
+                    ),
+                    itemBuilder: (context, i) {
+                      final item = items[i];
+                      return switch (item) {
+                        _Header(:final group) => _SectionHeader(
+                          key: _keyFor(group.key),
+                          group: group,
+                        ),
+                        _AddItem(:final groupKey) => _AddRow(
+                          key: ValueKey(item.key),
+                          label: 'New ${data.itemLabel}',
+                          onTap: () => data.quickAdd(groupKey: groupKey),
+                        ),
+                        _RowItem(:final object) => _ObjectRow(
+                          key: ValueKey(item.key),
+                          index: i,
+                          object: object,
+                          state: state,
+                          draggable: manual,
+                          showHandle: manual && wide,
+                          divider: items.elementAtOrNull(i + 1) is _RowItem,
+                          onOpen: () => data.openObject(object),
+                        ),
+                      };
+                    },
+                  ),
                 ),
-                itemBuilder: (context, i) {
-                  final item = items[i];
-                  return switch (item) {
-                    _Header(:final group) => _SectionHeader(
-                      key: ValueKey(item.key),
-                      group: group,
+              ),
+            ),
+          ),
+          // The sticky copy of the section header under the top edge.
+          Positioned.fill(
+            child: IgnorePointer(
+              child: ListenableBuilder(
+                listenable: _scroll,
+                builder: (context, _) {
+                  final pinned = _pinned();
+                  if (pinned == null) return const SizedBox.shrink();
+                  return Align(
+                    alignment: Alignment.topCenter,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 1),
+                      child: Transform.translate(
+                        key: const ValueKey('pinned-header'),
+                        offset: Offset(0, pinned.dy),
+                        child: ExcludeSemantics(
+                          child: _SectionHeader(group: pinned.group),
+                        ),
+                      ),
                     ),
-                    _AddItem(:final groupKey) => _AddRow(
-                      key: ValueKey(item.key),
-                      label: 'New ${data.itemLabel}',
-                      onTap: () => data.quickAdd(groupKey: groupKey),
-                    ),
-                    _RowItem(:final object) => _ObjectRow(
-                      key: ValueKey(item.key),
-                      index: i,
-                      object: object,
-                      state: state,
-                      draggable: manual,
-                      showHandle: manual && wide,
-                      divider: items.elementAtOrNull(i + 1) is _RowItem,
-                      onOpen: () => data.openObject(object),
-                    ),
-                  };
+                  );
                 },
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -385,7 +478,9 @@ class _ObjectRowState extends State<_ObjectRow> {
                   Icons.drag_indicator,
                   size: 20,
                   semanticLabel: 'Drag to reorder',
-                  color: scheme.outline.withValues(alpha: _hovered ? 1 : 0.4),
+                  color: scheme.onSurfaceVariant.withValues(
+                    alpha: _hovered ? 1 : 0.7,
+                  ),
                 ),
               ),
             ),
