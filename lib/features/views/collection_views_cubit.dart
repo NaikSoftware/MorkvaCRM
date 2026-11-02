@@ -94,6 +94,11 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
     }
     _notFound = false;
     _streamCollection = _withViews(collection.first);
+    if (_choiceFields.isNotEmpty) {
+      _choiceFields.removeWhere(
+        (id) => collection.first.fieldById(id) is! ReferenceFieldDefinition,
+      );
+    }
     _objectsSub ??= _repository
         .watchObjects(collectionId, schema: collection.first)
         .listen(_onObjects, onError: _onStreamError);
