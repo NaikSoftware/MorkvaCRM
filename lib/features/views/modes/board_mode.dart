@@ -321,6 +321,7 @@ class _BoardViewState extends State<BoardView> {
     double width = BoardColumn.defaultWidth,
     VoidCallback? onJump,
     bool fill = false,
+    Widget? footer,
   }) {
     final data = widget.data;
     final state = data.state;
@@ -347,6 +348,7 @@ class _BoardViewState extends State<BoardView> {
       onDragStarted: (drag) => _drag = drag,
       onJump: onJump,
       fill: fill,
+      footer: footer,
     );
   }
 
@@ -394,15 +396,14 @@ class _BoardViewState extends State<BoardView> {
                 width: columnWidth,
                 fill: true,
                 onJump: () => _openJumpList(groups),
+                // The dots sit under the shown column, not at the page foot.
+                footer: ValueListenableBuilder(
+                  valueListenable: _page,
+                  builder: (_, page, _) => page.clamp(0, groups.length - 1) == i
+                      ? BoardPageIndicator(count: groups.length, current: i)
+                      : const SizedBox(height: BoardPageIndicator.height),
+                ),
               ),
-            ),
-          ),
-          const SizedBox(height: Spacing.xs),
-          ValueListenableBuilder(
-            valueListenable: _page,
-            builder: (_, page, _) => BoardPageIndicator(
-              count: groups.length,
-              current: page.clamp(0, groups.length - 1),
             ),
           ),
         ],
@@ -450,6 +451,7 @@ class BoardPageIndicator extends StatelessWidget {
   });
 
   static const int maxDots = 7;
+  static const double height = 20;
 
   final int count;
   final int current;
@@ -459,10 +461,11 @@ class BoardPageIndicator extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     return Semantics(
+      container: true,
       label: 'Column ${current + 1} of $count',
       excludeSemantics: true,
       child: SizedBox(
-        height: 20,
+        height: BoardPageIndicator.height,
         child: Center(
           child: count <= maxDots
               ? Row(

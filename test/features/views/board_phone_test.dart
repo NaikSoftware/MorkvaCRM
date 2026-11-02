@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
+import 'package:morkva_crm/design/design.dart';
 import 'package:morkva_crm/features/views/views.dart';
 import 'package:morkva_crm/features/views/widgets/board/board_card_draggable.dart';
 import 'package:morkva_crm/features/views/widgets/board/board_column.dart';
@@ -156,6 +157,31 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.getSize(dots.first).width, 6 + 6);
       expect(tester.getSize(dots.at(1)).width, 16 + 6);
+    });
+
+    testWidgets('dots sit right under the shown column', (tester) async {
+      await _pumpBoard(tester);
+      final dots = tester.getRect(find.byType(BoardPageIndicator));
+      final panel = tester.getRect(_panel('Lead'));
+      expect(dots.top - panel.bottom, inInclusiveRange(0, Spacing.sm));
+      expect(dots.center.dx, closeTo(panel.center.dx, 12));
+    });
+
+    testWidgets('the column button reads "Lead 5 ▾"', (tester) async {
+      await _pumpBoard(tester);
+      final button = find.descendant(
+        of: _column('Lead'),
+        matching: find.byKey(const ValueKey('column-jump')),
+      );
+      final count = find.descendant(of: button, matching: find.text('2'));
+      final caret = find.descendant(
+        of: button,
+        matching: find.byIcon(Icons.arrow_drop_down),
+      );
+      expect(
+        tester.getCenter(caret).dx,
+        greaterThan(tester.getCenter(count).dx),
+      );
     });
 
     testWidgets('"2 / 9" past 7 columns', (tester) async {

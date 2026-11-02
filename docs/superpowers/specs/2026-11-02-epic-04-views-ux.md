@@ -94,8 +94,8 @@ Tiebreak for the rule in the design doc: stored on the collection and seen by ev
 - Every drop → snackbar with Undo (5 s). Drop into a value hidden by a filter: "Moved to Ready —
   hidden by filter" + Undo.
 - Phone: `PageView(padEnds: false, viewportFraction: (w-72)/w)` snapping one column; the next
-  column peeks at full opacity; the column header is a 44 px "In work ▾" button opening a column
-  jump list; dots only when ≤7 columns, else "2 / 9"; 88 px bottom padding so the FAB never covers
+  column peeks at full opacity; the column header is a 44 px "In work 5 ▾" button opening a column
+  jump list; dots (right under the shown column) only when ≤7 columns, else "2 / 9"; 88 px bottom padding so the FAB never covers
   a card. Holding a dragged card at the screen edge 500 ms moves one page.
 
 ## 6. Setup card / Columns sheet
