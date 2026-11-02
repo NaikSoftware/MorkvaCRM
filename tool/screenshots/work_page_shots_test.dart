@@ -9,11 +9,14 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/design/design.dart';
+
+import 'package:morkva_crm/features/views/widgets/fields_editor_sheet.dart';
 
 import '../../test/features/views/views_fixtures.dart';
 import '../../test/features/views/work_page_harness.dart';
@@ -207,5 +210,42 @@ void main() {
     await tester.tap(find.text('Stark Industries expansion'));
     await tester.pumpAndSettle();
     await _shot(tester, 'detail-1280');
+
+    for (final (name, size, boardPage) in [
+      ('fields-columns-1280', const Size(1280, 800), false),
+      ('fields-columns-390', const Size(390, 844), false),
+      ('fields-card-1280', const Size(1280, 800), true),
+      ('fields-card-390', const Size(390, 844), true),
+    ]) {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      await tester.pumpWidget(
+        MaterialApp(
+          key: UniqueKey(),
+          theme: AppTheme.light,
+          debugShowCheckedModeBanner: false,
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: TextButton(
+                  onPressed: () => FieldsEditorSheet.show(
+                    context,
+                    title: boardPage ? 'Setup card' : 'Columns',
+                    collection: _shotDeals,
+                    view: boardPage ? boardView : _shotDeals.views.first,
+                    object: _richDeals.first,
+                    onSave: (_) {},
+                  ),
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      await _shot(tester, name);
+    }
   });
 }
