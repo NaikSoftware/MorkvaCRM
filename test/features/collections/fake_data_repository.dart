@@ -159,16 +159,34 @@ class FakeDataRepository implements DataRepository {
       schema == null
           ? stream
           : stream.map(
-              (objects) => [
-                for (final o in objects)
-                  o.copyWith(
-                    values: {
-                      for (final f in schema.fields)
-                        f.id: o.values[f.id] ?? f.emptyValue(),
-                    },
-                  ),
-              ],
+              (objects) => [for (final o in objects) _decoded(o, schema)],
             ),
+    );
+  }
+
+  /// [o] as decoded against [schema]: values of fields the schema lacks are
+  /// dropped, missing ones come back empty.
+  static MorkvaObject _decoded(MorkvaObject o, Collection schema) => o.copyWith(
+    values: {
+      for (final f in schema.fields) f.id: o.values[f.id] ?? f.emptyValue(),
+    },
+  );
+
+  /// Count of [watchObject] calls per object id, for assertions.
+  final Map<String, int> watchObjectCalls = {};
+
+  @override
+  Stream<MorkvaObject?> watchObject(
+    String collectionId,
+    String objectId, {
+    required Collection schema,
+  }) {
+    watchObjectCalls.update(objectId, (n) => n + 1, ifAbsent: () => 1);
+    return _counted(
+      _subjectFor(collectionId).stream
+          .map((objects) => objects.where((o) => o.id == objectId).firstOrNull)
+          .map((o) => o == null ? null : _decoded(o, schema))
+          .distinct(),
     );
   }
 

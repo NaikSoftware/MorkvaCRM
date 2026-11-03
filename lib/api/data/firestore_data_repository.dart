@@ -274,6 +274,34 @@ class FirestoreDataRepository implements DataRepository {
   }
 
   @override
+  Stream<MorkvaObject?> watchObject(
+    String collectionId,
+    String objectId, {
+    required Collection schema,
+  }) {
+    final wid = _wid;
+    return _watch<MorkvaObject?>(
+      (subject) => _refs
+          .object(wid, objectId)
+          .snapshots()
+          .listen(
+            (doc) {
+              if (subject.isClosed) return;
+              final data = doc.data();
+              subject.add(
+                data == null || data['collectionId'] != collectionId
+                    ? null
+                    : _objectFromData(objectId, data, schema),
+              );
+            },
+            onError: (Object error, StackTrace stackTrace) {
+              if (!subject.isClosed) subject.addError(error, stackTrace);
+            },
+          ),
+    );
+  }
+
+  @override
   Future<List<MorkvaObject>> getObjects(
     String collectionId, {
     required Collection schema,

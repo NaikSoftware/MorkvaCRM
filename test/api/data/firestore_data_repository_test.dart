@@ -236,6 +236,33 @@ void main() {
       }
     });
 
+    test(
+      'watchObject follows one object: saves, then null once deleted',
+      () async {
+        final schema = buildCollection();
+        final object = buildObject(schema);
+        await repository.saveObject(object, schema: schema);
+        final emissions = <MorkvaObject?>[];
+        final sub = repository
+            .watchObject(schema.id, object.id, schema: schema)
+            .listen(emissions.add);
+        addTearDown(sub.cancel);
+        await pumpEventQueue();
+        expect(emissions.last, object);
+
+        final renamed = object.copyWith(
+          values: {...object.values, 'name': const TextFieldValue('Grace')},
+        );
+        await repository.saveObject(renamed, schema: schema);
+        await pumpEventQueue();
+        expect(emissions.last?['name'], const TextFieldValue('Grace'));
+
+        await repository.deleteObject(schema.id, object.id);
+        await pumpEventQueue();
+        expect(emissions.last, isNull);
+      },
+    );
+
     test('deleteObject removes the object', () async {
       final schema = buildCollection();
       final object = buildObject(schema);

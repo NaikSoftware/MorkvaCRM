@@ -29,7 +29,7 @@ class _FailingCollectionsRepo extends FakeDataRepository {
   Future<List<Collection>> getCollections() async => throw Exception('offline');
 }
 
-/// [getCollections] waits for [collections]; cancelling the deals watch
+/// [getCollections] waits for [collections]; cancelling the deals object watch
 /// waits for [cancelled].
 class _SlowCollectionsRepo extends FakeDataRepository {
   _SlowCollectionsRepo(super.initial);
@@ -38,14 +38,15 @@ class _SlowCollectionsRepo extends FakeDataRepository {
   final cancelled = Completer<void>();
 
   @override
-  Stream<List<MorkvaObject>> watchObjects(
-    String collectionId, {
-    Collection? schema,
+  Stream<MorkvaObject?> watchObject(
+    String collectionId,
+    String objectId, {
+    required Collection schema,
   }) => collectionId == 'deals'
-      ? (StreamController<List<MorkvaObject>>(
+      ? (StreamController<MorkvaObject?>(
           onCancel: () => cancelled.future,
         )).stream
-      : super.watchObjects(collectionId, schema: schema);
+      : super.watchObject(collectionId, objectId, schema: schema);
 
   @override
   Future<List<Collection>> getCollections() async {
@@ -347,6 +348,16 @@ void main() {
       expect(c.state.references.labelsFor(companyField), isEmpty);
     });
   });
+
+  test(
+    'follows its object with a single-object watch, not the collection',
+    () async {
+      final c = await edit();
+      expect(repo.watchObjectCalls, {'d1': 1});
+      expect(repo.watchObjectsCalls['deals'], isNull);
+      expect(c.state.stored?.id, 'd1');
+    },
+  );
 
   group('remote delete', () {
     test('an object not yet in any snapshot is not "deleted"', () async {

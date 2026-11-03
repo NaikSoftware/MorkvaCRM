@@ -69,7 +69,7 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
   /// Whether file fields can upload (a store was given).
   bool get canUpload => _attachments != null;
 
-  final List<StreamSubscription<List<MorkvaObject>>> _subs = [];
+  final List<StreamSubscription<Object?>> _subs = [];
   final Map<String, List<MorkvaObject>> _targetObjects = {};
   List<Collection> _targets = const [];
 
@@ -97,11 +97,22 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
 
   /// Starts watching the object and the reference targets.
   Future<void> initialize() async {
-    if (!state.isCreate || _referenceFields.any(_isSelfReference)) {
+    if (state.stored case final stored?) {
+      _subs.add(
+        _repository
+            .watchObject(_collection.id, stored.id, schema: _collection)
+            .listen(_onStored, onError: (Object _) {}),
+      );
+    }
+    // Its own collection only as a reference target (for the choices).
+    if (_referenceFields.any(_isSelfReference)) {
       _subs.add(
         _repository
             .watchObjects(_collection.id, schema: _collection)
-            .listen(_onObjects, onError: (Object _) {}),
+            .listen(
+              (objects) => _onTargetObjects(_collection.id, objects),
+              onError: (Object _) {},
+            ),
       );
     }
     final targetIds = {for (final f in _referenceFields) f.targetCollectionId};
@@ -158,12 +169,8 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
     );
   }
 
-  void _onObjects(List<MorkvaObject> objects) {
+  void _onStored(MorkvaObject? next) {
     if (isClosed) return;
-    if (_referenceFields.any(_isSelfReference)) {
-      _targetObjects[_collection.id] = objects;
-      _emitReferences();
-    }
     final previous = state.stored;
     if (previous == null) return;
     final status = state.status;
@@ -171,7 +178,6 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
         status == ObjectEditorStatus.deleted) {
       return;
     }
-    final next = objects.where((o) => o.id == previous.id).firstOrNull;
     if (next == null) {
       if (_seenStored) emit(state.copyWith(remoteDeleted: true));
       return;
