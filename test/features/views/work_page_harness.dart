@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:morkva_crm/api/api.dart';
 import 'package:morkva_crm/app/navigation/navigation_cubit.dart';
+import 'package:morkva_crm/app/shell/app_shell_scaffold.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/design/design.dart';
 import 'package:morkva_crm/features/views/views.dart';
@@ -57,9 +58,13 @@ Future<CollectionViewsCubit> pumpWorkPage(
         routes: [
           GoRoute(
             path: 'collections/:id',
-            builder: (_, _) => BlocProvider.value(
-              value: cubit,
-              child: CollectionViewsPage(modes: defaultViewModeRegistry()),
+            // Inside the persistent shell, as in the app.
+            builder: (_, _) => AppShellScaffold(
+              inCollection: true,
+              child: BlocProvider.value(
+                value: cubit,
+                child: CollectionViewsPage(modes: defaultViewModeRegistry()),
+              ),
             ),
             routes: [
               GoRoute(

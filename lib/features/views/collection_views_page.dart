@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../app/navigation/navigation_cubit.dart';
 import '../../app/shell/app_shell.dart';
-import '../../app/shell/brand_wordmark.dart';
 import '../../app/shell/sync_status_indicator.dart';
 import '../../core/domain/domain.dart';
 import '../../design/design.dart';
@@ -28,7 +26,8 @@ import 'widgets/views_skeleton.dart';
 /// A collection's Work surface (`/collections/:id`): header, view tabs,
 /// toolbar and the active view drawn by its mode.
 ///
-/// Wide (≥ [AppShell.expandedBreakpoint]): inside the shell with the rail.
+/// Wide (≥ [AppShell.expandedBreakpoint]): in the persistent shell's main
+/// panel, beside the rail.
 /// Phone: a pushed page with back, name, view settings (`tune`) and an
 /// overflow holding "Customize collection"; "+ New" is the FAB.
 class CollectionViewsPage extends StatelessWidget {
@@ -419,6 +418,8 @@ Future<void> _deleteView(BuildContext context, ViewDefinition view) async {
 // Frames
 // -----------------------------------------------------------------------------
 
+/// Wide: the page's own header and banner over the body, in the persistent
+/// shell's main panel (the shell draws the rail).
 class _WideFrame extends StatelessWidget {
   const _WideFrame({required this.state, required this.body});
 
@@ -427,22 +428,18 @@ class _WideFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final collection = state?.collection;
-    return AppShell(
-      selectedIndex: kAppSections.indexOf(AppSection.home),
-      destinations: kAppSections,
-      onDestinationSelected: (i) {
-        context.read<NavigationCubit>().select(kAppSections[i]);
-        context.go('/');
-      },
-      railHeaderBuilder: (context, extended) =>
-          BrandWordmark(extended: extended),
-      title: collection?.name ?? '',
-      header: collection == null
-          ? const SizedBox.shrink()
-          : _WideHeader(collection: collection, state: state!),
-      banner: const ConflictWarningBanner(),
-      child: body,
+    final ready = state;
+    // Ink for the page's own controls, over the shell's doodles.
+    return Material(
+      type: MaterialType.transparency,
+      child: Column(
+        children: [
+          if (ready != null)
+            _WideHeader(collection: ready.collection, state: ready),
+          const ConflictWarningBanner(),
+          Expanded(child: body),
+        ],
+      ),
     );
   }
 }
