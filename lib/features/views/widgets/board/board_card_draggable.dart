@@ -31,6 +31,10 @@ class BoardDrag {
 
   _HeldDrag? _avatar;
 
+  /// Drops the card as not accepted (it returns to its slot); does nothing
+  /// once it is dropped.
+  void cancel() => _avatar?.cancel();
+
   /// Re-runs hit testing at the held position once the current frame is laid
   /// out, so drop targets that moved under a still pointer (auto-scroll,
   /// paging) take over; then runs [then]. Does nothing once the card is
@@ -68,20 +72,24 @@ class _HeldDrag implements Drag {
     if (!ended) _inner.update(DragUpdateDetails(globalPosition: _position));
   }
 
+  // After an Esc cancel the pointer is still down: ignore the rest.
   @override
   void update(DragUpdateDetails details) {
+    if (ended) return;
     _position = details.globalPosition;
     _inner.update(details);
   }
 
   @override
   void end(DragEndDetails details) {
+    if (ended) return;
     ended = true;
     _inner.end(details);
   }
 
   @override
   void cancel() {
+    if (ended) return;
     ended = true;
     _inner.cancel();
   }

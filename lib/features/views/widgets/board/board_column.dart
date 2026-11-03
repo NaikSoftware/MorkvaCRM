@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/domain/domain.dart';
 import '../../../../design/design.dart';
 import '../object_card.dart';
+import '../view_labels.dart';
 import 'board_card_draggable.dart';
 
 /// One board column: header (colour dot, name, count, "+", collapse) over its
@@ -42,6 +43,28 @@ class BoardColumn extends StatefulWidget {
 
   /// Distance from a list edge where a held card scrolls it.
   static const double autoScrollEdge = 48;
+
+  /// How much an option's colour tints its column (light / dark theme):
+  /// barely there, so cards and text keep full contrast.
+  static const double tintAlphaLight = 0.06;
+  static const double tintAlphaDark = 0.08;
+
+  /// [surface] tinted with the option colour of [group] (unchanged for the
+  /// `No <field>` group, references and options without a colour).
+  static Color tinted(
+    BuildContext context,
+    FieldDefinition field,
+    ViewGroup group,
+    Color surface,
+  ) {
+    final color = group.key == null ? null : optionColor(field, group.key);
+    if (color == null) return surface;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Color.alphaBlend(
+      color.withValues(alpha: dark ? tintAlphaDark : tintAlphaLight),
+      surface,
+    );
+  }
 
   final ViewGroup group;
   final Collection collection;
@@ -220,6 +243,7 @@ class _BoardColumnState extends State<BoardColumn> {
             width: BoardColumn.collapsedWidth,
             child: _CollapsedStrip(
               group: widget.group,
+              field: widget.field,
               itemLabel: widget.itemLabel,
               itemsLabel: widget.itemsLabel,
               hovered: hovered,
@@ -236,9 +260,14 @@ class _BoardColumnState extends State<BoardColumn> {
             BoardColumn.padding - BoardColumn.cardGap,
           ),
           decoration: BoxDecoration(
-            color: hovered
-                ? scheme.surfaceContainerHigh
-                : scheme.surfaceContainerLow,
+            color: BoardColumn.tinted(
+              context,
+              widget.field,
+              widget.group,
+              hovered
+                  ? scheme.surfaceContainerHigh
+                  : scheme.surfaceContainerLow,
+            ),
             borderRadius: Radii.lgAll,
           ),
           // Always set, so hovering doesn't change the tree (and reset the
@@ -544,6 +573,7 @@ class _AnimatedWidth extends StatelessWidget {
 class _CollapsedStrip extends StatelessWidget {
   const _CollapsedStrip({
     required this.group,
+    required this.field,
     required this.itemLabel,
     required this.itemsLabel,
     required this.hovered,
@@ -551,6 +581,7 @@ class _CollapsedStrip extends StatelessWidget {
   });
 
   final ViewGroup group;
+  final FieldDefinition field;
   final String itemLabel;
   final String itemsLabel;
   final bool hovered;
@@ -573,9 +604,12 @@ class _CollapsedStrip extends StatelessWidget {
       onTap: onExpand,
       excludeSemantics: true,
       child: Material(
-        color: hovered
-            ? scheme.surfaceContainerHigh
-            : scheme.surfaceContainerLow,
+        color: BoardColumn.tinted(
+          context,
+          field,
+          group,
+          hovered ? scheme.surfaceContainerHigh : scheme.surfaceContainerLow,
+        ),
         shape: RoundedRectangleBorder(
           borderRadius: Radii.lgAll,
           side: BorderSide(

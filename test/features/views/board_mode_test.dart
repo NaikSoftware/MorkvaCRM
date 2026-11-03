@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/design/design.dart';
@@ -356,7 +357,14 @@ void main() {
             .first,
       );
       final scheme = Theme.of(tester.element(strip('Won'))).colorScheme;
-      expect(material.color, scheme.surfaceContainerHigh);
+      // The hover step composes under the option tint.
+      expect(
+        material.color,
+        Color.alphaBlend(
+          const Color(0xFF2E8B57).withValues(alpha: BoardColumn.tintAlphaLight),
+          scheme.surfaceContainerHigh,
+        ),
+      );
       await gesture.up();
       await tester.pumpAndSettle();
 
@@ -372,6 +380,79 @@ void main() {
     });
   });
 
+  group('tint', () {
+    Color columnColor(WidgetTester tester, String label) =>
+        (tester
+                    .widget<Container>(
+                      find
+                          .descendant(
+                            of: _column(label),
+                            matching: find.byType(Container),
+                          )
+                          .first,
+                    )
+                    .decoration!
+                as BoxDecoration)
+            .color!;
+
+    testWidgets('option columns are tinted; "No" column is not', (
+      tester,
+    ) async {
+      await _pumpBoard(tester);
+      final scheme = Theme.of(tester.element(_column('Won'))).colorScheme;
+      expect(
+        columnColor(tester, 'Won'),
+        Color.alphaBlend(
+          const Color(0xFF2E8B57).withValues(alpha: BoardColumn.tintAlphaLight),
+          scheme.surfaceContainerLow,
+        ),
+      );
+      expect(columnColor(tester, 'No Stage'), scheme.surfaceContainerLow);
+    });
+
+    testWidgets('options without a colour and dark theme', (tester) async {
+      late BuildContext light;
+      late BuildContext dark;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: Builder(
+            builder: (c) {
+              light = c;
+              return Theme(
+                data: AppTheme.dark,
+                child: Builder(
+                  builder: (c) {
+                    dark = c;
+                    return const SizedBox();
+                  },
+                ),
+              );
+            },
+          ),
+        ),
+      );
+      const plain = ViewGroup(key: 'plain', label: 'Plain', objects: []);
+      const field = SingleSelectFieldDefinition(
+        id: 'f',
+        name: 'F',
+        options: [SelectOption(id: 'plain', label: 'Plain')],
+      );
+      const surface = Color(0xFF101010);
+      expect(BoardColumn.tinted(light, field, plain, surface), surface);
+      const won = ViewGroup(key: 'won', label: 'Won', objects: []);
+      expect(
+        BoardColumn.tinted(dark, stageField, won, surface),
+        Color.alphaBlend(
+          const Color(0xFF2E8B57).withValues(alpha: BoardColumn.tintAlphaDark),
+          surface,
+        ),
+      );
+      // A reference grouping has no colours.
+      expect(BoardColumn.tinted(light, companyField, won, surface), surface);
+    });
+  });
+
   group('drag', () {
     testWidgets('column → column writes the field, with Undo', (tester) async {
       final cubit = await _pumpBoard(tester);
@@ -383,6 +464,41 @@ void main() {
       await tester.tap(find.text('Undo'));
       await tester.pumpAndSettle();
       expect(_stageOf(cubit, 'd3'), 'lead');
+    });
+
+    testWidgets('Esc cancels the drag: nothing moves or is written', (
+      tester,
+    ) async {
+      final repo = workRepository();
+      final cubit = await _pumpBoard(tester, repository: repo);
+      final before = repo.objectsOf('deals');
+      final views = repo.saveViewsCount;
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.text('Initech')),
+        kind: PointerDeviceKind.mouse,
+      );
+      await gesture.moveBy(const Offset(0, 6));
+      await tester.pump();
+      final to = _bottomOf(tester, 'Won');
+      await gesture.moveTo(to);
+      await tester.pump();
+      await gesture.moveTo(to + const Offset(0, 1));
+      await tester.pump();
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pump();
+      // Still held: moves and the release are ignored.
+      await gesture.moveTo(to + const Offset(0, 4));
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(_stageOf(cubit, 'd3'), 'lead');
+      expect(_titlesIn('Lead'), ['d1', 'd3']);
+      expect(repo.objectsOf('deals'), before);
+      expect(repo.saveViewsCount, views);
+      expect(find.text('Moved to Won'), findsNothing);
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('within a column saves the manual order', (tester) async {
@@ -472,7 +588,10 @@ void main() {
       );
       expect(
         (wonColumn.decoration! as BoxDecoration).color,
-        AppTheme.light.colorScheme.surfaceContainerHigh,
+        Color.alphaBlend(
+          const Color(0xFF2E8B57).withValues(alpha: BoardColumn.tintAlphaLight),
+          AppTheme.light.colorScheme.surfaceContainerHigh,
+        ),
       );
       // The source slot has collapsed.
       final slot = find
