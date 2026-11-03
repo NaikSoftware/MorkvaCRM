@@ -59,7 +59,7 @@ class _DateBox extends StatelessWidget {
       context: context,
       initialTime: TimeOfDay.fromDateTime(current?.toLocal() ?? now),
     );
-    if (time == null) return;
+    if (time == null || !context.mounted) return;
     ctx.onChanged(
       DateFieldValue(
         DateTime(day.year, day.month, day.day, time.hour, time.minute).toUtc(),
