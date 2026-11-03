@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Edit deal — side panel</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&amp;family=Hanken+Grotesk:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#FBF7F2}
+.lbl{display:flex;align-items:center;gap:6px;font:600 13px 'Hanken Grotesk',sans-serif;color:#6B5E52}
+.box{min-height:48px;box-sizing:border-box;padding:0 14px;border-radius:12px;border:1px solid #B6A593;background:#FFFFFF;display:flex;align-items:center;gap:8px;font:500 15px 'Hanken Grotesk',sans-serif;color:#2B2018}
+.help{font:400 12px 'Hanken Grotesk',sans-serif;color:#6B5E52}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:28px;font:600 12px 'Hanken Grotesk',sans-serif}
+.chip{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 6px 0 12px;border-radius:8px;background:#F4EDE3;font:500 13px 'Hanken Grotesk',sans-serif;color:#2B2018;border:0}
+.x{width:24px;height:24px;border-radius:12px;border:0;background:transparent;color:#6B5E52;display:inline-flex;align-items:center;justify-content:center;padding:0}
+.add{height:32px;padding:0 10px;border-radius:8px;border:1px dashed #B6A593;background:transparent;color:#8A4708;font:600 13px 'Hanken Grotesk',sans-serif;display:inline-flex;align-items:center;gap:4px}
+.sec{display:flex;align-items:center;gap:8px;padding:6px 0;border:0;background:transparent;font:700 15px 'Bricolage Grotesque',sans-serif;color:#2B2018;width:100%;text-align:left}
+</style>
+</helmet>
+<div style="width: 1280px; height: 820px; position: relative; overflow: hidden; background: #FBF7F2; font-family: 'Hanken Grotesk', system-ui, sans-serif; color: #2B2018">
+  <!-- the views behind -->
+  <div aria-hidden="true" style="position: absolute; inset: 0; display: flex">
+    <div style="width: 280px; background: #F4EDE3"></div>
+    <div style="flex: 1 1 auto; padding: 28px 32px; display: flex; flex-direction: column; gap: 20px">
+      <div style="font: 700 32px 'Bricolage Grotesque', sans-serif">Deals</div>
+      <div style="height: 44px; border-bottom: 1px solid #E0D5C7"></div>
+      <div style="flex: 1 1 auto; background: #FFFFFF; border-radius: 16px; border: 1px solid #E0D5C7; display: flex; flex-direction: column">
+        <sc-for list="{{rows}}" as="r" hint-placeholder-count="9">
+          <div style="height: 56px; border-bottom: 1px solid #F4EDE3; display: flex; align-items: center; padding: 0 20px; gap: 40px; font-size: 14px; background: {{r.bg}}"><span style="width: 220px; font-weight: 600">{{r.name}}</span><span style="width: 120px">{{r.amount}}</span><span>{{r.company}}</span></div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+  <div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(43,32,24,0.32)"></div>
+
+  <!-- side panel -->
+  <aside role="dialog" aria-labelledby="t" style="position: absolute; top: 0; right: 0; bottom: 0; width: 560px; background: #FBF7F2; box-shadow: -10px 0 32px rgba(43,32,24,0.18); display: flex; flex-direction: column">
+    <header style="display: flex; align-items: flex-start; gap: 12px; padding: 20px 20px 16px 24px; border-bottom: 1px solid #E0D5C7">
+      <span aria-hidden="true" style="flex: none; width: 40px; height: 40px; border-radius: 12px; background: #FFE0C2; display: inline-flex; align-items: center; justify-content: center; color: #8A4708">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="5" width="16" height="14" rx="3"></rect><path d="M8 10h8M8 14h5"></path></svg>
+      </span>
+      <div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+        <h1 id="t" style="margin: 0; font: 700 22px/1.25 'Bricolage Grotesque', sans-serif">Stark Industries expansion</h1>
+        <span class="help">Deal · created Oct 12 · edited 2 h ago</span>
+      </div>
+      <button type="button" aria-label="Close" style="width: 44px; height: 44px; border-radius: 22px; border: 0; background: transparent; color: #2B2018; display: inline-flex; align-items: center; justify-content: center">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+      </button>
+    </header>
+
+    <div style="flex: 1 1 auto; overflow: auto; padding: 16px 24px 24px; display: flex; flex-direction: column; gap: 18px">
+      <button type="button" class="sec" aria-expanded="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B5E52" stroke-width="2.4" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>Deal</button>
+
+      <label style="display: flex; flex-direction: column; gap: 6px">
+        <span class="lbl">Name <span style="color: #C0392B">*</span></span>
+        <input type="text" value="Stark Industries expansion" class="box" style="outline: none">
+      </label>
+
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+        <label style="display: flex; flex-direction: column; gap: 6px">
+          <span class="lbl">Amount <span style="width: 6px; height: 6px; border-radius: 3px; background: #E8821E" title="Changed"></span></span>
+          <span class="box" style="border: 2px solid #E8821E; padding: 0 13px"><span style="flex: 1 1 auto">52,000.00</span><span style="color: #6B5E52; font-size: 14px">USD</span></span>
+        </label>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <span class="lbl">Stage</span>
+          <button type="button" class="box" style="justify-content: space-between"><span class="pill" style="background: #DDEBD3; color: #23401A"><span style="width: 8px; height: 8px; border-radius: 4px; background: #2E8B57"></span>Won</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B5E52" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg></button>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <span class="lbl">Company</span>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px; min-height: 48px; align-items: center">
+            <span class="chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B5E52" stroke-width="2" stroke-linecap="round"><path d="M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1"></path></svg>Alpha Ltd<button type="button" class="x" aria-label="Unlink Alpha Ltd"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></span>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <span class="lbl">Due</span>
+          <span class="box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B5E52" stroke-width="2" stroke-linecap="round"><rect x="4" y="5" width="16" height="15" rx="2"></rect><path d="M4 10h16M9 3v4M15 3v4"></path></svg><span style="flex: 1 1 auto">Nov 14, 2026</span><button type="button" class="x" aria-label="Clear Due"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></span>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <span class="lbl">Tags</span>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center">
+          <span class="pill" style="background: #DCEAF3; color: #123E58; padding-right: 4px">Enterprise<button type="button" class="x" aria-label="Remove Enterprise" style="color: #123E58"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></span>
+          <span class="pill" style="background: #F8EBC4; color: #4A3600; padding-right: 4px">Upsell<button type="button" class="x" aria-label="Remove Upsell" style="color: #4A3600"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></span>
+          <button type="button" class="add">+ Add</button>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+        <label style="display: flex; align-items: center; justify-content: space-between; min-height: 48px; padding: 0 4px">
+          <span style="font: 600 14px 'Hanken Grotesk', sans-serif">Paid</span>
+          <span aria-hidden="true" style="width: 52px; height: 32px; border-radius: 16px; background: #E8821E; position: relative"><span style="position: absolute; right: 4px; top: 4px; width: 24px; height: 24px; border-radius: 12px; background: #3A1E00"></span></span>
+        </label>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <span class="lbl"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B5E52" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>Deal #</span>
+          <span style="min-height: 48px; display: flex; flex-direction: column; justify-content: center; padding: 0 14px; border-radius: 12px; background: #F4EDE3"><span style="font: 600 15px 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums">D-0042</span></span>
+          <span class="help">Set automatically</span>
+        </div>
+      </div>
+
+      <button type="button" class="sec" aria-expanded="true" style="margin-top: 6px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B5E52" stroke-width="2.4" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg>Files</button>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span class="lbl">Contract</span>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 10px 8px 10px 12px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E0D5C7">
+          <span aria-hidden="true" style="width: 36px; height: 36px; border-radius: 8px; background: #F4EDE3; display: inline-flex; align-items: center; justify-content: center; font: 700 11px 'Hanken Grotesk', sans-serif; color: #8A4708">PDF</span>
+          <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column"><a href="#" style="font: 600 14px 'Hanken Grotesk', sans-serif; color: #2B2018; text-decoration: none">stark-msa-2026.pdf</a><span class="help">412 KB</span></span>
+          <button type="button" class="x" aria-label="Remove stark-msa-2026.pdf" style="width: 36px; height: 36px; border-radius: 18px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"></path></svg></button>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E0D5C7">
+          <span aria-hidden="true" style="width: 36px; height: 36px; border-radius: 8px; background: #F4EDE3; display: inline-flex; align-items: center; justify-content: center; font: 700 11px 'Hanken Grotesk', sans-serif; color: #8A4708">PNG</span>
+          <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 6px"><span style="font: 600 14px 'Hanken Grotesk', sans-serif">signature-page.png</span><span role="progressbar" aria-valuenow="64" aria-valuemin="0" aria-valuemax="100" style="height: 4px; border-radius: 2px; background: #EEE5D8; position: relative; overflow: hidden"><span style="position: absolute; left: 0; top: 0; bottom: 0; width: 64%; background: #E8821E"></span></span></span>
+          <span class="help" style="font-variant-numeric: tabular-nums">64%</span>
+        </div>
+        <div><button type="button" class="add">+ Upload file</button></div>
+      </div>
+
+      <button type="button" class="sec" aria-expanded="false" style="margin-top: 6px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B5E52" stroke-width="2.4" stroke-linecap="round"><path d="M9 6l6 6-6 6"></path></svg>Notes <span class="help" style="font-weight: 500">· 1 field</span></button>
+    </div>
+
+    <footer style="display: flex; align-items: center; gap: 8px; padding: 12px 20px; border-top: 1px solid #E0D5C7; background: #FBF7F2">
+      <button type="button" style="height: 44px; padding: 0 14px; border-radius: 22px; border: 0; background: transparent; color: #C0392B; font: 600 14px 'Hanken Grotesk', sans-serif; display: inline-flex; align-items: center; gap: 6px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"></path></svg>Delete</button>
+      <span style="flex: 1 1 auto"></span>
+      <button type="button" style="height: 44px; padding: 0 18px; border-radius: 22px; border: 0; background: transparent; color: #8A4708; font: 600 14px 'Hanken Grotesk', sans-serif">Cancel</button>
+      <button type="button" disabled style="height: 44px; padding: 0 24px; border-radius: 22px; border: 0; background: #E8821E; color: #3A1E00; font: 600 14px 'Hanken Grotesk', sans-serif; opacity: 0.55">Uploading…</button>
+    </footer>
+  </aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":820}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var d = [['Acme renewal','1,200 USD','Alpha Ltd'],['Globex pilot','300 USD','Zeta Corp'],['Initech','50 USD',''],['Umbrella','—',''],['Hooli','8,000 USD','Zeta Corp'],['Stark Industries expansion','48,250.50 USD','Alpha Ltd'],['Wayne Enterprises','9,900 USD','Zeta Corp'],['Cyberdyne','2,100 USD',''],['Soylent','—','']];
+    return { rows: d.map(function (r, i) { return { name: r[0], amount: r[1], company: r[2], bg: i === 5 ? '#FFF4E8' : 'transparent' }; }) };
+  }
+}
+</script>
+</body>
+</html>
