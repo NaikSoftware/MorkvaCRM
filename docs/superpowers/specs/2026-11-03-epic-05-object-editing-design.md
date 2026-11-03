@@ -68,6 +68,18 @@ No deep-link route (YAGNI; views own navigation today).
 - After a successful save the editor closes and the views page shows "Saved" only when the saved
   object is hidden by the active filters ("Saved — hidden by the filters"), like quick add.
 
+### As built (Tasks 3–4)
+
+- Banners (errors, conflict, deleted, save failed) sit fixed between the header and the scrolling
+  body, so they stay visible wherever the form is scrolled.
+- Phone page, edit mode: Delete is a red text button at the end of the body; the app bar keeps
+  ✕ / title / Save.
+- Pickers (date, select, reference, boolean) count as touched on change; text/number on blur.
+- `showObjectEditor(...)` returns `ObjectEditorSaved(object)` / `ObjectEditorDeleted()` / null;
+  "Saved — hidden by the filters" is decided by `applyView` on the saved object.
+- `QuickAddDialog` returns `({String title, bool details})`; "Add details" opens the editor with
+  the title and group/day prefill; the prefill note shows under the prefilled field(s).
+
 ## Value editors (registry seam)
 
 ```dart
