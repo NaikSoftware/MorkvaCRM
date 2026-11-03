@@ -284,19 +284,7 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
     if (objects == null) {
       return _failedTargets.contains(targetId) ? const {} : null;
     }
-    final view =
-        (target.views.firstOrNull ?? ViewDefinition.defaultFor(target.fields))
-            .copyWith(filters: const []);
-    final titleField = target.fields
-        .whereType<TextFieldDefinition>()
-        .firstOrNull;
-    return {
-      for (final o in applyView(target, view, objects))
-        o.id: switch (o[titleField?.id ?? '']) {
-          TextFieldValue(:final text?) when text.trim().isNotEmpty => text,
-          _ => 'Untitled',
-        },
-    };
+    return objectLabels(target, objects);
   }
 
   void _emitReady() {

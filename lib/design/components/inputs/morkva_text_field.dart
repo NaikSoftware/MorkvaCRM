@@ -17,6 +17,8 @@ class MorkvaTextField extends StatelessWidget {
     this.label,
     this.hint,
     this.errorText,
+    this.hasError = false,
+    this.suffixText,
     this.obscureText = false,
     this.keyboardType,
     this.prefixIcon,
@@ -40,6 +42,13 @@ class MorkvaTextField extends StatelessWidget {
   final String? label;
   final String? hint;
   final String? errorText;
+
+  /// Shows the error border without a message, for hosts that render the
+  /// error line themselves (the object form). Ignored when [errorText] is set.
+  final bool hasError;
+
+  /// Short trailing text inside the field, e.g. a unit ("USD", "%").
+  final String? suffixText;
   final bool obscureText;
   final TextInputType? keyboardType;
   final Widget? prefixIcon;
@@ -82,6 +91,11 @@ class MorkvaTextField extends StatelessWidget {
       decoration: InputDecoration(
         hintText: hint,
         errorText: errorText,
+        error: hasError && errorText == null ? const SizedBox.shrink() : null,
+        suffixText: suffixText,
+        suffixStyle: theme.textTheme.bodyMedium?.copyWith(
+          color: scheme.onSurfaceVariant,
+        ),
         prefixIcon: prefixIcon,
         suffixIcon: suffixIcon,
       ),
