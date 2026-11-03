@@ -391,7 +391,18 @@ class _ObjectEditorState extends State<ObjectEditor> {
                 ),
               ],
             ),
-            body: SafeArea(top: false, child: body),
+            // A page left open while the window widens stays readable.
+            body: SafeArea(
+              top: false,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxWidth: kObjectEditorDialogMaxWidth,
+                  ),
+                  child: body,
+                ),
+              ),
+            ),
           );
         }
         return Column(

@@ -70,7 +70,8 @@ class SingleSelectValueEditor extends FieldValueEditor {
               ),
             ),
             child: option == null
-                ? const SizedBox(height: 24)
+                // An empty Text gives the hint a baseline, so it sits centered.
+                ? Text('', style: Theme.of(context).textTheme.bodyLarge)
                 : Align(
                     alignment: AlignmentDirectional.centerStart,
                     child: OptionPill(

@@ -118,6 +118,8 @@ void _notify(
         content: Text(message),
         backgroundColor: error ? scheme.errorContainer : null,
         duration: const Duration(seconds: 5),
+        // A SnackBar with an action persists by default; Undo still expires.
+        persist: false,
         // Floating and 480 wide on desktop, so it never spans the rail.
         behavior: SnackBarBehavior.floating,
         width: wide ? 480 : null,

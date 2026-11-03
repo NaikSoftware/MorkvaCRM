@@ -439,6 +439,20 @@ void main() {
       expect(find.text('Globex pilot'), findsOneWidget);
     });
 
+    testWidgets('the Undo snackbar expires on its own', (tester) async {
+      await pumpWorkPage(tester);
+      await tester.tap(find.text('Globex pilot'));
+      await tester.pumpAndSettle();
+      await tester.tap(inEditor(find.text('Delete')));
+      await tester.pumpAndSettle();
+      expect(find.text('Deleted "Globex pilot"'), findsOneWidget);
+
+      // An action makes a SnackBar persist by default; this one must not.
+      await tester.pump(const Duration(seconds: 6));
+      await tester.pumpAndSettle();
+      expect(find.text('Deleted "Globex pilot"'), findsNothing);
+    });
+
     testWidgets('edit → Save → the table shows the new value', (tester) async {
       final repo = workRepository();
       await pumpWorkPage(tester, repository: repo);
