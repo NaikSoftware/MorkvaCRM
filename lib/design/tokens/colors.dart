@@ -37,6 +37,10 @@ abstract final class MorkvaPalette {
   static const creamMedium = Color(0xFFC3B6A6);
   static const outlineDark = Color(0xFF4A4036);
 
+  // Background doodles: decor only, barely there on the canvas.
+  static const doodleLight = Color(0x1A6B5E52); // inkMedium @ 10%
+  static const doodleDark = Color(0x12C3B6A6); // creamMedium @ 7%
+
   // Semantic (kept distinct from the carrot primary so a warning never reads
   // as a normal action).
   static const success = Color(0xFF2E8B57);
@@ -112,6 +116,7 @@ class MorkvaSemanticColors extends ThemeExtension<MorkvaSemanticColors> {
     required this.info,
     required this.onInfo,
     required this.primaryText,
+    required this.doodle,
   });
 
   final Color success;
@@ -125,6 +130,9 @@ class MorkvaSemanticColors extends ThemeExtension<MorkvaSemanticColors> {
   /// is too light on paper to pass WCAG AA.
   final Color primaryText;
 
+  /// Line colour of the main panel's background doodles.
+  final Color doodle;
+
   static const light = MorkvaSemanticColors(
     success: MorkvaPalette.success,
     onSuccess: Colors.white,
@@ -133,6 +141,7 @@ class MorkvaSemanticColors extends ThemeExtension<MorkvaSemanticColors> {
     info: MorkvaPalette.info,
     onInfo: Colors.white,
     primaryText: MorkvaPalette.carrotDeep,
+    doodle: MorkvaPalette.doodleLight,
   );
 
   static const dark = MorkvaSemanticColors(
@@ -143,6 +152,7 @@ class MorkvaSemanticColors extends ThemeExtension<MorkvaSemanticColors> {
     info: Color(0xFF6FA8C9),
     onInfo: Color(0xFF06243A),
     primaryText: MorkvaPalette.carrotBright,
+    doodle: MorkvaPalette.doodleDark,
   );
 
   @override
@@ -154,6 +164,7 @@ class MorkvaSemanticColors extends ThemeExtension<MorkvaSemanticColors> {
     Color? info,
     Color? onInfo,
     Color? primaryText,
+    Color? doodle,
   }) {
     return MorkvaSemanticColors(
       success: success ?? this.success,
@@ -163,6 +174,7 @@ class MorkvaSemanticColors extends ThemeExtension<MorkvaSemanticColors> {
       info: info ?? this.info,
       onInfo: onInfo ?? this.onInfo,
       primaryText: primaryText ?? this.primaryText,
+      doodle: doodle ?? this.doodle,
     );
   }
 
@@ -180,6 +192,7 @@ class MorkvaSemanticColors extends ThemeExtension<MorkvaSemanticColors> {
       info: Color.lerp(info, other.info, t)!,
       onInfo: Color.lerp(onInfo, other.onInfo, t)!,
       primaryText: Color.lerp(primaryText, other.primaryText, t)!,
+      doodle: Color.lerp(doodle, other.doodle, t)!,
     );
   }
 }

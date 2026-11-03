@@ -584,7 +584,7 @@ class _PhoneFrame extends StatelessWidget {
         child: Column(
           children: [
             const ConflictWarningBanner(),
-            Expanded(child: body),
+            Expanded(child: DoodleBackground(child: body)),
           ],
         ),
       ),

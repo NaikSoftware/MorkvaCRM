@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Main panel background pattern</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&amp;family=Hanken+Grotesk:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#FBF7F2}
+.card{border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+</style>
+</helmet>
+<div style="width: 1280px; height: 820px; display: flex; font-family: 'Hanken Grotesk', system-ui, sans-serif">
+  <sc-for list="{{themes}}" as="t" hint-placeholder-count="2">
+    <div style="flex: 1 1 0; position: relative; overflow: hidden; background: {{t.paper}}; color: {{t.ink}}">
+      <svg aria-hidden="true" width="100%" height="100%" style="position: absolute; inset: 0">
+        <defs>
+          <pattern id="{{t.pid}}" width="240" height="240" patternUnits="userSpaceOnUse">
+            <g fill="none" stroke="{{t.doodle}}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <g transform="translate(28 30) rotate(-24)"><path d="M0 0 L22 6 L4 24 Z"></path><path d="M-2 -2 C-8 -12 -2 -16 2 -8 M-2 -2 C-12 -6 -14 0 -6 2"></path><path d="M8 8 L12 12 M4 14 L8 16"></path></g>
+              <g transform="translate(120 22)"><path d="M10 26 V10 M10 14 C2 14 0 6 2 2 C8 2 12 8 10 14 M10 12 C16 10 20 4 18 0 C12 0 9 6 10 12"></path></g>
+              <g transform="translate(190 40) rotate(14)"><path d="M0 6 L14 0 H28 V14 L14 20 H0 Z"></path><circle cx="6" cy="10" r="2"></circle></g>
+              <g transform="translate(36 108) rotate(8)"><rect x="0" y="0" width="34" height="26" rx="5"></rect><path d="M6 8 H24 M6 14 H18 M6 20 H14"></path></g>
+              <g transform="translate(112 92)"><rect x="0" y="4" width="30" height="26" rx="5"></rect><path d="M0 12 H30 M8 0 V8 M22 0 V8"></path><circle cx="9" cy="20" r="1.4"></circle><circle cx="16" cy="20" r="1.4"></circle></g>
+              <g transform="translate(184 116) rotate(-10)"><path d="M0 8 L16 0 L32 8 V26 L16 34 L0 26 Z M0 8 L16 16 L32 8 M16 16 V34"></path></g>
+              <g transform="translate(20 184) rotate(30)"><path d="M6 24 V6 C6 0 16 0 16 6 V26 C16 32 2 32 2 26 V10"></path></g>
+              <g transform="translate(98 176)"><circle cx="14" cy="14" r="13"></circle><path d="M8 14 L12 18 L20 10"></path></g>
+              <g transform="translate(160 186) rotate(-6)"><rect x="0" y="0" width="34" height="24" rx="4"></rect><path d="M0 2 L17 14 L34 2"></path></g>
+              <g transform="translate(214 196) rotate(40)"><path d="M0 0 V26 M-3 26 H3"></path><path d="M0 0 C10 6 -10 12 0 18 C8 22 -6 28 2 34"></path></g>
+              <circle cx="84" cy="62" r="1.6"></circle><circle cx="170" cy="86" r="1.6"></circle><circle cx="72" cy="150" r="1.6"></circle><circle cx="150" cy="160" r="1.6"></circle><circle cx="230" cy="150" r="1.6"></circle><circle cx="60" cy="226" r="1.6"></circle>
+            </g>
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#{{t.pid}})"></rect>
+      </svg>
+      <div style="position: relative; padding: 28px 24px; display: flex; flex-direction: column; gap: 18px">
+        <div style="font: 700 28px 'Bricolage Grotesque', sans-serif">{{t.label}}</div>
+        <div style="display: flex; gap: 14px">
+          <sc-for list="{{t.cols}}" as="c" hint-placeholder-count="2">
+            <section style="flex: 0 0 272px; border-radius: 16px; padding: 12px; background: {{t.sunk}}; display: flex; flex-direction: column; gap: 10px">
+              <div style="display: flex; align-items: center; gap: 8px"><span style="width: 10px; height: 10px; border-radius: 5px; background: {{c.dot}}"></span><span style="font: 500 16px 'Bricolage Grotesque', sans-serif">{{c.name}}</span><span style="font-size: 12px; font-weight: 600; color: {{t.ink2}}">3</span></div>
+              <sc-for list="{{t.cards}}" as="k" hint-placeholder-count="3">
+                <article class="card" style="background: {{t.card}}; box-shadow: 0 1px 2px rgba(0,0,0,0.08)"><span style="font-size: 15px; font-weight: 600">{{k}}</span><span style="align-self: flex-start; padding: 2px 8px; border-radius: 8px; background: {{t.sunk}}; font-size: 12px; color: {{t.ink2}}">Nov 14</span></article>
+              </sc-for>
+            </section>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":820}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var cards = ['@olena.handmade', '@anna.knits', '@zoriana.books'];
+    var cols = [{ name: 'New', dot: '#3A7CA5' }, { name: 'In work', dot: '#E8821E' }];
+    return { themes: [
+      { pid: 'pl', label: 'Light', paper: '#FBF7F2', sunk: '#F4EDE3', card: '#FFFFFF', ink: '#2B2018', ink2: '#6B5E52', doodle: 'rgba(107,94,82,0.10)', cols: cols, cards: cards },
+      { pid: 'pd', label: 'Dark', paper: '#1A1410', sunk: '#241D17', card: '#2E2620', ink: '#F3EBE0', ink2: '#C3B6A6', doodle: 'rgba(195,182,166,0.07)', cols: cols, cards: cards }
+    ] };
+  }
+}
+</script>
+</body>
+</html>

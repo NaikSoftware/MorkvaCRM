@@ -128,13 +128,17 @@ class AppShell extends StatelessWidget {
               ],
             ),
             const VerticalDivider(width: 1),
+            // The main panel: doodles behind its header and content.
             Expanded(
-              child: Column(
-                children: [
-                  header ?? _PageHeader(title: title, trailing: headerTrailing),
-                  ?banner,
-                  Expanded(child: child),
-                ],
+              child: DoodleBackground(
+                child: Column(
+                  children: [
+                    header ??
+                        _PageHeader(title: title, trailing: headerTrailing),
+                    ?banner,
+                    Expanded(child: child),
+                  ],
+                ),
               ),
             ),
           ],
@@ -150,7 +154,7 @@ class AppShell extends StatelessWidget {
           children: [
             header ?? _PageHeader(title: title, trailing: headerTrailing),
             ?banner,
-            Expanded(child: child),
+            Expanded(child: DoodleBackground(child: child)),
           ],
         ),
       ),
