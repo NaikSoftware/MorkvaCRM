@@ -123,7 +123,7 @@ AttachmentStore? _attachmentStoreOf(BuildContext context) {
 }
 
 /// Closes on save/delete with the result; guards closing over unsaved
-/// changes with "Discard changes?".
+/// changes with "Discard changes?". While saving, closing is blocked.
 class _EditorHost extends StatelessWidget {
   const _EditorHost({
     required this.compact,
@@ -145,14 +145,20 @@ class _EditorHost extends StatelessWidget {
           ObjectEditorStatus.deleted => const ObjectEditorDeleted(),
           _ => null,
         };
-        if (result != null) Navigator.of(context).pop(result);
+        if (result == null) return;
+        // Close this editor's own route, even if something sits on top.
+        final route = ModalRoute.of(context);
+        final navigator = Navigator.of(context);
+        if (route != null) navigator.popUntil((r) => r == route);
+        navigator.pop(result);
       },
       buildWhen: (prev, next) =>
-          prev.hasUnsavedChanges != next.hasUnsavedChanges,
+          prev.hasUnsavedChanges != next.hasUnsavedChanges ||
+          prev.isSaving != next.isSaving,
       builder: (context, state) => PopScope<ObjectEditorResult>(
-        canPop: !state.hasUnsavedChanges,
+        canPop: !state.hasUnsavedChanges && !state.isSaving,
         onPopInvokedWithResult: (didPop, _) async {
-          if (didPop) return;
+          if (didPop || state.isSaving) return;
           final discard = await MorkvaConfirmDialog.show(
             context,
             title: 'Discard changes?',
@@ -218,6 +224,10 @@ class _ObjectEditorState extends State<ObjectEditor> {
   }
 
   void _close() => Navigator.of(context).maybePop();
+
+  /// Close/Cancel: disabled while a save is in flight.
+  VoidCallback? _closeFor(ObjectEditorState state) =>
+      state.isSaving ? null : _close;
 
   Future<void> _save() async {
     final cubit = context.read<ObjectEditorCubit>();
@@ -335,7 +345,7 @@ class _ObjectEditorState extends State<ObjectEditor> {
               leading: IconButton(
                 tooltip: 'Close',
                 icon: const Icon(Icons.close),
-                onPressed: _close,
+                onPressed: _closeFor(state),
               ),
               title: Text(
                 state.title,
@@ -360,13 +370,13 @@ class _ObjectEditorState extends State<ObjectEditor> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _Header(state: state, onClose: _close),
+            _Header(state: state, onClose: _closeFor(state)),
             Expanded(child: body),
             _Footer(
               saveLabel: saveLabel,
               saving: state.isSaving,
               onSave: onSave,
-              onCancel: _close,
+              onCancel: _closeFor(state),
               onDelete: state.isCreate || state.remoteDeleted
                   ? null
                   : cubit.requestDelete,
@@ -386,7 +396,7 @@ class _Header extends StatelessWidget {
   const _Header({required this.state, required this.onClose});
 
   final ObjectEditorState state;
-  final VoidCallback onClose;
+  final VoidCallback? onClose;
 
   @override
   Widget build(BuildContext context) {
@@ -478,7 +488,7 @@ class _Footer extends StatelessWidget {
   final String saveLabel;
   final bool saving;
   final VoidCallback? onSave;
-  final VoidCallback onCancel;
+  final VoidCallback? onCancel;
   final VoidCallback? onDelete;
 
   @override
@@ -878,6 +888,7 @@ class _FieldCell extends StatelessWidget {
                     ? AttachmentActions(
                         upload: (files) => cubit.upload(field.id, files),
                         open: (a) => _openAttachment(context, cubit, a),
+                        cancel: cubit.cancelUpload,
                         uploads: [
                           for (final u in state.uploads)
                             if (u.fieldId == field.id) u,

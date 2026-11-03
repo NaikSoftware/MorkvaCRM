@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/design/design.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:morkva_crm/features/objects/object_editor.dart';
+import 'package:morkva_crm/features/objects/object_editor_cubit.dart';
 import 'package:morkva_crm/features/views/views.dart';
 import 'package:morkva_crm/features/views/widgets/no_matches_notice.dart';
 
@@ -452,6 +454,23 @@ void main() {
       final saved = repo.objectsOf('deals').firstWhere((o) => o.id == 'd2');
       expect(saved['amount'], const NumberFieldValue(450));
       expect(saved['name'], const TextFieldValue('Globex pilot'));
+    });
+
+    testWidgets('the editor title is a text field, not the first column', (
+      tester,
+    ) async {
+      final repo = workRepository(
+        collection: deals.copyWith(
+          views: [
+            tableView.copyWith(fieldIds: ['amount', 'name']),
+          ],
+        ),
+      );
+      await pumpWorkPage(tester, repository: repo);
+      await tester.tap(find.text('Globex pilot'));
+      await tester.pumpAndSettle();
+      final editor = tester.element(find.byType(ObjectEditor));
+      expect(editor.read<ObjectEditorCubit>().state.title, 'Globex pilot');
     });
 
     testWidgets('New deal → editor → Save → a new row', (tester) async {

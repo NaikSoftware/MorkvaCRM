@@ -358,7 +358,7 @@ Future<void> _openObject(
     context,
     collection: state.collection,
     object: object,
-    titleFieldId: state.activeView.fieldIds.firstOrNull,
+    titleFieldId: cubit.quickAddTitleField()?.id,
   );
   if (!context.mounted) return;
   switch (result) {

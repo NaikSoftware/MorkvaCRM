@@ -99,11 +99,16 @@ class ReferenceChoices extends Equatable {
 
   /// Builds choices from loaded objects. A target missing from [objects] is
   /// still loading; pass an empty list for a target that failed or is empty.
+  /// [missingTargetIds] (targets not in the workspace) count as loaded and
+  /// empty, so their links show as unknown and can be unlinked.
   factory ReferenceChoices.fromObjects({
     required List<Collection> targets,
     required Map<String, List<MorkvaObject>> objects,
+    Set<String> missingTargetIds = const {},
   }) {
-    final labels = <String, Map<String, String>>{};
+    final labels = <String, Map<String, String>>{
+      for (final id in missingTargetIds) id: const {},
+    };
     final secondary = <String, String>{};
     for (final target in targets) {
       final list = objects[target.id];
@@ -199,6 +204,7 @@ class AttachmentActions {
   const AttachmentActions({
     required this.upload,
     required this.open,
+    this.cancel,
     this.uploads = const [],
   });
 
@@ -208,6 +214,9 @@ class AttachmentActions {
 
   /// Opens an attachment (download URL in a new tab / external app).
   final ValueChanged<FileAttachment> open;
+
+  /// Cancels an upload in flight, by [PendingUpload.id].
+  final ValueChanged<String>? cancel;
 
   /// This field's uploads in flight.
   final List<PendingUpload> uploads;

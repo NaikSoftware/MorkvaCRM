@@ -10,6 +10,8 @@ class FakeAttachmentStore implements AttachmentStore {
   final pending = <String, Completer<void>>{};
   final progress = <String, void Function(double)?>{};
   final uploaded = <String>[];
+  final canceled = <String>[];
+  final _names = <String, String>{};
 
   @override
   void initialize(String workspaceId) {}
@@ -22,6 +24,7 @@ class FakeAttachmentStore implements AttachmentStore {
     String? mimeType,
     void Function(double progress)? onProgress,
   }) async {
+    _names[id] = fileName;
     final done = pending[fileName] = Completer<void>();
     progress[fileName] = onProgress;
     await done.future;
@@ -37,6 +40,14 @@ class FakeAttachmentStore implements AttachmentStore {
   void finish(String name) => pending[name]!.complete();
 
   void fail(String name) => pending[name]!.completeError(Exception('404'));
+
+  @override
+  Future<void> cancelUpload(String id) async {
+    final done = pending[_names[id]];
+    if (done == null || done.isCompleted) return;
+    canceled.add(id);
+    done.completeError(Exception('canceled'));
+  }
 
   @override
   Future<Uri> downloadUrl(FileAttachment attachment) async =>

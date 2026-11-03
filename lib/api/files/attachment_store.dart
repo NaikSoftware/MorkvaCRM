@@ -19,6 +19,10 @@ abstract interface class AttachmentStore {
     void Function(double progress)? onProgress,
   });
 
+  /// Cancels the in-flight upload [id] (its [upload] then throws); does
+  /// nothing when there is none.
+  Future<void> cancelUpload(String id);
+
   /// A URL the user can open [attachment] at.
   Future<Uri> downloadUrl(FileAttachment attachment);
 }

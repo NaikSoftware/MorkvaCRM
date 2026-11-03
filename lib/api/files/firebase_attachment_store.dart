@@ -13,8 +13,14 @@ class FirebaseAttachmentStore implements AttachmentStore {
   /// so building the store never needs Firebase.
   FirebaseAttachmentStore({FirebaseStorage? storage}) : _storage = storage;
 
+  /// Offline, the SDK retries for 10 minutes by default; fail sooner so the
+  /// form shows "Couldn't upload" instead of a stuck "Uploading…".
+  static const maxUploadRetryTime = Duration(seconds: 30);
+
   FirebaseStorage? _storage;
+  bool _configured = false;
   String? _workspaceId;
+  final Map<String, UploadTask> _tasks = {};
 
   @override
   void initialize(String workspaceId) => _workspaceId = workspaceId;
@@ -25,6 +31,10 @@ class FirebaseAttachmentStore implements AttachmentStore {
       throw StateError('AttachmentStore used before initialize()');
     }
     final storage = _storage ??= FirebaseStorage.instance;
+    if (!_configured) {
+      storage.setMaxUploadRetryTime(maxUploadRetryTime);
+      _configured = true;
+    }
     return storage.ref('workspaces/$workspaceId/files/$id/$fileName');
   }
 
@@ -40,12 +50,14 @@ class FirebaseAttachmentStore implements AttachmentStore {
       id,
       fileName,
     ).putData(bytes, SettableMetadata(contentType: mimeType));
+    _tasks[id] = task;
     final progress = task.snapshotEvents.listen((s) {
       if (s.totalBytes > 0) onProgress?.call(s.bytesTransferred / s.totalBytes);
     }, onError: (Object _) {});
     try {
       await task;
     } finally {
+      _tasks.remove(id);
       await progress.cancel();
     }
     return FileAttachment(
@@ -54,6 +66,11 @@ class FirebaseAttachmentStore implements AttachmentStore {
       mimeType: mimeType,
       sizeBytes: bytes.length,
     );
+  }
+
+  @override
+  Future<void> cancelUpload(String id) async {
+    await _tasks[id]?.cancel();
   }
 
   @override

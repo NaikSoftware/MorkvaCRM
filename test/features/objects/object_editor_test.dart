@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -50,6 +53,22 @@ final _laidOut = deals.copyWith(
   ),
 );
 
+/// Holds [saveObject] until [gate] completes.
+class _GatedRepo extends FakeDataRepository {
+  _GatedRepo(super.initial);
+
+  final gate = Completer<void>();
+
+  @override
+  Future<void> saveObject(
+    MorkvaObject object, {
+    required Collection schema,
+  }) async {
+    await gate.future;
+    return super.saveObject(object, schema: schema);
+  }
+}
+
 late FakeDataRepository _repo;
 ObjectEditorResult? _result;
 bool _closed = false;
@@ -61,12 +80,13 @@ Future<void> _open(
   Collection collection = deals,
   MorkvaObject? object,
   Size size = const Size(1280, 800),
+  FakeDataRepository? repository,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
-  _repo = FakeDataRepository([collection, companies]);
+  _repo = repository ?? FakeDataRepository([collection, companies]);
   _repo.seedObjects('deals', sampleDeals());
   _repo.seedObjects('companies', [company('k1', 'Zeta Corp', 0)]);
   _result = null;
@@ -266,6 +286,62 @@ void main() {
       await tester.tap(_inEditor(find.text('Save as new')));
       await tester.pumpAndSettle();
       expect(_repo.objectsOf('deals').map((o) => o.id), contains('d1'));
+    });
+  });
+
+  group('closing while saving', () {
+    Future<_GatedRepo> openAndSave(WidgetTester tester) async {
+      final repo = _GatedRepo([deals, companies]);
+      await _open(tester, object: sampleDeals().first, repository: repo);
+      await tester.enterText(_fields.at(0), 'Changed');
+      await tester.pump();
+      await tester.tap(_inEditor(find.text('Save')));
+      await tester.pump();
+      return repo;
+    }
+
+    testWidgets('is blocked silently; the save then closes with the result', (
+      tester,
+    ) async {
+      final repo = await openAndSave(tester);
+      final cancel = tester.widget<TextActionButton>(
+        find.widgetWithText(TextActionButton, 'Cancel'),
+      );
+      expect(cancel.onPressed, isNull);
+      await tester.tap(_inEditor(find.text('Cancel')));
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.tapAt(const Offset(20, 400)); // the scrim
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.text('Discard changes?'), findsNothing);
+      expect(find.byType(ObjectEditor), findsOneWidget);
+
+      repo.gate.complete();
+      await tester.pumpAndSettle();
+      expect(find.byType(ObjectEditor), findsNothing);
+      expect(_closed, isTrue);
+      expect(_result, isA<ObjectEditorSaved>());
+      expect(
+        _repo.objectsOf('deals').first['name'],
+        const TextFieldValue('Changed'),
+      );
+    });
+
+    testWidgets('a route on top does not swallow the result', (tester) async {
+      final repo = await openAndSave(tester);
+      unawaited(
+        showDialog<void>(
+          context: tester.element(find.byType(ObjectEditor)),
+          builder: (_) => const AlertDialog(content: Text('on top')),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.text('on top'), findsOneWidget);
+
+      repo.gate.complete();
+      await tester.pumpAndSettle();
+      expect(find.text('on top'), findsNothing);
+      expect(find.byType(ObjectEditor), findsNothing);
+      expect(_result, isA<ObjectEditorSaved>());
     });
   });
 

@@ -73,6 +73,20 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
   final Map<String, List<MorkvaObject>> _targetObjects = {};
   List<Collection> _targets = const [];
 
+  /// Reference targets that aren't in the workspace (deleted, or the
+  /// collections failed to load): loaded with no objects.
+  Set<String> _missingTargetIds = const {};
+
+  /// Upload ids the user canceled: they end without an error.
+  final Set<String> _canceledUploads = {};
+
+  /// The object has been in a snapshot: only then is its absence a delete
+  /// (a quick-added object may not reach the stream until committed).
+  bool _seenStored = false;
+
+  /// Set at the start of [close], before `isClosed` turns true.
+  bool _closing = false;
+
   /// Create mode's id, minted once so a retried save writes the same object.
   late final String _newId = _ids.objectId();
 
@@ -98,7 +112,7 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
     } catch (_) {
       collections = const [];
     }
-    if (isClosed) return;
+    if (isClosed || _closing) return;
     _targets = [
       for (final id in targetIds)
         if (id == _collection.id)
@@ -106,6 +120,7 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
         else
           ?collections.where((c) => c.id == id).firstOrNull,
     ];
+    _missingTargetIds = targetIds.difference({for (final t in _targets) t.id});
     for (final target in _targets) {
       if (target.id == _collection.id) continue;
       _subs.add(
@@ -131,12 +146,13 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
   }
 
   void _emitReferences() {
-    if (isClosed || _targets.isEmpty) return;
+    if (isClosed || (_targets.isEmpty && _missingTargetIds.isEmpty)) return;
     emit(
       state.copyWith(
         references: ReferenceChoices.fromObjects(
           targets: _targets,
           objects: _targetObjects,
+          missingTargetIds: _missingTargetIds,
         ),
       ),
     );
@@ -157,9 +173,10 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
     }
     final next = objects.where((o) => o.id == previous.id).firstOrNull;
     if (next == null) {
-      emit(state.copyWith(remoteDeleted: true));
+      if (_seenStored) emit(state.copyWith(remoteDeleted: true));
       return;
     }
+    _seenStored = true;
     // While saving, our own write echoes back: keep the draft until it is
     // confirmed, so a failed save loses nothing.
     final draft = state.isSaving
@@ -289,7 +306,8 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
       }
     }
     if (isClosed) return;
-    if (done != null) {
+    final canceled = _canceledUploads.remove(pending.id);
+    if (done != null && !canceled) {
       final current = (state.valueOf(field) as FileFieldValue).attachments;
       change(
         field.id,
@@ -303,11 +321,20 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
           for (final u in state.uploads)
             if (u.id != pending.id) u,
         ],
-        uploadErrors: done == null
+        uploadErrors: done == null && !canceled
             ? {...state.uploadErrors, field.id: message}
             : null,
       ),
     );
+  }
+
+  /// Cancels the in-flight upload [uploadId]: its tile goes, no error shows.
+  void cancelUpload(String uploadId) {
+    final store = _attachments;
+    if (store == null || isClosed) return;
+    if (!state.uploads.any((u) => u.id == uploadId)) return;
+    _canceledUploads.add(uploadId);
+    unawaited(store.cancelUpload(uploadId));
   }
 
   void _setProgress(String uploadId, double progress) {
@@ -396,6 +423,7 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
 
   @override
   Future<void> close() async {
+    _closing = true;
     final subs = [..._subs];
     _subs.clear();
     await Future.wait([for (final s in subs) s.cancel()]);

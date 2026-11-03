@@ -63,7 +63,12 @@ class FileValueEditor extends FieldValueEditor {
           const SizedBox(height: Spacing.xs),
         ],
         for (final upload in uploads) ...[
-          _UploadingTile(upload: upload),
+          _UploadingTile(
+            upload: upload,
+            onCancel: actions?.cancel == null
+                ? null
+                : () => actions!.cancel!(upload.id),
+          ),
           const SizedBox(height: Spacing.xs),
         ],
         if (actions != null)
@@ -235,9 +240,10 @@ class _AttachmentTile extends StatelessWidget {
 }
 
 class _UploadingTile extends StatelessWidget {
-  const _UploadingTile({required this.upload});
+  const _UploadingTile({required this.upload, this.onCancel});
 
   final PendingUpload upload;
+  final VoidCallback? onCancel;
 
   @override
   Widget build(BuildContext context) {
@@ -285,6 +291,14 @@ class _UploadingTile extends StatelessWidget {
                 ).copyWith(color: scheme.onSurfaceVariant),
               ),
             ),
+            if (onCancel != null)
+              IconButton(
+                tooltip: 'Cancel upload',
+                onPressed: onCancel,
+                iconSize: 18,
+                color: scheme.onSurfaceVariant,
+                icon: const Icon(Icons.close),
+              ),
           ],
         ),
       ),

@@ -169,6 +169,19 @@ void main() {
     expect(valueOf(c, 'files').attachments, [a]);
   });
 
+  test('a canceled upload ends without an error or a file', () async {
+    final c = await edit();
+    final done = c.upload('files', [picked('a.png')]);
+    await pumpEventQueue();
+    final id = c.state.uploads.single.id;
+    c.cancelUpload(id);
+    await done;
+    expect(store.canceled, [id]);
+    expect(c.state.uploads, isEmpty);
+    expect(c.state.uploadErrors, isEmpty);
+    expect(valueOf(c, 'files').attachments, isEmpty);
+  });
+
   test('without a store nothing uploads', () async {
     final c = ObjectEditorCubit(repo, withFiles);
     addTearDown(c.close);
@@ -221,6 +234,18 @@ void main() {
       await tester.pump();
       expect(find.text('Uploading…'), findsNothing);
       expect(find.text('a.png'), findsOneWidget);
+    });
+
+    testWidgets('an upload tile cancels from its ✕', (tester) async {
+      final c = await pumpForm(tester);
+      final done = c.upload('contract', [picked('msa.pdf')]);
+      await tester.pump();
+      await tester.tap(find.byTooltip('Cancel upload'));
+      await tester.runAsync(() => done);
+      await tester.pump();
+      expect(find.byTooltip('Cancel upload'), findsNothing);
+      expect(find.text("Couldn't upload msa.pdf"), findsNothing);
+      expect(find.text('Save'), findsOneWidget);
     });
 
     testWidgets('a failed upload shows under the field', (tester) async {

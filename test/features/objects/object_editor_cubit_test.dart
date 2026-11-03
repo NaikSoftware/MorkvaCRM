@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
@@ -17,6 +19,38 @@ class _RecordingRepo extends FakeDataRepository {
   Future<void> saveObject(MorkvaObject object, {required Collection schema}) {
     saved.add(object);
     return super.saveObject(object, schema: schema);
+  }
+}
+
+class _FailingCollectionsRepo extends FakeDataRepository {
+  _FailingCollectionsRepo(super.initial);
+
+  @override
+  Future<List<Collection>> getCollections() async => throw Exception('offline');
+}
+
+/// [getCollections] waits for [collections]; cancelling the deals watch
+/// waits for [cancelled].
+class _SlowCollectionsRepo extends FakeDataRepository {
+  _SlowCollectionsRepo(super.initial);
+
+  final collections = Completer<void>();
+  final cancelled = Completer<void>();
+
+  @override
+  Stream<List<MorkvaObject>> watchObjects(
+    String collectionId, {
+    Collection? schema,
+  }) => collectionId == 'deals'
+      ? (StreamController<List<MorkvaObject>>(
+          onCancel: () => cancelled.future,
+        )).stream
+      : super.watchObjects(collectionId, schema: schema);
+
+  @override
+  Future<List<Collection>> getCollections() async {
+    await collections.future;
+    return super.getCollections();
   }
 }
 
@@ -289,6 +323,66 @@ void main() {
     repo.failObjects('companies', Exception('denied'));
     final c = await edit();
     expect(c.state.references.labelsFor(companyField), isEmpty);
+  });
+
+  group('missing reference targets', () {
+    test('a deleted target collection counts as loaded and empty', () async {
+      await repo.deleteCollection('companies');
+      final c = await edit();
+      expect(c.state.references.labelsFor(companyField), isEmpty);
+      expect(c.state.references.targetOf(companyField), isNull);
+    });
+
+    test('getCollections failing counts every target as empty', () async {
+      final failing = _FailingCollectionsRepo([_strict, companies]);
+      failing.seedObjects('deals', sampleDeals());
+      final c = ObjectEditorCubit(
+        failing,
+        _strict,
+        object: failing.objectsOf('deals').first,
+      );
+      addTearDown(c.close);
+      await c.initialize();
+      await pumpEventQueue();
+      expect(c.state.references.labelsFor(companyField), isEmpty);
+    });
+  });
+
+  group('remote delete', () {
+    test('an object not yet in any snapshot is not "deleted"', () async {
+      // Quick-added: committed later, so the stream lacks it at first.
+      final pendingDeal = deal('d9', 9, name: 'Fresh');
+      final c = await edit(pendingDeal);
+      expect(c.state.remoteDeleted, isFalse);
+
+      await repo.saveObject(pendingDeal, schema: _strict);
+      await pumpEventQueue();
+      expect(c.state.remoteDeleted, isFalse);
+
+      await repo.deleteObject('deals', 'd9');
+      await pumpEventQueue();
+      expect(c.state.remoteDeleted, isTrue);
+    });
+  });
+
+  test('closing while collections load subscribes nothing', () async {
+    final slow = _SlowCollectionsRepo([_strict, companies]);
+    slow.seedObjects('deals', sampleDeals());
+    final c = ObjectEditorCubit(
+      slow,
+      _strict,
+      object: slow.objectsOf('deals').first,
+    );
+    final init = c.initialize();
+    await pumpEventQueue();
+    final closing = c.close();
+    // The targets resolve while close() is still cancelling.
+    slow.collections.complete();
+    await init;
+    slow.cancelled.complete();
+    await closing;
+    await pumpEventQueue();
+    expect(slow.liveListeners, 0);
   });
 
   test('close cancels every subscription', () async {
