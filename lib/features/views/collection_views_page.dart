@@ -499,10 +499,10 @@ class _PhoneFrame extends StatelessWidget {
       ),
       floatingActionButton: ready == null || ready.collection.fields.isEmpty
           ? null
-          : FloatingActionButton(
-              tooltip: 'New ${itemLabelOf(ready.collection)}',
+          : FloatingActionButton.extended(
               onPressed: () => _quickAdd(context, ready),
-              child: const Icon(Icons.add),
+              icon: const Icon(Icons.add),
+              label: Text('New ${itemLabelOf(ready.collection)}'),
             ),
       body: SafeArea(
         top: false,
@@ -521,7 +521,7 @@ class _PhoneFrame extends StatelessWidget {
 // Body
 // -----------------------------------------------------------------------------
 
-/// Bottom space under the phone body: the FAB (56) plus its margins.
+/// Bottom space under the phone body: the extended FAB (56) plus margins.
 const double _fabClearance = 88;
 
 class _WorkBody extends StatelessWidget {

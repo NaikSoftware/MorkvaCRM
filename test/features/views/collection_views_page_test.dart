@@ -197,6 +197,21 @@ void main() {
       expect(find.byTooltip('Back'), findsOneWidget);
       expect(find.byTooltip('View settings'), findsOneWidget);
       expect(find.byType(FloatingActionButton), findsOneWidget);
+      // Extended: "New <item>" with the add icon.
+      expect(
+        find.descendant(
+          of: find.byType(FloatingActionButton),
+          matching: find.text('New deal'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(FloatingActionButton),
+          matching: find.byIcon(Icons.add),
+        ),
+        findsOneWidget,
+      );
       expect(find.text('Sort'), findsNothing);
       expect(find.text('Filter'), findsOneWidget);
       expect(find.text('Acme renewal'), findsOneWidget);
@@ -283,6 +298,29 @@ void main() {
     testWidgets('no nudge when the collection has objects', (tester) async {
       await pumpWorkPage(tester);
       await tester.pump();
+      expect(find.text('Add your first deal'), findsNothing);
+    });
+
+    testWidgets('no nudge when filters hide every object', (tester) async {
+      final filtered = deals.copyWith(
+        views: [
+          tableView.copyWith(
+            filters: const [
+              ViewFilter(
+                fieldId: 'name',
+                op: FilterOp.contains,
+                operand: 'no such deal',
+              ),
+            ],
+          ),
+        ],
+      );
+      await pumpWorkPage(
+        tester,
+        repository: workRepository(collection: filtered),
+      );
+      await tester.pump();
+      expect(find.textContaining('0 of '), findsOneWidget);
       expect(find.text('Add your first deal'), findsNothing);
     });
 

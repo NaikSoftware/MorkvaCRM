@@ -188,6 +188,22 @@ class _FieldsEditorSheetState extends State<FieldsEditorSheet> {
                 ],
               ),
             ),
+            if (!_columns)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  Spacing.lg,
+                  0,
+                  Spacing.lg,
+                  Spacing.sm,
+                ),
+                child: Text(
+                  'Choose which fields show on each card in '
+                  '“${widget.view.name}” and drag to set their order.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
             Container(
               color: scheme.surfaceContainerLow,
               padding: const EdgeInsets.all(Spacing.md),
@@ -212,6 +228,15 @@ class _FieldsEditorSheetState extends State<FieldsEditorSheet> {
                     const SizedBox(height: Spacing.xs),
                     Text(
                       _layoutNote(layout),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                  if (!_columns) ...[
+                    const SizedBox(height: Spacing.xs),
+                    Text(
+                      'Empty fields are skipped on the card.',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),

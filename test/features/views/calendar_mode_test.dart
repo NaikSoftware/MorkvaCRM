@@ -244,6 +244,20 @@ void main() {
       expect(rec.quickAdds, [DateTime(2026, 11, 20)]);
     });
 
+    testWidgets('an empty collection hints, and days stay clickable', (
+      tester,
+    ) async {
+      final (_, _, rec) = await _pump(tester, objects: const []);
+      expect(find.text('Click a day to add a deal'), findsOneWidget);
+      await tester.tap(find.byTooltip('New deal on Fri 20 Nov'));
+      expect(rec.quickAdds, [DateTime(2026, 11, 20)]);
+    });
+
+    testWidgets('no hint once the collection has objects', (tester) async {
+      await _pump(tester, objects: [deal('d1', 0, name: 'Acme')]);
+      expect(find.text('Click a day to add a deal'), findsNothing);
+    });
+
     testWidgets('with a mouse the "+" hides until hover or focus', (
       tester,
     ) async {

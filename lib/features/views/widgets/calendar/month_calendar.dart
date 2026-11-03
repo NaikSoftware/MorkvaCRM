@@ -124,50 +124,69 @@ class _MonthCalendarState extends State<MonthCalendar> {
               ),
               Divider(height: 1, color: scheme.outlineVariant),
               Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final rowHeight = math.max(
-                      MonthCalendar.minCellHeight,
-                      constraints.maxHeight / weeks,
-                    );
-                    return SingleChildScrollView(
-                      controller: _scroll,
-                      child: Column(
-                        children: [
-                          for (var w = 0; w < weeks; w++)
-                            SizedBox(
-                              height: rowHeight,
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  for (var d = 0; d < 7; d++)
-                                    Expanded(
-                                      child: Builder(
-                                        builder: (context) {
-                                          final day = DateTime(
-                                            first.year,
-                                            first.month,
-                                            1 - lead + w * 7 + d,
-                                          );
-                                          return _DayCell(
-                                            key: ValueKey(day),
-                                            day: day,
-                                            month: first.month,
-                                            today: today,
-                                            data: widget.data,
-                                            lastColumn: d == 6,
-                                            lastRow: w == weeks - 1,
-                                          );
-                                        },
-                                      ),
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final rowHeight = math.max(
+                            MonthCalendar.minCellHeight,
+                            constraints.maxHeight / weeks,
+                          );
+                          return SingleChildScrollView(
+                            controller: _scroll,
+                            child: Column(
+                              children: [
+                                for (var w = 0; w < weeks; w++)
+                                  SizedBox(
+                                    height: rowHeight,
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        for (var d = 0; d < 7; d++)
+                                          Expanded(
+                                            child: Builder(
+                                              builder: (context) {
+                                                final day = DateTime(
+                                                  first.year,
+                                                  first.month,
+                                                  1 - lead + w * 7 + d,
+                                                );
+                                                return _DayCell(
+                                                  key: ValueKey(day),
+                                                  day: day,
+                                                  month: first.month,
+                                                  today: today,
+                                                  data: widget.data,
+                                                  lastColumn: d == 6,
+                                                  lastRow: w == weeks - 1,
+                                                );
+                                              },
+                                            ),
+                                          ),
+                                      ],
                                     ),
-                                ],
-                              ),
+                                  ),
+                              ],
                             ),
-                        ],
+                          );
+                        },
                       ),
-                    );
-                  },
+                    ),
+                    // Non-blocking: taps reach the days underneath.
+                    if (widget.data.state.totalCount == 0)
+                      IgnorePointer(
+                        child: Center(
+                          child: Text(
+                            'Click a day to add a ${widget.data.itemLabel}',
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ],
