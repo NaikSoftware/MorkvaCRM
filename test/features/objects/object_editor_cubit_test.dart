@@ -119,6 +119,11 @@ void main() {
       expect(repo.saved.single.updatedAt, _now);
       expect(c.state.status, ObjectEditorStatus.saved);
       expect(c.state.savedId, 'd1');
+      // The result carries the whole object, not just the written keys.
+      expect(
+        c.state.savedObject!['name'],
+        const TextFieldValue('Acme renewal'),
+      );
       // The fake merged it: other fields kept.
       expect(d1()['name'], const TextFieldValue('Acme renewal'));
       expect(d1()['amount'], const NumberFieldValue(5));

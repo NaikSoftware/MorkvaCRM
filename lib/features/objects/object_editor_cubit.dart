@@ -262,7 +262,7 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
       );
     } else if (state.draft.isEmpty) {
       emit(
-        checked.copyWith(status: ObjectEditorStatus.saved, savedId: stored.id),
+        checked.copyWith(status: ObjectEditorStatus.saved, savedObject: stored),
       );
       return true;
     } else {
@@ -270,6 +270,9 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
       // values, so fields edited elsewhere meanwhile survive.
       object = stored.copyWith(values: state.draft, updatedAt: now);
     }
+    final whole = object.copyWith(
+      values: {...?stored?.values, ...object.values},
+    );
     emit(checked.copyWith(status: ObjectEditorStatus.saving));
     try {
       await _repository.saveObject(object, schema: _collection);
@@ -281,7 +284,7 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
     }
     if (!isClosed) {
       emit(
-        state.copyWith(status: ObjectEditorStatus.saved, savedId: object.id),
+        state.copyWith(status: ObjectEditorStatus.saved, savedObject: whole),
       );
     }
     return true;

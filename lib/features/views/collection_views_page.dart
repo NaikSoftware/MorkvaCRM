@@ -9,13 +9,13 @@ import '../../app/shell/sync_status_indicator.dart';
 import '../../core/domain/domain.dart';
 import '../../design/design.dart';
 import '../auth/conflict_warning_banner.dart';
+import '../objects/object_editor.dart';
 import 'collection_views_cubit.dart';
 import 'collection_views_state.dart';
 import 'modes/view_mode.dart';
 import 'widgets/filter_builder.dart';
 import 'widgets/fields_editor_sheet.dart';
 import 'widgets/new_view_dialog.dart';
-import 'widgets/object_detail_sheet.dart';
 import 'widgets/quick_add_dialog.dart';
 import 'widgets/sort_menu.dart';
 import 'widgets/view_labels.dart';
@@ -265,25 +265,86 @@ Future<void> _quickAdd(
   final collection = state.collection;
   final titleField = cubit.quickAddTitleField();
   final layout = state.layoutField;
+  final groupLabel = groupKey == null
+      ? null
+      : state.groups?.where((g) => g.key == groupKey).firstOrNull?.label ?? '';
+  final dayValue = day != null && layout is DateFieldDefinition
+      ? withDay(layout, const DateFieldValue(null), day)
+      : null;
   final prefill = switch (layout) {
-    _ when groupKey != null && layout != null =>
-      '${layout.name} · ${state.groups?.where((g) => g.key == groupKey).firstOrNull?.label ?? ''}',
-    final DateFieldDefinition f when day != null =>
-      '${f.name} · ${formatFieldValue(f, withDay(f, const DateFieldValue(null), day))}',
+    _ when groupLabel != null && layout != null =>
+      '${layout.name} · $groupLabel',
+    final DateFieldDefinition f when dayValue != null =>
+      '${f.name} · ${formatFieldValue(f, dayValue)}',
     _ => null,
   };
   final itemLabel = itemLabelOf(collection);
-  final title = await QuickAddDialog.show(
+  final result = await QuickAddDialog.show(
     context,
     itemLabel: itemLabel,
     titleLabel: titleField?.name ?? 'Title',
     prefill: prefill,
   );
-  if (title == null || !context.mounted) return;
-  final id = cubit.quickAdd(title, groupKey: groupKey, day: day);
-  final now = cubit.state;
-  if (id != null && now is ViewsReady && now.objectById(id) == null) {
-    _notify(context, 'Added — hidden by the filters');
+  if (result == null || !context.mounted) return;
+  if (!result.details) {
+    final id = cubit.quickAdd(result.title, groupKey: groupKey, day: day);
+    final now = cubit.state;
+    if (id != null && now is ViewsReady && now.objectById(id) == null) {
+      _notify(context, 'Added — hidden by the filters');
+    }
+    return;
+  }
+  // "Add details": the full form, pre-filled like quick add would.
+  final title = result.title;
+  await _createObject(
+    context,
+    state,
+    prefill: {
+      if (titleField != null && title.isNotEmpty)
+        titleField.id: TextFieldValue(title),
+      if (groupKey != null && isGroupable(layout))
+        layout!.id: groupValueFor(layout, groupKey),
+      if (layout != null && dayValue != null) layout.id: dayValue,
+    },
+    prefillNote: switch (layout) {
+      _ when groupLabel != null && groupLabel.isNotEmpty =>
+        state.activeView.mode == ViewModeIds.board
+            ? 'Filled from the $groupLabel column'
+            : 'Filled from the $groupLabel group',
+      final DateFieldDefinition f when dayValue != null =>
+        'Filled from ${formatFieldValue(f, dayValue)}',
+      _ => null,
+    },
+  );
+}
+
+/// The object form in create mode; says so when the new object is hidden
+/// by the active filters.
+Future<void> _createObject(
+  BuildContext context,
+  ViewsReady state, {
+  Map<String, FieldValue> prefill = const {},
+  String? prefillNote,
+}) async {
+  final cubit = context.read<CollectionViewsCubit>();
+  final result = await showObjectEditor(
+    context,
+    collection: state.collection,
+    prefill: prefill,
+    prefillNote: prefillNote,
+    titleFieldId: cubit.quickAddTitleField()?.id,
+  );
+  if (result is ObjectEditorSaved && context.mounted) {
+    _notifyIfHidden(context, result.object);
+  }
+}
+
+/// "Saved — hidden by the filters" when [object] fails the active view.
+void _notifyIfHidden(BuildContext context, MorkvaObject object) {
+  final now = context.read<CollectionViewsCubit>().state;
+  if (now is ViewsReady &&
+      applyView(now.collection, now.activeView, [object]).isEmpty) {
+    _notify(context, 'Saved — hidden by the filters');
   }
 }
 
@@ -293,17 +354,29 @@ Future<void> _openObject(
   MorkvaObject object,
 ) async {
   final cubit = context.read<CollectionViewsCubit>();
-  final title = titleOf(state.activeView, state.collection, object);
-  final delete = await ObjectDetailSheet.show(
+  final result = await showObjectEditor(
     context,
-    object: object,
     collection: state.collection,
-    title: title,
-    referenceLabels: state.referenceLabels,
+    object: object,
+    titleFieldId: state.activeView.fieldIds.firstOrNull,
   );
-  if (delete != true || !context.mounted) return;
-  final undo = cubit.deleteObject(object.id);
-  if (undo != null) _notify(context, 'Deleted "$title"', undo: undo);
+  if (!context.mounted) return;
+  switch (result) {
+    case ObjectEditorSaved(:final object):
+      _notifyIfHidden(context, object);
+    case ObjectEditorDeleted():
+      final now = cubit.state;
+      final latest = now is ViewsReady ? now : state;
+      final title = titleOf(
+        latest.activeView,
+        latest.collection,
+        latest.objectById(object.id) ?? object,
+      );
+      final undo = cubit.deleteObject(object.id);
+      if (undo != null) _notify(context, 'Deleted "$title"', undo: undo);
+    case null:
+      break;
+  }
 }
 
 Future<void> _openNewView(
@@ -412,7 +485,7 @@ class _WideHeader extends StatelessWidget {
             PrimaryButton(
               label: 'New ${itemLabelOf(collection)}',
               icon: Icons.add,
-              onPressed: () => _quickAdd(context, state),
+              onPressed: () => _createObject(context, state),
             ),
           ],
         ],
@@ -500,7 +573,7 @@ class _PhoneFrame extends StatelessWidget {
       floatingActionButton: ready == null || ready.collection.fields.isEmpty
           ? null
           : FloatingActionButton.extended(
-              onPressed: () => _quickAdd(context, ready),
+              onPressed: () => _createObject(context, ready),
               icon: const Icon(Icons.add),
               label: Text('New ${itemLabelOf(ready.collection)}'),
             ),

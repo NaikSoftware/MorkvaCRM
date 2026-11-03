@@ -24,7 +24,7 @@ class ObjectEditorState extends Equatable {
     this.conflictFieldIds = const {},
     this.remoteDeleted = false,
     this.references = ReferenceChoices.none,
-    this.savedId,
+    this.savedObject,
   });
 
   final Collection collection;
@@ -63,8 +63,11 @@ class ObjectEditorState extends Equatable {
 
   final ReferenceChoices references;
 
-  /// The id written by the last successful save.
-  final String? savedId;
+  /// The object as it is after the last successful save (whole, even when
+  /// only changed keys were written).
+  final MorkvaObject? savedObject;
+
+  String? get savedId => savedObject?.id;
 
   bool get isCreate => stored == null;
 
@@ -129,7 +132,7 @@ class ObjectEditorState extends Equatable {
     Set<String>? conflictFieldIds,
     bool? remoteDeleted,
     ReferenceChoices? references,
-    String? savedId,
+    MorkvaObject? savedObject,
   }) => ObjectEditorState(
     collection: collection,
     readOnlyFieldIds: readOnlyFieldIds,
@@ -144,7 +147,7 @@ class ObjectEditorState extends Equatable {
     conflictFieldIds: conflictFieldIds ?? this.conflictFieldIds,
     remoteDeleted: remoteDeleted ?? this.remoteDeleted,
     references: references ?? this.references,
-    savedId: savedId ?? this.savedId,
+    savedObject: savedObject ?? this.savedObject,
   );
 
   @override
@@ -162,6 +165,6 @@ class ObjectEditorState extends Equatable {
     conflictFieldIds,
     remoteDeleted,
     references,
-    savedId,
+    savedObject,
   ];
 }

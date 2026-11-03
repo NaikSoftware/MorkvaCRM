@@ -14,7 +14,6 @@ export 'modes/table_mode.dart';
 export 'modes/view_mode.dart';
 export 'widgets/filter_builder.dart';
 export 'widgets/object_card.dart';
-export 'widgets/object_detail_sheet.dart';
 export 'widgets/option_pill.dart';
 export 'widgets/quick_add_dialog.dart';
 export 'widgets/sort_menu.dart';

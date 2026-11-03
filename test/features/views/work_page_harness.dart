@@ -77,15 +77,18 @@ Future<CollectionViewsCubit> pumpWorkPage(
   addTearDown(router.dispose);
 
   await tester.pumpWidget(
-    MultiBlocProvider(
-      providers: [
-        BlocProvider.value(value: sync),
-        BlocProvider.value(value: nav),
-      ],
-      child: MaterialApp.router(
-        theme: AppTheme.light,
-        routerConfig: router,
-        debugShowCheckedModeBanner: false,
+    RepositoryProvider<DataRepository>.value(
+      value: repo,
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider.value(value: sync),
+          BlocProvider.value(value: nav),
+        ],
+        child: MaterialApp.router(
+          theme: AppTheme.light,
+          routerConfig: router,
+          debugShowCheckedModeBanner: false,
+        ),
       ),
     ),
   );
