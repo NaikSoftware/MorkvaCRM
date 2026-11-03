@@ -23,8 +23,10 @@ create new objects with the same form. Replaces Epic 4's read-only `ObjectDetail
 ## Surface (my call)
 
 One widget, `ObjectEditor`, hosted by width:
-- **≥ 840 px (expanded):** a **side panel** sliding in from the right, 560 px wide, over a scrim;
-  the view stays visible on the left (context while editing a board/table row).
+- **≥ 840 px (expanded):** a **centered dialog** (owner's call, 2026-11-04 — replaced the first
+  560 px side panel), up to 720 px wide, 28 px corners, sized to the form and scrolling inside up
+  to the viewport; fade + slight scale in; the same dark scrim as other dialogs (`Colors.black54`
+  — a theme color such as `onSurface` turns into a light wash in dark mode).
 - **< 840 px:** a **full-screen page** (dialog route) with a top app bar (close ✕, title, Save).
 
 Opened from: tapping an object in any mode (edit); the main "+ New ⟨item⟩" button / phone FAB
@@ -40,11 +42,11 @@ No deep-link route (YAGNI; views own navigation today).
   in create mode), and "Created · Updated" timestamps (edit mode, muted).
 - Body: rendered from `Collection.layout` (Epic 3 card layout): **sections** (titled,
   collapsible, honoring `collapsed` as the initial state), **rows**, and **12-column spans**. On
-  the phone page and in the 560 px panel every cell stacks full width when the row would give a
+  the phone page and in a narrow dialog every cell stacks full width when the row would give a
   cell < 240 px (same rule as the card preview: narrow = stacked).
 - Each field: label (name, `*` when required), the type's editor, description as helper text,
   and the inline error line.
-- Footer (panel) / app bar (phone): **Delete** (edit mode; danger text button, left),
+- Footer (dialog) / app bar (phone): **Delete** (edit mode; danger text button, left),
   **Cancel**, **Save** (primary). Save shows a spinner while writing.
 
 ## Edit model
@@ -154,7 +156,7 @@ editor opens (all reference fields of the schema), so linked chips show titles a
   editors; registry fallback for an unknown type; the form renders layout sections/rows and
   stacks on narrow widths.
 - Flow: tap a row → edit → save → the table shows the new value; "+ New" → fill → save →
-  appears; invalid save blocked. E2E on the web app at the end (desktop panel + phone width).
+  appears; invalid save blocked. E2E on the web app at the end (desktop dialog + phone width).
 
 ## Out of scope
 

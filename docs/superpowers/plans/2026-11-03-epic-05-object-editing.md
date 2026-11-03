@@ -2,7 +2,7 @@
 
 Spec: `docs/superpowers/specs/2026-11-03-epic-05-object-editing-design.md`
 Mockups (Claude Design): https://claude.ai/artifact/NAZbLcgX6XmXAGXiUH8wSZ — copies in `docs/superpowers/mockups/epic-05/`; the
-artboards: `Main` (desktop side panel, edit), `Invalid` (save blocked + conflict banner),
+artboards: `Main` (desktop centered dialog, edit), `Invalid` (save blocked + conflict banner),
 `RefPicker` (desktop multi picker), `PhoneNew` (phone create page), `PhonePicker` (phone single
 picker sheet).
 Branch: `worktree-epic-05-object-editing` (worktree `.claude/worktrees/epic-05`).
@@ -54,13 +54,13 @@ Tasks run strictly in order; each ends with `flutter analyze` clean, its tests g
 - `ObjectEditor` widget: header, banners (errors count, conflict, deleted, save failed), layout
   sections (collapsible) / rows / spans with narrow stacking, field chrome (label, required `*`,
   changed dot, description, error line), footer / phone app bar; scroll to first error.
-- Hosts: `showObjectEditor(context, …)` → side panel ≥ 840 px (560 px, slide from right, scrim)
+- Hosts: `showObjectEditor(context, …)` → centered dialog ≥ 840 px (≤ 720 px, sized to the form, dark scrim) — was a side panel until 2026-11-04
   or full-screen dialog page; PopScope discard guard ("Discard changes?").
 - Wire into `collection_views_page.dart`: open object → editor (edit); main "+ New" / FAB →
   editor (create); QuickAddDialog gets "Add details" → editor with title + prefill. Delete →
   existing `cubit.deleteObject` + Undo snackbar. Remove `ObjectDetailSheet` and its tests.
 - Widget/flow tests: edit → save → table shows value; create → appears; invalid save blocked;
-  discard guard; panel vs page by width.
+  discard guard; dialog vs page by width.
 
 ## Task 5 — File attachments
 - Deps: `firebase_storage`, `file_picker`. `lib/api/files/attachment_store.dart` interface +

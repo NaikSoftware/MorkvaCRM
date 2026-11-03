@@ -126,11 +126,15 @@ Finder get _fields => _inEditor(find.byType(TextField));
 
 void main() {
   group('layout', () {
-    testWidgets('panel: 560 px, side-by-side row, collapsed section', (
-      tester,
-    ) async {
+    testWidgets('dialog: centered, 720 px max, side-by-side row, collapsed '
+        'section', (tester) async {
       await _open(tester, collection: _laidOut);
-      expect(tester.getSize(find.byType(ObjectEditor)).width, 560);
+      final rect = tester.getRect(find.byType(ObjectEditor));
+      final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
+      expect(rect.width, kObjectEditorDialogMaxWidth);
+      expect(rect.center.dx, closeTo(screen.width / 2, 1));
+      // Sized to the form, not stretched to the viewport.
+      expect(rect.height, lessThan(screen.height - 64));
       expect(find.byType(AppBar), findsNothing);
       final name = tester.getTopLeft(_fields.at(0));
       final amount = tester.getTopLeft(_fields.at(1));

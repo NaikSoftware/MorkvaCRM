@@ -32,12 +32,13 @@ final class ObjectEditorDeleted extends ObjectEditorResult {
   const ObjectEditorDeleted();
 }
 
-/// Width of the side panel on wide screens.
-const double kObjectEditorPanelWidth = 560;
+/// Maximum width of the centered dialog on wide screens (room for two-column
+/// layout rows).
+const double kObjectEditorDialogMaxWidth = 720;
 
 /// Opens the object form: editing [object], or creating one (starting from
-/// [prefill]) when it is null. Wide screens get a 560 px side panel over a
-/// scrim; phones a full-screen page. [prefillNote] ("Filled from the Lead
+/// [prefill]) when it is null. Wide screens get a centered dialog that grows
+/// with the form up to the viewport; phones a full-screen page. [prefillNote] ("Filled from the Lead
 /// column") is the helper under each prefilled field besides the title.
 Future<ObjectEditorResult?> showObjectEditor(
   BuildContext context, {
@@ -81,34 +82,54 @@ Future<ObjectEditorResult?> showObjectEditor(
       ),
     );
   }
-  final scheme = Theme.of(context).colorScheme;
   final reduceMotion = MediaQuery.disableAnimationsOf(context);
   return showGeneralDialog<ObjectEditorResult>(
     context: context,
     barrierDismissible: true,
     barrierLabel: 'Close editor',
-    barrierColor: scheme.onSurface.withValues(alpha: 0.32),
+    // The same dark scrim as showDialog; a theme color like onSurface turns
+    // into a light wash in dark mode.
+    barrierColor: Colors.black54,
     transitionDuration: reduceMotion
         ? MotionDurations.none
-        : MotionDurations.slow,
-    pageBuilder: (context, _, _) => Align(
-      alignment: Alignment.centerRight,
-      child: Container(
-        width: kObjectEditorPanelWidth,
-        height: double.infinity,
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          boxShadow: MorkvaElevation.level3,
+        : MotionDurations.base,
+    pageBuilder: (context, _, _) => SafeArea(
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(Spacing.xl),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: kObjectEditorDialogMaxWidth,
+            ),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: Radii.fullAll,
+                boxShadow: MorkvaElevation.level3,
+              ),
+              child: Material(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: Radii.fullAll,
+                clipBehavior: Clip.antiAlias,
+                child: host(context),
+              ),
+            ),
+          ),
         ),
-        child: Material(type: MaterialType.transparency, child: host(context)),
       ),
     ),
-    transitionBuilder: (_, animation, _, child) => SlideTransition(
-      position: Tween(begin: const Offset(1, 0), end: Offset.zero).animate(
-        CurvedAnimation(parent: animation, curve: MotionCurves.emphasized),
-      ),
-      child: child,
-    ),
+    transitionBuilder: (_, animation, _, child) {
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: MotionCurves.emphasized,
+      );
+      return FadeTransition(
+        opacity: curved,
+        child: ScaleTransition(
+          scale: Tween(begin: 0.96, end: 1.0).animate(curved),
+          child: child,
+        ),
+      );
+    },
   );
 }
 
@@ -192,7 +213,7 @@ class ObjectEditor extends StatefulWidget {
     this.prefilledIds = const {},
   });
 
-  /// Phone page (app bar) instead of the side panel (header + footer).
+  /// Phone page (app bar) instead of the dialog (header + footer).
   final bool compact;
   final String? prefillNote;
 
@@ -277,6 +298,8 @@ class _ObjectEditorState extends State<ObjectEditor> {
         final sections = layout.sections;
         final form = ListView(
           controller: _scroll,
+          // The dialog sizes to the form, up to the viewport.
+          shrinkWrap: !widget.compact,
           padding: EdgeInsets.fromLTRB(gutter, Spacing.md, gutter, Spacing.lg),
           children: [
             for (final section in sections)
@@ -319,10 +342,14 @@ class _ObjectEditorState extends State<ObjectEditor> {
           ],
         );
         final body = Column(
+          mainAxisSize: widget.compact ? MainAxisSize.max : MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _Banners(state: state, gutter: gutter),
-            Expanded(child: form),
+            Flexible(
+              fit: widget.compact ? FlexFit.tight : FlexFit.loose,
+              child: form,
+            ),
           ],
         );
         final saveLabel = state.isUploading
@@ -368,10 +395,11 @@ class _ObjectEditorState extends State<ObjectEditor> {
           );
         }
         return Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _Header(state: state, onClose: _closeFor(state)),
-            Expanded(child: body),
+            Flexible(child: body),
             _Footer(
               saveLabel: saveLabel,
               saving: state.isSaving,
