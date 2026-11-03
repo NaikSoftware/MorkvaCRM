@@ -299,6 +299,8 @@ class DashedRRect extends StatelessWidget {
     required this.color,
     this.strokeWidth = 1,
     this.fill,
+    this.radius = Radii.md,
+    this.width = double.infinity,
     this.height,
     this.child,
   });
@@ -306,6 +308,10 @@ class DashedRRect extends StatelessWidget {
   final Color color;
   final double strokeWidth;
   final Color? fill;
+  final double radius;
+
+  /// Full width by default; null sizes to [child].
+  final double? width;
   final double? height;
   final Widget? child;
 
@@ -315,8 +321,9 @@ class DashedRRect extends StatelessWidget {
       color: color,
       strokeWidth: strokeWidth,
       fill: fill,
+      radius: radius,
     ),
-    child: SizedBox(width: double.infinity, height: height, child: child),
+    child: SizedBox(width: width, height: height, child: child),
   );
 }
 
@@ -324,18 +331,20 @@ class _DashedRRectPainter extends CustomPainter {
   const _DashedRRectPainter({
     required this.color,
     required this.strokeWidth,
+    required this.radius,
     this.fill,
   });
 
   final Color color;
   final double strokeWidth;
+  final double radius;
   final Color? fill;
 
   @override
   void paint(Canvas canvas, Size size) {
     final rrect = RRect.fromRectAndRadius(
       (Offset.zero & size).deflate(strokeWidth / 2),
-      const Radius.circular(Radii.md),
+      Radius.circular(radius),
     );
     if (fill case final fill?) {
       canvas.drawRRect(rrect, Paint()..color = fill);
@@ -354,5 +363,8 @@ class _DashedRRectPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_DashedRRectPainter old) =>
-      old.color != color || old.strokeWidth != strokeWidth || old.fill != fill;
+      old.color != color ||
+      old.strokeWidth != strokeWidth ||
+      old.radius != radius ||
+      old.fill != fill;
 }

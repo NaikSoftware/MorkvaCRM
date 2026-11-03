@@ -23,6 +23,7 @@ class EditorHarness {
     String? error,
     bool enabled = true,
     ReferenceChoices references = ReferenceChoices.none,
+    AttachmentActions? attachments,
   }) async {
     final editor = (registry ?? defaultValueEditorRegistry()).editorFor(
       field.type,
@@ -44,6 +45,7 @@ class EditorHarness {
                       error: error,
                       enabled: enabled,
                       references: references,
+                      attachments: attachments,
                       onChanged: (v) => setState(() {
                         value = v;
                         changes.add(v);

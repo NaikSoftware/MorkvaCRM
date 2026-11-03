@@ -11,6 +11,7 @@ export 'auth/auth_cubit.dart';
 export 'auth/auth_repository.dart';
 export 'auth/auth_user.dart';
 export 'data/data_repository.dart';
+export 'files/attachment_store.dart';
 export 'firestore/firestore_refs.dart';
 export 'firestore/firestore_value_codec.dart';
 export 'sync/sync_status.dart';

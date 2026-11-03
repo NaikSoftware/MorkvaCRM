@@ -1,6 +1,7 @@
 import 'boolean_value_editor.dart';
 import 'date_value_editor.dart';
 import 'field_value_editor.dart';
+import 'file_value_editor.dart';
 import 'number_value_editor.dart';
 import 'read_only_value_editors.dart';
 import 'reference_value_editor.dart';
@@ -9,7 +10,7 @@ import 'text_value_editor.dart';
 
 /// Registers a [FieldValueEditor] for every built-in field type that has one.
 /// Adding a type is one line here; the form dispatches through the registry.
-/// Types without a line (file, until its epic task) get the read-only fallback.
+/// Types without a line get the read-only fallback.
 void registerBuiltInValueEditors(FieldValueEditorRegistry registry) {
   registry.register(const TextValueEditor());
   registry.register(const NumberValueEditor());
@@ -18,6 +19,7 @@ void registerBuiltInValueEditors(FieldValueEditorRegistry registry) {
   registry.register(const SingleSelectValueEditor());
   registry.register(const MultiSelectValueEditor());
   registry.register(const ReferenceValueEditor());
+  registry.register(const FileValueEditor());
   registry.register(const AutoNumberValueEditor());
   registry.register(const CalculatedValueEditor());
 }

@@ -11,7 +11,7 @@ Finder get _input => find.byType(TextField).first;
 
 void main() {
   group('registry', () {
-    test('every built-in type but file has an editor', () {
+    test('every built-in type has an editor', () {
       final registry = defaultValueEditorRegistry();
       for (final type in [
         kTextFieldType,
@@ -20,6 +20,7 @@ void main() {
         kDateFieldType,
         kAutoNumberFieldType,
         kCalculatedFieldType,
+        kFileFieldType,
       ]) {
         expect(registry.forType(type)?.typeId, type);
       }

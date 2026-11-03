@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../api/data/data_repository.dart';
+import '../../api/files/attachment_store.dart';
 import '../../app/shell/app_shell.dart';
 import '../../core/domain/domain.dart';
 import '../../design/design.dart';
@@ -46,6 +48,7 @@ Future<ObjectEditorResult?> showObjectEditor(
   String? titleFieldId,
 }) {
   final repository = context.read<DataRepository>();
+  final attachments = _attachmentStoreOf(context);
   final wide = MediaQuery.sizeOf(context).width >= AppShell.expandedBreakpoint;
   Widget host(BuildContext _) => BlocProvider(
     create: (_) {
@@ -55,6 +58,7 @@ Future<ObjectEditorResult?> showObjectEditor(
         object: object,
         prefill: prefill,
         titleFieldId: titleFieldId,
+        attachments: attachments,
       );
       unawaited(cubit.initialize());
       return cubit;
@@ -106,6 +110,16 @@ Future<ObjectEditorResult?> showObjectEditor(
       child: child,
     ),
   );
+}
+
+/// The app's [AttachmentStore], or null where none is provided (file fields
+/// then can't upload).
+AttachmentStore? _attachmentStoreOf(BuildContext context) {
+  try {
+    return context.read<AttachmentStore>();
+  } on ProviderNotFoundException {
+    return null;
+  }
 }
 
 /// Closes on save/delete with the result; guards closing over unsaved
@@ -301,7 +315,12 @@ class _ObjectEditorState extends State<ObjectEditor> {
             Expanded(child: form),
           ],
         );
-        final saveLabel = state.remoteDeleted ? 'Save as new' : 'Save';
+        final saveLabel = state.isUploading
+            ? 'Uploading…'
+            : state.remoteDeleted
+            ? 'Save as new'
+            : 'Save';
+        final onSave = state.isUploading ? null : _save;
         if (widget.compact) {
           final theme = Theme.of(context);
           return Scaffold(
@@ -330,7 +349,7 @@ class _ObjectEditorState extends State<ObjectEditor> {
                   child: PrimaryButton(
                     label: saveLabel,
                     loading: state.isSaving,
-                    onPressed: _save,
+                    onPressed: onSave,
                   ),
                 ),
               ],
@@ -346,7 +365,7 @@ class _ObjectEditorState extends State<ObjectEditor> {
             _Footer(
               saveLabel: saveLabel,
               saving: state.isSaving,
-              onSave: _save,
+              onSave: onSave,
               onCancel: _close,
               onDelete: state.isCreate || state.remoteDeleted
                   ? null
@@ -458,7 +477,7 @@ class _Footer extends StatelessWidget {
 
   final String saveLabel;
   final bool saving;
-  final VoidCallback onSave;
+  final VoidCallback? onSave;
   final VoidCallback onCancel;
   final VoidCallback? onDelete;
 
@@ -788,6 +807,7 @@ class _FieldCell extends StatelessWidget {
     final scheme = theme.colorScheme;
     final cubit = context.read<ObjectEditorCubit>();
     final changed = !state.isCreate && state.changedFieldIds.contains(field.id);
+    final message = error ?? state.uploadErrors[field.id];
     final helpStyle = theme.textTheme.bodySmall?.copyWith(
       color: scheme.onSurfaceVariant,
     );
@@ -854,6 +874,16 @@ class _FieldCell extends StatelessWidget {
                 error: error,
                 enabled: !state.isSaving,
                 references: state.references,
+                attachments: field is FileFieldDefinition && cubit.canUpload
+                    ? AttachmentActions(
+                        upload: (files) => cubit.upload(field.id, files),
+                        open: (a) => _openAttachment(context, cubit, a),
+                        uploads: [
+                          for (final u in state.uploads)
+                            if (u.fieldId == field.id) u,
+                        ],
+                      )
+                    : null,
                 onChanged: (value) {
                   cubit.change(field.id, value);
                   // Pickers never hold focus: they count as visited at once.
@@ -865,7 +895,7 @@ class _FieldCell extends StatelessWidget {
             ),
           ),
         ),
-        if (error != null) ...[
+        if (message != null) ...[
           const SizedBox(height: Spacing.xxs),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -874,7 +904,7 @@ class _FieldCell extends StatelessWidget {
               const SizedBox(width: Spacing.xxs),
               Expanded(
                 child: Text(
-                  error!,
+                  message,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: scheme.error,
                     fontWeight: FontWeight.w500,
@@ -890,4 +920,23 @@ class _FieldCell extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Opens [attachment]'s download URL in a new tab / external app; a failure
+/// shows "Couldn't open ⟨name⟩".
+Future<void> _openAttachment(
+  BuildContext context,
+  ObjectEditorCubit cubit,
+  FileAttachment attachment,
+) async {
+  final messenger = ScaffoldMessenger.maybeOf(context);
+  try {
+    final url = await cubit.downloadUrl(attachment);
+    if (await launchUrl(url, mode: LaunchMode.externalApplication)) return;
+  } catch (_) {
+    // Reported below.
+  }
+  messenger?.showSnackBar(
+    SnackBar(content: Text("Couldn't open ${attachment.name}")),
+  );
 }

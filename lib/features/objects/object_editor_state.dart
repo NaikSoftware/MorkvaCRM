@@ -24,6 +24,8 @@ class ObjectEditorState extends Equatable {
     this.conflictFieldIds = const {},
     this.remoteDeleted = false,
     this.references = ReferenceChoices.none,
+    this.uploads = const [],
+    this.uploadErrors = const {},
     this.savedObject,
   });
 
@@ -63,6 +65,12 @@ class ObjectEditorState extends Equatable {
 
   final ReferenceChoices references;
 
+  /// File uploads in flight; Save waits for them.
+  final List<PendingUpload> uploads;
+
+  /// "Couldn't upload ⟨name⟩" by field id, until the field's next upload.
+  final Map<String, String> uploadErrors;
+
   /// The object as it is after the last successful save (whole, even when
   /// only changed keys were written).
   final MorkvaObject? savedObject;
@@ -72,6 +80,8 @@ class ObjectEditorState extends Equatable {
   bool get isCreate => stored == null;
 
   bool get isSaving => status == ObjectEditorStatus.saving;
+
+  bool get isUploading => uploads.isNotEmpty;
 
   /// The value the form shows for [field]: draft ?? stored ?? prefill ?? empty.
   FieldValue valueOf(FieldDefinition field) =>
@@ -86,7 +96,7 @@ class ObjectEditorState extends Equatable {
   bool get hasUnsavedChanges =>
       status != ObjectEditorStatus.saved &&
       status != ObjectEditorStatus.deleted &&
-      (draft.isNotEmpty || inputErrors.isNotEmpty);
+      (draft.isNotEmpty || inputErrors.isNotEmpty || isUploading);
 
   /// Every current error (input error first, else the first rule broken),
   /// whether shown yet or not.
@@ -132,6 +142,8 @@ class ObjectEditorState extends Equatable {
     Set<String>? conflictFieldIds,
     bool? remoteDeleted,
     ReferenceChoices? references,
+    List<PendingUpload>? uploads,
+    Map<String, String>? uploadErrors,
     MorkvaObject? savedObject,
   }) => ObjectEditorState(
     collection: collection,
@@ -147,6 +159,8 @@ class ObjectEditorState extends Equatable {
     conflictFieldIds: conflictFieldIds ?? this.conflictFieldIds,
     remoteDeleted: remoteDeleted ?? this.remoteDeleted,
     references: references ?? this.references,
+    uploads: uploads ?? this.uploads,
+    uploadErrors: uploadErrors ?? this.uploadErrors,
     savedObject: savedObject ?? this.savedObject,
   );
 
@@ -165,6 +179,8 @@ class ObjectEditorState extends Equatable {
     conflictFieldIds,
     remoteDeleted,
     references,
+    uploads,
+    uploadErrors,
     savedObject,
   ];
 }

@@ -12,6 +12,7 @@ import '../api/api.dart';
 // production defaults.
 import '../api/auth/firestore_auth_repository.dart';
 import '../api/data/firestore_data_repository.dart';
+import '../api/files/firebase_attachment_store.dart';
 import '../design/design.dart';
 import 'navigation/navigation_cubit.dart';
 import 'router/app_router.dart';
@@ -56,6 +57,7 @@ class MorkvaApp extends StatefulWidget {
     this.dataRepository,
     this.syncStatusCubit,
     this.workspaceResolver,
+    this.attachmentStore,
   });
 
   /// Auth backend; defaults to [FirestoreAuthRepository].
@@ -71,6 +73,9 @@ class MorkvaApp extends StatefulWidget {
 
   /// Maps a uid to its workspace id; defaults to [UidWorkspaceResolver].
   final WorkspaceResolver? workspaceResolver;
+
+  /// File-field blob store; defaults to [FirebaseAttachmentStore].
+  final AttachmentStore? attachmentStore;
 
   @override
   State<MorkvaApp> createState() => _MorkvaAppState();
@@ -90,6 +95,8 @@ class _MorkvaAppState extends State<MorkvaApp> {
         firestore: FirebaseFirestore.instance,
         syncStatus: _syncStatusCubit,
       );
+  late final AttachmentStore _attachmentStore =
+      widget.attachmentStore ?? FirebaseAttachmentStore();
   late final WorkspaceResolver _workspaceResolver =
       widget.workspaceResolver ?? const UidWorkspaceResolver();
 
@@ -120,6 +127,7 @@ class _MorkvaAppState extends State<MorkvaApp> {
           // the auth state may have changed again — bail if either happened.
           if (!mounted || _initializedWorkspaceId == workspaceId) return;
           _initializedWorkspaceId = workspaceId;
+          _attachmentStore.initialize(workspaceId);
           await _dataRepository.initialize(workspaceId);
 
           // Re-check after the async gap: a sign-out (or a switch to a
@@ -180,6 +188,7 @@ class _MorkvaAppState extends State<MorkvaApp> {
       providers: [
         RepositoryProvider<AuthRepository>.value(value: _authRepository),
         RepositoryProvider<DataRepository>.value(value: _dataRepository),
+        RepositoryProvider<AttachmentStore>.value(value: _attachmentStore),
       ],
       child: MultiBlocProvider(
         providers: [

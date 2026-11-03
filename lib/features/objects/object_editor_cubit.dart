@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mime/mime.dart';
 
 import '../../api/data/data_repository.dart';
+import '../../api/files/attachment_store.dart';
 import '../../core/domain/domain.dart';
 import '../collections/util/id_generator.dart';
 import 'object_editor_state.dart';
@@ -28,9 +30,11 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
     Map<String, FieldValue> prefill = const {},
     String? titleFieldId,
     FieldValueEditorRegistry? editors,
+    AttachmentStore? attachments,
     IdGenerator? idGenerator,
     DateTime Function()? clock,
   }) : editors = editors ?? _defaultEditors,
+       _attachments = attachments,
        _ids = idGenerator ?? IdGenerator(),
        _now = clock ?? DateTime.now,
        super(
@@ -58,8 +62,12 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
 
   /// The value editors the form renders with (also decides read-only fields).
   final FieldValueEditorRegistry editors;
+  final AttachmentStore? _attachments;
   final IdGenerator _ids;
   final DateTime Function() _now;
+
+  /// Whether file fields can upload (a store was given).
+  bool get canUpload => _attachments != null;
 
   final List<StreamSubscription<List<MorkvaObject>>> _subs = [];
   final Map<String, List<MorkvaObject>> _targetObjects = {};
@@ -232,10 +240,99 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
       state.status == ObjectEditorStatus.deleted ||
       state.readOnlyFieldIds.contains(fieldId);
 
+  /// Uploads [files] into file field [fieldId]: each shows as a pending
+  /// upload, then joins the draft (replacing the file on a single-file
+  /// field). A failure leaves the value as it was and sets the field's
+  /// "Couldn't upload ⟨name⟩".
+  Future<void> upload(String fieldId, List<PickedFile> files) async {
+    final store = _attachments;
+    final field = _collection.fieldById(fieldId);
+    if (store == null || field is! FileFieldDefinition || _isInert(fieldId)) {
+      return;
+    }
+    if (files.isEmpty) return;
+    emit(
+      state.copyWith(uploadErrors: {...state.uploadErrors}..remove(fieldId)),
+    );
+    await Future.wait([
+      for (final file in field.multiple ? files : files.take(1))
+        _uploadOne(store, field, file),
+    ]);
+  }
+
+  Future<void> _uploadOne(
+    AttachmentStore store,
+    FileFieldDefinition field,
+    PickedFile file,
+  ) async {
+    final pending = PendingUpload(
+      id: _ids.attachmentId(),
+      fieldId: field.id,
+      name: file.name,
+    );
+    emit(state.copyWith(uploads: [...state.uploads, pending]));
+    FileAttachment? done;
+    var message = "Couldn't upload ${file.name}";
+    if (file.bytes.length >= kMaxAttachmentBytes) {
+      message = "Couldn't upload ${file.name}: files must be under 25 MB";
+    } else {
+      try {
+        done = await store.upload(
+          id: pending.id,
+          fileName: file.name,
+          bytes: file.bytes,
+          mimeType: lookupMimeType(file.name),
+          onProgress: (p) => _setProgress(pending.id, p),
+        );
+      } catch (_) {
+        // Shown as the field's error below; the form keeps working.
+      }
+    }
+    if (isClosed) return;
+    if (done != null) {
+      final current = (state.valueOf(field) as FileFieldValue).attachments;
+      change(
+        field.id,
+        FileFieldValue(field.multiple ? [...current, done] : [done]),
+      );
+      touch(field.id);
+    }
+    emit(
+      state.copyWith(
+        uploads: [
+          for (final u in state.uploads)
+            if (u.id != pending.id) u,
+        ],
+        uploadErrors: done == null
+            ? {...state.uploadErrors, field.id: message}
+            : null,
+      ),
+    );
+  }
+
+  void _setProgress(String uploadId, double progress) {
+    if (isClosed) return;
+    emit(
+      state.copyWith(
+        uploads: [
+          for (final u in state.uploads)
+            u.id == uploadId ? u.withProgress(progress) : u,
+        ],
+      ),
+    );
+  }
+
+  /// Where [attachment] can be opened; throws when Storage fails.
+  Future<Uri> downloadUrl(FileAttachment attachment) {
+    final store = _attachments;
+    if (store == null) throw StateError('No attachment store');
+    return store.downloadUrl(attachment);
+  }
+
   /// Validates and writes the draft. Returns whether the object is saved;
   /// false when errors block it (all errors then show) or the write failed.
   Future<bool> save() async {
-    if (isClosed || state.isSaving) return false;
+    if (isClosed || state.isSaving || state.isUploading) return false;
     if (state.status == ObjectEditorStatus.saved) return true;
     if (state.status == ObjectEditorStatus.deleted) return false;
     final checked = state.copyWith(showAllErrors: true);

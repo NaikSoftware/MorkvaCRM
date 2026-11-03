@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter/widgets.dart';
 
@@ -166,16 +168,49 @@ class ReferenceChoices extends Equatable {
   List<Object?> get props => [targets, labels, secondary];
 }
 
-/// File-field actions the form provides. Removing an attachment is a plain
-/// [ValueEditorContext.onChanged] with the shorter list.
-// shortcut: provisional shape — Task 5 (file attachments) owns this seam and
-// may add upload progress.
-abstract interface class AttachmentActions {
-  /// Picks files for [field] and uploads them into the draft.
-  Future<void> upload(FileFieldDefinition field);
+/// A file the user picked, read into memory, ready to upload.
+typedef PickedFile = ({String name, Uint8List bytes});
 
-  /// Opens [attachment] (download URL in a new tab / viewer).
-  Future<void> open(FileAttachment attachment);
+/// A file of one field being uploaded; [progress] runs 0…1.
+class PendingUpload extends Equatable {
+  const PendingUpload({
+    required this.id,
+    required this.fieldId,
+    required this.name,
+    this.progress = 0,
+  });
+
+  final String id;
+  final String fieldId;
+  final String name;
+  final double progress;
+
+  PendingUpload withProgress(double progress) =>
+      PendingUpload(id: id, fieldId: fieldId, name: name, progress: progress);
+
+  @override
+  List<Object?> get props => [id, fieldId, name, progress];
+}
+
+/// File-field actions and uploads in flight for one field. Removing an
+/// attachment is a plain [ValueEditorContext.onChanged] with the shorter
+/// list; a failed upload's message is the form's error line.
+class AttachmentActions {
+  const AttachmentActions({
+    required this.upload,
+    required this.open,
+    this.uploads = const [],
+  });
+
+  /// Uploads picked files into the field (appends, or replaces on a
+  /// single-file field).
+  final ValueChanged<List<PickedFile>> upload;
+
+  /// Opens an attachment (download URL in a new tab / external app).
+  final ValueChanged<FileAttachment> open;
+
+  /// This field's uploads in flight.
+  final List<PendingUpload> uploads;
 }
 
 /// Maps field-type discriminators to their [FieldValueEditor]s. The value-side
