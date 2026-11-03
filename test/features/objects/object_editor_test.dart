@@ -197,6 +197,22 @@ void main() {
       expect(dot, findsOneWidget);
       await tester.tap(_inEditor(find.text('Delete')));
       await tester.pumpAndSettle();
+      // Asks first; Cancel keeps the editor open.
+      expect(find.text('Delete deal?'), findsOneWidget);
+      await tester.tap(find.text('Cancel').last);
+      await tester.pumpAndSettle();
+      expect(_result, isNull);
+      expect(find.byType(ObjectEditor), findsOneWidget);
+
+      await tester.tap(_inEditor(find.text('Delete')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(MorkvaConfirmDialog),
+          matching: find.text('Delete'),
+        ),
+      );
+      await tester.pumpAndSettle();
       expect(_result, isA<ObjectEditorDeleted>());
     });
   });

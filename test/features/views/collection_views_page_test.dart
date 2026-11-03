@@ -430,6 +430,13 @@ void main() {
 
       await tester.tap(inEditor(find.text('Delete')));
       await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(MorkvaConfirmDialog),
+          matching: find.text('Delete'),
+        ),
+      );
+      await tester.pumpAndSettle();
       expect(find.byType(ObjectEditor), findsNothing);
       expect(find.text('Globex pilot'), findsNothing);
       expect(find.text('Deleted "Globex pilot"'), findsOneWidget);
@@ -444,6 +451,13 @@ void main() {
       await tester.tap(find.text('Globex pilot'));
       await tester.pumpAndSettle();
       await tester.tap(inEditor(find.text('Delete')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(MorkvaConfirmDialog),
+          matching: find.text('Delete'),
+        ),
+      );
       await tester.pumpAndSettle();
       expect(find.text('Deleted "Globex pilot"'), findsOneWidget);
 

@@ -257,6 +257,21 @@ class _ObjectEditorState extends State<ObjectEditor> {
     _revealFirstError(cubit.state);
   }
 
+  /// Asks before deleting; the views page still offers Undo afterwards.
+  Future<void> _delete() async {
+    final cubit = context.read<ObjectEditorCubit>();
+    final state = cubit.state;
+    final item = itemLabelOf(state.collection);
+    final confirmed = await MorkvaConfirmDialog.show(
+      context,
+      title: 'Delete $item?',
+      message: '"${state.title}" will be deleted.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    );
+    if (confirmed == true && mounted) cubit.requestDelete();
+  }
+
   /// Expands the section holding the first invalid field and scrolls to it.
   void _revealFirstError(ObjectEditorState state) {
     final errors = state.visibleErrors;
@@ -335,7 +350,7 @@ class _ObjectEditorState extends State<ObjectEditor> {
                 alignment: Alignment.centerLeft,
                 child: _DeleteButton(
                   label: 'Delete ${itemLabelOf(state.collection)}',
-                  onPressed: state.isSaving ? null : cubit.requestDelete,
+                  onPressed: state.isSaving ? null : _delete,
                 ),
               ),
             ],
@@ -416,9 +431,7 @@ class _ObjectEditorState extends State<ObjectEditor> {
               saving: state.isSaving,
               onSave: onSave,
               onCancel: _closeFor(state),
-              onDelete: state.isCreate || state.remoteDeleted
-                  ? null
-                  : cubit.requestDelete,
+              onDelete: state.isCreate || state.remoteDeleted ? null : _delete,
             ),
           ],
         );

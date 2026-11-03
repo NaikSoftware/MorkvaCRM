@@ -64,9 +64,9 @@ No deep-link route (YAGNI; views own navigation today).
   If a *dirty* field changes elsewhere, a banner warns "⟨Field⟩ was changed elsewhere — saving
   will overwrite it" (Epic 2's last-write-wins + visible warning). If the object is deleted
   elsewhere: banner "This ⟨item⟩ was deleted", Save becomes "Save as new" (restores it).
-- **Delete** (edit mode): closes the editor and returns `deleted`; the views page runs the
-  existing `cubit.deleteObject` with the Undo snackbar (no confirm dialog — Undo is the safety net,
-  as in Epic 4).
+- **Delete** (edit mode): asks first ("Delete ⟨item⟩?" — owner's call, 2026-11-04), then closes
+  the editor and returns `deleted`; the views page runs `cubit.deleteObject` with the Undo
+  snackbar (which expires after 5 s).
 - After a successful save the editor closes and the views page shows "Saved" only when the saved
   object is hidden by the active filters ("Saved — hidden by the filters"), like quick add.
 
