@@ -538,8 +538,9 @@ class _AnimatedWidth extends StatelessWidget {
   );
 }
 
-/// A collapsed column: one button the board's height, with the expand icon,
-/// the colour dot, a count badge, then the name written top to bottom. Tints like a column while a card hovers it.
+/// A collapsed column: one button hugging the expand icon, the colour dot, a
+/// count badge and the name written top to bottom (ellipsized at the board's
+/// height). Tints like a column while a card hovers it.
 class _CollapsedStrip extends StatelessWidget {
   const _CollapsedStrip({
     required this.group,
@@ -568,6 +569,8 @@ class _CollapsedStrip extends StatelessWidget {
     return Semantics(
       button: true,
       label: 'Expand ${group.label}, $summary',
+      // Excluding the InkWell's semantics drops its tap: re-add it.
+      onTap: onExpand,
       excludeSemantics: true,
       child: Material(
         color: hovered
@@ -586,10 +589,10 @@ class _CollapsedStrip extends StatelessWidget {
           onTap: onExpand,
           child: SizedBox(
             width: BoardColumn.collapsedWidth,
-            height: double.infinity,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(0, Spacing.xs, 0, Spacing.md),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   SizedBox.square(
                     dimension: 32,

@@ -208,6 +208,10 @@ void main() {
       of: find.byKey(const ValueKey('column-expand')),
       matching: _column(label),
     );
+    Finder expandButton(String label) => find.descendant(
+      of: strip(label),
+      matching: find.byKey(const ValueKey('column-expand')),
+    );
 
     testWidgets('header icon collapses to a vertical strip; tap expands', (
       tester,
@@ -238,12 +242,50 @@ void main() {
         BoardColumn.collapsedWidth + 16,
       );
 
-      await tester.tap(strip('Lead'));
+      await tester.tap(expandButton('Lead'));
       await tester.pumpAndSettle();
       expect(_ready(cubit).activeView.collapsedGroups, isEmpty);
       expect(tester.getSize(_column('Lead')).width, BoardColumn.defaultWidth);
       expect(_titlesIn('Lead'), ['d1', 'd3']);
       semantics.dispose();
+    });
+
+    testWidgets('a mouse click on the strip expands it (web)', (tester) async {
+      final cubit = await _pumpBoard(tester);
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await mouse.addPointer(location: Offset.zero);
+      addTearDown(mouse.removePointer);
+      Future<void> click(Offset at) async {
+        await mouse.moveTo(at);
+        await tester.pump();
+        await mouse.down(at);
+        await tester.pump();
+        await mouse.up();
+        await tester.pumpAndSettle();
+      }
+
+      await click(tester.getCenter(find.byTooltip('Collapse Lead')));
+      expect(_ready(cubit).activeView.collapsedGroups, ['lead']);
+      // The strip hugs its content, top-aligned with the columns.
+      final stripBox = tester.getRect(expandButton('Lead'));
+      expect(stripBox.top, tester.getRect(_column('Won')).top);
+      expect(stripBox.height, lessThan(tester.getSize(_board()).height / 2));
+
+      // On the vertical name, then (collapsed again) on the expand icon.
+      await click(tester.getCenter(find.text('Lead')));
+      expect(_ready(cubit).activeView.collapsedGroups, isEmpty);
+      expect(tester.getSize(_column('Lead')).width, BoardColumn.defaultWidth);
+
+      await click(tester.getCenter(find.byTooltip('Collapse Lead')));
+      await click(
+        tester.getCenter(
+          find.descendant(
+            of: strip('Lead'),
+            matching: find.byIcon(Icons.unfold_more),
+          ),
+        ),
+      );
+      expect(_ready(cubit).activeView.collapsedGroups, isEmpty);
     });
 
     testWidgets('empty and "No" groups say so in the strip label', (
