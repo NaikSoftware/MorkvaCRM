@@ -237,6 +237,29 @@ void main() {
       expect(repo.saveViewsCount, saves + 1);
     });
 
+    test(
+      'toggleGroupCollapsed persists the active view via saveViews',
+      () async {
+        final c = await ready();
+        c.selectView('board');
+        await c.toggleGroupCollapsed('won');
+        await c.toggleGroupCollapsed(null);
+        expect(stateOf(c).activeView.collapsedGroups, ['won', '@none']);
+        expect(repo.saveViewsCount, 2);
+        final saved = (await repo.getCollection('deals'))!.views;
+        expect(saved.firstWhere((v) => v.id == 'board').collapsedGroups, [
+          'won',
+          '@none',
+        ]);
+        // The other view is untouched.
+        expect(saved.firstWhere((v) => v.id == 'all').collapsedGroups, isEmpty);
+
+        await c.toggleGroupCollapsed('won');
+        expect(stateOf(c).activeView.collapsedGroups, ['@none']);
+        expect(stateOf(c).activeView.isGroupCollapsed(null), isTrue);
+      },
+    );
+
     test('an unchanged view is not saved again', () async {
       final c = await ready();
       await c.setFieldIds(tableView.fieldIds);

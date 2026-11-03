@@ -17,6 +17,7 @@ void main() {
     ],
     sort: ViewSort(fieldId: 'amount', ascending: false),
     manualOrder: ['b', 'a'],
+    collapsedGroups: ['o2', ViewDefinition.noGroupToken],
   );
 
   group('ViewDefinition JSON', () {
@@ -31,6 +32,8 @@ void main() {
       const bare = ViewDefinition(id: 'v', name: 'V');
       expect(bare.toJson().containsKey('sort'), isFalse);
       expect(bare.toJson().containsKey('layoutFieldId'), isFalse);
+      expect(bare.toJson().containsKey('collapsedGroups'), isFalse);
+      expect(full.toJson()['collapsedGroups'], ['o2', '@none']);
     });
 
     test('round-trips Firestore-style dynamic lists', () {
@@ -75,6 +78,21 @@ void main() {
       expect(view.filters, isEmpty);
       expect(view.sort, isNull);
       expect(view.manualOrder, isEmpty);
+      expect(view.collapsedGroups, isEmpty);
+    });
+
+    test('collapsed groups: the null group is the @none token', () {
+      final view = ViewDefinition.fromJson({
+        'id': 'v',
+        'name': 'V',
+        'collapsedGroups': <dynamic>['o2', '@none'],
+      });
+      expect(view.isGroupCollapsed('o2'), isTrue);
+      expect(view.isGroupCollapsed(null), isTrue);
+      expect(view.isGroupCollapsed('o1'), isFalse);
+      expect(view.reconcile(['name']).collapsedGroups, ['o2', '@none']);
+      expect(view.copyWith(name: 'W').collapsedGroups, ['o2', '@none']);
+      expect(view, isNot(view.copyWith(collapsedGroups: const [])));
     });
   });
 

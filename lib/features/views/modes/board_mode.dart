@@ -321,6 +321,7 @@ class _BoardViewState extends State<BoardView> {
     double width = BoardColumn.defaultWidth,
     VoidCallback? onJump,
     bool fill = false,
+    bool collapsible = false,
     Widget? footer,
   }) {
     final data = widget.data;
@@ -340,9 +341,11 @@ class _BoardViewState extends State<BoardView> {
       onOpen: data.openObject,
       onAdd: () => data.quickAdd(groupKey: group.key),
       onDrop: (drag, beforeId) => _drop(group, drag, beforeId),
-      onEditOptions: field is SingleSelectFieldDefinition
-          ? () => context.go(
-              '/collections/${collection.id}/edit?field=${field.id}',
+      // Phone (not collapsible) shows every column expanded.
+      collapsed: collapsible && state.activeView.isGroupCollapsed(group.key),
+      onToggleCollapsed: collapsible
+          ? () => context.read<CollectionViewsCubit>().toggleGroupCollapsed(
+              group.key,
             )
           : null,
       onDragStarted: (drag) => _drag = drag,
@@ -366,7 +369,7 @@ class _BoardViewState extends State<BoardView> {
         separatorBuilder: (_, _) => const SizedBox(width: Spacing.md),
         itemBuilder: (context, i) => Align(
           alignment: Alignment.topCenter,
-          child: _column(context, groups[i], field),
+          child: _column(context, groups[i], field, collapsible: true),
         ),
       ),
     ),

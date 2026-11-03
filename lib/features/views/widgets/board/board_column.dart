@@ -7,9 +7,11 @@ import '../../../../design/design.dart';
 import '../object_card.dart';
 import 'board_card_draggable.dart';
 
-/// One board column: header (colour dot, name, count, "+", ⋯) over its cards.
-/// A drop target: while a card hovers it, the column tints and a dashed ghost
-/// marks where the card will land. Counts change on drop only.
+/// One board column: header (colour dot, name, count, "+", collapse) over its
+/// cards. A drop target: while a card hovers it, the column tints and a dashed
+/// ghost marks where the card will land. Counts change on drop only.
+/// [collapsed], it is a narrow strip (name written vertically) that still
+/// takes drops, at the end of the group.
 class BoardColumn extends StatefulWidget {
   const BoardColumn({
     super.key,
@@ -23,7 +25,8 @@ class BoardColumn extends StatefulWidget {
     required this.onOpen,
     required this.onAdd,
     required this.onDrop,
-    this.onEditOptions,
+    this.collapsed = false,
+    this.onToggleCollapsed,
     this.onDragStarted,
     this.onJump,
     this.width = BoardColumn.defaultWidth,
@@ -32,6 +35,7 @@ class BoardColumn extends StatefulWidget {
   });
 
   static const double defaultWidth = 272;
+  static const double collapsedWidth = 48;
   static const double padding = Spacing.sm;
   static const double cardGap = Spacing.xs;
   static const double emptyHeight = 72;
@@ -58,8 +62,11 @@ class BoardColumn extends StatefulWidget {
   /// A card was dropped here, before [beforeId] (null = at the end).
   final void Function(BoardDrag drag, String? beforeId) onDrop;
 
-  /// Opens the field's options in Build (select fields only).
-  final VoidCallback? onEditOptions;
+  /// Drawn as the narrow strip; tapping it calls [onToggleCollapsed].
+  final bool collapsed;
+
+  /// Collapses / expands the column; null (phone) hides the control.
+  final VoidCallback? onToggleCollapsed;
 
   /// A card of this column was lifted.
   final ValueChanged<BoardDrag>? onDragStarted;
@@ -178,6 +185,11 @@ class _BoardColumnState extends State<BoardColumn> {
 
   void _accept(DragTargetDetails<BoardDrag> details) {
     final drag = details.data;
+    if (widget.collapsed) {
+      _clear();
+      widget.onDrop(drag, null);
+      return;
+    }
     final others = _others(drag);
     final index = (_insertAt ?? others.length).clamp(0, others.length);
     _clear();
@@ -196,12 +208,25 @@ class _BoardColumnState extends State<BoardColumn> {
     _drags.removeWhere((id, _) => !ids.contains(id));
 
     return DragTarget<BoardDrag>(
-      onMove: _move,
+      // A strip has no cards to place the ghost among.
+      onMove: (details) => widget.collapsed ? null : _move(details),
       onLeave: (_) => _clear(),
       onAcceptWithDetails: _accept,
       builder: (context, candidates, _) {
         final drag = candidates.whereType<BoardDrag>().firstOrNull;
         final hovered = drag != null;
+        if (widget.collapsed) {
+          return _AnimatedWidth(
+            width: BoardColumn.collapsedWidth,
+            child: _CollapsedStrip(
+              group: widget.group,
+              itemLabel: widget.itemLabel,
+              itemsLabel: widget.itemsLabel,
+              hovered: hovered,
+              onExpand: widget.onToggleCollapsed,
+            ),
+          );
+        }
         final column = Container(
           width: widget.width,
           padding: const EdgeInsets.fromLTRB(
@@ -233,7 +258,7 @@ class _BoardColumnState extends State<BoardColumn> {
                 group: widget.group,
                 itemLabel: widget.itemLabel,
                 onAdd: widget.onAdd,
-                onEditOptions: widget.onEditOptions,
+                onCollapse: widget.onToggleCollapsed,
                 onJump: widget.onJump,
               ),
               const SizedBox(height: Spacing.xs),
@@ -254,7 +279,7 @@ class _BoardColumnState extends State<BoardColumn> {
               );
         return widget.fill
             ? Align(alignment: Alignment.topLeft, child: framed)
-            : framed;
+            : _AnimatedWidth(width: widget.width, child: framed);
       },
     );
   }
@@ -342,14 +367,14 @@ class _Header extends StatelessWidget {
     required this.group,
     required this.itemLabel,
     required this.onAdd,
-    required this.onEditOptions,
+    required this.onCollapse,
     required this.onJump,
   });
 
   final ViewGroup group;
   final String itemLabel;
   final VoidCallback onAdd;
-  final VoidCallback? onEditOptions;
+  final VoidCallback? onCollapse;
   final VoidCallback? onJump;
 
   @override
@@ -431,27 +456,16 @@ class _Header extends StatelessWidget {
             icon: const Icon(Icons.add, size: 20),
             color: scheme.onSurfaceVariant,
           ),
-          if (onEditOptions case final edit?)
-            PopupMenuButton<void>(
+          if (onCollapse case final collapse?)
+            IconButton(
               style: _square44,
-              tooltip: 'Column options',
-              icon: Icon(
-                Icons.more_horiz,
-                size: 20,
-                color: scheme.onSurfaceVariant,
+              tooltip: 'Collapse ${group.label}',
+              onPressed: collapse,
+              icon: const RotatedBox(
+                quarterTurns: 1,
+                child: Icon(Icons.unfold_less, size: 20),
               ),
-              itemBuilder: (_) => [
-                PopupMenuItem(
-                  onTap: edit,
-                  child: const Row(
-                    children: [
-                      Icon(Icons.edit_outlined, size: 20),
-                      SizedBox(width: Spacing.sm),
-                      Flexible(child: Text('Edit options')),
-                    ],
-                  ),
-                ),
-              ],
+              color: scheme.onSurfaceVariant,
             ),
         ],
       ),
@@ -485,6 +499,152 @@ class _EmptyZone extends StatelessWidget {
               textAlign: TextAlign.center,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Animates its child's width to [width] (instantly under reduced motion),
+/// clipping while it changes; the child is laid out at [width] throughout.
+class _AnimatedWidth extends StatelessWidget {
+  const _AnimatedWidth({required this.width, required this.child});
+
+  final double width;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
+    tween: Tween(end: width),
+    duration: MediaQuery.disableAnimationsOf(context)
+        ? MotionDurations.none
+        : MotionDurations.base,
+    curve: MotionCurves.standard,
+    child: child,
+    builder: (context, w, child) => ClipRect(
+      child: SizedBox(
+        width: w,
+        child: OverflowBox(
+          alignment: Alignment.topLeft,
+          minWidth: width,
+          maxWidth: width,
+          child: child,
+        ),
+      ),
+    ),
+  );
+}
+
+/// A collapsed column: one button the board's height, with the expand icon,
+/// the colour dot, a count badge, then the name written top to bottom. Tints like a column while a card hovers it.
+class _CollapsedStrip extends StatelessWidget {
+  const _CollapsedStrip({
+    required this.group,
+    required this.itemLabel,
+    required this.itemsLabel,
+    required this.hovered,
+    required this.onExpand,
+  });
+
+  final ViewGroup group;
+  final String itemLabel;
+  final String itemsLabel;
+  final bool hovered;
+  final VoidCallback? onExpand;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final count = group.objects.length;
+    final summary = switch (count) {
+      0 => 'No $itemsLabel',
+      1 => '1 $itemLabel',
+      _ => '$count $itemsLabel',
+    };
+    return Semantics(
+      button: true,
+      label: 'Expand ${group.label}, $summary',
+      excludeSemantics: true,
+      child: Material(
+        color: hovered
+            ? scheme.surfaceContainerHigh
+            : scheme.surfaceContainerLow,
+        shape: RoundedRectangleBorder(
+          borderRadius: Radii.lgAll,
+          side: BorderSide(
+            color: hovered ? scheme.primary : Colors.transparent,
+            width: 2,
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          key: const ValueKey('column-expand'),
+          onTap: onExpand,
+          child: SizedBox(
+            width: BoardColumn.collapsedWidth,
+            height: double.infinity,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(0, Spacing.xs, 0, Spacing.md),
+              child: Column(
+                children: [
+                  SizedBox.square(
+                    dimension: 32,
+                    child: RotatedBox(
+                      quarterTurns: 1,
+                      child: Icon(
+                        Icons.unfold_more,
+                        size: 20,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: Spacing.sm),
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: switch (group.color) {
+                        final hex? => colorFromHex(hex),
+                        null => scheme.outline,
+                      },
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(height: Spacing.sm),
+                  Container(
+                    constraints: const BoxConstraints(minWidth: 24),
+                    height: 22,
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: scheme.surfaceContainerLowest,
+                      borderRadius: BorderRadius.circular(11),
+                    ),
+                    child: Text(
+                      '$count',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: Spacing.sm),
+                  Flexible(
+                    child: RotatedBox(
+                      quarterTurns: 1,
+                      child: Text(
+                        group.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleSmall,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

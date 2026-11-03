@@ -1,7 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:go_router/go_router.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/design/design.dart';
 import 'package:morkva_crm/features/views/views.dart';
@@ -149,8 +148,6 @@ void main() {
       expect(_column('Zeta Corp'), findsOneWidget);
       expect(_column('No Company'), findsOneWidget);
       expect(_titlesIn('Alpha Ltd'), ['d1']);
-      // Reference boards have no option list to edit.
-      expect(find.byTooltip('Column options'), findsNothing);
     });
 
     testWidgets('empty columns show a short dashed drop zone', (tester) async {
@@ -188,7 +185,7 @@ void main() {
         tester.getSize(
           find.descendant(
             of: _column('Won'),
-            matching: find.byTooltip('Column options'),
+            matching: find.byTooltip('Collapse Won'),
           ),
         ),
         const Size.square(44),
@@ -204,25 +201,132 @@ void main() {
       expect(find.byType(QuickAddDialog), findsOneWidget);
       expect(find.textContaining('Stage · Won'), findsOneWidget);
     });
+  });
 
-    testWidgets('⋯ → Edit options opens Build', (tester) async {
-      await _pumpBoard(tester);
-      await tester.tap(
-        find.descendant(
-          of: _column('Lead'),
-          matching: find.byTooltip('Column options'),
-        ),
-      );
+  group('collapse', () {
+    Finder strip(String label) => find.ancestor(
+      of: find.byKey(const ValueKey('column-expand')),
+      matching: _column(label),
+    );
+
+    testWidgets('header icon collapses to a vertical strip; tap expands', (
+      tester,
+    ) async {
+      final semantics = tester.ensureSemantics();
+      final cubit = await _pumpBoard(tester);
+      await tester.tap(find.byTooltip('Collapse Lead'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Edit options'));
-      await tester.pumpAndSettle();
-      expect(find.text('editor:deals'), findsOneWidget);
+
+      expect(_ready(cubit).activeView.collapsedGroups, ['lead']);
+      expect(tester.getSize(_column('Lead')).width, BoardColumn.collapsedWidth);
+      expect(_titlesIn('Lead'), isEmpty);
+      // Name written top to bottom, count badge; no "+" on the strip.
       expect(
-        GoRouterState.of(
-          tester.element(find.text('editor:deals')),
-        ).uri.queryParameters['field'],
-        'stage',
+        find.ancestor(of: find.text('Lead'), matching: find.byType(RotatedBox)),
+        findsOneWidget,
       );
+      expect(
+        find.descendant(of: _column('Lead'), matching: find.text('2')),
+        findsOneWidget,
+      );
+      expect(find.byTooltip('New deal in Lead'), findsNothing);
+      expect(find.bySemanticsLabel('Expand Lead, 2 deals'), findsOneWidget);
+      // The next column moved in.
+      expect(
+        tester.getTopLeft(_column('Won')).dx -
+            tester.getTopLeft(_column('Lead')).dx,
+        BoardColumn.collapsedWidth + 16,
+      );
+
+      await tester.tap(strip('Lead'));
+      await tester.pumpAndSettle();
+      expect(_ready(cubit).activeView.collapsedGroups, isEmpty);
+      expect(tester.getSize(_column('Lead')).width, BoardColumn.defaultWidth);
+      expect(_titlesIn('Lead'), ['d1', 'd3']);
+      semantics.dispose();
+    });
+
+    testWidgets('empty and "No" groups say so in the strip label', (
+      tester,
+    ) async {
+      final semantics = tester.ensureSemantics();
+      final repo = workRepository(
+        objects: [deal('d1', 0, name: 'Acme', stage: 'lead')],
+      );
+      final cubit = await _pumpBoard(tester, repository: repo);
+      await cubit.toggleGroupCollapsed('won');
+      await cubit.toggleGroupCollapsed(null);
+      await tester.pumpAndSettle();
+      expect(find.bySemanticsLabel('Expand Won, No deals'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('Expand No Stage, No deals'),
+        findsOneWidget,
+      );
+      semantics.dispose();
+    });
+
+    testWidgets('collapsed state comes back from the repository', (
+      tester,
+    ) async {
+      final repo = FakeDataRepository([
+        deals.copyWith(
+          views: [
+            tableView,
+            boardView.copyWith(
+              collapsedGroups: ['won', ViewDefinition.noGroupToken, 'gone'],
+            ),
+          ],
+        ),
+        companies,
+      ]);
+      repo.seedObjects('deals', sampleDeals());
+      await _pumpBoard(tester, repository: repo);
+      expect(find.byKey(const ValueKey('column-expand')), findsNWidgets(2));
+      expect(strip('Won'), findsOneWidget);
+      expect(strip('No Stage'), findsOneWidget);
+      // A stale key (deleted option) changes nothing.
+      expect(find.byType(BoardColumn), findsNWidgets(4));
+      expect(tester.getSize(_column('Lead')).width, BoardColumn.defaultWidth);
+    });
+
+    testWidgets('a card dropped on a strip moves to the end of that group', (
+      tester,
+    ) async {
+      final cubit = await _pumpBoard(tester);
+      await cubit.toggleGroupCollapsed('won');
+      await tester.pumpAndSettle();
+
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.text('Initech')),
+        kind: PointerDeviceKind.mouse,
+      );
+      await gesture.moveBy(const Offset(0, 6));
+      await tester.pump();
+      final target = tester.getCenter(strip('Won'));
+      await gesture.moveTo(target);
+      await tester.pump();
+      await gesture.moveTo(target + const Offset(0, 1));
+      await tester.pump();
+      // Hovered: the strip tints like a column.
+      final material = tester.widget<Material>(
+        find
+            .descendant(of: strip('Won'), matching: find.byType(Material))
+            .first,
+      );
+      final scheme = Theme.of(tester.element(strip('Won'))).colorScheme;
+      expect(material.color, scheme.surfaceContainerHigh);
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(_stageOf(cubit, 'd3'), 'won');
+      expect(find.text('Moved to Won'), findsOneWidget);
+      expect(
+        find.descendant(of: strip('Won'), matching: find.text('2')),
+        findsOneWidget,
+      );
+      await cubit.toggleGroupCollapsed('won');
+      await tester.pumpAndSettle();
+      expect(_titlesIn('Won'), ['d2', 'd3']);
     });
   });
 
@@ -329,10 +433,13 @@ void main() {
         AppTheme.light.colorScheme.surfaceContainerHigh,
       );
       // The source slot has collapsed.
-      final slot = find.descendant(
-        of: _column('Lead'),
-        matching: find.byType(TweenAnimationBuilder<double>),
-      );
+      final slot = find
+          .descendant(
+            of: _column('Lead'),
+            // The innermost: the column's own width animation wraps the slots.
+            matching: find.byType(TweenAnimationBuilder<double>),
+          )
+          .last;
       expect(tester.getSize(slot).height, 0);
       // Counts change on drop only.
       expect(

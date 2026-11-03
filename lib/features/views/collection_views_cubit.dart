@@ -467,6 +467,21 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
     return _updateActive((v) => v.copyWith(layoutFieldId: fieldId));
   }
 
+  /// Collapses or expands the active view's board group [groupKey]
+  /// (null = the `No <field>` group).
+  Future<void> toggleGroupCollapsed(String? groupKey) {
+    final token = groupKey ?? ViewDefinition.noGroupToken;
+    return _updateActive(
+      (v) => v.copyWith(
+        collapsedGroups: List.unmodifiable(
+          v.collapsedGroups.contains(token)
+              ? v.collapsedGroups.where((k) => k != token)
+              : [...v.collapsedGroups, token],
+        ),
+      ),
+    );
+  }
+
   Future<void> _updateActive(ViewDefinition Function(ViewDefinition) update) {
     final view = _activeView;
     return view == null ? Future.value() : _updateView(view.id, update);
