@@ -90,6 +90,13 @@ class FakeDataRepository implements DataRepository {
   }) => const Stream.empty();
 
   @override
+  Stream<MorkvaObject?> watchObject(
+    String collectionId,
+    String objectId, {
+    required Collection schema,
+  }) => const Stream.empty();
+
+  @override
   Future<List<MorkvaObject>> getObjects(
     String collectionId, {
     required Collection schema,

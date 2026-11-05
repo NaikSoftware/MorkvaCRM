@@ -284,19 +284,7 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
     if (objects == null) {
       return _failedTargets.contains(targetId) ? const {} : null;
     }
-    final view =
-        (target.views.firstOrNull ?? ViewDefinition.defaultFor(target.fields))
-            .copyWith(filters: const []);
-    final titleField = target.fields
-        .whereType<TextFieldDefinition>()
-        .firstOrNull;
-    return {
-      for (final o in applyView(target, view, objects))
-        o.id: switch (o[titleField?.id ?? '']) {
-          TextFieldValue(:final text?) when text.trim().isNotEmpty => text,
-          _ => 'Untitled',
-        },
-    };
+    return objectLabels(target, objects);
   }
 
   void _emitReady() {
@@ -477,6 +465,21 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
       return Future.value();
     }
     return _updateActive((v) => v.copyWith(layoutFieldId: fieldId));
+  }
+
+  /// Collapses or expands the active view's board group [groupKey]
+  /// (null = the `No <field>` group).
+  Future<void> toggleGroupCollapsed(String? groupKey) {
+    final token = groupKey ?? ViewDefinition.noGroupToken;
+    return _updateActive(
+      (v) => v.copyWith(
+        collapsedGroups: List.unmodifiable(
+          v.collapsedGroups.contains(token)
+              ? v.collapsedGroups.where((k) => k != token)
+              : [...v.collapsedGroups, token],
+        ),
+      ),
+    );
   }
 
   Future<void> _updateActive(ViewDefinition Function(ViewDefinition) update) {

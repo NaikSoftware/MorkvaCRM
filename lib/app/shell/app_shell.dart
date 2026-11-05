@@ -29,6 +29,7 @@ class AppShell extends StatelessWidget {
     this.headerTrailing,
     this.banner,
     this.header,
+    this.showCompactChrome = true,
   });
 
   /// Index into [destinations] of the active section.
@@ -65,6 +66,11 @@ class AppShell extends StatelessWidget {
   /// Replaces the slim title header (and [title] / [headerTrailing]) with a
   /// page's own header, e.g. a collection's Work header.
   final Widget? header;
+
+  /// Compact layout only: false drops the shell (header, banner, bottom bar
+  /// and its Scaffold), so a page with its own full-screen Scaffold (a
+  /// collection) owns the screen.
+  final bool showCompactChrome;
 
   /// Width at/above which the expanded rail layout is used (`DESIGN.md` §8).
   static const double expandedBreakpoint = 840;
@@ -128,13 +134,17 @@ class AppShell extends StatelessWidget {
               ],
             ),
             const VerticalDivider(width: 1),
+            // The main panel: doodles behind its header and content.
             Expanded(
-              child: Column(
-                children: [
-                  header ?? _PageHeader(title: title, trailing: headerTrailing),
-                  ?banner,
-                  Expanded(child: child),
-                ],
+              child: DoodleBackground(
+                child: Column(
+                  children: [
+                    header ??
+                        _PageHeader(title: title, trailing: headerTrailing),
+                    ?banner,
+                    Expanded(child: child),
+                  ],
+                ),
               ),
             ),
           ],
@@ -144,13 +154,21 @@ class AppShell extends StatelessWidget {
   }
 
   Widget _buildCompact(BuildContext context) {
+    // No shell Scaffold under a full-screen page: its own Scaffold must be the
+    // root one, so snackbars clear its FAB.
+    if (!showCompactChrome) {
+      return ColoredBox(
+        color: Theme.of(context).colorScheme.surface,
+        child: child,
+      );
+    }
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
             header ?? _PageHeader(title: title, trailing: headerTrailing),
             ?banner,
-            Expanded(child: child),
+            Expanded(child: DoodleBackground(child: child)),
           ],
         ),
       ),

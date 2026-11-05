@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -145,8 +146,13 @@ class _BoardViewState extends State<BoardView> {
   /// Where the held pointer is, for re-checking the edge after each step.
   Offset? _pointer;
 
+  /// Focused only while a card is held, so Esc cancels the drag without
+  /// taking the key from anything else.
+  final _escape = FocusNode(debugLabel: 'board drag');
+
   @override
   void dispose() {
+    _escape.dispose();
     _autoScroller?.stopAutoScroll();
     _edgeTimer?.cancel();
     _horizontal.dispose();
@@ -239,8 +245,30 @@ class _BoardViewState extends State<BoardView> {
     _edgeHold();
   }
 
+  void _dragStarted(BoardDrag drag) {
+    _drag = drag;
+    _escape.requestFocus();
+  }
+
+  /// Esc: the card goes back where it was; nothing is written.
+  KeyEventResult _onKey(FocusNode node, KeyEvent event) {
+    final drag = _drag;
+    if (drag == null ||
+        event is! KeyDownEvent ||
+        event.logicalKey != LogicalKeyboardKey.escape) {
+      return KeyEventResult.ignored;
+    }
+    drag.cancel();
+    _endDrag();
+    return KeyEventResult.handled;
+  }
+
   void _pointerEnd(PointerEvent event) {
-    if (!_isDragPointer(event)) return;
+    if (_isDragPointer(event)) _endDrag();
+  }
+
+  void _endDrag() {
+    if (_escape.hasFocus) _escape.unfocus();
     _drag = null;
     _pointer = null;
     _edgeTimer?.cancel();
@@ -321,6 +349,7 @@ class _BoardViewState extends State<BoardView> {
     double width = BoardColumn.defaultWidth,
     VoidCallback? onJump,
     bool fill = false,
+    bool collapsible = false,
     Widget? footer,
   }) {
     final data = widget.data;
@@ -340,12 +369,14 @@ class _BoardViewState extends State<BoardView> {
       onOpen: data.openObject,
       onAdd: () => data.quickAdd(groupKey: group.key),
       onDrop: (drag, beforeId) => _drop(group, drag, beforeId),
-      onEditOptions: field is SingleSelectFieldDefinition
-          ? () => context.go(
-              '/collections/${collection.id}/edit?field=${field.id}',
+      // Phone (not collapsible) shows every column expanded.
+      collapsed: collapsible && state.activeView.isGroupCollapsed(group.key),
+      onToggleCollapsed: collapsible
+          ? () => context.read<CollectionViewsCubit>().toggleGroupCollapsed(
+              group.key,
             )
           : null,
-      onDragStarted: (drag) => _drag = drag,
+      onDragStarted: _dragStarted,
       onJump: onJump,
       fill: fill,
       footer: footer,
@@ -366,7 +397,7 @@ class _BoardViewState extends State<BoardView> {
         separatorBuilder: (_, _) => const SizedBox(width: Spacing.md),
         itemBuilder: (context, i) => Align(
           alignment: Alignment.topCenter,
-          child: _column(context, groups[i], field),
+          child: _column(context, groups[i], field, collapsible: true),
         ),
       ),
     ),
@@ -421,11 +452,16 @@ class _BoardViewState extends State<BoardView> {
 
     _compact = MediaQuery.sizeOf(context).width < AppShell.expandedBreakpoint;
     if (!_compact) _dropPager();
-    final columns = Listener(
-      onPointerMove: _pointerMove,
-      onPointerUp: _pointerEnd,
-      onPointerCancel: _pointerEnd,
-      child: _compact ? _phone(groups, field) : _desktop(groups, field),
+    final columns = Focus(
+      focusNode: _escape,
+      skipTraversal: true,
+      onKeyEvent: _onKey,
+      child: Listener(
+        onPointerMove: _pointerMove,
+        onPointerUp: _pointerEnd,
+        onPointerCancel: _pointerEnd,
+        child: _compact ? _phone(groups, field) : _desktop(groups, field),
+      ),
     );
     if (!(state.objects.isEmpty && state.isFiltered)) return columns;
     return Column(

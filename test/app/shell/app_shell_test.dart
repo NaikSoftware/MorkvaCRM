@@ -30,8 +30,9 @@ void main() {
   }
 
   group('AppShell', () {
-    testWidgets('wide surface shows a NavigationRail (no NavigationBar)',
-        (tester) async {
+    testWidgets('wide surface shows a NavigationRail (no NavigationBar)', (
+      tester,
+    ) async {
       useSurface(tester, const Size(1200, 800));
 
       await tester.pumpWidget(
@@ -42,10 +43,21 @@ void main() {
       expect(find.byType(NavigationBar), findsNothing);
       expect(find.text('MorkvaCRM'), findsOneWidget);
       expect(find.text('body'), findsOneWidget);
+      // Doodles sit behind the main panel only, not the rail.
+      final doodles = find.byType(DoodleBackground);
+      expect(
+        find.descendant(of: doodles, matching: find.text('body')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: doodles, matching: find.byType(NavigationRail)),
+        findsNothing,
+      );
     });
 
-    testWidgets('narrow surface shows a NavigationBar (no NavigationRail)',
-        (tester) async {
+    testWidgets('narrow surface shows a NavigationBar (no NavigationRail)', (
+      tester,
+    ) async {
       useSurface(tester, const Size(400, 800));
 
       await tester.pumpWidget(
@@ -56,10 +68,21 @@ void main() {
       expect(find.byType(NavigationRail), findsNothing);
       expect(find.text('MorkvaCRM'), findsOneWidget);
       expect(find.text('body'), findsOneWidget);
+      // Phone: behind the body only, not the header or the bar.
+      final doodles = find.byType(DoodleBackground);
+      expect(
+        find.descendant(of: doodles, matching: find.text('body')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: doodles, matching: find.text('MorkvaCRM')),
+        findsNothing,
+      );
     });
 
-    testWidgets('reflects the selected destination on the rail',
-        (tester) async {
+    testWidgets('reflects the selected destination on the rail', (
+      tester,
+    ) async {
       useSurface(tester, const Size(1200, 800));
 
       await tester.pumpWidget(
@@ -70,8 +93,7 @@ void main() {
       expect(rail.selectedIndex, 1);
     });
 
-    testWidgets('tapping a rail destination reports its index',
-        (tester) async {
+    testWidgets('tapping a rail destination reports its index', (tester) async {
       useSurface(tester, const Size(1200, 800));
 
       int? tapped;
@@ -83,8 +105,7 @@ void main() {
       expect(tapped, kAppSections.indexOf(AppSection.settings));
     });
 
-    testWidgets('tapping a bar destination reports its index',
-        (tester) async {
+    testWidgets('tapping a bar destination reports its index', (tester) async {
       useSurface(tester, const Size(400, 800));
 
       int? tapped;

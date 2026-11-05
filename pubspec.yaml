@@ -46,6 +46,10 @@ dependencies:
   firebase_auth: ^6.5.2
   cloud_firestore: ^6.5.0
   google_sign_in: ^7.2.0 # mobile only — guarded import, never on web
+  firebase_storage: ">=13.4.2 <13.4.3" # pairs with firebase_core 4.10; newer pulls cloud_firestore past fake_cloud_firestore
+  file_picker: ^13.3.2
+  url_launcher: ^6.3.3
+  mime: ^2.1.0
 
 dev_dependencies:
   flutter_test:

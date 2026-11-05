@@ -35,6 +35,9 @@ class IdGenerator {
   /// A new object id, e.g. `b_l3k9f2_a7c1`.
   String objectId() => _mint('b');
 
+  /// A new file-attachment id, e.g. `a_l3k9f2_a7c1`.
+  String attachmentId() => _mint('a');
+
   // The random suffix bound. Written as a literal (not `1 << 32`): on the web,
   // Dart `int` is a JS number and `<<` uses 32-bit shift semantics, so
   // `1 << 32` wraps to 0 and `Random.nextInt(0)` throws. `0xFFFFFFFF`

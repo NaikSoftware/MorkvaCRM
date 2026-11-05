@@ -31,6 +31,10 @@ class BoardDrag {
 
   _HeldDrag? _avatar;
 
+  /// Drops the card as not accepted (it returns to its slot); does nothing
+  /// once it is dropped.
+  void cancel() => _avatar?.cancel();
+
   /// Re-runs hit testing at the held position once the current frame is laid
   /// out, so drop targets that moved under a still pointer (auto-scroll,
   /// paging) take over; then runs [then]. Does nothing once the card is
@@ -68,20 +72,24 @@ class _HeldDrag implements Drag {
     if (!ended) _inner.update(DragUpdateDetails(globalPosition: _position));
   }
 
+  // After an Esc cancel the pointer is still down: ignore the rest.
   @override
   void update(DragUpdateDetails details) {
+    if (ended) return;
     _position = details.globalPosition;
     _inner.update(details);
   }
 
   @override
   void end(DragEndDetails details) {
+    if (ended) return;
     ended = true;
     _inner.end(details);
   }
 
   @override
   void cancel() {
+    if (ended) return;
     ended = true;
     _inner.cancel();
   }
@@ -299,6 +307,8 @@ class DashedRRect extends StatelessWidget {
     required this.color,
     this.strokeWidth = 1,
     this.fill,
+    this.radius = Radii.md,
+    this.width = double.infinity,
     this.height,
     this.child,
   });
@@ -306,6 +316,10 @@ class DashedRRect extends StatelessWidget {
   final Color color;
   final double strokeWidth;
   final Color? fill;
+  final double radius;
+
+  /// Full width by default; null sizes to [child].
+  final double? width;
   final double? height;
   final Widget? child;
 
@@ -315,8 +329,9 @@ class DashedRRect extends StatelessWidget {
       color: color,
       strokeWidth: strokeWidth,
       fill: fill,
+      radius: radius,
     ),
-    child: SizedBox(width: double.infinity, height: height, child: child),
+    child: SizedBox(width: width, height: height, child: child),
   );
 }
 
@@ -324,18 +339,20 @@ class _DashedRRectPainter extends CustomPainter {
   const _DashedRRectPainter({
     required this.color,
     required this.strokeWidth,
+    required this.radius,
     this.fill,
   });
 
   final Color color;
   final double strokeWidth;
+  final double radius;
   final Color? fill;
 
   @override
   void paint(Canvas canvas, Size size) {
     final rrect = RRect.fromRectAndRadius(
       (Offset.zero & size).deflate(strokeWidth / 2),
-      const Radius.circular(Radii.md),
+      Radius.circular(radius),
     );
     if (fill case final fill?) {
       canvas.drawRRect(rrect, Paint()..color = fill);
@@ -354,5 +371,8 @@ class _DashedRRectPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_DashedRRectPainter old) =>
-      old.color != color || old.strokeWidth != strokeWidth || old.fill != fill;
+      old.color != color ||
+      old.strokeWidth != strokeWidth ||
+      old.radius != radius ||
+      old.fill != fill;
 }

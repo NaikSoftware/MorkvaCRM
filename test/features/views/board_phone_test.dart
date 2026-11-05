@@ -73,6 +73,26 @@ FakeDataRepository _companies(int count) {
 }
 
 void main() {
+  testWidgets('phone ignores collapsed groups and has no collapse control', (
+    tester,
+  ) async {
+    final repo = FakeDataRepository([
+      deals.copyWith(
+        views: [
+          tableView,
+          boardView.copyWith(collapsedGroups: ['lead', 'won']),
+        ],
+      ),
+      companies,
+    ]);
+    repo.seedObjects('deals', sampleDeals());
+    await _pumpBoard(tester, repository: repo);
+    expect(find.byKey(const ValueKey('column-expand')), findsNothing);
+    expect(find.byTooltip('Collapse Lead'), findsNothing);
+    expect(tester.getSize(_column('Lead')).width, _pageWidth);
+    expect(find.text('Acme renewal'), findsOneWidget);
+  });
+
   group('phone pager', () {
     testWidgets('one column per page, the next one peeking', (tester) async {
       await _pumpBoard(tester);

@@ -1,5 +1,9 @@
 # Epic 5 — Object Detail & Field Editors
 
+> **Status: done (PR #23).** All acceptance criteria met. File attachments are built on Firebase
+> Storage and covered with a fake store; live uploads wait until Storage is enabled at the
+> project end (paid plan). As-built details: `docs/superpowers/specs/2026-11-03-epic-05-object-editing-design.md`.
+
 ## Goal
 Open an object and edit every field type with a fit-for-purpose editor, with validation shown
 inline. This turns viewing into real data entry.

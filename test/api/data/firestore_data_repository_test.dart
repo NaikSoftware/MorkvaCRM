@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/api/data/firestore_data_repository.dart';
+import 'package:morkva_crm/api/firestore/firestore_value_codec_impl.dart';
 import 'package:morkva_crm/api/sync/sync_status.dart';
 import 'package:morkva_crm/api/sync/sync_status_cubit.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
@@ -193,6 +194,74 @@ void main() {
       final emitted = await future;
       expect(emitted.single.id, 'obj-1');
     });
+
+    test('a change decodes only the changed object; the others keep their '
+        'instances', () async {
+      final codec = _CountingCodec();
+      final counted = FirestoreDataRepository(
+        firestore: firestore,
+        syncStatus: syncStatus,
+        codec: codec,
+      );
+      await counted.initialize(workspaceId);
+      addTearDown(counted.dispose);
+      final schema = buildCollection();
+      for (var i = 0; i < 50; i++) {
+        await counted.saveObject(
+          buildObject(schema, id: 'o$i'),
+          schema: schema,
+        );
+      }
+      final emissions = <List<MorkvaObject>>[];
+      final sub = counted
+          .watchObjects(schema.id, schema: schema)
+          .listen(emissions.add);
+      addTearDown(sub.cancel);
+      await pumpEventQueue();
+      expect(emissions.last, hasLength(50));
+      final first = emissions.last;
+
+      codec.decodes = 0;
+      await counted.saveObject(
+        first[7].copyWith(values: {'name': const TextFieldValue('Grace')}),
+        schema: schema,
+      );
+      await pumpEventQueue();
+
+      final next = emissions.last;
+      expect(next[7]['name'], const TextFieldValue('Grace'));
+      expect(codec.decodes, schema.fields.length, reason: 'one object only');
+      for (var i = 0; i < 50; i++) {
+        if (i != 7) expect(identical(next[i], first[i]), isTrue);
+      }
+    });
+
+    test(
+      'watchObject follows one object: saves, then null once deleted',
+      () async {
+        final schema = buildCollection();
+        final object = buildObject(schema);
+        await repository.saveObject(object, schema: schema);
+        final emissions = <MorkvaObject?>[];
+        final sub = repository
+            .watchObject(schema.id, object.id, schema: schema)
+            .listen(emissions.add);
+        addTearDown(sub.cancel);
+        await pumpEventQueue();
+        expect(emissions.last, object);
+
+        final renamed = object.copyWith(
+          values: {...object.values, 'name': const TextFieldValue('Grace')},
+        );
+        await repository.saveObject(renamed, schema: schema);
+        await pumpEventQueue();
+        expect(emissions.last?['name'], const TextFieldValue('Grace'));
+
+        await repository.deleteObject(schema.id, object.id);
+        await pumpEventQueue();
+        expect(emissions.last, isNull);
+      },
+    );
 
     test('deleteObject removes the object', () async {
       final schema = buildCollection();
@@ -471,4 +540,15 @@ void main() {
       },
     );
   });
+}
+
+/// The standard codec, counting [decode] calls.
+class _CountingCodec extends FirestoreValueCodecImpl {
+  int decodes = 0;
+
+  @override
+  Object? decode(FieldDefinition field, Object? firestoreValue) {
+    decodes++;
+    return super.decode(field, firestoreValue);
+  }
 }

@@ -208,17 +208,25 @@ class FirestoreDataRepository implements DataRepository {
   }) {
     final wid = _wid;
     Collection? resolved = schema;
+    Future<Collection?>? resolving;
 
+    // One shared lookup, so snapshots arriving meanwhile stay in order.
     Future<Collection?> ensureSchema() async {
-      resolved ??= await getCollection(collectionId);
+      if (resolved != null) return resolved;
+      resolved = await (resolving ??= getCollection(collectionId));
+      resolving = null;
       return resolved;
     }
 
     // includeMetadataChanges so the metadata-only transition (hasPendingWrites
     // true→false) fires — that is what confirms our own writes and lets the
     // sync status settle to synced.
-    return _watch<List<MorkvaObject>>(
-      (subject) => _refs
+    return _watch<List<MorkvaObject>>((subject) {
+      // Decoded objects by id: a snapshot decodes only its changed docs, so
+      // unchanged objects keep their instances (cheap equality downstream).
+      final decoded = <String, MorkvaObject>{};
+      var emitted = false;
+      return _refs
           .objectsByCollection(wid, collectionId)
           .snapshots(includeMetadataChanges: true)
           .listen(
@@ -230,13 +238,63 @@ class FirestoreDataRepository implements DataRepository {
                 return;
               }
               _processSnapshotMeta(snapshot);
-              final objects = snapshot.docs
-                  .map((doc) => _objectFromData(doc.id, doc.data(), collection))
-                  .toList();
+              var changed = !emitted;
+              for (final change in snapshot.docChanges) {
+                final id = change.doc.id;
+                final data = change.doc.data();
+                if (change.type == DocumentChangeType.removed || data == null) {
+                  changed = decoded.remove(id) != null || changed;
+                  continue;
+                }
+                final object = _objectFromData(id, data, collection);
+                if (decoded[id] != object) {
+                  decoded[id] = object;
+                  changed = true;
+                }
+              }
+              // Metadata only (e.g. a write confirmed): same objects.
+              if (!changed) return;
+              emitted = true;
+              final objects = [
+                for (final doc in snapshot.docs)
+                  decoded[doc.id] ??= _objectFromData(
+                    doc.id,
+                    doc.data(),
+                    collection,
+                  ),
+              ];
               if (!subject.isClosed) subject.add(objects);
             },
             onError: (Object error, StackTrace stackTrace) {
               _syncStatus.reportError('Failed to watch objects', cause: error);
+              if (!subject.isClosed) subject.addError(error, stackTrace);
+            },
+          );
+    });
+  }
+
+  @override
+  Stream<MorkvaObject?> watchObject(
+    String collectionId,
+    String objectId, {
+    required Collection schema,
+  }) {
+    final wid = _wid;
+    return _watch<MorkvaObject?>(
+      (subject) => _refs
+          .object(wid, objectId)
+          .snapshots()
+          .listen(
+            (doc) {
+              if (subject.isClosed) return;
+              final data = doc.data();
+              subject.add(
+                data == null || data['collectionId'] != collectionId
+                    ? null
+                    : _objectFromData(objectId, data, schema),
+              );
+            },
+            onError: (Object error, StackTrace stackTrace) {
               if (!subject.isClosed) subject.addError(error, stackTrace);
             },
           ),
@@ -380,6 +438,16 @@ class FirestoreDataRepository implements DataRepository {
     }, schema);
   }
 
+  /// The stored `rev` of [doc]; reads just that field (cheaper than
+  /// `data()`, which converts the whole document on the web).
+  static int _revOf(DocumentSnapshot<Map<String, dynamic>> doc) {
+    try {
+      return (doc.get('rev') as num?)?.toInt() ?? 0;
+    } on StateError {
+      return 0;
+    }
+  }
+
   /// Folds an object snapshot's per-doc revisions and metadata into the sync
   /// status, detecting last-write-wins conflicts (see spec §"Conflict
   /// algorithm").
@@ -389,9 +457,9 @@ class FirestoreDataRepository implements DataRepository {
     final conflicts = <String>{};
 
     for (final doc in snapshot.docs) {
+      if (!isServer) break;
       final id = doc.id;
-      final incomingRev = (doc.data()['rev'] as num?)?.toInt() ?? 0;
-      if (!isServer) continue;
+      final incomingRev = _revOf(doc);
       if (_pendingObjects.contains(id)) {
         // Our own write confirmed by the server.
         _pendingObjects.remove(id);

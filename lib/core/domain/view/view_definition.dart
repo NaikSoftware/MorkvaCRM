@@ -122,6 +122,7 @@ class ViewDefinition extends Equatable {
     this.filters = const [],
     this.sort,
     this.manualOrder = const [],
+    this.collapsedGroups = const [],
   });
 
   /// Id of the view every collection starts with.
@@ -164,6 +165,18 @@ class ViewDefinition extends Equatable {
   /// ids are ignored at query time and kept as is.
   final List<String> manualOrder;
 
+  /// Board groups shown collapsed, by group key ([noGroupToken] for the
+  /// `No <field>` group). Keys of deleted options are ignored and kept.
+  final List<String> collapsedGroups;
+
+  /// Stored in [collapsedGroups] for the `No <field>` group (null key);
+  /// `@`-prefixed like the pseudo sort ids, so no option / object id clashes.
+  static const String noGroupToken = '@none';
+
+  /// Whether the board group [key] (null = `No <field>`) is collapsed.
+  bool isGroupCollapsed(String? key) =>
+      collapsedGroups.contains(key ?? noGroupToken);
+
   static const Object _unset = Object();
 
   /// [layoutFieldId] and [sort] use a sentinel so an explicit `null` clears.
@@ -176,6 +189,7 @@ class ViewDefinition extends Equatable {
     List<ViewFilter>? filters,
     Object? sort = _unset,
     List<String>? manualOrder,
+    List<String>? collapsedGroups,
   }) => ViewDefinition(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -187,6 +201,7 @@ class ViewDefinition extends Equatable {
     filters: filters ?? this.filters,
     sort: identical(sort, _unset) ? this.sort : sort as ViewSort?,
     manualOrder: manualOrder ?? this.manualOrder,
+    collapsedGroups: collapsedGroups ?? this.collapsedGroups,
   );
 
   /// Drops every reference to a field not in [fieldIds] (shown fields,
@@ -208,6 +223,7 @@ class ViewDefinition extends Equatable {
           ? currentSort
           : null,
       manualOrder: manualOrder,
+      collapsedGroups: collapsedGroups,
     );
   }
 
@@ -220,6 +236,7 @@ class ViewDefinition extends Equatable {
     'filters': filters.map((f) => f.toJson()).toList(),
     if (sort != null) 'sort': sort!.toJson(),
     'manualOrder': manualOrder,
+    if (collapsedGroups.isNotEmpty) 'collapsedGroups': collapsedGroups,
   };
 
   /// Filters with an operator unknown to this client are skipped.
@@ -239,6 +256,7 @@ class ViewDefinition extends Equatable {
           .toList(),
       sort: rawSort == null ? null : ViewSort.fromJson(rawSort),
       manualOrder: _strings(json['manualOrder']),
+      collapsedGroups: _strings(json['collapsedGroups']),
     );
   }
 
@@ -255,5 +273,6 @@ class ViewDefinition extends Equatable {
     filters,
     sort,
     manualOrder,
+    collapsedGroups,
   ];
 }

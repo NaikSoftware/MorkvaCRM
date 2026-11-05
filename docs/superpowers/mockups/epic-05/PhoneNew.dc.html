@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>New deal — phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&amp;family=Hanken+Grotesk:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#FBF7F2}
+.lbl{display:flex;align-items:center;gap:6px;font:600 13px 'Hanken Grotesk',sans-serif;color:#6B5E52}
+.box{min-height:48px;box-sizing:border-box;padding:0 14px;border-radius:12px;border:1px solid #B6A593;background:#FFFFFF;display:flex;align-items:center;gap:8px;font:500 15px 'Hanken Grotesk',sans-serif;color:#2B2018}
+.ph{color:#8A7D70}
+.add{height:36px;padding:0 12px;border-radius:8px;border:1px dashed #B6A593;background:transparent;color:#8A4708;font:600 13px 'Hanken Grotesk',sans-serif}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; overflow: hidden; background: #FBF7F2; font-family: 'Hanken Grotesk', system-ui, sans-serif; color: #2B2018; display: flex; flex-direction: column">
+  <header style="display: flex; align-items: center; gap: 4px; padding: 12px 8px 12px 4px; border-bottom: 1px solid #E0D5C7">
+    <button type="button" aria-label="Close" style="width: 48px; height: 48px; border-radius: 24px; border: 0; background: transparent; color: #2B2018; display: inline-flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+    <h1 style="margin: 0; flex: 1 1 auto; font: 700 20px 'Bricolage Grotesque', sans-serif">New deal</h1>
+    <button type="button" style="height: 40px; padding: 0 20px; border-radius: 20px; border: 0; background: #E8821E; color: #3A1E00; font: 600 14px 'Hanken Grotesk', sans-serif">Save</button>
+  </header>
+  <div style="flex: 1 1 auto; overflow: hidden; padding: 16px 16px 24px; display: flex; flex-direction: column; gap: 16px">
+    <label style="display: flex; flex-direction: column; gap: 6px">
+      <span class="lbl">Name <span style="color: #C0392B">*</span></span>
+      <input type="text" value="Hooli renewal" class="box" style="border: 2px solid #E8821E; padding: 0 13px; outline: none">
+    </label>
+    <label style="display: flex; flex-direction: column; gap: 6px">
+      <span class="lbl">Amount</span>
+      <span class="box"><span class="ph" style="flex: 1 1 auto">0.00</span><span style="color: #6B5E52; font-size: 14px">USD</span></span>
+    </label>
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <span class="lbl">Stage</span>
+      <button type="button" class="box" style="justify-content: space-between"><span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 28px; background: #DCEAF3; color: #123E58; font: 600 12px 'Hanken Grotesk', sans-serif"><span style="width: 8px; height: 8px; border-radius: 4px; background: #3A7CA5"></span>Lead</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B5E52" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg></button>
+      <span style="font: 400 12px 'Hanken Grotesk', sans-serif; color: #6B5E52">Filled from the Lead column</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <span class="lbl">Company</span>
+      <div><button type="button" class="add">+ Link company</button></div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <span class="lbl">Due</span>
+      <span class="box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B5E52" stroke-width="2" stroke-linecap="round"><rect x="4" y="5" width="16" height="15" rx="2"></rect><path d="M4 10h16M9 3v4M15 3v4"></path></svg><span class="ph">Pick a date</span></span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <span class="lbl">Tags</span>
+      <div><button type="button" class="add">+ Add</button></div>
+    </div>
+    <label style="display: flex; align-items: center; justify-content: space-between; min-height: 48px">
+      <span style="font: 600 14px 'Hanken Grotesk', sans-serif">Paid</span>
+      <span aria-hidden="true" style="width: 52px; height: 32px; border-radius: 16px; background: #EEE5D8; border: 2px solid #B6A593; box-sizing: border-box; position: relative"><span style="position: absolute; left: 6px; top: 6px; width: 16px; height: 16px; border-radius: 8px; background: #6B5E52"></span></span>
+    </label>
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <span class="lbl">Deal #</span>
+      <span style="min-height: 48px; display: flex; align-items: center; padding: 0 14px; border-radius: 12px; background: #F4EDE3; color: #6B5E52; font: 500 14px 'Hanken Grotesk', sans-serif">Assigned on save</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

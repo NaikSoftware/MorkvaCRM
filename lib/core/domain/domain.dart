@@ -13,6 +13,7 @@ export 'morkva_object.dart';
 export 'validation.dart';
 // Views.
 export 'view/field_format.dart';
+export 'view/object_labels.dart';
 export 'view/view_definition.dart';
 export 'view/view_grouping.dart';
 export 'view/view_query.dart';

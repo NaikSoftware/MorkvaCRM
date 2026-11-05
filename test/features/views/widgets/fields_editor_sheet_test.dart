@@ -51,6 +51,19 @@ void main() {
     expect(find.text('Stage'), findsNothing);
   });
 
+  testWidgets('Setup card explains itself; Columns does not', (tester) async {
+    const intro =
+        'Choose which fields show on each card in “Pipeline” and drag to '
+        'set their order.';
+    const footnote = 'Empty fields are skipped on the card.';
+    await pump(tester);
+    expect(find.text(intro), findsOneWidget);
+    expect(find.text(footnote), findsOneWidget);
+    await pump(tester, title: 'Columns', board: false);
+    expect(find.textContaining('Choose which fields'), findsNothing);
+    expect(find.text(footnote), findsNothing);
+  });
+
   testWidgets('Save is disabled until something changes', (tester) async {
     await pump(tester);
     await tester.tap(find.text('Save'));

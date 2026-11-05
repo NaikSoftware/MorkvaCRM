@@ -1,0 +1,15 @@
+rules_version = '2';
+
+// MorkvaCRM Storage security rules: file-field blobs live under the owner's
+// workspace (workspaceId == request.auth.uid, as in firestore.rules), at
+// workspaces/{workspaceId}/files/{attachmentId}/{fileName}.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /workspaces/{workspaceId}/{allPaths=**} {
+      allow read, delete: if request.auth != null && request.auth.uid == workspaceId;
+      allow create, update: if request.auth != null
+        && request.auth.uid == workspaceId
+        && request.resource.size < 25 * 1024 * 1024;
+    }
+  }
+}

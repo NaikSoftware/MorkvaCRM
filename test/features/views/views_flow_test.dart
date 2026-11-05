@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/api/api.dart';
 import 'package:morkva_crm/app/app.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
+import 'package:morkva_crm/features/objects/object_editor.dart';
 import 'package:morkva_crm/features/views/views.dart';
 import 'package:morkva_crm/features/views/widgets/board/board_column.dart';
 import 'package:morkva_crm/features/views/widgets/calendar/no_date_tray.dart';
@@ -38,10 +39,17 @@ void main() {
       await tester.tap(find.byTooltip('Close'));
       await tester.pumpAndSettle();
       for (final n in ['Acme', 'Globex', 'Initech']) {
+        // "+ New deal" opens the object form.
         await tester.tap(find.text('New deal').first);
         await tester.pumpAndSettle();
-        await tester.enterText(find.byType(TextField).last, n);
-        await tester.tap(find.text('Add'));
+        final form = find.byType(ObjectEditor);
+        await tester.enterText(
+          find.descendant(of: form, matching: find.byType(TextField)).first,
+          n,
+        );
+        await tester.tap(
+          find.descendant(of: form, matching: find.text('Save')),
+        );
         await tester.pumpAndSettle();
         expect(find.text(n), findsOneWidget);
       }

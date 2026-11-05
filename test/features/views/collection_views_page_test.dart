@@ -3,6 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/design/design.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:morkva_crm/features/objects/object_editor.dart';
+import 'package:morkva_crm/features/objects/object_editor_cubit.dart';
 import 'package:morkva_crm/features/views/views.dart';
 import 'package:morkva_crm/features/views/widgets/no_matches_notice.dart';
 
@@ -197,6 +200,21 @@ void main() {
       expect(find.byTooltip('Back'), findsOneWidget);
       expect(find.byTooltip('View settings'), findsOneWidget);
       expect(find.byType(FloatingActionButton), findsOneWidget);
+      // Extended: "New <item>" with the add icon.
+      expect(
+        find.descendant(
+          of: find.byType(FloatingActionButton),
+          matching: find.text('New deal'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(FloatingActionButton),
+          matching: find.byIcon(Icons.add),
+        ),
+        findsOneWidget,
+      );
       expect(find.text('Sort'), findsNothing);
       expect(find.text('Filter'), findsOneWidget);
       expect(find.text('Acme renewal'), findsOneWidget);
@@ -283,6 +301,29 @@ void main() {
     testWidgets('no nudge when the collection has objects', (tester) async {
       await pumpWorkPage(tester);
       await tester.pump();
+      expect(find.text('Add your first deal'), findsNothing);
+    });
+
+    testWidgets('no nudge when filters hide every object', (tester) async {
+      final filtered = deals.copyWith(
+        views: [
+          tableView.copyWith(
+            filters: const [
+              ViewFilter(
+                fieldId: 'name',
+                op: FilterOp.contains,
+                operand: 'no such deal',
+              ),
+            ],
+          ),
+        ],
+      );
+      await pumpWorkPage(
+        tester,
+        repository: workRepository(collection: filtered),
+      );
+      await tester.pump();
+      expect(find.textContaining('0 of '), findsOneWidget);
       expect(find.text('Add your first deal'), findsNothing);
     });
 
@@ -377,15 +418,26 @@ void main() {
   });
 
   group('objects', () {
-    testWidgets('tap → detail sheet → Delete → Undo', (tester) async {
+    Finder inEditor(Finder f) =>
+        find.descendant(of: find.byType(ObjectEditor), matching: f);
+
+    testWidgets('tap → editor → Delete → Undo', (tester) async {
       await pumpWorkPage(tester);
       await tester.tap(find.text('Globex pilot'));
       await tester.pumpAndSettle();
-      expect(find.byType(ObjectDetailSheet), findsOneWidget);
-      expect(find.text('Zeta Corp'), findsWidgets);
+      expect(find.byType(ObjectEditor), findsOneWidget);
+      expect(inEditor(find.text('Zeta Corp')), findsOneWidget);
 
-      await tester.tap(find.text('Delete'));
+      await tester.tap(inEditor(find.text('Delete')));
       await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(MorkvaConfirmDialog),
+          matching: find.text('Delete'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(ObjectEditor), findsNothing);
       expect(find.text('Globex pilot'), findsNothing);
       expect(find.text('Deleted "Globex pilot"'), findsOneWidget);
 
@@ -394,16 +446,152 @@ void main() {
       expect(find.text('Globex pilot'), findsOneWidget);
     });
 
-    testWidgets('New deal → quick-add dialog → a new row', (tester) async {
+    testWidgets('the Undo snackbar expires on its own', (tester) async {
       await pumpWorkPage(tester);
+      await tester.tap(find.text('Globex pilot'));
+      await tester.pumpAndSettle();
+      await tester.tap(inEditor(find.text('Delete')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(MorkvaConfirmDialog),
+          matching: find.text('Delete'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Deleted "Globex pilot"'), findsOneWidget);
+
+      // An action makes a SnackBar persist by default; this one must not.
+      await tester.pump(const Duration(seconds: 6));
+      await tester.pumpAndSettle();
+      expect(find.text('Deleted "Globex pilot"'), findsNothing);
+    });
+
+    testWidgets('edit → Save → the table shows the new value', (tester) async {
+      final repo = workRepository();
+      await pumpWorkPage(tester, repository: repo);
+      await tester.tap(find.text('Globex pilot'));
+      await tester.pumpAndSettle();
+      // Name, then Amount.
+      await tester.enterText(inEditor(find.byType(TextField)).at(1), '450');
+      await tester.pump();
+      await tester.tap(inEditor(find.text('Save')));
+      await tester.pumpAndSettle();
+      expect(find.byType(ObjectEditor), findsNothing);
+      expect(find.text('450 USD'), findsOneWidget);
+      final saved = repo.objectsOf('deals').firstWhere((o) => o.id == 'd2');
+      expect(saved['amount'], const NumberFieldValue(450));
+      expect(saved['name'], const TextFieldValue('Globex pilot'));
+    });
+
+    testWidgets('the editor title is a text field, not the first column', (
+      tester,
+    ) async {
+      final repo = workRepository(
+        collection: deals.copyWith(
+          views: [
+            tableView.copyWith(fieldIds: ['amount', 'name']),
+          ],
+        ),
+      );
+      await pumpWorkPage(tester, repository: repo);
+      await tester.tap(find.text('Globex pilot'));
+      await tester.pumpAndSettle();
+      final editor = tester.element(find.byType(ObjectEditor));
+      expect(editor.read<ObjectEditorCubit>().state.title, 'Globex pilot');
+    });
+
+    testWidgets('New deal → editor → Save → a new row', (tester) async {
+      final repo = workRepository();
+      await pumpWorkPage(tester, repository: repo);
       await tester.tap(find.widgetWithText(PrimaryButton, 'New deal'));
       await tester.pumpAndSettle();
-      expect(find.byType(QuickAddDialog), findsOneWidget);
-      await tester.enterText(find.byType(TextField), 'Wayne Enterprises');
-      await tester.tap(find.text('Add'));
+      expect(inEditor(find.text('New deal')), findsOneWidget);
+      await tester.enterText(
+        inEditor(find.byType(TextField)).first,
+        'Wayne Enterprises',
+      );
+      await tester.tap(inEditor(find.text('Save')));
       await tester.pumpAndSettle();
       expect(find.text('Wayne Enterprises'), findsOneWidget);
       expect(find.text('6 deals'), findsOneWidget);
+      expect(repo.objectsOf('deals'), hasLength(6));
+    });
+
+    testWidgets('phone: the FAB opens the editor as a full page', (
+      tester,
+    ) async {
+      final repo = workRepository();
+      await pumpWorkPage(tester, repository: repo, size: const Size(390, 844));
+      await tester.tap(find.widgetWithText(FloatingActionButton, 'New deal'));
+      await tester.pumpAndSettle();
+      final appBar = find.descendant(
+        of: find.byType(ObjectEditor),
+        matching: find.byType(AppBar),
+      );
+      expect(appBar, findsOneWidget);
+      await tester.enterText(inEditor(find.byType(TextField)).first, 'Wayne');
+      await tester.tap(
+        find.descendant(of: appBar, matching: find.text('Save')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(ObjectEditor), findsNothing);
+      expect(repo.objectsOf('deals'), hasLength(6));
+    });
+
+    testWidgets('a saved object the filters hide says so', (tester) async {
+      final cubit = await pumpWorkPage(tester);
+      await cubit.setFilters([
+        const ViewFilter(
+          fieldId: 'stage',
+          op: FilterOp.anyOf,
+          operand: ['won'],
+        ),
+      ]);
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(PrimaryButton, 'New deal'));
+      await tester.pumpAndSettle();
+      await tester.enterText(inEditor(find.byType(TextField)).first, 'Wayne');
+      await tester.tap(inEditor(find.text('Save')));
+      await tester.pumpAndSettle();
+      expect(find.text('Saved — hidden by the filters'), findsOneWidget);
+    });
+
+    testWidgets('board quick add → Add details → editor prefilled', (
+      tester,
+    ) async {
+      final repo = workRepository();
+      final cubit = await pumpWorkPage(tester, repository: repo);
+      cubit.selectView('board');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('New deal in Won'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Hooli renewal');
+      await tester.tap(find.text('Add details'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ObjectEditor), findsOneWidget);
+      expect(inEditor(find.text('Hooli renewal')), findsOneWidget);
+      expect(inEditor(find.text('Filled from the Won column')), findsOneWidget);
+      await tester.tap(inEditor(find.text('Save')));
+      await tester.pumpAndSettle();
+      final added = repo.objectsOf('deals').last;
+      expect(added['name'], const TextFieldValue('Hooli renewal'));
+      expect(added['stage'], const SingleSelectFieldValue('won'));
+    });
+
+    testWidgets('quick add Add still adds at once', (tester) async {
+      final repo = workRepository();
+      final cubit = await pumpWorkPage(tester, repository: repo);
+      cubit.selectView('board');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('New deal in Won'));
+      await tester.pumpAndSettle();
+      expect(find.byType(QuickAddDialog), findsOneWidget);
+      await tester.enterText(find.byType(TextField), 'Wayne');
+      await tester.tap(find.text('Add'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ObjectEditor), findsNothing);
+      expect(repo.objectsOf('deals'), hasLength(6));
     });
   });
 

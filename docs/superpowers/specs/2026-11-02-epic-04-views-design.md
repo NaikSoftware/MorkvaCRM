@@ -63,6 +63,13 @@ Rule: **what changes the shape of the data is Build; what changes how you look a
 - **Board columns**: select → one per option in option order, then "No <field>". Reference → one
   per object of the target collection (label = its first text field), then "No <field>". Empty
   columns are kept.
+- **Collapsible columns** (desktop board, Trello-style; replaces the old column "⋯ → Edit options"
+  menu — options are edited via Customize): the header's collapse icon turns a column into a 48 px
+  strip (expand icon, colour dot, count badge, name written vertically) whose whole area is one
+  "Expand <group>, N <items>" button. A strip still takes drops: the card moves to the end of that
+  group. Persisted per view in `collapsedGroups: List<String>` (group keys; the "No <field>"
+  group is the token `@none`; omitted from JSON when empty). Keys of deleted options are ignored.
+  The phone board ignores it and has no collapse control.
 - **Manual order**: `manualOrder: List<String>` (object ids) on the view, used when `sort` is
   null. Ids not in the list follow, oldest first (`createdAt`). Stale ids are ignored.
 - **Calendar**: month grid ≥ 840 dp, agenda list (days with items) on phone. Objects with an empty
@@ -92,7 +99,8 @@ Rule: **what changes the shape of the data is Build; what changes how you look a
 
 ```
 ViewDefinition { id, name, mode: String, layoutFieldId?, fieldIds: List<String>,
-                 filters: List<ViewFilter>, sort: ViewSort?, manualOrder: List<String> }
+                 filters: List<ViewFilter>, sort: ViewSort?, manualOrder: List<String>,
+                 collapsedGroups: List<String> }
 ViewFilter     { fieldId, op: FilterOp, operand: Object? (JSON) }
 ViewSort       { fieldId, ascending }   // fieldId may be '@createdAt' / '@updatedAt'
 FilterOp       { isEmpty, isNotEmpty, equals, notEquals, contains, notContains,

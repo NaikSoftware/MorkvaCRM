@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../../design/design.dart';
 
+/// What [QuickAddDialog] resolves to.
+typedef QuickAddResult = ({String title, bool details});
+
 /// Asks for a new object's title. [prefill] names the value it will also get
-/// ("Stage · Won"). Resolves to the entered title, or null on cancel.
+/// ("Stage · Won"). Resolves to the entered title — with `details` true when
+/// the user chose "Add details" (open the full form) — or null on cancel.
 class QuickAddDialog extends StatefulWidget {
   const QuickAddDialog({
     super.key,
@@ -16,12 +20,12 @@ class QuickAddDialog extends StatefulWidget {
   final String titleLabel;
   final String? prefill;
 
-  static Future<String?> show(
+  static Future<QuickAddResult?> show(
     BuildContext context, {
     required String itemLabel,
     required String titleLabel,
     String? prefill,
-  }) => showDialog<String>(
+  }) => showDialog<QuickAddResult>(
     context: context,
     builder: (_) => QuickAddDialog(
       itemLabel: itemLabel,
@@ -43,7 +47,9 @@ class _QuickAddDialogState extends State<QuickAddDialog> {
     super.dispose();
   }
 
-  void _submit() => Navigator.of(context).pop(_controller.text.trim());
+  void _submit({bool details = false}) => Navigator.of(
+    context,
+  ).pop((title: _controller.text.trim(), details: details));
 
   @override
   Widget build(BuildContext context) {
@@ -86,6 +92,10 @@ class _QuickAddDialogState extends State<QuickAddDialog> {
         ),
       ),
       actions: [
+        TextActionButton(
+          label: 'Add details',
+          onPressed: () => _submit(details: true),
+        ),
         TextActionButton(
           label: 'Cancel',
           onPressed: () => Navigator.of(context).pop(),

@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart'
-    show ChangeNotifier, Listenable, ValueListenable;
+import 'package:flutter/foundation.dart' show ValueListenable;
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -10,13 +10,15 @@ import '../../features/auth/session_loading_page.dart';
 import '../../features/auth/sign_in_page.dart';
 import '../../features/collections/collections.dart';
 import '../../features/views/views.dart';
+import '../shell/app_shell.dart';
 import '../shell/app_shell_scaffold.dart';
 
 /// The app's route table.
 ///
-/// Three top-level routes: the auth-gated app shell at `/` (a collection's
-/// Work page `/collections/:id` and its editor `/collections/:id/edit` nest
-/// under it), the public sign-in
+/// Three top-level routes: the auth-gated app shell (a [ShellRoute] holding
+/// Home at `/` and a collection's Work page `/collections/:id` in its main
+/// panel; the editor `/collections/:id/edit` covers it full-screen), the
+/// public sign-in
 /// screen at `/sign-in`, and a neutral `/loading` interstitial. Routing is
 /// gated on two signals merged into [GoRouter.refreshListenable]: the
 /// [authCubit] auth state and [sessionReady] (the [DataRepository] has been
@@ -34,7 +36,10 @@ GoRouter createAppRouter(
   final fieldEditorRegistry = defaultFieldEditorRegistry();
   final viewModes = defaultViewModeRegistry();
 
+  final rootKey = GlobalKey<NavigatorState>();
+
   return GoRouter(
+    navigatorKey: rootKey,
     initialLocation: '/',
     refreshListenable: Listenable.merge([
       GoRouterRefreshStream(authCubit.stream),
@@ -74,43 +79,63 @@ GoRouter createAppRouter(
       }
     },
     routes: [
-      GoRoute(
-        path: '/',
-        builder: (context, state) => const AppShellScaffold(),
+      // The persistent shell: the rail (wide) is built once and only the
+      // main panel's page changes between Home and a collection.
+      ShellRoute(
+        builder: (context, state, child) => AppShellScaffold(
+          inCollection: state.pathParameters.containsKey('id'),
+          child: child,
+        ),
         routes: [
-          // A collection's Work surface. Nested under `/` so back returns
-          // Home; on wide screens the page draws the shell rail itself. Same
-          // auth+session gate as `/` (the redirect above holds any protected
-          // location on `/loading` until the workspace is ready), so the
-          // repository is initialized before the cubit subscribes.
           GoRoute(
-            path: 'collections/:id',
-            builder: (context, state) {
-              final id = state.pathParameters['id']!;
-              return BlocProvider(
-                create: (context) =>
-                    CollectionViewsCubit(context.read<DataRepository>(), id)
-                      ..initialize(),
-                child: CollectionViewsPage(modes: viewModes),
-              );
-            },
+            path: '/',
+            builder: (context, state) => const HomeSections(),
             routes: [
-              // Build: the full-screen schema editor, a focused mode outside
-              // the shell nav. Its cubit loads a one-shot snapshot of the
-              // workspace collections itself (for the reference picker).
+              // A collection's Work surface. Nested under `/` so back returns
+              // Home. Same auth+session gate as `/` (the redirect above holds
+              // any protected location on `/loading` until the workspace is
+              // ready), so the repository is initialized before the cubit
+              // subscribes.
               GoRoute(
-                path: 'edit',
-                builder: (context, state) {
+                path: 'collections/:id',
+                pageBuilder: (context, state) {
                   final id = state.pathParameters['id']!;
-                  final repository = context.read<DataRepository>();
-                  final fieldId = state.uri.queryParameters['field'];
-                  return BlocProvider(
-                    create: (_) =>
-                        CollectionEditorCubit(repository, fieldEditorRegistry)
-                          ..load(id, selectFieldId: fieldId),
-                    child: CollectionEditorPage(registry: fieldEditorRegistry),
+                  return collectionPage(
+                    context,
+                    key: state.pageKey,
+                    child: BlocProvider(
+                      create: (context) => CollectionViewsCubit(
+                        context.read<DataRepository>(),
+                        id,
+                      )..initialize(),
+                      child: CollectionViewsPage(modes: viewModes),
+                    ),
                   );
                 },
+                routes: [
+                  // Build: the full-screen schema editor, a focused mode
+                  // outside the shell. Its cubit loads a one-shot snapshot of
+                  // the workspace collections itself (for the reference
+                  // picker).
+                  GoRoute(
+                    path: 'edit',
+                    parentNavigatorKey: rootKey,
+                    builder: (context, state) {
+                      final id = state.pathParameters['id']!;
+                      final repository = context.read<DataRepository>();
+                      final fieldId = state.uri.queryParameters['field'];
+                      return BlocProvider(
+                        create: (_) => CollectionEditorCubit(
+                          repository,
+                          fieldEditorRegistry,
+                        )..load(id, selectFieldId: fieldId),
+                        child: CollectionEditorPage(
+                          registry: fieldEditorRegistry,
+                        ),
+                      );
+                    },
+                  ),
+                ],
               ),
             ],
           ),
@@ -145,4 +170,33 @@ class GoRouterRefreshStream extends ChangeNotifier {
     _subscription.cancel();
     super.dispose();
   }
+}
+
+/// The collection page inside the shell. Wide, only the main panel changes,
+/// at once, so the rail stays put; phone, the platform's push transition, as
+/// a full-screen page with back. One page type for both, so resizing across
+/// the breakpoint keeps the page (and its state).
+Page<void> collectionPage(
+  BuildContext context, {
+  required LocalKey key,
+  required Widget child,
+}) {
+  final wide = MediaQuery.sizeOf(context).width >= AppShell.expandedBreakpoint;
+  const phone = Duration(milliseconds: 300);
+  return CustomTransitionPage(
+    key: key,
+    child: child,
+    transitionDuration: wide ? Duration.zero : phone,
+    reverseTransitionDuration: wide ? Duration.zero : phone,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+        MediaQuery.sizeOf(context).width >= AppShell.expandedBreakpoint
+        ? child
+        : Theme.of(context).pageTransitionsTheme.buildTransitions(
+            ModalRoute.of(context)! as PageRoute<void>,
+            context,
+            animation,
+            secondaryAnimation,
+            child,
+          ),
+  );
 }

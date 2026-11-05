@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../../../design/design.dart';
 
-/// The loading placeholder in the Table's shape: a header, tabs and rows of
+/// The loading placeholder in the Table's shape: a header, tabs, the toolbar
+/// and rows of
 /// `surfaceContainer` bars pulsing 0.5 ↔ 1 over 1.2 s (static with reduced
 /// motion). Draws nothing for the first 150 ms so fast loads never flash.
 class ViewsSkeleton extends StatefulWidget {
@@ -96,6 +97,17 @@ class _ViewsSkeletonState extends State<ViewsSkeleton>
                 ],
               ),
               const SizedBox(height: Spacing.lg),
+              // The toolbar: a filter chip, then sort and columns.
+              Row(
+                children: [
+                  bar(96, 32, radius: Radii.full),
+                  const Spacer(),
+                  bar(32, 32, radius: Radii.md),
+                  const SizedBox(width: Spacing.xs),
+                  bar(32, 32, radius: Radii.md),
+                ],
+              ),
+              const SizedBox(height: Spacing.md),
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(

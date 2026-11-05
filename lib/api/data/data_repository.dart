@@ -46,6 +46,15 @@ abstract interface class DataRepository {
     Collection? schema,
   });
 
+  /// Streams the object [objectId] of [collectionId], decoded against
+  /// [schema], emitting on every change; `null` while it does not exist.
+  /// Cheaper than [watchObjects] for following a single object.
+  Stream<MorkvaObject?> watchObject(
+    String collectionId,
+    String objectId, {
+    required Collection schema,
+  });
+
   /// Reads all objects in [collectionId] once, decoded against [schema].
   Future<List<MorkvaObject>> getObjects(
     String collectionId, {

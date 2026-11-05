@@ -80,3 +80,15 @@ owns this; components are width-agnostic.
 - Motion: `fast` 120ms (press), `base` 200ms (state), `slow` 320ms (reveals);
   curve `MotionCurves.emphasized` = `cubic-bezier(0.16,1,0.3,1)`. Always honor
   `MediaQuery.disableAnimationsOf(context)`.
+
+## 10. Background doodles
+`components/doodle_background.dart` paints a faint 240px tile of line doodles
+(carrot, sprout, tag, card, calendar, parcel, clip, check, envelope, needle)
+behind the **main panel only** — right of the rail on wide screens (header
+included), the body under the app bar on phones. Never behind the rail/bar,
+dialogs, sheets or the phone app bar. Colour comes from
+`MorkvaSemanticColors.doodle` (light: ink 10%, dark: cream 7%).
+- **Decor only:** it ignores pointers and semantics and must never draw
+  attention. Text-heavy surfaces (table, board columns, cards, list sections,
+  calendar grid) keep their own opaque backgrounds so the doodles show only in
+  the gaps — never put text straight onto the pattern beyond a page header.
