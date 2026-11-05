@@ -360,8 +360,13 @@ class _WideFrame extends StatelessWidget {
         context.read<NavigationCubit>().select(kAppSections[i]);
         context.go('/');
       },
-      railHeaderBuilder: (context, extended) =>
-          BrandWordmark(extended: extended),
+      railHeaderBuilder: (context, extended) => BrandWordmark(
+        extended: extended,
+        onTap: () {
+          context.read<NavigationCubit>().select(AppSection.home);
+          context.go('/');
+        },
+      ),
       title: collection?.name ?? '',
       header: collection == null
           ? const SizedBox.shrink()

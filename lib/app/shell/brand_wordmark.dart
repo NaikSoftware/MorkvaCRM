@@ -8,10 +8,13 @@ import '../../design/design.dart';
 /// rail is [extended]. A collapsed rail shows only the mark so it fits the
 /// narrow column.
 class BrandWordmark extends StatelessWidget {
-  const BrandWordmark({super.key, this.extended = true});
+  const BrandWordmark({super.key, this.extended = true, this.onTap});
 
   /// Whether to show the full wordmark beside the logomark.
   final bool extended;
+
+  /// Called when the brand is tapped (e.g. to go Home). Null = not tappable.
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -35,21 +38,27 @@ class BrandWordmark extends StatelessWidget {
       ),
     );
 
-    if (!extended) return logomark;
+    final brand = extended
+        ? Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              logomark,
+              const SizedBox(width: Spacing.xs),
+              Flexible(
+                child: Text(
+                  'Morkva CRM',
+                  style: theme.textTheme.titleLarge,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          )
+        : logomark;
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        logomark,
-        const SizedBox(width: Spacing.xs),
-        Flexible(
-          child: Text(
-            'Morkva CRM',
-            style: theme.textTheme.titleLarge,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
+    if (onTap == null) return brand;
+    return Tooltip(
+      message: 'Home',
+      child: InkWell(onTap: onTap, borderRadius: Radii.smAll, child: brand),
     );
   }
 }
