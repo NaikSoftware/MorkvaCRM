@@ -29,8 +29,11 @@ class AppShellScaffold extends StatelessWidget {
           destinations: kAppSections,
           // App bar shows the current page; the brand lives in the rail header.
           title: section.label,
-          railHeaderBuilder: (context, extended) =>
-              BrandWordmark(extended: extended),
+          railHeaderBuilder: (context, extended) => BrandWordmark(
+            extended: extended,
+            onTap: () =>
+                context.read<NavigationCubit>().select(AppSection.home),
+          ),
           // Sync status sits quietly in the header so it's visible on every
           // main screen; the conflict banner self-hides until there's a
           // conflict to surface.

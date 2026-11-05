@@ -20,4 +20,18 @@ void main() {
     expect(find.text('M'), findsOneWidget);
     expect(find.text('Morkva CRM'), findsNothing);
   });
+
+  testWidgets('tapping calls onTap when provided', (tester) async {
+    var taps = 0;
+    await tester.pumpWidget(host(BrandWordmark(onTap: () => taps++)));
+
+    await tester.tap(find.text('M'));
+    expect(taps, 1);
+  });
+
+  testWidgets('is not tappable without onTap', (tester) async {
+    await tester.pumpWidget(host(const BrandWordmark()));
+
+    expect(find.byType(InkWell), findsNothing);
+  });
 }
