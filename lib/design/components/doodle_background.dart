@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
@@ -25,7 +26,12 @@ class DoodleBackground extends StatelessWidget {
           child: IgnorePointer(
             child: ExcludeSemantics(
               child: RepaintBoundary(
-                child: CustomPaint(painter: DoodlePainter(color)),
+                child: CustomPaint(
+                  painter: DoodlePainter(
+                    color,
+                    pixelRatio: MediaQuery.devicePixelRatioOf(context),
+                  ),
+                ),
               ),
             ),
           ),
@@ -37,41 +43,71 @@ class DoodleBackground extends StatelessWidget {
 }
 
 /// Paints the doodle tile across its size in [color].
+///
+/// The strokes are rasterized once per colour and [pixelRatio] into a tile
+/// image, then repeated with one image-shader fill: on web every frame
+/// re-rasterizes the whole scene, and stroking the paths per tile per frame
+/// starved the main thread whenever anything animated.
 class DoodlePainter extends CustomPainter {
-  DoodlePainter(this.color);
+  DoodlePainter(this.color, {this.pixelRatio = 1});
 
   final Color color;
+
+  /// Device pixels per logical pixel the tile image is rendered at.
+  final double pixelRatio;
 
   static const double tile = 240;
 
   /// The tile's strokes, built once.
   static final Path _tile = _buildTile();
 
+  // shortcut: never evicted — a handful of entries (theme colours × device
+  // pixel ratios); upgrade to an LRU if colours become user-configurable.
+  static final Map<(Color, double), ui.Image> _images = {};
+
+  static ui.Image _tileImage(Color color, double pixelRatio) =>
+      _images[(color, pixelRatio)] ??= () {
+        final recorder = ui.PictureRecorder();
+        // Clipped to the canvas like an SVG <pattern>: strokes past the
+        // tile edge are cut.
+        Canvas(recorder)
+          ..scale(pixelRatio)
+          ..drawPath(
+            _tile,
+            Paint()
+              ..color = color
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 1.6
+              ..strokeCap = StrokeCap.round
+              ..strokeJoin = StrokeJoin.round,
+          );
+        final side = (tile * pixelRatio).round();
+        final picture = recorder.endRecording();
+        final image = picture.toImageSync(side, side);
+        picture.dispose();
+        return image;
+      }();
+
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.6
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-    canvas.clipRect(Offset.zero & size);
-    const cell = Rect.fromLTWH(0, 0, tile, tile);
-    for (var y = 0.0; y < size.height; y += tile) {
-      for (var x = 0.0; x < size.width; x += tile) {
-        canvas
-          ..save()
-          ..translate(x, y)
-          // Like an SVG <pattern>: strokes past the tile edge are cut.
-          ..clipRect(cell)
-          ..drawPath(_tile, paint)
-          ..restore();
-      }
-    }
+    final image = _tileImage(color, pixelRatio);
+    // Map image pixels back to logical pixels, so a tile spans [tile].
+    final scale = tile / image.width;
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()
+        ..shader = ImageShader(
+          image,
+          TileMode.repeated,
+          TileMode.repeated,
+          Matrix4.diagonal3Values(scale, scale, 1).storage,
+        ),
+    );
   }
 
   @override
-  bool shouldRepaint(DoodlePainter oldDelegate) => oldDelegate.color != color;
+  bool shouldRepaint(DoodlePainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.pixelRatio != pixelRatio;
 
   /// Ported 1:1 from docs/superpowers/mockups/epic-05/Pattern.dc.html.
   static Path _buildTile() {

@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/design/design.dart';
@@ -74,9 +76,39 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  test('repaints only when the colour changes', () {
+  test('repaints only when the colour or pixel ratio changes', () {
     final a = DoodlePainter(MorkvaPalette.doodleLight);
     expect(a.shouldRepaint(DoodlePainter(MorkvaPalette.doodleLight)), isFalse);
     expect(a.shouldRepaint(DoodlePainter(MorkvaPalette.doodleDark)), isTrue);
+    expect(
+      a.shouldRepaint(DoodlePainter(MorkvaPalette.doodleLight, pixelRatio: 2)),
+      isTrue,
+    );
+  });
+
+  testWidgets('draws the tile and repeats it every tile width', (
+    tester,
+  ) async {
+    const opaque = Color(0xFF000000);
+    const w = DoodlePainter.tile * 2;
+    const h = DoodlePainter.tile;
+    final bytes = await tester.runAsync(() async {
+      final recorder = ui.PictureRecorder();
+      DoodlePainter(opaque).paint(Canvas(recorder), const Size(w, h));
+      final image = recorder.endRecording().toImageSync(w.toInt(), h.toInt());
+      return (await image.toByteData())!;
+    });
+    int alpha(int x, int y) => bytes!.getUint8((y * w.toInt() + x) * 4 + 3);
+
+    var inked = 0;
+    for (var y = 0; y < h; y++) {
+      for (var x = 0; x < DoodlePainter.tile; x++) {
+        final a = alpha(x, y);
+        if (a > 0) inked++;
+        // The second tile is a pixel copy of the first.
+        expect(alpha(x + DoodlePainter.tile.toInt(), y), a);
+      }
+    }
+    expect(inked, greaterThan(500));
   });
 }
