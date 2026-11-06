@@ -127,6 +127,8 @@ class CalculatedFieldDefinition extends FieldDefinition {
       unitLabel: unitLabel,
     ),
     kBooleanFieldType => BooleanFieldDefinition(id: id, name: name),
+    // shortcut: date results are calendar days only; add an includeTime
+    // config when a formula needs to produce instants.
     kDateFieldType => DateFieldDefinition(id: id, name: name),
     _ => TextFieldDefinition(id: id, name: name),
   };

@@ -1,6 +1,9 @@
 import '../collection.dart';
 import '../types/auto_number_field.dart';
 
+// shortcut: objects saved before an auto-number field existed stay blank (no
+// backfill); add a batch numbering pass when the owner asks for one.
+
 /// Numbers for the auto-number fields of a new object of [schema].
 ///
 /// [values] are the object's encoded values (a field that already holds a

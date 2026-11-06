@@ -387,6 +387,9 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
     return result;
   }
 
+  // shortcut: TODAY() is evaluated when inputs change, so a page left open
+  // past midnight keeps yesterday until the next data change.
+
   /// The last derivation and what it was computed from: emits that change
   /// nothing it reads (a view setting, a write error) reuse it.
   ({List<Object> inputs, List<MorkvaObject> result})? _derived;
@@ -401,6 +404,9 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
 
   /// The calculated values of [draft] (an edited or new object of this
   /// collection) against the loaded data, for the object form's live preview.
+  // shortcut: rebuilds a whole Derivation per call (O(all loaded objects), per
+  // keystroke in the form); derive only the draft's dependents if a large
+  // workspace makes typing lag.
   Map<String, FieldValue> deriveFor(MorkvaObject draft) {
     final collection = _collection;
     if (collection == null) return const {};

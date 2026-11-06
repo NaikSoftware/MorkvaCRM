@@ -1,7 +1,9 @@
 # Epic 6 — Calculated & Aggregation Fields — Design
 
 **Date:** 2026-11-07 · **Status:** decided autonomously (owner asked for no approval stops; "my call" marks my decisions)
-**Epic:** `docs/plan/epic-06-calculated-fields.md`
+**Epic:** `docs/plan/epic-06-calculated-fields.md` · **Mockups:** Claude Design canvas
+https://claude.ai/artifact/1DsrpmsZui2h6bVBuKbomQ (copies in `docs/superpowers/mockups/epic-06/`:
+`Main` formula panel, `Aggregate` panel, `Summary` view mode)
 
 ## Goal
 
