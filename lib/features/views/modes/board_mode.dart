@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -387,17 +388,33 @@ class _BoardViewState extends State<BoardView> {
     controller: _horizontal,
     // Pointer users get a visible track; touch scrolls by swiping.
     thumbVisibility: RendererBinding.instance.mouseTracker.mouseIsConnected,
-    // Lazy: a reference board can have hundreds of columns.
-    child: EdgeFade(
-      child: ListView.separated(
-        controller: _horizontal,
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.only(bottom: Spacing.sm),
-        itemCount: groups.length,
-        separatorBuilder: (_, _) => const SizedBox(width: Spacing.md),
-        itemBuilder: (context, i) => Align(
-          alignment: Alignment.topCenter,
-          child: _column(context, groups[i], field, collapsible: true),
+    // A vertical wheel no column takes (background, a column that can't
+    // scroll) scrolls the board sideways.
+    child: Listener(
+      // The gaps around columns hit nothing inside: still take the wheel.
+      behavior: HitTestBehavior.translucent,
+      onPointerSignal: (event) {
+        if (event is PointerScrollEvent &&
+            event.scrollDelta.dy != 0 &&
+            _horizontal.hasClients) {
+          GestureBinding.instance.pointerSignalResolver.register(
+            event,
+            (_) => _horizontal.position.pointerScroll(event.scrollDelta.dy),
+          );
+        }
+      },
+      // Lazy: a reference board can have hundreds of columns.
+      child: EdgeFade(
+        child: ListView.separated(
+          controller: _horizontal,
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.only(bottom: Spacing.sm),
+          itemCount: groups.length,
+          separatorBuilder: (_, _) => const SizedBox(width: Spacing.md),
+          itemBuilder: (context, i) => Align(
+            alignment: Alignment.topCenter,
+            child: _column(context, groups[i], field, collapsible: true),
+          ),
         ),
       ),
     ),
@@ -452,6 +469,10 @@ class _BoardViewState extends State<BoardView> {
 
     _compact = MediaQuery.sizeOf(context).width < AppShell.expandedBreakpoint;
     if (!_compact) _dropPager();
+    // Android reports a ~8 dp touch slop: the jitter of a resting finger would
+    // let the board scroll grab a card's long press. Hold both to at least
+    // Flutter's default.
+    final slop = MediaQuery.gestureSettingsOf(context).touchSlop ?? kTouchSlop;
     final columns = Focus(
       focusNode: _escape,
       skipTraversal: true,
@@ -460,7 +481,23 @@ class _BoardViewState extends State<BoardView> {
         onPointerMove: _pointerMove,
         onPointerUp: _pointerEnd,
         onPointerCancel: _pointerEnd,
-        child: _compact ? _phone(groups, field) : _desktop(groups, field),
+        child: MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            gestureSettings: DeviceGestureSettings(
+              touchSlop: slop < kTouchSlop ? kTouchSlop : slop,
+            ),
+          ),
+          // A mouse drag moves cards: drag-to-scroll would win the arena at
+          // 1 px, before a card lifts at 4. Wheel, trackpad and the
+          // scrollbar still scroll.
+          child: ScrollConfiguration(
+            behavior: ScrollConfiguration.of(context).copyWith(
+              dragDevices: {...ScrollConfiguration.of(context).dragDevices}
+                ..remove(PointerDeviceKind.mouse),
+            ),
+            child: _compact ? _phone(groups, field) : _desktop(groups, field),
+          ),
+        ),
       ),
     );
     if (!(state.objects.isEmpty && state.isFiltered)) return columns;

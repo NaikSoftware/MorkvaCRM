@@ -91,6 +91,11 @@ Tiebreak for the rule in the design doc: stored on the collection and seen by ev
   2° tilt, follows the pointer; source slot collapses (`base`); ghost = dashed 2 px `primary` at
   6 % fill at the real card height; target column `surfaceContainerHigh` + 2 px inset primary.
   Auto-scroll within 48 px of an edge. Counts change on drop only.
+- Board input: a mouse drag inside the board moves cards, never scrolls (wheel, trackpad and the
+  scrollbar do). Touch slop inside the board is at least 18 px, so a resting finger's jitter
+  doesn't hand a long press to scrolling. Desktop wheel: over a column that can scroll it scrolls
+  only that column (no spill at its ends); over the background or a column that can't scroll it
+  scrolls the board sideways.
 - Every drop → snackbar with Undo (5 s). Drop into a value hidden by a filter: "Moved to Ready —
   hidden by filter" + Undo.
 - Phone: `PageView(padEnds: false, viewportFraction: (w-72)/w)` snapping one column; the next

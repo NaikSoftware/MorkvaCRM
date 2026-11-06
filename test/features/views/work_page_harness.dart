@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:morkva_crm/api/api.dart';
+import 'package:morkva_crm/app/app.dart';
 import 'package:morkva_crm/app/navigation/navigation_cubit.dart';
 import 'package:morkva_crm/app/shell/app_shell_scaffold.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
@@ -90,6 +91,8 @@ Future<CollectionViewsCubit> pumpWorkPage(
           BlocProvider.value(value: nav),
         ],
         child: MaterialApp.router(
+          // As in the app: mouse drags scroll.
+          scrollBehavior: const AppScrollBehavior(),
           theme: AppTheme.light,
           routerConfig: router,
           debugShowCheckedModeBanner: false,
