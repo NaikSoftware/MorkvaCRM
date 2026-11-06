@@ -42,6 +42,7 @@ final class ViewsReady extends CollectionViewsState {
     this.days,
     this.referenceLabels = const {},
     this.referenceChoices = const {},
+    this.calculationNotes = const {},
     this.writeError,
     this.writeErrorSeq = 0,
   });
@@ -73,6 +74,9 @@ final class ViewsReady extends CollectionViewsState {
   /// fields passed to `loadReferenceChoices` whose targets have loaded.
   final Map<String, Map<String, String>> referenceChoices;
 
+  /// What each calculated field computes, in one line, by field id.
+  final Map<String, String> calculationNotes;
+
   /// The last failed write, for a snackbar. A new failure bumps
   /// [writeErrorSeq], so listeners can tell repeats apart.
   final String? writeError;
@@ -103,6 +107,7 @@ final class ViewsReady extends CollectionViewsState {
     days,
     referenceLabels,
     referenceChoices,
+    calculationNotes,
     writeError,
     writeErrorSeq,
   ];

@@ -73,6 +73,7 @@ void main() {
       ViewModeIds.board,
       ViewModeIds.list,
       ViewModeIds.calendar,
+      ViewModeIds.summary,
     ]);
     expect(modes.selected, {ViewModeIds.board});
     expect(_inSheet(find.text('Group by')), findsOneWidget);

@@ -354,6 +354,7 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
           for (final f in _choiceReferences(collection))
             f.id: ?_labelsFor(f.targetCollectionId, collection),
         },
+        calculationNotes: calculationNotes(),
         writeError: _writeError,
         writeErrorSeq: _writeErrorSeq,
       ),

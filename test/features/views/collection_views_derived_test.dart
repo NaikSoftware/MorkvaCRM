@@ -132,21 +132,24 @@ void main() {
     });
   });
 
-  test('the editor shows calculated values live as the draft changes', () async {
-    final cubit = await open('items');
-    final editor = ObjectEditorCubit(
-      repo,
-      _items,
-      object: shown(cubit, 'a'),
-      derive: cubit.deriveFor,
-    );
-    addTearDown(editor.close);
-    await editor.initialize();
-    final left = _items.fieldById('left')!;
-    expect((editor.state.valueOf(left) as CalculatedFieldValue).cached, 5);
-    editor.change('stock', const NumberFieldValue(12));
-    expect((editor.state.valueOf(left) as CalculatedFieldValue).cached, 7);
-  });
+  test(
+    'the editor shows calculated values live as the draft changes',
+    () async {
+      final cubit = await open('items');
+      final editor = ObjectEditorCubit(
+        repo,
+        _items,
+        object: shown(cubit, 'a'),
+        derive: cubit.deriveFor,
+      );
+      addTearDown(editor.close);
+      await editor.initialize();
+      final left = _items.fieldById('left')!;
+      expect((editor.state.valueOf(left) as CalculatedFieldValue).cached, 5);
+      editor.change('stock', const NumberFieldValue(12));
+      expect((editor.state.valueOf(left) as CalculatedFieldValue).cached, 7);
+    },
+  );
 
   test('quick add numbers new orders in sequence', () async {
     final cubit = await open('orders');
@@ -160,9 +163,6 @@ void main() {
     ];
     expect(numbers, [null, null, null, 1, 2]);
     final second = repo.objectsOf('orders').last;
-    expect(
-      formatFieldValue(_orders.fieldById('no')!, second['no']!),
-      '#2',
-    );
+    expect(formatFieldValue(_orders.fieldById('no')!, second['no']!), '#2');
   });
 }

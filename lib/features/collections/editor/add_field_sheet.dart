@@ -108,9 +108,9 @@ class AddFieldSheet extends StatelessWidget {
   }
 }
 
-/// A small "Declare only" tag for computed types: the type can be configured
-/// now, but evaluation lands in a later update. Mirrors the field-row type
-/// badge (surfaceContainerHighest + labelSmall) so the two read as siblings.
+/// A small "Automatic" tag for computed types (filled in by the app, never
+/// typed). Mirrors the field-row type badge (surfaceContainerHighest +
+/// labelSmall) so the two read as siblings.
 class _DeclareOnlyPill extends StatelessWidget {
   const _DeclareOnlyPill();
 
@@ -127,10 +127,10 @@ class _DeclareOnlyPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.schedule, size: 11, color: scheme.onSurfaceVariant),
+          Icon(Icons.bolt, size: 11, color: scheme.onSurfaceVariant),
           const SizedBox(width: 3),
           Text(
-            'Declare only',
+            'Automatic',
             style: theme.textTheme.labelSmall?.copyWith(
               color: scheme.onSurfaceVariant,
             ),
@@ -199,7 +199,7 @@ class _TypeCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   // Keep the real type description; the pill above already
-                  // signals it is declare-only for now.
+                  // signals the value is filled in automatically.
                   Text(
                     editor.description,
                     style: theme.textTheme.bodySmall?.copyWith(

@@ -107,44 +107,8 @@ class _ConfigTextFieldState extends State<ConfigTextField> {
   }
 }
 
-/// A "declared now, computed in a later update" note for computed field types.
-class ComputedLaterBanner extends StatelessWidget {
-  const ComputedLaterBanner({super.key, required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      margin: const EdgeInsets.only(bottom: Spacing.md),
-      padding: const EdgeInsets.all(Spacing.sm),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest,
-        borderRadius: Radii.smAll,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.schedule, size: 18, color: scheme.onSurfaceVariant),
-          const SizedBox(width: Spacing.xs),
-          Expanded(
-            child: Text(
-              message,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 /// A non-blocking, warning-toned inline note (e.g. a reference field whose
-/// target is not yet chosen). Mirrors [ComputedLaterBanner]'s shape but uses the
-/// semantic warning color so it reads as "attention", not a normal hint.
+/// target is not yet chosen), in the semantic warning color so it reads as "attention", not a normal hint.
 class InlineWarningNote extends StatelessWidget {
   const InlineWarningNote({super.key, required this.message});
 

@@ -276,6 +276,30 @@ class Derivation {
   static Object? _toJson(Object? v) => v is DateTime ? v.toIso8601String() : v;
 }
 
+/// The formula fields of [owner] that lead from [fieldId] back to itself
+/// ("Total", "Tax", "Total"), or null when its formula has no such loop.
+List<String>? formulaCycle(Collection owner, String fieldId) {
+  Set<String> readsOf(String id) => switch (owner.fieldById(id)) {
+    CalculatedFieldDefinition(aggregate: null, :final expression?) =>
+      formulaFieldIds(expression, owner.fields),
+    _ => const {},
+  };
+  final path = <String>[fieldId];
+  final seen = <String>{};
+  bool walk(String id) {
+    for (final next in readsOf(id)) {
+      path.add(next);
+      if (next == fieldId) return true;
+      if (seen.add(next) && walk(next)) return true;
+      path.removeLast();
+    }
+    return false;
+  }
+
+  if (!walk(fieldId)) return null;
+  return [for (final id in path) owner.fieldById(id)?.name ?? id];
+}
+
 /// The type an aggregation yields: number, or date for min/max of a date.
 String aggregateOutputType(
   Aggregation a,
