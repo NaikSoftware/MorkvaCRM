@@ -6,6 +6,7 @@ import '../../api/data/data_repository.dart';
 import '../../core/domain/domain.dart';
 import '../collections/util/id_generator.dart';
 import 'collection_views_state.dart';
+import 'widgets/view_labels.dart';
 
 /// Reverts one object write (or a manual-order change). Completes when the
 /// revert has been written.
@@ -199,16 +200,30 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
   void _watchTargets(Collection collection, ViewDefinition view) {
     _viewReferences(collection, view).forEach(_watchTarget);
     _choiceReferences(collection).forEach(_watchTarget);
+    Derivation.sourcesOf(
+      collectionId,
+      _workspace(collection),
+    ).forEach(_watchCollection);
   }
+
+  /// The workspace's collections with [collection] as this cubit sees it.
+  List<Collection> _workspace(Collection collection) => [
+    collection,
+    for (final c in _collections)
+      if (c.id != collectionId) c,
+  ];
 
   Iterable<ReferenceFieldDefinition> _choiceReferences(Collection collection) =>
       collection.fields.whereType<ReferenceFieldDefinition>().where(
         (f) => _choiceFields.contains(f.id),
       );
 
-  void _watchTarget(ReferenceFieldDefinition field) {
+  void _watchTarget(ReferenceFieldDefinition field) =>
+      _watchCollection(field.targetCollectionId);
+
+  /// Watches the objects of another collection [targetId], once.
+  void _watchCollection(String targetId) {
     if (isClosed) return;
-    final targetId = field.targetCollectionId;
     if (targetId == collectionId || _targetSubs.containsKey(targetId)) return;
     final target = _collections.where((c) => c.id == targetId).firstOrNull;
     if (target == null) return;
@@ -225,7 +240,7 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
           },
           onError: (Object _) {
             if (isClosed || !_failedTargets.add(targetId)) return;
-            _reportWriteError("Couldn't load ${target.name} names");
+            _reportWriteError("Couldn't load ${target.name}");
           },
         );
   }
@@ -302,7 +317,7 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
     _activeViewId = view.id;
     _watchTargets(collection, view);
 
-    final all = _allObjects;
+    final all = _derive(collection, _allObjects);
     final applied = applyView(collection, view, all);
     final labelsByTarget = {
       for (final f in _viewReferences(collection, view))
@@ -343,6 +358,44 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
         writeErrorSeq: _writeErrorSeq,
       ),
     );
+  }
+
+  /// [objects] with their calculated values; others' objects as loaded.
+  List<MorkvaObject> _derive(
+    Collection collection,
+    List<MorkvaObject> objects,
+  ) {
+    if (!collection.fields.any((f) => f is CalculatedFieldDefinition)) {
+      return objects;
+    }
+    return Derivation(
+      collections: _workspace(collection),
+      objects: {..._targetObjects, collectionId: objects},
+    ).objectsOf(collectionId);
+  }
+
+  /// The calculated values of [draft] (an edited or new object of this
+  /// collection) against the loaded data, for the object form's live preview.
+  Map<String, FieldValue> deriveFor(MorkvaObject draft) {
+    final collection = _collection;
+    if (collection == null) return const {};
+    final others = _allObjects.where((o) => o.id != draft.id);
+    final derived = _derive(collection, [...others, draft]);
+    final object = derived.lastWhere((o) => o.id == draft.id);
+    return {
+      for (final f in collection.fields.whereType<CalculatedFieldDefinition>())
+        f.id: object[f.id] ?? f.emptyValue(),
+    };
+  }
+
+  /// What each calculated field computes, in one line, by field id.
+  Map<String, String> calculationNotes() {
+    final collection = _collection;
+    if (collection == null) return const {};
+    return {
+      for (final f in collection.fields.whereType<CalculatedFieldDefinition>())
+        f.id: calculationSummary(f, collection, _collections),
+    };
   }
 
   void _reportWriteError(String message) {

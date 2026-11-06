@@ -334,6 +334,8 @@ Future<void> _createObject(
     prefill: prefill,
     prefillNote: prefillNote,
     titleFieldId: cubit.quickAddTitleField()?.id,
+    derive: cubit.deriveFor,
+    notes: cubit.calculationNotes(),
   );
   if (result is ObjectEditorSaved && context.mounted) {
     _notifyIfHidden(context, result.object);
@@ -360,6 +362,8 @@ Future<void> _openObject(
     collection: state.collection,
     object: object,
     titleFieldId: cubit.quickAddTitleField()?.id,
+    derive: cubit.deriveFor,
+    notes: cubit.calculationNotes(),
   );
   if (!context.mounted) return;
   switch (result) {

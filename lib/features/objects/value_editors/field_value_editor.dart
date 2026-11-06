@@ -55,7 +55,11 @@ class ValueEditorContext {
     this.enabled = true,
     this.references = ReferenceChoices.none,
     this.attachments,
+    this.note,
   });
+
+  /// A line the host knows about this field (what a calculation computes).
+  final String? note;
 
   final FieldDefinition field;
 

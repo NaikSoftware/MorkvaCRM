@@ -360,6 +360,81 @@ void main() {
     });
   });
 
+  group('derived fields', () {
+    const numbered = Collection(
+      id: 'orders',
+      name: 'Orders',
+      fields: [
+        AutoNumberFieldDefinition(id: 'no', name: 'No', start: 100),
+        NumberFieldDefinition(id: 'qty', name: 'Qty'),
+        CalculatedFieldDefinition(
+          id: 'twice',
+          name: 'Twice',
+          declaredOutputType: 'number',
+          expression: '{qty} * 2',
+        ),
+      ],
+    );
+
+    MorkvaObject order(String id, {int? no}) => MorkvaObject.create(
+      id: id,
+      collection: numbered,
+      createdAt: DateTime.utc(2026),
+      updatedAt: DateTime.utc(2026),
+      values: {
+        'qty': const NumberFieldValue(3),
+        if (no != null) 'no': AutoNumberFieldValue(no),
+        'twice': const CalculatedFieldValue(6),
+      },
+    );
+
+    Future<int?> numberOf(String id) async =>
+        ((await repository.getObject('orders', id, schema: numbered))!['no']
+                as AutoNumberFieldValue)
+            .sequence;
+
+    test(
+      'new objects get the next number from the workspace counter',
+      () async {
+        await repository.saveObject(order('a'), schema: numbered);
+        await repository.saveObject(order('b'), schema: numbered);
+        expect(await numberOf('a'), 100);
+        expect(await numberOf('b'), 101);
+        final ws = await firestore.doc('workspaces/$workspaceId').get();
+        expect(ws.data()!['counters'], {
+          'orders': {'no': 101},
+        });
+      },
+    );
+
+    test(
+      'a re-save keeps the number; a deleted number is not reused',
+      () async {
+        await repository.saveObject(order('a'), schema: numbered);
+        await repository.saveObject(order('b'), schema: numbered);
+        await repository.saveObject(
+          (await repository.getObject('orders', 'a', schema: numbered))!,
+          schema: numbered,
+        );
+        expect(await numberOf('a'), 100);
+        await repository.deleteObject('orders', 'b');
+        await repository.saveObject(order('c'), schema: numbered);
+        expect(await numberOf('c'), 102);
+        // Undo of a delete restores the same number.
+        await repository.saveObject(order('b', no: 101), schema: numbered);
+        expect(await numberOf('b'), 101);
+      },
+    );
+
+    test('calculated values are never stored', () async {
+      await repository.saveObject(order('a'), schema: numbered);
+      final doc = await firestore
+          .doc('workspaces/$workspaceId/objects/a')
+          .get();
+      expect((doc.data()!['values'] as Map).containsKey('twice'), isFalse);
+    });
+  });
+
   group('sync status', () {
     test('saveObject reports a pending write', () async {
       final schema = buildCollection();

@@ -335,7 +335,7 @@ void main() {
       expect(empty.changes, isEmpty);
     });
 
-    testWidgets('calculated shows the cached value or a placeholder', (
+    testWidgets('calculated shows the derived value or a placeholder', (
       tester,
     ) async {
       const field = CalculatedFieldDefinition(
@@ -348,7 +348,7 @@ void main() {
       expect(find.text('Calculated'), findsOneWidget);
 
       await EditorHarness(field, null).pump(tester);
-      expect(find.text('Not calculated yet'), findsOneWidget);
+      expect(find.text('Nothing to calculate yet'), findsOneWidget);
     });
   });
 }

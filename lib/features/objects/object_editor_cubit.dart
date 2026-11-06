@@ -33,7 +33,13 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
     AttachmentStore? attachments,
     IdGenerator? idGenerator,
     DateTime Function()? clock,
+    Map<String, FieldValue> Function(MorkvaObject draft)? derive,
+    Map<String, String> notes = const {},
   }) : editors = editors ?? _defaultEditors,
+       _deriveValues =
+           collection.fields.any((f) => f is CalculatedFieldDefinition)
+           ? derive
+           : null,
        _attachments = attachments,
        _ids = idGenerator ?? IdGenerator(),
        _now = clock ?? DateTime.now,
@@ -53,6 +59,7 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
                    ?.id,
            stored: object,
            prefill: prefill,
+           notes: notes,
          ),
        );
 
@@ -68,6 +75,25 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
 
   /// Whether file fields can upload (a store was given).
   bool get canUpload => _attachments != null;
+
+  /// Calculates the derived values of the draft (null: nothing to derive).
+  final Map<String, FieldValue> Function(MorkvaObject draft)? _deriveValues;
+
+  /// Every state carries the calculated values of what it shows.
+  @override
+  void emit(ObjectEditorState state) {
+    final derive = _deriveValues;
+    if (derive == null) return super.emit(state);
+    final now = _now();
+    final draft = MorkvaObject(
+      id: state.stored?.id ?? _newId,
+      collectionId: _collection.id,
+      values: {for (final f in _collection.fields) f.id: state.valueOf(f)},
+      createdAt: state.stored?.createdAt ?? now,
+      updatedAt: now,
+    );
+    super.emit(state.copyWith(derived: derive(draft)));
+  }
 
   final List<StreamSubscription<Object?>> _subs = [];
   final Map<String, List<MorkvaObject>> _targetObjects = {};
@@ -97,6 +123,7 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
 
   /// Starts watching the object and the reference targets.
   Future<void> initialize() async {
+    if (_deriveValues != null) emit(state);
     if (state.stored case final stored?) {
       _subs.add(
         _repository

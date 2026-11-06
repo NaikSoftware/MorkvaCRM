@@ -67,6 +67,9 @@ String formatFieldValue(
   Map<String, String> referenceLabels = const {},
 }) {
   if (value.isEmpty) return '';
+  if (field is CalculatedFieldDefinition) {
+    return formatFieldValue(field.outputField, field.outputValue(value));
+  }
   switch ((field, value)) {
     case (TextFieldDefinition(), TextFieldValue(:final text)):
       return text ?? '';
@@ -117,8 +120,6 @@ String formatFieldValue(
       return labels.join(', ');
     case (FileFieldDefinition(), FileFieldValue(:final attachments)):
       return attachments.map((a) => a.name).join(', ');
-    case (CalculatedFieldDefinition(), CalculatedFieldValue(:final cached)):
-      return '$cached';
   }
   return value.toJson()?.toString() ?? '';
 }

@@ -29,6 +29,56 @@ String itemLabelOf(Collection collection) {
   return name;
 }
 
+/// One plain line saying what [field] of [owner] calculates:
+/// "= {Price} * {Quantity}", "Sum of Quantity of Orders linking here via Item
+/// where Status is Paid", "Count of all Orders".
+String calculationSummary(
+  CalculatedFieldDefinition field,
+  Collection owner,
+  Iterable<Collection> collections,
+) {
+  final a = field.aggregate;
+  if (a == null) {
+    final expression = field.expression?.trim() ?? '';
+    return expression.isEmpty
+        ? 'No formula yet'
+        : '= ${formulaToDisplay(expression, owner.fields)}';
+  }
+  Collection? byId(String? id) =>
+      id == owner.id ? owner : collections.where((c) => c.id == id).firstOrNull;
+  final ref = switch (a.source) {
+    AggregateSource.linked => owner.fieldById(a.referenceFieldId ?? ''),
+    AggregateSource.linkedFrom => byId(
+      a.collectionId,
+    )?.fieldById(a.referenceFieldId ?? ''),
+    AggregateSource.all => null,
+  };
+  final source = byId(switch (ref) {
+    ReferenceFieldDefinition(:final targetCollectionId)
+        when a.source == AggregateSource.linked =>
+      targetCollectionId,
+    _ => a.collectionId,
+  });
+  if (source == null) return 'Pick what to summarize';
+  final of = a.op.needsField
+      ? '${a.op.label} of ${source.fieldById(a.fieldId ?? '')?.name ?? '…'} of'
+      : 'Count of';
+  final from = switch (a.source) {
+    AggregateSource.linkedFrom =>
+      '${source.name} linking here via ${ref?.name ?? '…'}',
+    AggregateSource.linked => 'linked ${source.name} (${ref?.name ?? '…'})',
+    AggregateSource.all => 'all ${source.name}',
+  };
+  final where = [
+    for (final f in a.filters)
+      if (source.fieldById(f.fieldId) != null) filterLabel(f, source),
+  ];
+  return [
+    '$of $from',
+    if (where.isNotEmpty) 'where ${where.join(' and ')}',
+  ].join(' ');
+}
+
 /// The field type's icon, as the schema editor shows it.
 IconData fieldTypeIcon(FieldDefinition field) =>
     _fieldEditors.forType(field.type)?.icon ?? Icons.notes;
@@ -46,11 +96,17 @@ Color? optionColor(FieldDefinition field, String? optionId) {
 
 /// Whether [field] reads best right-aligned with tabular digits.
 bool isNumericField(FieldDefinition field) =>
-    field is NumberFieldDefinition || field is AutoNumberFieldDefinition;
+    field is NumberFieldDefinition ||
+    field is AutoNumberFieldDefinition ||
+    (field is CalculatedFieldDefinition &&
+        field.declaredOutputType == kNumberFieldType);
 
 /// Whether [field] is the kind that may sit top-right on a card.
 bool isMetricField(FieldDefinition field) =>
-    isNumericField(field) || field is DateFieldDefinition;
+    isNumericField(field) ||
+    field is DateFieldDefinition ||
+    (field is CalculatedFieldDefinition &&
+        field.declaredOutputType == kDateFieldType);
 
 /// Short text for a filter chip: "Stage is Lead, Won", "Amount > 100".
 /// Reference ids show as their [referenceLabels] entry when known.
@@ -59,7 +115,10 @@ String filterLabel(
   Collection collection, {
   Map<String, String> referenceLabels = const {},
 }) {
-  final field = collection.fieldById(filter.fieldId);
+  final field = switch (collection.fieldById(filter.fieldId)) {
+    CalculatedFieldDefinition(:final outputField) => outputField,
+    final f => f,
+  };
   if (field == null) return 'Unknown field';
   final operand = filter.operand;
   final value = switch (operand) {
