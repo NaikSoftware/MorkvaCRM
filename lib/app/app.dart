@@ -20,8 +20,8 @@ import 'router/app_router.dart';
 /// App-wide scroll behavior: no colored overscroll glow (it clashed with the
 /// warm theme and read as an artifact), and trackpad/mouse drag-to-scroll
 /// enabled so the web build feels native.
-class _AppScrollBehavior extends MaterialScrollBehavior {
-  const _AppScrollBehavior();
+class AppScrollBehavior extends MaterialScrollBehavior {
+  const AppScrollBehavior();
 
   @override
   Widget buildOverscrollIndicator(
@@ -204,7 +204,7 @@ class _MorkvaAppState extends State<MorkvaApp> {
             theme: AppTheme.light,
             darkTheme: AppTheme.dark,
             themeMode: ThemeMode.system,
-            scrollBehavior: const _AppScrollBehavior(),
+            scrollBehavior: const AppScrollBehavior(),
             routerConfig: _router,
           ),
         ),

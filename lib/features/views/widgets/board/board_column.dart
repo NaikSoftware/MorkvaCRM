@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/domain/domain.dart';
@@ -351,11 +352,23 @@ class _BoardColumnState extends State<BoardColumn> {
     }
     if (onlyDragged && ghost == null) slots.add(_EmptyZone(widget: widget));
 
-    return ListView(
-      controller: _scroll,
-      shrinkWrap: true,
-      padding: EdgeInsets.zero,
-      children: slots,
+    // A list that can scroll keeps the vertical wheel even at its ends, so it
+    // never spills to the board's sideways wheel scroll.
+    return Listener(
+      onPointerSignal: (event) {
+        if (event is PointerScrollEvent &&
+            event.scrollDelta.dy != 0 &&
+            _scroll.hasClients &&
+            _scroll.position.maxScrollExtent > 0) {
+          GestureBinding.instance.pointerSignalResolver.register(event, (_) {});
+        }
+      },
+      child: ListView(
+        controller: _scroll,
+        shrinkWrap: true,
+        padding: EdgeInsets.zero,
+        children: slots,
+      ),
     );
   }
 

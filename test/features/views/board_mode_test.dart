@@ -616,6 +616,29 @@ void main() {
       );
     });
 
+    testWidgets('a slow mouse drag on a card lifts it, not scrolls the board', (
+      tester,
+    ) async {
+      final cubit = await _pumpBoard(tester);
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.text('Initech')),
+        kind: PointerDeviceKind.mouse,
+      );
+      // A real mouse reports 1 px steps.
+      for (var i = 0; i < 8; i++) {
+        await gesture.moveBy(const Offset(1, 0));
+        await tester.pump();
+      }
+      expect(tester.state<ScrollableState>(_board()).position.pixels, 0);
+      await gesture.moveTo(tester.getCenter(_column('Won')));
+      await tester.pump();
+      await gesture.moveBy(const Offset(0, 1));
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+      expect(_stageOf(cubit, 'd3'), 'won');
+    });
+
     testWidgets('touch lifts after a 300 ms long press', (tester) async {
       final cubit = await _pumpBoard(tester);
       final gesture = await tester.startGesture(
@@ -646,6 +669,76 @@ void main() {
       ]);
       return repo;
     }
+
+    group('mouse wheel', () {
+      /// 20 company columns; "Company 000" holds 30 cards and scrolls.
+      Future<void> pump(WidgetTester tester) async {
+        final cubit = await pumpWorkPage(
+          tester,
+          size: const Size(1280, 600),
+          repository: manyCompanies(20, [
+            for (var i = 0; i < 30; i++)
+              deal('c$i', i, name: 'Card $i', company: 'k0'),
+          ]),
+        );
+        cubit.selectView('board');
+        await tester.pumpAndSettle();
+      }
+
+      Future<void> wheel(WidgetTester tester, Offset at, double dy) async {
+        final mouse = TestPointer(1, PointerDeviceKind.mouse);
+        await tester.sendEventToBinding(mouse.hover(at));
+        await tester.sendEventToBinding(mouse.scroll(Offset(0, dy)));
+        await tester.pumpAndSettle();
+      }
+
+      double board(WidgetTester tester) =>
+          tester.state<ScrollableState>(_board()).position.pixels;
+
+      ScrollPosition list(WidgetTester tester, String label) => tester
+          .state<ScrollableState>(
+            find.descendant(
+              of: _column(label),
+              matching: find.byType(Scrollable),
+            ),
+          )
+          .position;
+
+      testWidgets('over the background scrolls the board sideways', (
+        tester,
+      ) async {
+        await pump(tester);
+        // The gap between two columns.
+        final gap =
+            tester.getTopRight(_column('Company 001')) + const Offset(6, 100);
+        await wheel(tester, gap, 120);
+        expect(board(tester), 120);
+        await wheel(tester, gap - const Offset(120, 0), -50);
+        expect(board(tester), 70);
+      });
+
+      testWidgets('over a column that cannot scroll scrolls the board', (
+        tester,
+      ) async {
+        await pump(tester);
+        await wheel(tester, tester.getCenter(_column('Company 001')), 120);
+        expect(board(tester), 120);
+      });
+
+      testWidgets('over a scrollable column scrolls only that column, even '
+          'at its end', (tester) async {
+        await pump(tester);
+        final at = tester.getCenter(find.text('Card 1'));
+        await wheel(tester, at, 100);
+        expect(list(tester, 'Company 000').pixels, 100);
+        expect(board(tester), 0);
+        // Back at the top: a further wheel up doesn't spill to the board.
+        await wheel(tester, at, -300);
+        await wheel(tester, at, -100);
+        expect(list(tester, 'Company 000').pixels, 0);
+        expect(board(tester), 0);
+      });
+    });
 
     testWidgets('columns are built lazily', (tester) async {
       await _pumpBoard(tester, repository: manyCompanies(200, const []));

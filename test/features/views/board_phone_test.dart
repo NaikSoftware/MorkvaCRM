@@ -1,3 +1,5 @@
+import 'dart:ui' show GestureSettings;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
@@ -248,6 +250,41 @@ void main() {
   });
 
   group('phone drag', () {
+    testWidgets('a long press lifts the card despite finger jitter on a '
+        'device with a small touch slop', (tester) async {
+      // Android reports ~8 dp; the pager would grab a 12 px drift.
+      tester.view.gestureSettings = const GestureSettings(physicalTouchSlop: 8);
+      addTearDown(tester.view.resetGestureSettings);
+      await _pumpBoard(tester);
+      final start = tester.getCenter(find.text('Initech'));
+      final gesture = await tester.startGesture(start);
+      for (var i = 0; i < 4; i++) {
+        await gesture.moveBy(const Offset(-3, 1));
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      await tester.pump(BoardDragGestureRecognizer.delay);
+      await gesture.moveBy(const Offset(-60, 0));
+      await tester.pump();
+      expect(_page(tester), 0);
+      expect(_leftOf(tester, 'Lead'), 16);
+      // The tilted feedback follows the finger.
+      expect(find.byType(Transform), findsWidgets);
+      expect(find.text('Initech'), findsNWidgets(2));
+      await gesture.up();
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('a quick swipe that starts on a card still turns the page', (
+      tester,
+    ) async {
+      tester.view.gestureSettings = const GestureSettings(physicalTouchSlop: 8);
+      addTearDown(tester.view.resetGestureSettings);
+      await _pumpBoard(tester);
+      await tester.fling(find.text('Initech'), const Offset(-150, 0), 1000);
+      await tester.pumpAndSettle();
+      expect(_page(tester), 1);
+    });
+
     testWidgets('holding a card at the edge for 500 ms turns one page', (
       tester,
     ) async {
