@@ -7,6 +7,7 @@ import '../../../views/widgets/filter_builder.dart';
 import '../../../views/widgets/view_labels.dart';
 import '../../../views/widgets/view_popover.dart';
 import 'config_controls.dart';
+import 'formula_highlighter.dart';
 
 /// The functions offered as one-tap chips; the rest sit in "More".
 const _quickFunctions = ['IF', 'ROUND', 'MIN', 'MAX', 'AND', 'OR', 'TODAY'];
@@ -34,8 +35,9 @@ class CalculationConfig extends StatefulWidget {
 }
 
 class _CalculationConfigState extends State<CalculationConfig> {
-  late final TextEditingController _formula = TextEditingController(
+  late final FormulaEditingController _formula = FormulaEditingController(
     text: _displayFormula,
+    fields: _owner.fields,
   );
   final FocusNode _formulaFocus = FocusNode();
 
@@ -57,6 +59,7 @@ class _CalculationConfigState extends State<CalculationConfig> {
   @override
   void didUpdateWidget(CalculationConfig old) {
     super.didUpdateWidget(old);
+    _formula.fields = _owner.fields;
     // Follow outside changes (another field renamed) while not typing.
     final shown = _displayFormula;
     if (!_formulaFocus.hasFocus && _formula.text != shown) {

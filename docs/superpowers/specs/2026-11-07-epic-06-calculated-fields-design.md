@@ -64,8 +64,11 @@ The type stays `calculated` (fields may already exist in the owner's workspace).
 - Blanks act like a spreadsheet: 0 in arithmetic, "" in text, false in logic — but when every
   field the formula reads is blank, the result is blank (a new object shows nothing, not 0).
 - Division by zero and runtime type errors → blank.
-- The type check runs in the editor (live: "Number ✓" or the error with its position) and at
-  derive time (an invalid formula → blank).
+- The type check runs in the editor (live: "Result: Number" or the error) and at derive time
+  (an invalid formula → blank). A broken formula or a loop does not block saving the collection
+  (my call): it is shown inline and computes blank, so a half-written formula is never lost.
+- The formula input is syntax-highlighted (owner's ask): field refs as tinted chips, functions,
+  text, numbers and operators colored, unknown fields/names with a wavy error underline.
 
 ### Aggregations
 
@@ -76,12 +79,13 @@ The type stays `calculated` (fields may already exist in the owner's workspace).
   (number, auto-number, numeric calculated); min/max a numeric or date field.
 - Empty set: count → 0, sum → 0, average/min/max → blank.
 
-### Dependencies & cycles
+### Dependencies, cycles & performance
 
 Derivation is lazy recursion with an in-progress set: a field reading itself (directly, through
 another formula, or through another collection's aggregate) is empty instead of looping. The
-collection editor also blocks saving a formula that refers to itself through other formulas of the
-same collection ("Circular: Total → Tax → Total").
+config panel names a formula loop inside one collection ("Circular: Total → Tax → Total").
+Measured: 3,000 orders + 300 items with an aggregate, a filter and two formulas derive in ~40 ms
+(VM); the views cubit reuses the last result while none of its inputs changed (identity check).
 
 ## Auto-number (my call)
 

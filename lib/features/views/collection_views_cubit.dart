@@ -369,10 +369,34 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
     if (!collection.fields.any((f) => f is CalculatedFieldDefinition)) {
       return objects;
     }
-    return Derivation(
+    final inputs = <Object>[
+      collection.fields,
+      _collections,
+      ..._targetObjects.values,
+      ...objects,
+    ];
+    final cached = _derived;
+    if (cached != null && _sameInstances(cached.inputs, inputs)) {
+      return cached.result;
+    }
+    final result = Derivation(
       collections: _workspace(collection),
       objects: {..._targetObjects, collectionId: objects},
     ).objectsOf(collectionId);
+    _derived = (inputs: inputs, result: result);
+    return result;
+  }
+
+  /// The last derivation and what it was computed from: emits that change
+  /// nothing it reads (a view setting, a write error) reuse it.
+  ({List<Object> inputs, List<MorkvaObject> result})? _derived;
+
+  static bool _sameInstances(List<Object> a, List<Object> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (!identical(a[i], b[i])) return false;
+    }
+    return true;
   }
 
   /// The calculated values of [draft] (an edited or new object of this

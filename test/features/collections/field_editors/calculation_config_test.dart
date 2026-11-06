@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/design/design.dart';
 import 'package:morkva_crm/features/collections/field_editors/widgets/calculation_config.dart';
+import 'package:morkva_crm/features/collections/field_editors/widgets/formula_highlighter.dart';
 
 const _orders = Collection(
   id: 'orders',
@@ -153,5 +154,59 @@ void main() {
     );
     await pump(tester, looped, 'a');
     expect(find.text('Circular: A → B → A'), findsOneWidget);
+  });
+
+  test('highlighting tokenizes half-typed formulas without failing', () {
+    final kinds = [
+      for (final t in formulaTokens(
+        'ROUND({Price} * 2, 1) & "x" & {Nope} & foo & {Pri',
+        _orders.fields,
+      ))
+        t.kind,
+    ];
+    expect(kinds, [
+      FormulaTokenKind.function,
+      FormulaTokenKind.plain, // (
+      FormulaTokenKind.field,
+      FormulaTokenKind.operator,
+      FormulaTokenKind.number,
+      FormulaTokenKind.plain, // ,
+      FormulaTokenKind.number,
+      FormulaTokenKind.plain, // )
+      FormulaTokenKind.operator,
+      FormulaTokenKind.string,
+      FormulaTokenKind.operator,
+      FormulaTokenKind.unknownField,
+      FormulaTokenKind.operator,
+      FormulaTokenKind.unknownName,
+      FormulaTokenKind.operator,
+      FormulaTokenKind.unknownField, // still open
+    ]);
+  });
+
+  testWidgets('the formula input colors a known field as a chip', (
+    tester,
+  ) async {
+    await pump(tester, _orders, 'total');
+    await tester.enterText(
+      find.byKey(const ValueKey('formula_total')),
+      '{Price} + 1',
+    );
+    await tester.pump();
+    final input = find.descendant(
+      of: find.byKey(const ValueKey('formula_total')),
+      matching: find.byType(EditableText),
+    );
+    final editable = tester.widget<EditableText>(input);
+    final span = editable.controller.buildTextSpan(
+      context: tester.element(input),
+      withComposing: false,
+    );
+    final field = (span.children!.first as TextSpan);
+    expect(field.text, '{Price}');
+    expect(
+      field.style?.backgroundColor,
+      AppTheme.light.colorScheme.primaryContainer,
+    );
   });
 }
