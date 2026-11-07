@@ -12,8 +12,12 @@ import 'formula_highlighter.dart';
 /// The functions offered as one-tap chips; the rest sit in "More".
 const _quickFunctions = ['IF', 'ROUND', 'MIN', 'MAX', 'AND', 'OR', 'TODAY'];
 
-/// Configures a calculated field: a formula over the item's own fields, or an
-/// aggregate over other items. Emits a new definition on every edit.
+/// How a calculated field computes.
+enum _Mode { formula, aggregate, lookup }
+
+/// Configures a calculated field: a formula over the item's own fields, an
+/// aggregate over other items, or a lookup of a linked item's field. Emits a
+/// new definition on every edit.
 class CalculationConfig extends StatefulWidget {
   const CalculationConfig({
     super.key,
@@ -44,6 +48,13 @@ class _CalculationConfigState extends State<CalculationConfig> {
   /// What the other mode held, restored when switching back.
   String? _stashedExpression;
   Aggregation? _stashedAggregate;
+  Lookup? _stashedLookup;
+
+  _Mode get _mode => _field.isLookup
+      ? _Mode.lookup
+      : _field.isAggregate
+      ? _Mode.aggregate
+      : _Mode.formula;
 
   CalculatedFieldDefinition get _field => widget.field;
 
@@ -80,41 +91,100 @@ class _CalculationConfigState extends State<CalculationConfig> {
   // Mode
   // ---------------------------------------------------------------------------
 
-  void _setAggregate(bool aggregate) {
-    if (aggregate == _field.isAggregate) return;
-    if (aggregate) {
-      _stashedExpression = _field.expression;
-      final next =
-          _stashedAggregate ?? _sourceOptions().firstOrNull?.aggregation;
-      final a =
-          next ??
-          Aggregation(
-            source: AggregateSource.all,
-            collectionId: widget.editingCollectionId,
-          );
-      _emit(
-        _field.copyWith(
-          aggregate: a,
-          expression: null,
-          declaredOutputType: aggregateOutputType(
-            a,
-            _owner,
-            widget.collections,
-          ),
-        ),
-      );
-    } else {
-      _stashedAggregate = _field.aggregate;
-      final expression = _stashedExpression;
-      _formula.text = formulaToDisplay(expression ?? '', _owner.fields);
-      _emit(
-        _field.copyWith(
-          aggregate: null,
-          expression: expression,
-          declaredOutputType: _formulaType(expression)?.fieldType,
-        ),
-      );
+  void _setMode(_Mode mode) {
+    if (mode == _mode) return;
+    switch (_mode) {
+      case _Mode.formula:
+        _stashedExpression = _field.expression;
+      case _Mode.aggregate:
+        _stashedAggregate = _field.aggregate;
+      case _Mode.lookup:
+        _stashedLookup = _field.lookup;
     }
+    switch (mode) {
+      case _Mode.aggregate:
+        final a =
+            _stashedAggregate ??
+            _sourceOptions().firstOrNull?.aggregation ??
+            Aggregation(
+              source: AggregateSource.all,
+              collectionId: widget.editingCollectionId,
+            );
+        _emit(
+          _field.copyWith(
+            aggregate: a,
+            lookup: null,
+            lookupTarget: null,
+            expression: null,
+            declaredOutputType: aggregateOutputType(
+              a,
+              _owner,
+              widget.collections,
+            ),
+          ),
+        );
+      case _Mode.formula:
+        final expression = _stashedExpression;
+        _formula.text = formulaToDisplay(expression ?? '', _owner.fields);
+        _emit(
+          _field.copyWith(
+            aggregate: null,
+            lookup: null,
+            lookupTarget: null,
+            expression: expression,
+            declaredOutputType: _formulaType(expression)?.fieldType,
+          ),
+        );
+      case _Mode.lookup:
+        final ref = _lookupReferences().firstOrNull;
+        final lookup =
+            _stashedLookup ??
+            (ref == null ? null : _defaultLookup(ref)) ??
+            const Lookup(referenceFieldId: '');
+        _setLookup(
+          lookup,
+          base: _field.copyWith(aggregate: null, expression: null),
+        );
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Lookup
+  // ---------------------------------------------------------------------------
+
+  /// The single-link reference fields of this collection a lookup can follow.
+  List<ReferenceFieldDefinition> _lookupReferences() => [
+    for (final r in _owner.fields.whereType<ReferenceFieldDefinition>())
+      if (!r.multiple && _collection(r.targetCollectionId) != null) r,
+  ];
+
+  /// The fields of [ref]'s target a lookup can show.
+  List<FieldDefinition> _shownFields(ReferenceFieldDefinition? ref) {
+    final target = _collection(ref?.targetCollectionId);
+    if (target == null) return const [];
+    return [
+      for (final f in target.fields)
+        if (isLookupable(f) && !(target.id == _owner.id && f.id == _field.id))
+          f,
+    ];
+  }
+
+  Lookup? _defaultLookup(ReferenceFieldDefinition ref) => Lookup(
+    referenceFieldId: ref.id,
+    fieldId: _shownFields(ref).firstOrNull?.id,
+  );
+
+  void _setLookup(Lookup lookup, {CalculatedFieldDefinition? base}) {
+    final field = (base ?? _field).copyWith(lookup: lookup);
+    final target = lookupTargetOf(_owner, field, widget.collections);
+    // The shown field is resolved on load, not stored: keeping it off the
+    // draft keeps the draft equal to what the store echoes back.
+    _emit(
+      field.copyWith(
+        lookupTarget: null,
+        declaredOutputType: target?.type ?? kTextFieldType,
+      ),
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -306,42 +376,53 @@ class _CalculationConfigState extends State<CalculationConfig> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final aggregate = _field.isAggregate;
+    final mode = _mode;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SegmentedButton<bool>(
+        SegmentedButton<_Mode>(
           showSelectedIcon: false,
           segments: const [
             ButtonSegment(
-              value: false,
+              value: _Mode.formula,
               icon: Icon(Icons.functions),
               label: Text('Formula'),
             ),
             ButtonSegment(
-              value: true,
+              value: _Mode.aggregate,
               icon: Icon(Icons.bar_chart),
               label: Text('Aggregate'),
             ),
+            ButtonSegment(
+              value: _Mode.lookup,
+              icon: Icon(Icons.manage_search),
+              label: Text('Lookup'),
+            ),
           ],
-          selected: {aggregate},
-          onSelectionChanged: (s) => _setAggregate(s.first),
+          selected: {mode},
+          onSelectionChanged: (s) => _setMode(s.first),
         ),
         const SizedBox(height: Spacing.xs),
         Text(
-          aggregate
-              ? 'Totals values from other items, like SUMIF in a spreadsheet.'
-              : "Computes from this item's own fields.",
+          switch (mode) {
+            _Mode.aggregate =>
+              'Totals values from other items, like SUMIF in a spreadsheet.',
+            _Mode.lookup => 'Shows a field of the linked item, like VLOOKUP.',
+            _Mode.formula => "Computes from this item's own fields.",
+          },
           style: theme.textTheme.bodySmall?.copyWith(
             color: scheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: Spacing.md),
-        if (aggregate)
-          ..._aggregateControls(context)
-        else
-          ..._formulaControls(context),
-        if (_field.declaredOutputType == kNumberFieldType) ...[
+        ...switch (mode) {
+          _Mode.aggregate => _aggregateControls(context),
+          _Mode.lookup => _lookupControls(context),
+          _Mode.formula => _formulaControls(context),
+        },
+        // A lookup shows the number as its source field formats it.
+        if (mode != _Mode.lookup &&
+            _field.declaredOutputType == kNumberFieldType) ...[
           const SizedBox(height: Spacing.sm),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -652,35 +733,153 @@ class _CalculationConfigState extends State<CalculationConfig> {
         ),
       ],
       const SizedBox(height: Spacing.md),
-      Container(
-        padding: const EdgeInsets.all(Spacing.md),
-        decoration: BoxDecoration(
-          color: scheme.surfaceContainer,
-          borderRadius: Radii.mdAll,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'IN WORDS',
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: scheme.onSurfaceVariant,
-                letterSpacing: 0.4,
+      _InWords(text: calculationSummary(_field, _owner, widget.collections)),
+    ];
+  }
+
+  List<Widget> _lookupControls(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final lookup = _field.lookup!;
+    final refs = _lookupReferences();
+    final ref = refs.where((r) => r.id == lookup.referenceFieldId).firstOrNull;
+    final shown = _shownFields(ref);
+    final target = _collection(ref?.targetCollectionId);
+    return [
+      Text('Through', style: _labelStyle(theme)),
+      const SizedBox(height: Spacing.xxs),
+      if (refs.isEmpty)
+        Text(
+          'Add a Reference field (one linked item) to look up its fields.',
+          style: theme.textTheme.bodyMedium?.copyWith(color: scheme.error),
+        )
+      else
+        DropdownButtonFormField<String>(
+          key: ValueKey('through_${_field.id}'),
+          initialValue: ref?.id,
+          isExpanded: true,
+          hint: const Text('Pick a reference'),
+          items: [
+            for (final r in refs)
+              DropdownMenuItem(
+                value: r.id,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.call_made,
+                      size: 18,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: Spacing.xs),
+                    Flexible(
+                      child: Text.rich(
+                        TextSpan(
+                          text: r.name,
+                          children: [
+                            TextSpan(
+                              text:
+                                  '  links to ${_collection(r.targetCollectionId)?.name ?? '…'}',
+                              style: TextStyle(color: scheme.onSurfaceVariant),
+                            ),
+                          ],
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: Spacing.xxs),
-            Text(
-              calculationSummary(_field, _owner, widget.collections),
-              style: theme.textTheme.bodyMedium,
-            ),
           ],
+          onChanged: (id) {
+            final next = refs.where((r) => r.id == id).firstOrNull;
+            if (next != null) _setLookup(_defaultLookup(next)!);
+          },
         ),
-      ),
+      if (ref != null) ...[
+        const SizedBox(height: Spacing.md),
+        Text('Show', style: _labelStyle(theme)),
+        const SizedBox(height: Spacing.xxs),
+        if (shown.isEmpty)
+          Text(
+            '${target?.name ?? 'That collection'} has no fields to show.',
+            style: theme.textTheme.bodyMedium?.copyWith(color: scheme.error),
+          )
+        else
+          DropdownButtonFormField<String>(
+            key: ValueKey('show_${_field.id}_${ref.id}'),
+            initialValue: shown.any((f) => f.id == lookup.fieldId)
+                ? lookup.fieldId
+                : null,
+            isExpanded: true,
+            hint: const Text('Pick a field'),
+            items: [
+              for (final f in shown)
+                DropdownMenuItem(
+                  value: f.id,
+                  child: Row(
+                    children: [
+                      Icon(fieldTypeIcon(f), size: 18),
+                      const SizedBox(width: Spacing.xs),
+                      Flexible(
+                        child: Text(f.name, overflow: TextOverflow.ellipsis),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+            onChanged: (id) =>
+                _setLookup(Lookup(referenceFieldId: ref.id, fieldId: id)),
+          ),
+        const SizedBox(height: Spacing.xxs),
+        Text(
+          'Keeps its type: a select stays a select, so filters and totals '
+          'can use its options.',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: scheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+      const SizedBox(height: Spacing.md),
+      _InWords(text: calculationSummary(_field, _owner, widget.collections)),
     ];
   }
 
   static TextStyle? _labelStyle(ThemeData theme) => theme.textTheme.labelLarge
       ?.copyWith(color: theme.colorScheme.onSurfaceVariant);
+}
+
+/// The plain-language sentence of what the field computes.
+class _InWords extends StatelessWidget {
+  const _InWords({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(Spacing.md),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainer,
+        borderRadius: Radii.mdAll,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'IN WORDS',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+              letterSpacing: 0.4,
+            ),
+          ),
+          const SizedBox(height: Spacing.xxs),
+          Text(text, style: theme.textTheme.bodyMedium),
+        ],
+      ),
+    );
+  }
 }
 
 class _SourceOption {

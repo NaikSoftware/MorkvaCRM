@@ -11,7 +11,8 @@ import 'text_field.dart';
 const String kCalculatedFieldType = 'calculated';
 
 /// A field whose value is derived, never entered: a per-object formula
-/// ([expression]) or, when [aggregate] is set, a summary over other objects.
+/// ([expression]), a summary over other objects ([aggregate]) or a field of
+/// the referenced object ([lookup]).
 ///
 /// Values are computed on read by `Derivation` and never stored; the
 /// [CalculatedFieldValue] it produces holds the JSON form of the result.
@@ -26,12 +27,14 @@ class CalculatedFieldDefinition extends FieldDefinition {
     required this.declaredOutputType,
     this.expression,
     this.aggregate,
+    this.lookup,
+    this.lookupTarget,
     this.decimalPlaces,
     this.unitLabel,
   });
 
   /// The discriminator of the type the calculation yields: `number`, `text`,
-  /// `boolean` or `date` (date-only).
+  /// `boolean` or `date` (date-only); for a lookup, the shown field's type.
   final String declaredOutputType;
 
   /// The formula source, field refs stored as `{fieldId}`. Ignored when
@@ -41,13 +44,22 @@ class CalculatedFieldDefinition extends FieldDefinition {
   /// The summary this field computes, or null for a formula.
   final Aggregation? aggregate;
 
+  /// The referenced field this field shows; wins over [aggregate].
+  final Lookup? lookup;
+
+  /// The field [lookup] shows (as it presents), filled in memory by
+  /// [resolveLookups]; never stored.
+  final FieldDefinition? lookupTarget;
+
   /// Display precision of a number result.
   final int? decimalPlaces;
 
   /// Unit shown after a number result.
   final String? unitLabel;
 
-  bool get isAggregate => aggregate != null;
+  bool get isLookup => lookup != null;
+
+  bool get isAggregate => !isLookup && aggregate != null;
 
   @override
   String get type => kCalculatedFieldType;
@@ -66,6 +78,9 @@ class CalculatedFieldDefinition extends FieldDefinition {
       aggregate: aggregate is Map
           ? Aggregation.fromJson(aggregate.cast<String, dynamic>())
           : null,
+      lookup: json['lookup'] is Map
+          ? Lookup.fromJson((json['lookup'] as Map).cast<String, dynamic>())
+          : null,
       decimalPlaces: (json['decimalPlaces'] as num?)?.toInt(),
       unitLabel: json['unitLabel'] as String?,
     );
@@ -77,6 +92,8 @@ class CalculatedFieldDefinition extends FieldDefinition {
     String? declaredOutputType,
     Object? expression = _unset,
     Object? aggregate = _unset,
+    Object? lookup = _unset,
+    Object? lookupTarget = _unset,
     Object? decimalPlaces = _unset,
     Object? unitLabel = _unset,
   }) => CalculatedFieldDefinition(
@@ -91,6 +108,10 @@ class CalculatedFieldDefinition extends FieldDefinition {
     aggregate: identical(aggregate, _unset)
         ? this.aggregate
         : aggregate as Aggregation?,
+    lookup: identical(lookup, _unset) ? this.lookup : lookup as Lookup?,
+    lookupTarget: identical(lookupTarget, _unset)
+        ? this.lookupTarget
+        : lookupTarget as FieldDefinition?,
     decimalPlaces: identical(decimalPlaces, _unset)
         ? this.decimalPlaces
         : decimalPlaces as int?,
@@ -104,6 +125,7 @@ class CalculatedFieldDefinition extends FieldDefinition {
     'declaredOutputType': declaredOutputType,
     if (expression != null) 'expression': expression,
     if (aggregate != null) 'aggregate': aggregate!.toJson(),
+    if (lookup != null) 'lookup': lookup!.toJson(),
     if (decimalPlaces != null) 'decimalPlaces': decimalPlaces,
     if (unitLabel != null) 'unitLabel': unitLabel,
   };
@@ -113,13 +135,18 @@ class CalculatedFieldDefinition extends FieldDefinition {
     declaredOutputType,
     expression,
     aggregate,
+    lookup,
+    lookupTarget,
     decimalPlaces,
     unitLabel,
   ];
 
   /// A plain definition of the result's type (same id and name), so display,
-  /// filters and sorting treat the value like that type's.
+  /// filters and sorting treat the value like that type's. A resolved lookup
+  /// presents as the field it shows (its options, decimals, unit — and its
+  /// id and name, so read ids off this field, not the output).
   FieldDefinition get outputField => switch (declaredOutputType) {
+    _ when isLookup && lookupTarget != null => lookupTarget!,
     kNumberFieldType => NumberFieldDefinition(
       id: id,
       name: name,
