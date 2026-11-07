@@ -17,7 +17,8 @@ class CalculatedFieldEditor extends FieldEditor {
   String get displayLabel => 'Calculated';
 
   @override
-  String get description => 'A formula, or a total over linked items.';
+  String get description =>
+      'A formula, a total over linked items, or a linked item\'s field.';
 
   @override
   IconData get icon => Icons.functions;
@@ -57,6 +58,7 @@ class CalculatedFieldEditor extends FieldEditor {
     final output =
         FormulaType.ofFieldType(field.declaredOutputType)?.label ??
         field.declaredOutputType;
+    if (field.isLookup) return 'Lookup';
     final a = field.aggregate;
     return a == null ? 'Formula → $output' : '${a.op.label} → $output';
   }

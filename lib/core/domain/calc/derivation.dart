@@ -15,6 +15,7 @@ import '../view/field_format.dart';
 import '../view/view_query.dart';
 import 'aggregation.dart';
 import 'formula.dart';
+import 'lookups.dart';
 
 /// Fills calculated values for objects of a set of collections.
 ///
@@ -38,6 +39,9 @@ class Derivation {
   final DateTime? _today;
 
   final Map<(String, String), Object?> _memo = {};
+
+  /// Lookup values as their shown field's JSON (an option id, not its label).
+  final Map<(String, String), Object?> _lookupJson = {};
   final Set<(String, String)> _inProgress = {};
   final Map<String, CompiledFormula?> _formulas = {};
   final Map<(String, String), Map<String, List<MorkvaObject>>> _incoming = {};
@@ -71,7 +75,12 @@ class Derivation {
     Collection collection,
     MorkvaObject object,
     CalculatedFieldDefinition field,
-  ) => CalculatedFieldValue(_toJson(_derived(collection, object, field)));
+  ) {
+    final derived = _derived(collection, object, field);
+    return CalculatedFieldValue(
+      field.isLookup ? _lookupJson[(object.id, field.id)] : _toJson(derived),
+    );
+  }
 
   /// The collections whose objects deriving [collectionId] reads (itself
   /// excluded), following aggregates transitively.
@@ -87,7 +96,9 @@ class Derivation {
       if (collection == null) continue;
       for (final f
           in collection.fields.whereType<CalculatedFieldDefinition>()) {
-        final source = _sourceCollectionId(collection, f.aggregate);
+        final source = f.isLookup
+            ? _referenceTarget(collection, f.lookup!.referenceFieldId)
+            : _sourceCollectionId(collection, f.aggregate);
         if (source != null && seen.add(source)) queue.add(source);
       }
     }
@@ -97,14 +108,18 @@ class Derivation {
   static String? _sourceCollectionId(Collection owner, Aggregation? a) =>
       switch (a?.source) {
         null => null,
-        AggregateSource.linked => switch (owner.fieldById(
+        AggregateSource.linked => _referenceTarget(
+          owner,
           a!.referenceFieldId ?? '',
-        )) {
-          ReferenceFieldDefinition(:final targetCollectionId) =>
-            targetCollectionId,
-          _ => null,
-        },
+        ),
         _ => a!.collectionId,
+      };
+
+  static String? _referenceTarget(Collection owner, String fieldId) =>
+      switch (owner.fieldById(fieldId)) {
+        ReferenceFieldDefinition(:final targetCollectionId) =>
+          targetCollectionId,
+        _ => null,
       };
 
   // ---------------------------------------------------------------------------
@@ -122,7 +137,9 @@ class Derivation {
     Object? result;
     try {
       final aggregate = field.aggregate;
-      result = aggregate == null
+      result = field.isLookup
+          ? _lookup(collection, object, field)
+          : aggregate == null
           ? _formula(
               collection,
               field,
@@ -176,6 +193,39 @@ class Derivation {
       };
 
   static DateTime _utcDay(DateTime d) => DateTime.utc(d.year, d.month, d.day);
+
+  /// The looked-up value as a formula reads it; its JSON goes to
+  /// [_lookupJson]. Blank while the target collection is loading.
+  // shortcut: a multiple reference shows its first linked object; offer
+  // "joined" values if lookups over multi-links are wanted.
+  Object? _lookup(
+    Collection owner,
+    MorkvaObject object,
+    CalculatedFieldDefinition field,
+  ) {
+    final config = field.lookup!;
+    final target =
+        _collections[_referenceTarget(owner, config.referenceFieldId) ?? ''];
+    final ref = object[config.referenceFieldId];
+    if (target == null || ref is! ReferenceFieldValue) return null;
+    final all = _objects[target.id];
+    final id = ref.objectIds.firstOrNull;
+    if (all == null || id == null) return null;
+    final linked = _byId.putIfAbsent(
+      target.id,
+      () => {for (final o in all) o.id: o},
+    )[id];
+    final shown = target.fieldById(config.fieldId ?? '');
+    if (linked == null || shown == null || !isLookupable(shown)) return null;
+    if (shown is CalculatedFieldDefinition) {
+      final value = valueOf(target, linked, shown);
+      _lookupJson[(object.id, field.id)] = value.cached;
+      return _derived(target, linked, shown);
+    }
+    final value = linked[shown.id] ?? shown.emptyValue();
+    _lookupJson[(object.id, field.id)] = value.isEmpty ? null : value.toJson();
+    return formulaValueOf(shown, value);
+  }
 
   Object? _aggregate(Collection owner, MorkvaObject object, Aggregation a) {
     final source = _collections[_sourceCollectionId(owner, a) ?? ''];

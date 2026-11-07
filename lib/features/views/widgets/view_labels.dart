@@ -37,6 +37,16 @@ String calculationSummary(
   Collection owner,
   Iterable<Collection> collections,
 ) {
+  if (field.lookup case final lookup?) {
+    final ref = owner.fieldById(lookup.referenceFieldId);
+    if (ref is! ReferenceFieldDefinition) return 'Pick a reference to look up';
+    final target = ref.targetCollectionId == owner.id
+        ? owner
+        : collections.where((c) => c.id == ref.targetCollectionId).firstOrNull;
+    final shown = target?.fieldById(lookup.fieldId ?? '');
+    if (target == null || shown == null) return 'Pick a field to show';
+    return '${shown.name} of the linked ${itemLabelOf(target)} (${ref.name})';
+  }
   final a = field.aggregate;
   if (a == null) {
     final expression = field.expression?.trim() ?? '';

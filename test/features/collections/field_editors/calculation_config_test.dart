@@ -209,4 +209,35 @@ void main() {
       AppTheme.light.colorScheme.primaryContainer,
     );
   });
+
+  testWidgets('lookup: follows a reference and keeps the shown type', (
+    tester,
+  ) async {
+    final emitted = await pump(tester, _orders, 'total');
+    await tester.tap(find.text('Lookup'));
+    await tester.pumpAndSettle();
+    // Defaults to the only single reference and its first field.
+    var last = emitted.last;
+    expect(
+      last.lookup,
+      const Lookup(referenceFieldId: 'item', fieldId: 'name'),
+    );
+    expect(last.isLookup, isTrue);
+    expect(last.declaredOutputType, kTextFieldType);
+    expect(find.text('Name of the linked item (Item)'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('show_total_item')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Reserved').last);
+    await tester.pumpAndSettle();
+    last = emitted.last;
+    expect(last.lookup?.fieldId, 'reserved');
+    expect(last.declaredOutputType, kNumberFieldType);
+
+    // Switching back restores the formula mode cleanly.
+    await tester.tap(find.text('Formula'));
+    await tester.pumpAndSettle();
+    expect(emitted.last.isLookup, isFalse);
+    expect(emitted.last.lookupTarget, isNull);
+  });
 }

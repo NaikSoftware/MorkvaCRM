@@ -131,22 +131,10 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
             .listen(_onStored, onError: (Object _) {}),
       );
     }
-    // Its own collection only as a reference target (for the choices).
-    if (_referenceFields.any(_isSelfReference)) {
-      _subs.add(
-        _repository
-            .watchObjects(_collection.id, schema: _collection)
-            .listen(
-              (objects) => _onTargetObjects(_collection.id, objects),
-              onError: (Object _) {},
-            ),
-      );
-    }
     final targetIds = {for (final f in _referenceFields) f.targetCollectionId};
-    if (targetIds.isEmpty) return;
     List<Collection> collections;
     try {
-      collections = await _repository.getCollections();
+      collections = resolveLookups(await _repository.getCollections());
     } catch (_) {
       collections = const [];
     }
@@ -159,23 +147,67 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
           ?collections.where((c) => c.id == id).firstOrNull,
     ];
     _missingTargetIds = targetIds.difference({for (final t in _targets) t.id});
-    for (final target in _targets) {
-      if (target.id == _collection.id) continue;
+    _sublists = [
+      for (final c in _collection.withWorkspace(collections))
+        for (final r in c.fields.whereType<ReferenceFieldDefinition>())
+          if (r.targetCollectionId == _collection.id)
+            Sublist(collection: c, via: r),
+    ];
+    _workspace = _collection.withWorkspace(collections);
+    final byId = {for (final c in _workspace) c.id: c};
+    final watched = {
+      for (final t in _targets) t.id: t,
+      for (final s in _sublists) ...{
+        s.collection.id: s.collection,
+        // What the items' calculations read, for the item form's preview.
+        for (final id in Derivation.sourcesOf(s.collection.id, _workspace))
+          id: ?byId[id],
+      },
+    };
+    for (final c in watched.values) {
       _subs.add(
         _repository
-            .watchObjects(target.id, schema: target)
+            .watchObjects(c.id, schema: c)
             .listen(
-              (objects) => _onTargetObjects(target.id, objects),
+              (objects) => _onTargetObjects(c.id, objects),
               // A failed target shows no choices instead of loading forever.
-              onError: (Object _) => _onTargetObjects(target.id, const []),
+              onError: (Object _) => _onTargetObjects(c.id, const []),
             ),
       );
     }
     _emitReferences();
   }
 
-  bool _isSelfReference(ReferenceFieldDefinition f) =>
-      f.targetCollectionId == _collection.id;
+  /// The linked-item lists, in the workspace's order; items filled per emit.
+  List<Sublist> _sublists = const [];
+
+  /// Every collection (this one as edited first), once loaded.
+  List<Collection> _workspace = const [];
+
+  /// The workspace as loaded (for describing an item's calculations).
+  List<Collection> get workspace => _workspace;
+
+  /// The calculated values of [draft], an item of [sublist], against the
+  /// loaded objects and this object as it stands in the form.
+  Map<String, FieldValue> deriveChild(Sublist sublist, MorkvaObject draft) {
+    final child = sublist.collection;
+    final objects = _withSelf(_targetObjects);
+    objects[child.id] = [
+      ...?objects[child.id]?.where((o) => o.id != draft.id),
+      draft,
+    ];
+    final derived = Derivation(
+      collections: _workspace,
+      objects: objects,
+    ).objectsOf(child.id).lastWhere((o) => o.id == draft.id);
+    return {
+      for (final f in child.fields.whereType<CalculatedFieldDefinition>())
+        f.id: derived[f.id] ?? f.emptyValue(),
+    };
+  }
+
+  /// The id the object has, or will have once saved.
+  String get _objectId => state.stored?.id ?? _newId;
 
   void _onTargetObjects(String targetId, List<MorkvaObject> objects) {
     if (isClosed) return;
@@ -184,16 +216,129 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
   }
 
   void _emitReferences() {
-    if (isClosed || (_targets.isEmpty && _missingTargetIds.isEmpty)) return;
+    if (isClosed) return;
+    final hasTargets = _targets.isNotEmpty || _missingTargetIds.isNotEmpty;
+    if (!hasTargets && _sublists.isEmpty) return;
     emit(
       state.copyWith(
-        references: ReferenceChoices.fromObjects(
-          targets: _targets,
-          objects: _targetObjects,
-          missingTargetIds: _missingTargetIds,
-        ),
+        references: hasTargets
+            ? ReferenceChoices.fromObjects(
+                targets: _targets,
+                objects: _targetObjects,
+                missingTargetIds: _missingTargetIds,
+              )
+            : null,
+        sublists: [for (final s in _sublists) _fill(s)],
       ),
     );
+  }
+
+  /// [sublist] with the loaded items linking to this object, in the order
+  /// of its collection's first view.
+  Sublist _fill(Sublist sublist) {
+    final all = _targetObjects[sublist.collection.id];
+    if (all == null) return sublist.withItems(null);
+    final id = _objectId;
+    final linking = [
+      for (final o in all)
+        if (o[sublist.via.id] case ReferenceFieldValue(
+          :final objectIds,
+        ) when objectIds.contains(id))
+          o,
+    ];
+    final c = sublist.collection;
+    final view = (c.views.firstOrNull ?? ViewDefinition.defaultFor(c.fields))
+        .copyWith(filters: const []);
+    final ids = {for (final o in linking) o.id};
+    final derived = c.fields.any((f) => f is CalculatedFieldDefinition)
+        ? [
+            for (final o in Derivation(
+              collections: _workspace,
+              objects: _withSelf(_targetObjects),
+            ).objectsOf(c.id))
+              if (ids.contains(o.id)) o,
+          ]
+        : linking;
+    return sublist.withItems(applyView(c, view, derived));
+  }
+
+  /// [objects] with this object as it stands in the form.
+  Map<String, List<MorkvaObject>> _withSelf(
+    Map<String, List<MorkvaObject>> objects,
+  ) {
+    final now = _now();
+    final self = MorkvaObject(
+      id: _objectId,
+      collectionId: _collection.id,
+      values: {
+        for (final f in _collection.fields)
+          if (f is! CalculatedFieldDefinition) f.id: state.valueOf(f),
+      },
+      createdAt: state.stored?.createdAt ?? now,
+      updatedAt: now,
+    );
+    return {
+      ...objects,
+      _collection.id: [
+        ...?objects[_collection.id]?.where((o) => o.id != self.id),
+        self,
+      ],
+    };
+  }
+
+  /// The starting values of a new item of [sublist]: linked to this object.
+  Map<String, FieldValue> prefillFor(Sublist sublist) => {
+    sublist.via.id: ReferenceFieldValue([_objectId]),
+  };
+
+  /// Records an item added from a sublist; while this object is new, it is
+  /// deleted again if the object is discarded.
+  void childAdded(Sublist sublist, String objectId) {
+    if (isClosed || !state.isCreate) return;
+    emit(
+      state.copyWith(
+        addedChildren: {
+          ...state.addedChildren,
+          objectId: sublist.collection.id,
+        },
+      ),
+    );
+  }
+
+  /// Writes [value] into [fieldId] of [item] (only that key; the repository
+  /// merges it). Returns whether the write went through.
+  Future<bool> setChildValue(
+    Sublist sublist,
+    MorkvaObject item,
+    String fieldId,
+    FieldValue value,
+  ) async {
+    try {
+      await _repository.saveObject(
+        item.copyWith(values: {fieldId: value}, updatedAt: _now()),
+        schema: sublist.collection,
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Deletes [item] of [sublist] (the child form asked to).
+  Future<bool> deleteChild(Sublist sublist, MorkvaObject item) async {
+    if (state.addedChildren.containsKey(item.id) && !isClosed) {
+      emit(
+        state.copyWith(
+          addedChildren: {...state.addedChildren}..remove(item.id),
+        ),
+      );
+    }
+    try {
+      await _repository.deleteObject(sublist.collection.id, item.id);
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   void _onStored(MorkvaObject? next) {
@@ -263,6 +408,12 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
             : null,
       ),
     );
+    // Items' calculations may read this object: follow the edit.
+    if (_sublists.any(
+      (s) => s.collection.fields.any((f) => f is CalculatedFieldDefinition),
+    )) {
+      _emitReferences();
+    }
   }
 
   /// Records (or with null clears) text in [fieldId] that does not parse.
@@ -457,6 +608,15 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
   @override
   Future<void> close() async {
     _closing = true;
+    // A new object discarded: the items added to it would point at nothing.
+    if (state.isCreate && state.status != ObjectEditorStatus.saved) {
+      for (final MapEntry(key: id, value: collectionId)
+          in state.addedChildren.entries) {
+        unawaited(
+          _repository.deleteObject(collectionId, id).catchError((Object _) {}),
+        );
+      }
+    }
     final subs = [..._subs];
     _subs.clear();
     await Future.wait([for (final s in subs) s.cancel()]);

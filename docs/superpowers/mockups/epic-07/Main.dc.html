@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Order form with items sublist</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&amp;family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#FBF7F2}
+.lbl{font:600 13px 'Hanken Grotesk',sans-serif;color:#6B5E52;margin:0}
+.field{min-height:48px;box-sizing:border-box;padding:0 14px;border-radius:12px;border:1px solid #B6A593;background:#FFFFFF;display:flex;align-items:center;gap:8px;font:500 15px 'Hanken Grotesk',sans-serif;color:#2B2018}
+.pill{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:12px;font:600 12px 'Hanken Grotesk',sans-serif}
+.row{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 8px 6px 4px;border-radius:12px;border:0;background:transparent;text-align:left;width:100%;font-family:'Hanken Grotesk',sans-serif;color:#2B2018}
+.check{width:44px;height:44px;flex:0 0 44px;border:0;background:transparent;display:inline-flex;align-items:center;justify-content:center;border-radius:22px}
+.btn{height:40px;padding:0 20px;border-radius:20px;border:0;font:600 14px 'Hanken Grotesk',sans-serif}
+</style>
+</helmet>
+<div style="width: 720px; height: 900px; box-sizing: border-box; background: #FFFFFF; border-radius: 28px; font-family: 'Hanken Grotesk', sans-serif; color: #2B2018; display: flex; flex-direction: column; overflow: hidden">
+  <header style="display: flex; align-items: center; gap: 12px; padding: 20px 24px 16px; border-bottom: 1px solid #F4EDE3">
+    <div style="display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto">
+      <span style="font-size: 13px; color: #6B5E52">Orders · ORD-0042</span>
+      <h2 style="margin: 0; font: 700 22px 'Bricolage Grotesque', sans-serif">@olena.knits</h2>
+    </div>
+    <button aria-label="Close" style="width: 44px; height: 44px; border-radius: 22px; border: 0; background: transparent; color: #6B5E52; display: inline-flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </header>
+
+  <div style="flex: 1 1 auto; padding: 16px 24px; display: flex; flex-direction: column; gap: 18px; overflow: hidden">
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <p class="lbl">Status</p>
+        <div class="field"><span class="pill" style="background: #FFE0C2; color: #6A3600">In progress</span></div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <p class="lbl">Deadline</p>
+        <div class="field">Nov 21, 2026</div>
+      </div>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <p class="lbl">Recipient</p>
+        <div class="field">Olena Shevchuk</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <p class="lbl">City</p>
+        <div class="field">Lviv</div>
+      </div>
+    </div>
+
+    <section aria-labelledby="items-h" style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px">
+      <div style="display: flex; align-items: center; gap: 8px; min-height: 44px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6B5E52" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        <h3 id="items-h" style="margin: 0; font: 600 17px 'Hanken Grotesk', sans-serif">Order items</h3>
+        <span style="font-size: 13px; color: #6B5E52">· 1 of 3 done</span>
+        <span style="flex: 1 1 auto"></span>
+        <button class="btn" style="background: #F4EDE3; color: #8A4708; display: inline-flex; align-items: center; gap: 6px; padding: 0 16px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add item</button>
+      </div>
+      <p style="margin: 0 0 4px 28px; font-size: 13px; color: #6B5E52">Linking here via Order</p>
+
+      <div style="display: flex; flex-direction: column; border: 1px solid #F4EDE3; border-radius: 16px; padding: 4px">
+        <button class="row">
+          <span class="check" role="checkbox" aria-checked="true" aria-label="Done"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" fill="#E8821E"/><path d="M7.5 12.5l3 3 6-6.5" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span style="display: flex; flex-direction: column; gap: 4px; flex: 1 1 auto; min-width: 0">
+            <span style="font-size: 15px; font-weight: 600; color: #6B5E52; text-decoration: line-through">Hoodie</span>
+            <span style="font-size: 14px; color: #6B5E52">"Lviv" on the chest</span>
+            <span style="display: flex; gap: 6px; flex-wrap: wrap">
+              <span class="pill" style="background: #F4EDE3; color: #4A3C30">M</span>
+              <span class="pill" style="background: #E9F2E5; color: #2C4A22">Olive</span>
+            </span>
+          </span>
+          <span style="display: flex; flex-direction: column; align-items: flex-end; font: 600 15px 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums"><span style="font-size: 11px; font-weight: 600; color: #6B5E52">Quantity</span>1</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B6A593" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+        <div style="height: 1px; background: #F4EDE3; margin: 0 8px 0 52px"></div>
+        <button class="row">
+          <span class="check" role="checkbox" aria-checked="false" aria-label="Done"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.75" y="3.75" width="16.5" height="16.5" rx="4.5" fill="none" stroke="#8A7A6B" stroke-width="1.5"/></svg></span>
+          <span style="display: flex; flex-direction: column; gap: 4px; flex: 1 1 auto; min-width: 0">
+            <span style="font-size: 15px; font-weight: 600">T-shirt</span>
+            <span style="font-size: 14px; color: #6B5E52">Cat on the back, white thread</span>
+            <span style="display: flex; gap: 6px; flex-wrap: wrap">
+              <span class="pill" style="background: #F4EDE3; color: #4A3C30">S</span>
+              <span class="pill" style="background: #ECECEC; color: #2B2B2B">Black</span>
+            </span>
+          </span>
+          <span style="display: flex; flex-direction: column; align-items: flex-end; font: 600 15px 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums"><span style="font-size: 11px; font-weight: 600; color: #6B5E52">Quantity</span>2</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B6A593" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+        <div style="height: 1px; background: #F4EDE3; margin: 0 8px 0 52px"></div>
+        <button class="row">
+          <span class="check" role="checkbox" aria-checked="false" aria-label="Done"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.75" y="3.75" width="16.5" height="16.5" rx="4.5" fill="none" stroke="#8A7A6B" stroke-width="1.5"/></svg></span>
+          <span style="display: flex; flex-direction: column; gap: 4px; flex: 1 1 auto; min-width: 0">
+            <span style="font-size: 15px; font-weight: 600">Light hoodie</span>
+            <span style="display: flex; gap: 6px; flex-wrap: wrap">
+              <span class="pill" style="background: #F4EDE3; color: #4A3C30">L</span>
+              <span class="pill" style="background: #FFF1D6; color: #5C4200">Sand</span>
+            </span>
+          </span>
+          <span style="display: flex; flex-direction: column; align-items: flex-end; font: 600 15px 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums"><span style="font-size: 11px; font-weight: 600; color: #6B5E52">Quantity</span>1</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B6A593" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <footer style="display: flex; align-items: center; gap: 8px; padding: 16px 24px; border-top: 1px solid #F4EDE3">
+    <button class="btn" style="background: transparent; color: #B3261E">Delete</button>
+    <span style="flex: 1 1 auto"></span>
+    <button class="btn" style="background: transparent; color: #8A4708">Cancel</button>
+    <button class="btn" style="background: #E8821E; color: #2B1500">Save</button>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":720,"height":900}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
