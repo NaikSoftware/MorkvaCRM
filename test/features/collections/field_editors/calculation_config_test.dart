@@ -233,6 +233,8 @@ void main() {
     last = emitted.last;
     expect(last.lookup?.fieldId, 'reserved');
     expect(last.declaredOutputType, kNumberFieldType);
+    // Resolved on load only, so the draft matches the stored definition.
+    expect(last.lookupTarget, isNull);
 
     // Switching back restores the formula mode cleanly.
     await tester.tap(find.text('Formula'));

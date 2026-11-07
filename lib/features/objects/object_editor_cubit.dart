@@ -409,6 +409,8 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
       ),
     );
     // Items' calculations may read this object: follow the edit.
+    // shortcut: re-derives every loaded item per keystroke; derive only the
+    // items' fields that read this object if a large workspace makes typing lag.
     if (_sublists.any(
       (s) => s.collection.fields.any((f) => f is CalculatedFieldDefinition),
     )) {
@@ -609,7 +611,10 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
   Future<void> close() async {
     _closing = true;
     // A new object discarded: the items added to it would point at nothing.
-    if (state.isCreate && state.status != ObjectEditorStatus.saved) {
+    // Not while saving: the object may still land.
+    if (state.isCreate &&
+        (state.status == ObjectEditorStatus.editing ||
+            state.status == ObjectEditorStatus.saveFailed)) {
       for (final MapEntry(key: id, value: collectionId)
           in state.addedChildren.entries) {
         unawaited(

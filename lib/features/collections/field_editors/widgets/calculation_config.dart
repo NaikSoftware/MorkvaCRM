@@ -177,9 +177,11 @@ class _CalculationConfigState extends State<CalculationConfig> {
   void _setLookup(Lookup lookup, {CalculatedFieldDefinition? base}) {
     final field = (base ?? _field).copyWith(lookup: lookup);
     final target = lookupTargetOf(_owner, field, widget.collections);
+    // The shown field is resolved on load, not stored: keeping it off the
+    // draft keeps the draft equal to what the store echoes back.
     _emit(
       field.copyWith(
-        lookupTarget: target,
+        lookupTarget: null,
         declaredOutputType: target?.type ?? kTextFieldType,
       ),
     );
