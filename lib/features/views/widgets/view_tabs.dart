@@ -114,7 +114,8 @@ class _ViewTabsState extends State<ViewTabs> with TickerProviderStateMixin {
     final action = await showMenu<_TabAction>(
       context: context,
       position: RelativeRect.fromRect(
-        globalPosition & const Size(1, 1),
+        // The shell's nested Navigator overlay sits right of the sidebar.
+        overlay.globalToLocal(globalPosition) & const Size(1, 1),
         Offset.zero & overlay.size,
       ),
       items: [
