@@ -1,0 +1,125 @@
+{
+  "id": "production_materials",
+  "name": "Production & materials",
+  "description": "Fabric purchases and sewing batches per colour, what's left, and the true cost of one piece.",
+  "icon": "build",
+  "collections": [
+    {
+      "id": "@colours",
+      "name": "Colours",
+      "icon": "tag",
+      "fields": [
+        {"id": "name", "name": "Colour", "type": "text", "required": true},
+        {"id": "fabricPerPiece", "name": "Fabric per piece", "type": "number", "unitLabel": "kg", "decimalPlaces": 2,
+         "description": "How much main fabric one piece takes. Leave it empty and the leftovers stay blank instead of looking full."},
+        {"id": "ribPerPiece", "name": "Ribbing per piece", "type": "number", "unitLabel": "kg", "decimalPlaces": 2},
+        {"id": "made", "name": "Pieces sewn", "type": "calculated", "declaredOutputType": "number",
+         "aggregate": {"source": "linkedFrom", "collectionId": "@batches", "referenceFieldId": "colour", "op": "sum", "fieldId": "qty"}},
+        {"id": "spent", "name": "Spent on materials", "type": "calculated", "declaredOutputType": "number", "unitLabel": "₴",
+         "aggregate": {"source": "linkedFrom", "collectionId": "@purchases", "referenceFieldId": "colour", "op": "sum", "fieldId": "cost"}},
+        {"id": "costPerPiece", "name": "Material cost per piece", "type": "calculated", "declaredOutputType": "number", "unitLabel": "₴", "decimalPlaces": 2,
+         "expression": "ROUND({spent} / {made}, 2)"},
+        {"id": "fabricBought", "name": "Fabric bought", "type": "calculated", "declaredOutputType": "number", "unitLabel": "kg", "decimalPlaces": 2,
+         "aggregate": {"source": "linkedFrom", "collectionId": "@purchases", "referenceFieldId": "colour", "op": "sum", "fieldId": "kg",
+           "filters": [{"fieldId": "material", "op": "anyOf", "operand": ["fabric"]}]}},
+        {"id": "fabricOff", "name": "Fabric written off", "type": "calculated", "declaredOutputType": "number", "unitLabel": "kg", "decimalPlaces": 2,
+         "aggregate": {"source": "linkedFrom", "collectionId": "@purchases", "referenceFieldId": "colour", "op": "sum", "fieldId": "writeOff",
+           "filters": [{"fieldId": "material", "op": "anyOf", "operand": ["fabric"]}]}},
+        {"id": "fabricLeft", "name": "Fabric left", "type": "calculated", "declaredOutputType": "number", "unitLabel": "kg", "decimalPlaces": 2,
+         "expression": "{fabricBought} - {fabricOff} - {made} * {fabricPerPiece} + 0 / {fabricPerPiece}"},
+        {"id": "piecesLeft", "name": "Pieces the fabric still makes", "type": "calculated", "declaredOutputType": "number",
+         "expression": "FLOOR({fabricLeft} / {fabricPerPiece})"},
+        {"id": "ribBought", "name": "Ribbing bought", "type": "calculated", "declaredOutputType": "number", "unitLabel": "kg", "decimalPlaces": 2,
+         "aggregate": {"source": "linkedFrom", "collectionId": "@purchases", "referenceFieldId": "colour", "op": "sum", "fieldId": "kg",
+           "filters": [{"fieldId": "material", "op": "anyOf", "operand": ["rib"]}]}},
+        {"id": "ribLeft", "name": "Ribbing left", "type": "calculated", "declaredOutputType": "number", "unitLabel": "kg", "decimalPlaces": 2,
+         "expression": "{ribBought} - {made} * {ribPerPiece} + 0 / {ribPerPiece}"}
+      ],
+      "views": [
+        {"id": "summary", "name": "Per colour", "mode": "summary",
+         "fieldIds": ["name", "made", "spent", "costPerPiece", "fabricLeft", "piecesLeft", "ribLeft"], "filters": [], "manualOrder": []},
+        {"id": "table", "name": "Table", "mode": "table",
+         "fieldIds": ["name", "fabricPerPiece", "ribPerPiece", "made", "spent", "costPerPiece", "fabricBought", "fabricLeft", "piecesLeft", "ribBought", "ribLeft"],
+         "filters": [], "manualOrder": []}
+      ]
+    },
+    {
+      "id": "@purchases",
+      "name": "Material purchases",
+      "icon": "receipt",
+      "fields": [
+        {"id": "date", "name": "Date", "type": "date"},
+        {"id": "colour", "name": "Colour", "type": "reference", "targetCollectionId": "@colours", "multiple": false, "required": true},
+        {"id": "material", "name": "Material", "type": "single_select", "options": [
+          {"id": "fabric", "label": "Main fabric", "color": "#3A7BD5"},
+          {"id": "rib", "label": "Ribbing", "color": "#C9A227"}
+        ]},
+        {"id": "kg", "name": "Bought", "type": "number", "unitLabel": "kg", "decimalPlaces": 2},
+        {"id": "cost", "name": "Cost", "type": "number", "unitLabel": "₴"},
+        {"id": "writeOff", "name": "Written off", "type": "number", "unitLabel": "kg", "decimalPlaces": 2}
+      ],
+      "views": [
+        {"id": "log", "name": "Log", "mode": "table",
+         "fieldIds": ["date", "colour", "material", "kg", "cost", "writeOff"], "filters": [],
+         "sort": {"fieldId": "date", "ascending": false}, "manualOrder": []}
+      ]
+    },
+    {
+      "id": "@batches",
+      "name": "Sewing journal",
+      "icon": "note",
+      "fields": [
+        {"id": "date", "name": "Date", "type": "date"},
+        {"id": "colour", "name": "Colour", "type": "reference", "targetCollectionId": "@colours", "multiple": false, "required": true},
+        {"id": "qty", "name": "Pieces", "type": "number", "min": 0},
+        {"id": "sizes", "name": "Sizes", "type": "multi_select", "options": [
+          {"id": "xs", "label": "XS"}, {"id": "s", "label": "S"}, {"id": "m", "label": "M"},
+          {"id": "l", "label": "L"}, {"id": "xl", "label": "XL"}
+        ]},
+        {"id": "notes", "name": "Notes", "type": "text"}
+      ],
+      "views": [
+        {"id": "log", "name": "Journal", "mode": "table",
+         "fieldIds": ["date", "colour", "qty", "sizes", "notes"], "filters": [],
+         "sort": {"fieldId": "date", "ascending": false}, "manualOrder": []}
+      ]
+    },
+    {
+      "id": "@summary",
+      "name": "Cost summary",
+      "icon": "money",
+      "fields": [
+        {"id": "name", "name": "Period", "type": "text"},
+        {"id": "spent", "name": "Spent on materials", "type": "calculated", "declaredOutputType": "number", "unitLabel": "₴",
+         "aggregate": {"source": "all", "collectionId": "@purchases", "op": "sum", "fieldId": "cost"}},
+        {"id": "made", "name": "Pieces sewn", "type": "calculated", "declaredOutputType": "number",
+         "aggregate": {"source": "all", "collectionId": "@batches", "op": "sum", "fieldId": "qty"}},
+        {"id": "materialPerPiece", "name": "Materials per piece", "type": "calculated", "declaredOutputType": "number", "unitLabel": "₴", "decimalPlaces": 2,
+         "expression": "ROUND({spent} / {made}, 2)"},
+        {"id": "sewing", "name": "Sewing per piece", "type": "number", "unitLabel": "₴"},
+        {"id": "delivery", "name": "Delivery per piece", "type": "number", "unitLabel": "₴"},
+        {"id": "trueCost", "name": "True cost of a piece", "type": "calculated", "declaredOutputType": "number", "unitLabel": "₴", "decimalPlaces": 2,
+         "expression": "{materialPerPiece} + {sewing} + {delivery}"},
+        {"id": "price", "name": "Target price", "type": "number", "unitLabel": "₴"},
+        {"id": "margin", "name": "Margin per piece", "type": "calculated", "declaredOutputType": "number", "unitLabel": "₴", "decimalPlaces": 2,
+         "expression": "{price} - {trueCost}"}
+      ],
+      "views": [
+        {"id": "summary", "name": "Summary", "mode": "summary",
+         "fieldIds": ["name", "trueCost", "margin", "materialPerPiece", "spent", "made", "sewing", "delivery", "price"], "filters": [], "manualOrder": []}
+      ]
+    }
+  ],
+  "objects": [
+    {"id": "@black", "collectionId": "@colours", "values": {"name": "Black", "fabricPerPiece": 0.7, "ribPerPiece": 0.05}},
+    {"id": "@olive", "collectionId": "@colours", "values": {"name": "Olive", "fabricPerPiece": 0.7, "ribPerPiece": 0.05}},
+    {"id": "@p1", "collectionId": "@purchases", "values": {"date": "2026-09-02T00:00:00.000Z", "colour": ["@black"], "material": "fabric", "kg": 25, "cost": 7500}},
+    {"id": "@p2", "collectionId": "@purchases", "values": {"date": "2026-09-02T00:00:00.000Z", "colour": ["@black"], "material": "rib", "kg": 2, "cost": 900}},
+    {"id": "@p3", "collectionId": "@purchases", "values": {"date": "2026-09-15T00:00:00.000Z", "colour": ["@olive"], "material": "fabric", "kg": 15, "cost": 4800, "writeOff": 0.5}},
+    {"id": "@p4", "collectionId": "@purchases", "values": {"date": "2026-09-15T00:00:00.000Z", "colour": ["@olive"], "material": "rib", "kg": 1, "cost": 450}},
+    {"id": "@b1", "collectionId": "@batches", "values": {"date": "2026-09-10T00:00:00.000Z", "colour": ["@black"], "qty": 20, "sizes": ["s", "m", "l"]}},
+    {"id": "@b2", "collectionId": "@batches", "values": {"date": "2026-10-01T00:00:00.000Z", "colour": ["@black"], "qty": 8, "sizes": ["m"]}},
+    {"id": "@b3", "collectionId": "@batches", "values": {"date": "2026-10-05T00:00:00.000Z", "colour": ["@olive"], "qty": 10, "sizes": ["m", "l"]}},
+    {"id": "@s1", "collectionId": "@summary", "values": {"name": "This season", "sewing": 350, "delivery": 60, "price": 1800}}
+  ]
+}

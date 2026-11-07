@@ -17,6 +17,8 @@ export 'calc/derivation.dart';
 export 'calc/formula.dart';
 export 'calc/lookups.dart';
 export 'calc/sequences.dart';
+// Templates.
+export 'template/workspace_template.dart';
 // Views.
 export 'view/field_format.dart';
 export 'view/object_labels.dart';
