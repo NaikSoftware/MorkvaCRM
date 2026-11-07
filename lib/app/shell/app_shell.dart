@@ -1,45 +1,35 @@
 import 'package:flutter/material.dart';
 
 import '../../design/design.dart';
-import '../navigation/navigation_cubit.dart';
 
 /// Responsive scaffold that frames every routed page.
 ///
-/// Dumb by design: it owns no navigation state. The parent supplies the
-/// [destinations], the [selectedIndex], and an [onDestinationSelected] callback,
-/// and the shell decides only how to *present* them based on available width.
+/// Dumb by design: the parent supplies the navigation as widgets and the shell
+/// only decides how to *present* them based on available width.
 ///
 /// Layout (single breakpoint per `DESIGN.md` §8):
-/// - `>= 840`: a **full-height** [NavigationRail] (extended at `>= 1240`) beside
-///   the content. The page title lives in a slim header **over the content**,
-///   never as a full-width band above the rail.
-/// - `< 840`: the same content header on top of the body, with a bottom
-///   [NavigationBar].
-///
-/// The themed rail, bar, and surfaces style themselves from [AppTheme].
+/// - `>= 840`: a full-height sidebar ([sidebarBuilder]; a slim rail below
+///   `1240`, the full sidebar at/above) beside the content. The page title
+///   lives in a slim header **over the content**.
+/// - `< 840`: the same content header on top of the body, with [bottomBar]
+///   (if any) under it.
 class AppShell extends StatelessWidget {
   const AppShell({
     super.key,
-    required this.selectedIndex,
-    required this.onDestinationSelected,
-    required this.destinations,
+    required this.sidebarBuilder,
     required this.title,
     required this.child,
-    this.railHeaderBuilder,
+    this.bottomBar,
+    this.headerLeading,
     this.headerTrailing,
     this.banner,
     this.header,
     this.showCompactChrome = true,
   });
 
-  /// Index into [destinations] of the active section.
-  final int selectedIndex;
-
-  /// Called with the tapped destination's index.
-  final ValueChanged<int> onDestinationSelected;
-
-  /// Sections to render, in display order.
-  final List<AppSection> destinations;
+  /// Builds the sidebar for the expanded layout; `extended` is false for the
+  /// slim rail.
+  final Widget Function(BuildContext context, bool extended) sidebarBuilder;
 
   /// Current page title, shown in the content header.
   final String title;
@@ -47,15 +37,14 @@ class AppShell extends StatelessWidget {
   /// The routed page body.
   final Widget child;
 
-  /// Optional header for the [NavigationRail] (e.g. a brand wordmark). Receives
-  /// whether the rail is currently `extended` so it can adapt (full wordmark vs.
-  /// compact mark). Only used in the expanded layout — the compact layout has no
-  /// rail.
-  final Widget Function(BuildContext context, bool extended)? railHeaderBuilder;
+  /// Compact layout only: the bottom navigation, or null for none.
+  final Widget? bottomBar;
 
-  /// Optional trailing widget pinned to the right of the content header (e.g. a
-  /// sync-status indicator). Shown in both layouts so it stays visible on every
-  /// main screen.
+  /// Optional widget before the title in the content header (a back button,
+  /// the brand mark).
+  final Widget? headerLeading;
+
+  /// Optional trailing widget at the right of the content header.
   final Widget? headerTrailing;
 
   /// Optional full-width banner mounted directly above the content body, below
@@ -63,8 +52,8 @@ class AppShell extends StatelessWidget {
   /// permanently — they render nothing when there is nothing to show.
   final Widget? banner;
 
-  /// Replaces the slim title header (and [title] / [headerTrailing]) with a
-  /// page's own header, e.g. a collection's Work header.
+  /// Replaces the slim title header (and [title] / [headerLeading] /
+  /// [headerTrailing]) with a page's own header.
   final Widget? header;
 
   /// Compact layout only: false drops the shell (header, banner, bottom bar
@@ -72,10 +61,10 @@ class AppShell extends StatelessWidget {
   /// collection) owns the screen.
   final bool showCompactChrome;
 
-  /// Width at/above which the expanded rail layout is used (`DESIGN.md` §8).
+  /// Width at/above which the expanded sidebar layout is used (`DESIGN.md` §8).
   static const double expandedBreakpoint = 840;
 
-  /// Width at/above which the rail is shown extended (labels beside icons).
+  /// Width at/above which the full sidebar replaces the slim rail.
   static const double extendedRailBreakpoint = 1240;
 
   @override
@@ -93,54 +82,26 @@ class AppShell extends StatelessWidget {
     );
   }
 
+  Widget _pageHeader() =>
+      header ??
+      _PageHeader(
+        title: title,
+        leading: headerLeading,
+        trailing: headerTrailing,
+      );
+
   Widget _buildExpanded(BuildContext context, {required bool extended}) {
     return Scaffold(
       body: SafeArea(
         child: Row(
           children: [
-            NavigationRail(
-              extended: extended,
-              selectedIndex: selectedIndex,
-              onDestinationSelected: onDestinationSelected,
-              leading: railHeaderBuilder == null
-                  ? null
-                  : Padding(
-                      // Generous top breathing room so the brand isn't cramped
-                      // against the rail's top edge, an equal gap (lg) down to
-                      // the first destination, and a left inset that lines the
-                      // wordmark up with the destination icons when extended.
-                      padding: EdgeInsets.only(
-                        top: Spacing.lg,
-                        bottom: Spacing.lg,
-                        left: extended ? Spacing.md : Spacing.xs,
-                        right: Spacing.xs,
-                      ),
-                      child: Align(
-                        alignment: extended
-                            ? Alignment.centerLeft
-                            : Alignment.center,
-                        child: railHeaderBuilder!(context, extended),
-                      ),
-                    ),
-              labelType: extended
-                  ? NavigationRailLabelType.none
-                  : NavigationRailLabelType.all,
-              destinations: [
-                for (final section in destinations)
-                  NavigationRailDestination(
-                    icon: Icon(section.icon),
-                    label: Text(section.label),
-                  ),
-              ],
-            ),
-            const VerticalDivider(width: 1),
+            sidebarBuilder(context, extended),
             // The main panel: doodles behind its header and content.
             Expanded(
               child: DoodleBackground(
                 child: Column(
                   children: [
-                    header ??
-                        _PageHeader(title: title, trailing: headerTrailing),
+                    _pageHeader(),
                     ?banner,
                     Expanded(child: child),
                   ],
@@ -166,43 +127,24 @@ class AppShell extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            header ?? _PageHeader(title: title, trailing: headerTrailing),
+            _pageHeader(),
             ?banner,
             Expanded(child: DoodleBackground(child: child)),
           ],
         ),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: selectedIndex,
-        onDestinationSelected: onDestinationSelected,
-        destinations: [
-          for (final section in destinations)
-            NavigationDestination(
-              icon: Icon(section.icon),
-              label: section.label,
-            ),
-        ],
-      ),
+      bottomNavigationBar: bottomBar,
     );
   }
 }
 
-/// A slim header that sits over the content area: the page [title] on the left
-/// and room for page-level actions on the right (added by feature pages later).
-///
-/// The title is vertically centered by symmetric token padding (`md`) rather
-/// than a fixed pixel height, so the band keeps the spacing rhythm and grows
-/// gracefully once an action control is added. Horizontal padding is the `lg`
-/// content gutter so the title aligns with page content. A single hairline
-/// bottom border in `outlineVariant` separates it from the content — matching
-/// the rail/content [VerticalDivider] in weight and color — no shadow, no band.
+/// A slim header over the content area: an optional [leading], the page
+/// [title], and an optional [trailing] control, on the `lg` content gutter.
 class _PageHeader extends StatelessWidget {
-  const _PageHeader({required this.title, this.trailing});
+  const _PageHeader({required this.title, this.leading, this.trailing});
 
   final String title;
-
-  /// Optional control pinned to the right edge of the header (e.g. the sync
-  /// status indicator).
+  final Widget? leading;
   final Widget? trailing;
 
   @override
@@ -211,17 +153,13 @@ class _PageHeader extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(
-        horizontal: Spacing.lg,
-        vertical: Spacing.md,
-      ),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: theme.colorScheme.outlineVariant),
-        ),
+        horizontal: Spacing.md,
+        vertical: Spacing.sm,
       ),
       child: Row(
         children: [
-          Expanded(child: Text(title, style: theme.textTheme.titleLarge)),
+          if (leading != null) ...[leading!, const SizedBox(width: Spacing.sm)],
+          Expanded(child: Text(title, style: theme.textTheme.headlineSmall)),
           if (trailing != null) ...[
             const SizedBox(width: Spacing.md),
             trailing!,

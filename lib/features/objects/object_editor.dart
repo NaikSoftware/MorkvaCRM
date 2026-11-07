@@ -484,7 +484,12 @@ class _Header extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CollectionGlyph(iconKey: collection.icon, size: 40, iconSize: 20),
+          CollectionGlyph(
+            iconKey: collection.icon,
+            tintSeed: collection.id,
+            size: 40,
+            iconSize: 20,
+          ),
           const SizedBox(width: Spacing.sm),
           Expanded(
             child: Column(

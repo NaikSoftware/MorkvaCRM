@@ -70,9 +70,16 @@ shadow — never a white card on near-white with an invisible shadow.
 - **Don't** put a warning in carrot — warning is the distinct amber `#D4A017`.
 
 ## 8. Responsive behavior
-One breakpoint at **840dp**: `< 840` = compact (bottom navigation),
-`>= 840` = expanded (navigation rail). Touch targets ≥ 44px. The `AppShell`
-owns this; components are width-agnostic.
+One breakpoint at **840dp**: `< 840` = compact (phone header + a bottom bar of
+the first 3 pinned collections + All), `>= 840` = expanded: a slim 76px rail of
+pinned tiles up to 1240dp, the full 272px sidebar (brand, Jump to, All
+collections, pinned collections, profile + settings) above it. Touch targets ≥
+44px. The `AppShell` owns this; components are width-agnostic. Spec:
+`docs/superpowers/specs/2026-11-07-sidebar-pins-design.md`.
+
+**Collection tints:** a collection's glyph tile uses `CollectionTints.of(id)`
+(8 soft background/foreground pairs, light + dark) so it keeps one colour
+everywhere; pass `tintSeed: collection.id` to `CollectionGlyph`.
 
 ## 9. Radius & motion quick reference
 - Radius: `sm` 8 (chips), `md` 12 (buttons/inputs), `lg` 16 (cards),
@@ -84,8 +91,8 @@ owns this; components are width-agnostic.
 ## 10. Background doodles
 `components/doodle_background.dart` paints a faint 240px tile of line doodles
 (carrot, sprout, tag, card, calendar, parcel, clip, check, envelope, needle)
-behind the **main panel only** — right of the rail on wide screens (header
-included), the body under the app bar on phones. Never behind the rail/bar,
+behind the **main panel only** — right of the sidebar on wide screens (header
+included), the body under the app bar on phones. Never behind the sidebar/bar,
 dialogs, sheets or the phone app bar. Colour comes from
 `MorkvaSemanticColors.doodle` (light: ink 10%, dark: cream 7%).
 - **Decor only:** it ignores pointers and semantics and must never draw

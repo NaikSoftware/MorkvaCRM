@@ -48,6 +48,16 @@ class FakeDataRepository implements DataRepository {
   @override
   Stream<List<Collection>> watchCollections() => _counted(_subject.stream);
 
+  /// The pinned collection ids, replayed like the real repository.
+  final pinnedIds = BehaviorSubject<List<String>>.seeded(const []);
+
+  @override
+  Stream<List<String>> watchPinnedCollectionIds() => pinnedIds.stream;
+
+  @override
+  Future<void> savePinnedCollectionIds(List<String> ids) async =>
+      pinnedIds.add(List.unmodifiable(ids));
+
   @override
   Future<List<Collection>> getCollections() async =>
       List.unmodifiable(_collections);

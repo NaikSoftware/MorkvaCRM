@@ -17,3 +17,6 @@ export 'list/collections_list_view.dart';
 export 'editor/collection_editor_cubit.dart';
 export 'editor/collection_editor_state.dart';
 export 'editor/collection_editor_page.dart';
+
+// Sidebar pins.
+export 'pins/pinned_collections_cubit.dart';

@@ -3,6 +3,8 @@
 **Date:** 2026-06-16
 **Branch:** `worktree-epic-00-design-system`
 **Status:** Approved (aesthetic direction A — Warm Carrot)
+**Superseded in part:** the Home / Settings rail and `NavigationCubit` were replaced by the
+pinned-collections sidebar — see `2026-11-07-sidebar-pins-design.md`.
 
 ## Goal
 

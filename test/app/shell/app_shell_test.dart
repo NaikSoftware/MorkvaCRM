@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:morkva_crm/app/navigation/navigation_cubit.dart';
 import 'package:morkva_crm/app/shell/app_shell.dart';
 import 'package:morkva_crm/design/design.dart';
 
@@ -13,16 +12,12 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
   }
 
-  Widget buildShell({
-    required int selectedIndex,
-    required ValueChanged<int> onDestinationSelected,
-  }) {
+  Widget buildShell() {
     return MaterialApp(
       theme: AppTheme.light,
       home: AppShell(
-        selectedIndex: selectedIndex,
-        onDestinationSelected: onDestinationSelected,
-        destinations: kAppSections,
+        sidebarBuilder: (_, extended) => Text('sidebar:$extended'),
+        bottomBar: const Text('bottom bar'),
         title: 'MorkvaCRM',
         child: const Center(child: Text('body')),
       ),
@@ -30,45 +25,42 @@ void main() {
   }
 
   group('AppShell', () {
-    testWidgets('wide surface shows a NavigationRail (no NavigationBar)', (
+    testWidgets('wide: the full sidebar beside the content, no bottom bar', (
       tester,
     ) async {
-      useSurface(tester, const Size(1200, 800));
+      useSurface(tester, const Size(1300, 800));
+      await tester.pumpWidget(buildShell());
 
-      await tester.pumpWidget(
-        buildShell(selectedIndex: 0, onDestinationSelected: (_) {}),
-      );
-
-      expect(find.byType(NavigationRail), findsOneWidget);
-      expect(find.byType(NavigationBar), findsNothing);
+      expect(find.text('sidebar:true'), findsOneWidget);
+      expect(find.text('bottom bar'), findsNothing);
       expect(find.text('MorkvaCRM'), findsOneWidget);
-      expect(find.text('body'), findsOneWidget);
-      // Doodles sit behind the main panel only, not the rail.
+      // Doodles sit behind the main panel only, not the sidebar.
       final doodles = find.byType(DoodleBackground);
       expect(
         find.descendant(of: doodles, matching: find.text('body')),
         findsOneWidget,
       );
       expect(
-        find.descendant(of: doodles, matching: find.byType(NavigationRail)),
+        find.descendant(of: doodles, matching: find.text('sidebar:true')),
         findsNothing,
       );
     });
 
-    testWidgets('narrow surface shows a NavigationBar (no NavigationRail)', (
-      tester,
-    ) async {
+    testWidgets('medium: the slim rail', (tester) async {
+      useSurface(tester, const Size(1000, 800));
+      await tester.pumpWidget(buildShell());
+
+      expect(find.text('sidebar:false'), findsOneWidget);
+    });
+
+    testWidgets('narrow: header and bottom bar, no sidebar', (tester) async {
       useSurface(tester, const Size(400, 800));
+      await tester.pumpWidget(buildShell());
 
-      await tester.pumpWidget(
-        buildShell(selectedIndex: 0, onDestinationSelected: (_) {}),
-      );
-
-      expect(find.byType(NavigationBar), findsOneWidget);
-      expect(find.byType(NavigationRail), findsNothing);
+      expect(find.textContaining('sidebar'), findsNothing);
+      expect(find.text('bottom bar'), findsOneWidget);
       expect(find.text('MorkvaCRM'), findsOneWidget);
-      expect(find.text('body'), findsOneWidget);
-      // Phone: behind the body only, not the header or the bar.
+      // Phone: behind the body only, not the header.
       final doodles = find.byType(DoodleBackground);
       expect(
         find.descendant(of: doodles, matching: find.text('body')),
@@ -78,43 +70,6 @@ void main() {
         find.descendant(of: doodles, matching: find.text('MorkvaCRM')),
         findsNothing,
       );
-    });
-
-    testWidgets('reflects the selected destination on the rail', (
-      tester,
-    ) async {
-      useSurface(tester, const Size(1200, 800));
-
-      await tester.pumpWidget(
-        buildShell(selectedIndex: 1, onDestinationSelected: (_) {}),
-      );
-
-      final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
-      expect(rail.selectedIndex, 1);
-    });
-
-    testWidgets('tapping a rail destination reports its index', (tester) async {
-      useSurface(tester, const Size(1200, 800));
-
-      int? tapped;
-      await tester.pumpWidget(
-        buildShell(selectedIndex: 0, onDestinationSelected: (i) => tapped = i),
-      );
-
-      await tester.tap(find.text(AppSection.settings.label));
-      expect(tapped, kAppSections.indexOf(AppSection.settings));
-    });
-
-    testWidgets('tapping a bar destination reports its index', (tester) async {
-      useSurface(tester, const Size(400, 800));
-
-      int? tapped;
-      await tester.pumpWidget(
-        buildShell(selectedIndex: 0, onDestinationSelected: (i) => tapped = i),
-      );
-
-      await tester.tap(find.text(AppSection.settings.label));
-      expect(tapped, kAppSections.indexOf(AppSection.settings));
     });
   });
 }

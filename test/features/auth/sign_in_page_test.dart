@@ -28,7 +28,7 @@ void main() {
 
     await tester.pumpWidget(host());
 
-    expect(find.text('Morkva CRM'), findsOneWidget);
+    expect(find.text('Morkva'), findsOneWidget);
     expect(find.text('Continue with Google'), findsOneWidget);
   });
 

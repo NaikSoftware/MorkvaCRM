@@ -14,7 +14,6 @@ import '../api/auth/firestore_auth_repository.dart';
 import '../api/data/firestore_data_repository.dart';
 import '../api/files/firebase_attachment_store.dart';
 import '../design/design.dart';
-import 'navigation/navigation_cubit.dart';
 import 'router/app_router.dart';
 
 /// App-wide scroll behavior: no colored overscroll glow (it clashed with the
@@ -42,9 +41,8 @@ class AppScrollBehavior extends MaterialScrollBehavior {
 /// Root of the MorkvaCRM app.
 ///
 /// Owns the dependency-injection tree: the auth and data repositories, the
-/// shared [SyncStatusCubit], the [AuthCubit] that gates routing, and the
-/// [NavigationCubit] for the shell. Applies the "Warm Carrot" theme and drives
-/// auth-guarded routing through go_router. Runs unchanged on web and mobile.
+/// shared [SyncStatusCubit] and the [AuthCubit] that gates routing. Applies
+/// the "Warm Carrot" theme and drives auth-guarded routing through go_router. Runs unchanged on web and mobile.
 ///
 /// Repositories and the [WorkspaceResolver] can be injected for tests; in
 /// production they default to the Firebase-backed implementations built against
@@ -194,7 +192,6 @@ class _MorkvaAppState extends State<MorkvaApp> {
         providers: [
           BlocProvider<AuthCubit>.value(value: _authCubit),
           BlocProvider<SyncStatusCubit>.value(value: _syncStatusCubit),
-          BlocProvider<NavigationCubit>(create: (_) => NavigationCubit()),
         ],
         child: BlocListener<AuthCubit, AuthState>(
           listener: _onAuthChanged,

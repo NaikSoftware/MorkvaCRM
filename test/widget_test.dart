@@ -66,6 +66,13 @@ class FakeDataRepository implements DataRepository {
       Stream<List<Collection>>.value(const []);
 
   @override
+  Stream<List<String>> watchPinnedCollectionIds() =>
+      Stream<List<String>>.value(const []);
+
+  @override
+  Future<void> savePinnedCollectionIds(List<String> ids) async {}
+
+  @override
   Future<List<Collection>> getCollections() async => const [];
 
   @override
@@ -197,7 +204,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Go to Settings and tap sign out.
-    await tester.tap(find.byIcon(Icons.settings_outlined).first);
+    await tester.tap(find.byTooltip('Account and settings'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Sign out'));
     await tester.pumpAndSettle();

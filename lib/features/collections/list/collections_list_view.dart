@@ -5,12 +5,13 @@ import 'package:go_router/go_router.dart';
 import '../../../core/domain/domain.dart';
 import '../../templates/template_picker.dart';
 import '../../../design/design.dart';
+import '../pins/pinned_collections_cubit.dart';
 import 'collection_card.dart';
 import 'collections_list_cubit.dart';
 import 'collections_list_state.dart';
 import 'create_collection_dialog.dart';
 
-/// The collections surface — the Home body.
+/// The collections surface — the All collections page.
 ///
 /// Renders the [CollectionsListCubit] over its three states: a calm centered
 /// loading state, a friendly error retry surface, and the populated workspace
@@ -79,104 +80,223 @@ class CollectionsListView extends StatelessWidget {
   }
 }
 
-/// The populated state: a header row with the create CTA, then the responsive
-/// collection grid/list.
-class _CollectionsContent extends StatelessWidget {
+/// The populated state: the page header (title, filter, create actions), then
+/// the pinned collections and everything else as card grids.
+class _CollectionsContent extends StatefulWidget {
   const _CollectionsContent({required this.collections});
 
   final List<Collection> collections;
 
   @override
+  State<_CollectionsContent> createState() => _CollectionsContentState();
+}
+
+class _CollectionsContentState extends State<_CollectionsContent> {
+  String _filter = '';
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final pins = context.watch<PinnedCollectionsCubit>().state;
+    final all = widget.collections;
+    final pinned = pinnedCollections(pins, all);
+    final q = _filter.trim().toLowerCase();
+    bool matches(Collection c) => q.isEmpty || c.name.toLowerCase().contains(q);
+    final shownPinned = pinned.where(matches).toList();
+    final others = [
+      for (final c in all)
+        if (!pins.contains(c.id) && matches(c)) c,
+    ];
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWide =
             constraints.maxWidth >= CollectionsListView._gridBreakpoint;
+        final gutter = isWide ? Spacing.xl : Spacing.md;
+        // Title, filter and both buttons on one line need room.
+        final inlineActions = constraints.maxWidth >= 1000;
+        final filter = SearchField(
+          hintText: 'Filter collections',
+          onChanged: (v) => setState(() => _filter = v),
+        );
+        final count =
+            '${all.length} ${all.length == 1 ? 'collection' : 'collections'}'
+            '${pinned.isEmpty ? '' : ' · ${pinned.length} pinned to the sidebar'}';
+
+        Widget caption(String text, {IconData? icon}) => SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              gutter,
+              Spacing.lg,
+              gutter,
+              Spacing.sm,
+            ),
+            child: Row(
+              children: [
+                if (icon != null) ...[
+                  Icon(icon, size: 16, color: scheme.primary),
+                  const SizedBox(width: Spacing.xs),
+                ],
+                Text(
+                  text,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.9,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+
+        Widget grid(List<Collection> items) => SliverPadding(
+          padding: EdgeInsets.symmetric(horizontal: gutter),
+          sliver: SliverGrid(
+            gridDelegate: isWide
+                ? const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: CollectionsListView._maxCardExtent,
+                    mainAxisSpacing: Spacing.md,
+                    crossAxisSpacing: Spacing.md,
+                    mainAxisExtent: CollectionCard.height,
+                  )
+                : const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: Spacing.sm,
+                    crossAxisSpacing: Spacing.sm,
+                    mainAxisExtent: CollectionCard.height,
+                  ),
+            delegate: SliverChildBuilderDelegate(
+              (context, index) => _card(
+                context,
+                items[index],
+                pinned: pins.contains(items[index].id),
+              ),
+              childCount: items.length,
+            ),
+          ),
+        );
+
         return CustomScrollView(
           slivers: [
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(
-                Spacing.lg,
-                Spacing.lg,
-                Spacing.lg,
-                Spacing.sm,
+              padding: EdgeInsets.fromLTRB(
+                gutter,
+                isWide ? Spacing.xl : Spacing.xxs,
+                gutter,
+                0,
               ),
               sliver: SliverToBoxAdapter(
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Expanded(
-                      child: Text(
-                        '${collections.length} '
-                        '${collections.length == 1 ? 'collection' : 'collections'}',
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
                     if (isWide)
-                      SecondaryButton(
-                        label: 'From template',
-                        icon: Icons.auto_awesome_mosaic_outlined,
-                        onPressed: () =>
-                            CollectionsListView._fromTemplate(context),
-                      )
-                    else
-                      IconButton.outlined(
-                        tooltip: 'From template',
-                        icon: const Icon(Icons.auto_awesome_mosaic_outlined),
-                        onPressed: () =>
-                            CollectionsListView._fromTemplate(context),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'All collections',
+                                  style: theme.textTheme.headlineMedium,
+                                ),
+                                const SizedBox(height: Spacing.xxs),
+                                Text(
+                                  count,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (inlineActions) ...[
+                            SizedBox(width: 260, child: filter),
+                            const SizedBox(width: Spacing.sm),
+                            SecondaryButton(
+                              label: 'From template',
+                              icon: Icons.auto_awesome_mosaic_outlined,
+                              onPressed: () =>
+                                  CollectionsListView._fromTemplate(context),
+                            ),
+                            const SizedBox(width: Spacing.xs),
+                            PrimaryButton(
+                              label: 'New collection',
+                              icon: Icons.add,
+                              onPressed: () =>
+                                  CollectionsListView._create(context),
+                            ),
+                          ],
+                        ],
                       ),
-                    const SizedBox(width: Spacing.xs),
-                    PrimaryButton(
-                      label: 'New collection',
-                      icon: Icons.add,
-                      onPressed: () => CollectionsListView._create(context),
-                    ),
+                    if (!inlineActions) ...[
+                      if (isWide) const SizedBox(height: Spacing.md),
+                      Row(
+                        children: [
+                          Expanded(child: filter),
+                          const SizedBox(width: Spacing.xs),
+                          IconButton.outlined(
+                            tooltip: 'From template',
+                            icon: const Icon(
+                              Icons.auto_awesome_mosaic_outlined,
+                            ),
+                            onPressed: () =>
+                                CollectionsListView._fromTemplate(context),
+                          ),
+                          IconButton.filled(
+                            tooltip: 'New collection',
+                            icon: const Icon(Icons.add),
+                            onPressed: () =>
+                                CollectionsListView._create(context),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
             ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(
-                Spacing.lg,
-                Spacing.xs,
-                Spacing.lg,
-                Spacing.xxl,
-              ),
-              sliver: isWide
-                  ? SliverGrid(
-                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                        maxCrossAxisExtent: CollectionsListView._maxCardExtent,
-                        mainAxisSpacing: Spacing.md,
-                        crossAxisSpacing: Spacing.md,
-                        // A relaxed aspect so descriptions and the field-count
-                        // footer breathe without clipping.
-                        mainAxisExtent: 164,
-                      ),
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) => _card(context, collections[index]),
-                        childCount: collections.length,
-                      ),
-                    )
-                  : SliverList.separated(
-                      itemCount: collections.length,
-                      separatorBuilder: (_, _) =>
-                          const SizedBox(height: Spacing.sm),
-                      itemBuilder: (context, index) =>
-                          _card(context, collections[index]),
+            if (shownPinned.isNotEmpty) ...[
+              caption('PINNED', icon: Icons.push_pin),
+              grid(shownPinned),
+            ],
+            if (others.isNotEmpty) ...[
+              caption(pinned.isEmpty ? 'COLLECTIONS' : 'EVERYTHING ELSE'),
+              grid(others),
+            ],
+            if (shownPinned.isEmpty && others.isEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(Spacing.xl),
+                  child: Text(
+                    'No collection matches "${_filter.trim()}"',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
                     ),
-            ),
+                  ),
+                ),
+              ),
+            const SliverToBoxAdapter(child: SizedBox(height: Spacing.xxl)),
           ],
         );
       },
     );
   }
 
-  Widget _card(BuildContext context, Collection collection) {
+  Widget _card(
+    BuildContext context,
+    Collection collection, {
+    required bool pinned,
+  }) {
     return CollectionCard(
       collection: collection,
+      pinned: pinned,
+      onTogglePin: () =>
+          context.read<PinnedCollectionsCubit>().toggle(collection.id),
       onOpen: () => context.go('/collections/${collection.id}'),
       onAction: (action) => _handleAction(context, collection, action),
     );

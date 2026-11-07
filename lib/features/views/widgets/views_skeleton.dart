@@ -73,6 +73,7 @@ class _ViewsSkeletonState extends State<ViewsSkeleton>
     const widths = [0.62, 0.45, 0.7, 0.38, 0.55, 0.66, 0.42, 0.58];
 
     return Semantics(
+      container: true,
       label: 'Loading',
       child: FadeTransition(
         opacity: _pulse,

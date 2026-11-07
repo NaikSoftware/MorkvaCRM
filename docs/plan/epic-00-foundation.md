@@ -15,7 +15,8 @@ Nothing can be built until the skeleton, state-management pattern, and design la
   bits behind interfaces.
 - Set up **BLoC** as the state-management foundation with one trivial example bloc proving the
   wiring (e.g. an app-shell/navigation cubit).
-- App shell: navigation/routing structure, a home scaffold, and where collections will later
+- App shell (since redesigned as the pinned-collections sidebar — see
+  `docs/superpowers/specs/2026-11-07-sidebar-pins-design.md`): navigation/routing structure, a home scaffold, and where collections will later
   be listed.
 - **Design system base** (via `/design`): color scheme, typography, spacing, core component
   styles (buttons, inputs, cards, app bar). Modern and distinctive — not stock Material.

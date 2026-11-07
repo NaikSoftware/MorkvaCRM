@@ -466,7 +466,12 @@ class _WideHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          CollectionGlyph(iconKey: collection.icon, size: 44, iconSize: 24),
+          CollectionGlyph(
+            iconKey: collection.icon,
+            tintSeed: collection.id,
+            size: 44,
+            iconSize: 24,
+          ),
           const SizedBox(width: Spacing.sm),
           Expanded(
             child: Text(
@@ -476,8 +481,7 @@ class _WideHeader extends StatelessWidget {
               style: theme.textTheme.headlineMedium,
             ),
           ),
-          const SyncStatusIndicator(),
-          const SizedBox(width: Spacing.sm),
+          // Sync status lives in the sidebar's profile row (rail: avatar dot).
           OutlinedButton.icon(
             onPressed: () => _customize(context, collection.id),
             icon: const Icon(Icons.tune, size: 18),
@@ -530,6 +534,7 @@ class _PhoneFrame extends StatelessWidget {
                 children: [
                   CollectionGlyph(
                     iconKey: collection.icon,
+                    tintSeed: collection.id,
                     size: 32,
                     iconSize: 18,
                   ),

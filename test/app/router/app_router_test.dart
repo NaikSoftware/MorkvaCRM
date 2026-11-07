@@ -4,10 +4,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:morkva_crm/api/api.dart';
-import 'package:morkva_crm/app/navigation/navigation_cubit.dart';
 import 'package:morkva_crm/app/router/app_router.dart';
+import 'package:morkva_crm/core/domain/domain.dart';
+import 'package:morkva_crm/app/shell/shell_sidebar.dart';
 import 'package:morkva_crm/design/design.dart';
 import 'package:morkva_crm/features/collections/collections.dart';
+import 'package:morkva_crm/features/settings/settings_page.dart';
 import 'package:morkva_crm/features/views/views.dart';
 
 import '../../features/collections/fake_data_repository.dart';
@@ -33,8 +35,12 @@ void main() {
     );
     final authCubit = AuthCubit(auth)..initialize();
     addTearDown(authCubit.close);
-    final data = FakeDataRepository([deals]);
+    final data = FakeDataRepository([
+      deals,
+      const Collection(id: 'other', name: 'Other', fields: []),
+    ]);
     data.seedObjects('deals', sampleDeals());
+    data.pinnedIds.add(const ['deals']);
     router = createAppRouter(authCubit, sessionReady: ValueNotifier(true));
     addTearDown(router.dispose);
 
@@ -45,7 +51,6 @@ void main() {
           providers: [
             BlocProvider.value(value: authCubit),
             BlocProvider(create: (_) => SyncStatusCubit()),
-            BlocProvider(create: (_) => NavigationCubit()),
           ],
           child: MaterialApp.router(
             theme: AppTheme.light,
@@ -80,39 +85,60 @@ void main() {
     expect(find.byType(CollectionViewsPage), findsOneWidget);
   });
 
-  testWidgets('wide: the rail persists and the panel switches at once', (
+  testWidgets('wide: the sidebar persists and the panel switches at once', (
     tester,
   ) async {
     await pumpApp(tester);
-    final rail = tester.state(find.byType(NavigationRail));
+    final sidebar = tester.element(find.byType(ShellSidebar));
+    ShellSidebar current() => tester.widget(find.byType(ShellSidebar));
+    expect(current().place, ShellPlace.allCollections);
+    expect(current().pinned.map((c) => c.id), ['deals']);
 
-    router.go('/collections/deals');
+    // A pin in the sidebar opens its collection.
+    await tester.tap(
+      find.descendant(
+        of: find.byType(ShellSidebar),
+        matching: find.text('Deals'),
+      ),
+    );
     await tester.pump();
     await tester.pump();
     final page = find.byType(CollectionViewsPage);
     expect(page, findsOneWidget);
-    // Same rail State: it was not rebuilt or re-animated with the page.
-    expect(tester.state(find.byType(NavigationRail)), same(rail));
-    expect(find.byType(NavigationRail), findsOneWidget);
+    // Same sidebar element: it was not rebuilt or re-animated with the page.
+    expect(tester.element(find.byType(ShellSidebar)), same(sidebar));
     // No transition: the page is fully in without advancing the clock.
     expect(
       ModalRoute.of(tester.element(page))!.animation!.status,
       AnimationStatus.completed,
     );
-    // A collection lives under Home.
-    expect(
-      tester.widget<NavigationRail>(find.byType(NavigationRail)).selectedIndex,
-      kAppSections.indexOf(AppSection.home),
-    );
+    expect(current().place, ShellPlace.collection);
+    expect(current().collectionId, 'deals');
 
-    // Settings in the rail leaves the collection.
-    await tester.tap(find.text(AppSection.settings.label));
+    // Settings leaves the collection.
+    await tester.tap(find.byTooltip('Settings'));
     await tester.pumpAndSettle();
     expect(page, findsNothing);
-    expect(tester.state(find.byType(NavigationRail)), same(rail));
+    expect(find.byType(SettingsPage), findsOneWidget);
+    expect(tester.element(find.byType(ShellSidebar)), same(sidebar));
+    expect(current().place, ShellPlace.settings);
+  });
+
+  testWidgets('one collection to another swaps the page', (tester) async {
+    await pumpApp(tester);
+    router.go('/collections/deals');
+    await tester.pumpAndSettle();
+    expect(find.text('Acme renewal'), findsOneWidget);
+
+    router.go('/collections/other');
+    await tester.pumpAndSettle();
+    expect(find.text('Acme renewal'), findsNothing);
     expect(
-      tester.widget<NavigationRail>(find.byType(NavigationRail)).selectedIndex,
-      kAppSections.indexOf(AppSection.settings),
+      find.descendant(
+        of: find.byType(CollectionViewsPage),
+        matching: find.text('Other'),
+      ),
+      findsOneWidget,
     );
   });
 

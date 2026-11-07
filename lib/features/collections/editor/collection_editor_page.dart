@@ -343,6 +343,7 @@ class _EditorHeaderState extends State<_EditorHeader> {
           const SizedBox(width: Spacing.xs),
           CollectionGlyph(
             iconKey: state.draft.icon,
+            tintSeed: state.draft.id,
             onTap: _pickIcon,
             tooltip: 'Choose icon',
           ),
@@ -892,7 +893,9 @@ class _NarrowLayoutState extends State<_NarrowLayout> {
                     child: FieldConfigPanel(
                       field: field,
                       editor: widget.registry.forType(field.type),
-                      collections: state.draft.withWorkspace(widget.collections),
+                      collections: state.draft.withWorkspace(
+                        widget.collections,
+                      ),
                       editingCollectionId: state.draft.id,
                       typeLocked: state.isFieldTypeLocked(field.id),
                     ),
