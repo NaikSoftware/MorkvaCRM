@@ -78,6 +78,9 @@ class _FieldsEditorSheetState extends State<FieldsEditorSheet> {
   late Set<String> _shown;
 
   bool get _columns => widget.view.mode == ViewModeIds.table;
+
+  /// Summary draws tiles, not cards: no card preview, and empty values show.
+  bool get _tiles => widget.view.mode == ViewModeIds.summary;
   String? get _layoutId => widget.view.layoutFieldId;
   List<String> get _original => [
     for (final id in widget.view.fieldIds)
@@ -197,54 +200,56 @@ class _FieldsEditorSheetState extends State<FieldsEditorSheet> {
                   Spacing.sm,
                 ),
                 child: Text(
-                  'Choose which fields show on each card in '
+                  'Choose which fields show '
+                  '${_tiles ? 'as tiles' : 'on each card'} in '
                   '“${widget.view.name}” and drag to set their order.',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
               ),
-            Container(
-              color: scheme.surfaceContainerLow,
-              padding: const EdgeInsets.all(Spacing.md),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'PREVIEW',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                      letterSpacing: 0.8,
-                    ),
-                  ),
-                  const SizedBox(height: Spacing.xs),
-                  Semantics(
-                    label: 'Preview',
-                    child: _columns
-                        ? _ColumnsPreview(this)
-                        : _CardPreview(this),
-                  ),
-                  if (layout != null) ...[
-                    const SizedBox(height: Spacing.xs),
+            if (!_tiles)
+              Container(
+                color: scheme.surfaceContainerLow,
+                padding: const EdgeInsets.all(Spacing.md),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      _layoutNote(layout),
-                      style: theme.textTheme.bodySmall?.copyWith(
+                      'PREVIEW',
+                      style: theme.textTheme.labelSmall?.copyWith(
                         color: scheme.onSurfaceVariant,
+                        letterSpacing: 0.8,
                       ),
                     ),
-                  ],
-                  if (!_columns) ...[
                     const SizedBox(height: Spacing.xs),
-                    Text(
-                      'Empty fields are skipped on the card.',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
+                    Semantics(
+                      label: 'Preview',
+                      child: _columns
+                          ? _ColumnsPreview(this)
+                          : _CardPreview(this),
                     ),
+                    if (layout != null) ...[
+                      const SizedBox(height: Spacing.xs),
+                      Text(
+                        _layoutNote(layout),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                    if (!_columns) ...[
+                      const SizedBox(height: Spacing.xs),
+                      Text(
+                        'Empty fields are skipped on the card.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
             _TitleRow(
               columns: _columns,
               current: _titleField,
@@ -273,12 +278,16 @@ class _FieldsEditorSheetState extends State<FieldsEditorSheet> {
                 shrinkWrap: true,
                 buildDefaultDragHandles: false,
                 onReorderItem: _move,
-                proxyDecorator: (child, _, _) => DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: scheme.surfaceContainerLowest,
-                    boxShadow: MorkvaElevation.level2,
+                // The proxy sits in the overlay, above the sheet's Material:
+                // it needs its own for the row's InkWell.
+                proxyDecorator: (child, _, _) => Material(
+                  color: scheme.surfaceContainerLowest,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      boxShadow: MorkvaElevation.level2,
+                    ),
+                    child: Transform.scale(scale: 1.02, child: child),
                   ),
-                  child: Transform.scale(scale: 1.02, child: child),
                 ),
                 children: [
                   for (var i = 0; i < _order.length; i++)
