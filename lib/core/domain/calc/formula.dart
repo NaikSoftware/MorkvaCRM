@@ -50,8 +50,12 @@ FormulaType? formulaTypeOfField(FieldDefinition field) => switch (field) {
   MultiSelectFieldDefinition() => FormulaType.text,
   BooleanFieldDefinition() => FormulaType.boolean,
   DateFieldDefinition() => FormulaType.date,
-  CalculatedFieldDefinition(:final declaredOutputType) =>
-    FormulaType.ofFieldType(declaredOutputType),
+  CalculatedFieldDefinition(lookupTarget: final target?) => formulaTypeOfField(
+    target,
+  ),
+  CalculatedFieldDefinition(:final declaredOutputType, :final isLookup) =>
+    FormulaType.ofFieldType(declaredOutputType) ??
+        (isLookup ? FormulaType.text : null),
   _ => null,
 };
 

@@ -4,6 +4,26 @@ import '../../core/domain/domain.dart';
 import '../views/widgets/view_labels.dart';
 import 'value_editors/field_value_editor.dart';
 
+/// The objects of [collection] whose reference field [via] points at the
+/// edited object — shown and edited as a list inside its form.
+class Sublist extends Equatable {
+  const Sublist({required this.collection, required this.via, this.items});
+
+  final Collection collection;
+  final ReferenceFieldDefinition via;
+
+  /// In the collection's first view order; null while loading.
+  final List<MorkvaObject>? items;
+
+  String get key => '${collection.id}/${via.id}';
+
+  Sublist withItems(List<MorkvaObject>? items) =>
+      Sublist(collection: collection, via: via, items: items);
+
+  @override
+  List<Object?> get props => [collection, via, items];
+}
+
 /// Where the editor is in its life.
 enum ObjectEditorStatus { editing, saving, saveFailed, saved, deleted }
 
@@ -29,7 +49,16 @@ class ObjectEditorState extends Equatable {
     this.savedObject,
     this.derived = const {},
     this.notes = const {},
+    this.sublists = const [],
+    this.addedChildren = const {},
   });
+
+  /// The linked-item lists the form shows below its fields.
+  final List<Sublist> sublists;
+
+  /// Collection id by object id of items added from a sublist while the
+  /// object is new: deleted again when it is discarded.
+  final Map<String, String> addedChildren;
 
   /// A line per field the form shows under it (what a calculation does).
   final Map<String, String> notes;
@@ -105,7 +134,10 @@ class ObjectEditorState extends Equatable {
   bool get hasUnsavedChanges =>
       status != ObjectEditorStatus.saved &&
       status != ObjectEditorStatus.deleted &&
-      (draft.isNotEmpty || inputErrors.isNotEmpty || isUploading);
+      (draft.isNotEmpty ||
+          inputErrors.isNotEmpty ||
+          isUploading ||
+          (isCreate && addedChildren.isNotEmpty));
 
   /// Every current error (input error first, else the first rule broken),
   /// whether shown yet or not.
@@ -155,6 +187,8 @@ class ObjectEditorState extends Equatable {
     Map<String, String>? uploadErrors,
     MorkvaObject? savedObject,
     Map<String, FieldValue>? derived,
+    List<Sublist>? sublists,
+    Map<String, String>? addedChildren,
   }) => ObjectEditorState(
     collection: collection,
     readOnlyFieldIds: readOnlyFieldIds,
@@ -174,6 +208,8 @@ class ObjectEditorState extends Equatable {
     savedObject: savedObject ?? this.savedObject,
     derived: derived ?? this.derived,
     notes: notes,
+    sublists: sublists ?? this.sublists,
+    addedChildren: addedChildren ?? this.addedChildren,
   );
 
   @override
@@ -195,5 +231,8 @@ class ObjectEditorState extends Equatable {
     uploadErrors,
     savedObject,
     derived,
+    notes,
+    sublists,
+    addedChildren,
   ];
 }

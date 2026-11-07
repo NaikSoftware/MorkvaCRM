@@ -12,6 +12,7 @@ import '../../design/design.dart';
 import '../views/widgets/view_labels.dart';
 import 'object_editor_cubit.dart';
 import 'value_editors/field_value_editor.dart';
+import 'widgets/sublist_section.dart';
 
 /// How an editor session ended (null = closed without saving).
 sealed class ObjectEditorResult {
@@ -348,6 +349,10 @@ class _ObjectEditorState extends State<ObjectEditor> {
                   );
                 },
               ),
+            for (final sublist in state.sublists) ...[
+              const SizedBox(height: Spacing.md),
+              SublistSection(sublist: sublist, parent: state.collection),
+            ],
             if (widget.compact && !state.isCreate && !state.remoteDeleted) ...[
               const SizedBox(height: Spacing.lg),
               Align(

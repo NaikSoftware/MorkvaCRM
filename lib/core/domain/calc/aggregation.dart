@@ -122,3 +122,27 @@ class Aggregation extends Equatable {
     filters,
   ];
 }
+
+/// Shows field [fieldId] of the object this object's (single) reference
+/// field [referenceFieldId] points at, keeping that field's type.
+class Lookup extends Equatable {
+  const Lookup({required this.referenceFieldId, this.fieldId});
+
+  final String referenceFieldId;
+
+  /// The field of the referenced collection shown; null until picked.
+  final String? fieldId;
+
+  Map<String, dynamic> toJson() => {
+    'referenceFieldId': referenceFieldId,
+    if (fieldId != null) 'fieldId': fieldId,
+  };
+
+  factory Lookup.fromJson(Map<String, dynamic> json) => Lookup(
+    referenceFieldId: (json['referenceFieldId'] as String?) ?? '',
+    fieldId: json['fieldId'] as String?,
+  );
+
+  @override
+  List<Object?> get props => [referenceFieldId, fieldId];
+}

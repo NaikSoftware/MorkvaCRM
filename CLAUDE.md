@@ -24,6 +24,10 @@ A universal CRM for small business. Not tailored to any specific business — ev
 - Keep platform-agnostic code shared; isolate web-/mobile-specific bits.
 - Run `flutter analyze` and tests before considering work done.
 - Review changes after they are made to avoid broken logic, missed requirements, etc.
+- **Design parity gate:** UI work is mocked in Claude Design first; during the build (after each UI
+  milestone) and before calling it done, screenshot the running app and compare it with the mockup
+  side by side. Every difference is either fixed in code or the mockup is updated to the agreed
+  design — content shown as a field in the mockup must come from that field in the app.
 
 ## Coding
 

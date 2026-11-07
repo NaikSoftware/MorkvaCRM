@@ -15,6 +15,7 @@ export 'validation.dart';
 export 'calc/aggregation.dart';
 export 'calc/derivation.dart';
 export 'calc/formula.dart';
+export 'calc/lookups.dart';
 export 'calc/sequences.dart';
 // Views.
 export 'view/field_format.dart';

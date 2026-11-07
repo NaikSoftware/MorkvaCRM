@@ -102,6 +102,7 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
 
   void _onCollections(List<Collection> collections) {
     if (isClosed) return;
+    collections = resolveLookups(collections);
     _collections = collections;
     final collection = collections.where((c) => c.id == collectionId);
     if (collection.isEmpty) {
