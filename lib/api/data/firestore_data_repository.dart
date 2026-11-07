@@ -349,12 +349,31 @@ class FirestoreDataRepository implements DataRepository {
         // carry survive; a present key with an empty value still clears.
         final storedValues =
             (current?['values'] as Map?)?.cast<String, dynamic>() ?? const {};
+        final values = {...storedValues, ...encodedValues};
+        if (current == null &&
+            schema.fields.any((f) => f is AutoNumberFieldDefinition)) {
+          // Numbered here so two writers never get the same one: the
+          // counters live on the workspace doc, read and bumped atomically.
+          final workspaceRef = _refs.workspace(_wid);
+          final workspace = (await transaction.get(workspaceRef)).data();
+          final counters =
+              ((workspace?['counters'] as Map?)?[object.collectionId] as Map?)
+                  ?.cast<String, Object?>() ??
+              const {};
+          final allocated = allocateSequences(schema, values, counters);
+          values.addAll(allocated.assigned);
+          if (allocated.counters.isNotEmpty) {
+            transaction.set(workspaceRef, {
+              'counters': {object.collectionId: allocated.counters},
+            }, SetOptions(merge: true));
+          }
+        }
         transaction.set(docRef, {
           'collectionId': object.collectionId,
           'rev': nextRev,
           'createdAt': json['createdAt'],
           'updatedAt': json['updatedAt'],
-          'values': {...storedValues, ...encodedValues},
+          'values': values,
         });
         return nextRev;
       });
@@ -411,6 +430,8 @@ class FirestoreDataRepository implements DataRepository {
   ) {
     final encoded = <String, dynamic>{};
     for (final field in schema.fields) {
+      // Derived on read, never stored.
+      if (field is CalculatedFieldDefinition) continue;
       if (!rawValues.containsKey(field.id)) continue;
       encoded[field.id] = _codec.encode(field, rawValues[field.id]);
     }

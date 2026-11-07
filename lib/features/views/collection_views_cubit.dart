@@ -6,6 +6,7 @@ import '../../api/data/data_repository.dart';
 import '../../core/domain/domain.dart';
 import '../collections/util/id_generator.dart';
 import 'collection_views_state.dart';
+import 'widgets/view_labels.dart';
 
 /// Reverts one object write (or a manual-order change). Completes when the
 /// revert has been written.
@@ -199,16 +200,30 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
   void _watchTargets(Collection collection, ViewDefinition view) {
     _viewReferences(collection, view).forEach(_watchTarget);
     _choiceReferences(collection).forEach(_watchTarget);
+    Derivation.sourcesOf(
+      collectionId,
+      _workspace(collection),
+    ).forEach(_watchCollection);
   }
+
+  /// The workspace's collections with [collection] as this cubit sees it.
+  List<Collection> _workspace(Collection collection) => [
+    collection,
+    for (final c in _collections)
+      if (c.id != collectionId) c,
+  ];
 
   Iterable<ReferenceFieldDefinition> _choiceReferences(Collection collection) =>
       collection.fields.whereType<ReferenceFieldDefinition>().where(
         (f) => _choiceFields.contains(f.id),
       );
 
-  void _watchTarget(ReferenceFieldDefinition field) {
+  void _watchTarget(ReferenceFieldDefinition field) =>
+      _watchCollection(field.targetCollectionId);
+
+  /// Watches the objects of another collection [targetId], once.
+  void _watchCollection(String targetId) {
     if (isClosed) return;
-    final targetId = field.targetCollectionId;
     if (targetId == collectionId || _targetSubs.containsKey(targetId)) return;
     final target = _collections.where((c) => c.id == targetId).firstOrNull;
     if (target == null) return;
@@ -225,7 +240,7 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
           },
           onError: (Object _) {
             if (isClosed || !_failedTargets.add(targetId)) return;
-            _reportWriteError("Couldn't load ${target.name} names");
+            _reportWriteError("Couldn't load ${target.name}");
           },
         );
   }
@@ -302,7 +317,7 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
     _activeViewId = view.id;
     _watchTargets(collection, view);
 
-    final all = _allObjects;
+    final all = _derive(collection, _allObjects);
     final applied = applyView(collection, view, all);
     final labelsByTarget = {
       for (final f in _viewReferences(collection, view))
@@ -339,10 +354,79 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
           for (final f in _choiceReferences(collection))
             f.id: ?_labelsFor(f.targetCollectionId, collection),
         },
+        calculationNotes: calculationNotes(),
         writeError: _writeError,
         writeErrorSeq: _writeErrorSeq,
       ),
     );
+  }
+
+  /// [objects] with their calculated values; others' objects as loaded.
+  List<MorkvaObject> _derive(
+    Collection collection,
+    List<MorkvaObject> objects,
+  ) {
+    if (!collection.fields.any((f) => f is CalculatedFieldDefinition)) {
+      return objects;
+    }
+    final inputs = <Object>[
+      collection.fields,
+      _collections,
+      ..._targetObjects.values,
+      ...objects,
+    ];
+    final cached = _derived;
+    if (cached != null && _sameInstances(cached.inputs, inputs)) {
+      return cached.result;
+    }
+    final result = Derivation(
+      collections: _workspace(collection),
+      objects: {..._targetObjects, collectionId: objects},
+    ).objectsOf(collectionId);
+    _derived = (inputs: inputs, result: result);
+    return result;
+  }
+
+  // shortcut: TODAY() is evaluated when inputs change, so a page left open
+  // past midnight keeps yesterday until the next data change.
+
+  /// The last derivation and what it was computed from: emits that change
+  /// nothing it reads (a view setting, a write error) reuse it.
+  ({List<Object> inputs, List<MorkvaObject> result})? _derived;
+
+  static bool _sameInstances(List<Object> a, List<Object> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (!identical(a[i], b[i])) return false;
+    }
+    return true;
+  }
+
+  /// The calculated values of [draft] (an edited or new object of this
+  /// collection) against the loaded data, for the object form's live preview.
+  // shortcut: rebuilds a whole Derivation per call (O(all loaded objects), per
+  // keystroke in the form); derive only the draft's dependents if a large
+  // workspace makes typing lag.
+  Map<String, FieldValue> deriveFor(MorkvaObject draft) {
+    final collection = _collection;
+    if (collection == null) return const {};
+    final others = _allObjects.where((o) => o.id != draft.id);
+    final derived = _derive(collection, [...others, draft]);
+    final object = derived.lastWhere((o) => o.id == draft.id);
+    return {
+      for (final f in collection.fields.whereType<CalculatedFieldDefinition>())
+        f.id: object[f.id] ?? f.emptyValue(),
+    };
+  }
+
+  /// What each calculated field computes, in one line, by field id.
+  Map<String, String> calculationNotes() {
+    final collection = _collection;
+    if (collection == null) return const {};
+    return {
+      for (final f in collection.fields.whereType<CalculatedFieldDefinition>())
+        f.id: calculationSummary(f, collection, _collections),
+    };
   }
 
   void _reportWriteError(String message) {

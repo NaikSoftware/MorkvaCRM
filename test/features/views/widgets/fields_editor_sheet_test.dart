@@ -1,5 +1,6 @@
 import 'dart:ui' show CheckedState;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/design/design.dart';
@@ -110,6 +111,54 @@ void main() {
     await tester.pump();
     await tester.tap(find.text('Save'));
     expect(saved, ['name', 'company', 'amount']);
+  });
+
+  testWidgets('the dragged row keeps rendering mid-drag (ink needs Material)', (
+    tester,
+  ) async {
+    await pump(tester);
+    final handle = find.byIcon(Icons.drag_indicator).first;
+    final gesture = await tester.startGesture(tester.getCenter(handle));
+    for (var i = 0; i < 10; i++) {
+      await gesture.moveBy(const Offset(0, 6));
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    // A hover change rebuilds the row's InkWell inside the drag proxy.
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: tester.getCenter(handle));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    await gesture.up();
+    await mouse.removePointer();
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('Summary views talk about tiles and skip the card preview', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: FieldsEditorSheet(
+            title: 'Setup tiles',
+            collection: deals,
+            view: tableView.copyWith(name: 'Totals', mode: ViewModeIds.summary),
+            object: deal('d1', 0, name: 'Acme', amount: 5),
+            onSave: (_) {},
+          ),
+        ),
+      ),
+    );
+    expect(
+      find.text(
+        'Choose which fields show as tiles in “Totals” and drag to set '
+        'their order.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('PREVIEW'), findsNothing);
+    expect(find.text('Empty fields are skipped on the card.'), findsNothing);
   });
 
   testWidgets('changing the card title swaps it with the old one', (

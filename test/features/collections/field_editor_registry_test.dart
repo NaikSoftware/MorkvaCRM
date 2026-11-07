@@ -77,9 +77,10 @@ void main() {
       expect(def.targetCollectionId, isEmpty);
     });
 
-    test('calculated default declares text output', () {
+    test('calculated default is a number formula', () {
       final def = const _Editors().calculated;
-      expect(def.declaredOutputType, 'text');
+      expect(def.declaredOutputType, 'number');
+      expect(def.isAggregate, isFalse);
     });
   });
 }

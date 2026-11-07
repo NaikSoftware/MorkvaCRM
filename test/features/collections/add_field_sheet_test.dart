@@ -48,8 +48,8 @@ void main() {
     expect(find.text('Reference'), findsOneWidget);
 
     // Computed types (auto-number, calculated) keep their real description and
-    // carry a "Declare only" pill marking them as declare-now/compute-later.
-    expect(find.text('Declare only'), findsWidgets);
+    // carry an "Automatic" pill: their values are filled in by the app.
+    expect(find.text('Automatic'), findsWidgets);
 
     // Picking a type pops the sheet with its typeId.
     await tester.tap(find.text('Number'));

@@ -4,7 +4,7 @@ import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
 import 'field_value_editor.dart';
 
-/// auto_number: shown, never edited; the number is assigned on save (Epic 6).
+/// auto_number: shown, never edited; the number is assigned on first save.
 class AutoNumberValueEditor extends FieldValueEditor {
   const AutoNumberValueEditor();
 
@@ -23,7 +23,7 @@ class AutoNumberValueEditor extends FieldValueEditor {
   );
 }
 
-/// calculated: shows the cached result; computing it is Epic 6.
+/// calculated: shows the live result and what it calculates.
 class CalculatedValueEditor extends FieldValueEditor {
   const CalculatedValueEditor();
 
@@ -37,8 +37,8 @@ class CalculatedValueEditor extends FieldValueEditor {
   Widget build(BuildContext context, ValueEditorContext ctx) => ReadOnlyValue(
     icon: Icons.functions,
     text: formatFieldValue(ctx.field, ctx.value),
-    placeholder: 'Not calculated yet',
-    helper: 'Calculated',
+    placeholder: 'Nothing to calculate yet',
+    helper: ctx.note ?? 'Calculated',
   );
 }
 

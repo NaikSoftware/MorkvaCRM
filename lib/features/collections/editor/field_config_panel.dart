@@ -78,35 +78,38 @@ class FieldConfigPanel extends StatelessWidget {
           onChanged: (value) =>
               cubit.updateFieldEnvelope(field.id, description: value),
         ),
-        const SizedBox(height: Spacing.md),
-        // The Required toggle sits in a tinted tile so it reads as a distinct,
-        // important choice rather than getting lost in the envelope stack.
-        // A Material (not DecoratedBox) so the ListTile's ink paints on it.
-        Material(
-          color: scheme.surfaceContainerLow,
-          shape: RoundedRectangleBorder(
-            borderRadius: Radii.mdAll,
-            side: BorderSide(color: scheme.outlineVariant),
+        // Computed values are never entered, so "required" has no meaning.
+        if (resolvedEditor?.isComputed != true) ...[
+          const SizedBox(height: Spacing.md),
+          // The Required toggle sits in a tinted tile so it reads as a distinct,
+          // important choice rather than getting lost in the envelope stack.
+          // A Material (not DecoratedBox) so the ListTile's ink paints on it.
+          Material(
+            color: scheme.surfaceContainerLow,
+            shape: RoundedRectangleBorder(
+              borderRadius: Radii.mdAll,
+              side: BorderSide(color: scheme.outlineVariant),
+            ),
+            child: SwitchListTile.adaptive(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: Spacing.md,
+                vertical: Spacing.xxs,
+              ),
+              shape: const RoundedRectangleBorder(borderRadius: Radii.mdAll),
+              secondary: Icon(
+                Icons.flag_outlined,
+                color: scheme.onSurfaceVariant,
+              ),
+              title: Text('Required', style: theme.textTheme.titleSmall),
+              subtitle: const Text(
+                'A value must be set before an object is valid.',
+              ),
+              value: field.isRequired,
+              onChanged: (value) =>
+                  cubit.updateFieldEnvelope(field.id, isRequired: value),
+            ),
           ),
-          child: SwitchListTile.adaptive(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: Spacing.md,
-              vertical: Spacing.xxs,
-            ),
-            shape: const RoundedRectangleBorder(borderRadius: Radii.mdAll),
-            secondary: Icon(
-              Icons.flag_outlined,
-              color: scheme.onSurfaceVariant,
-            ),
-            title: Text('Required', style: theme.textTheme.titleSmall),
-            subtitle: const Text(
-              'A value must be set before an object is valid.',
-            ),
-            value: field.isRequired,
-            onChanged: (value) =>
-                cubit.updateFieldEnvelope(field.id, isRequired: value),
-          ),
-        ),
+        ],
 
         // --- Per-type config ---
         if (resolvedEditor != null) ...[

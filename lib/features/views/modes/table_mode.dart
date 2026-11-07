@@ -68,6 +68,7 @@ class _ViewTableState extends State<ViewTable> {
   }
 
   static double _widthOf(FieldDefinition f) => switch (f) {
+    CalculatedFieldDefinition(:final outputField) => _widthOf(outputField),
     NumberFieldDefinition() || AutoNumberFieldDefinition() => 128,
     DateFieldDefinition(includeTime: true) => 176,
     DateFieldDefinition() => 136,

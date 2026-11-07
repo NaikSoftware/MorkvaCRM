@@ -27,7 +27,12 @@ class ObjectEditorState extends Equatable {
     this.uploads = const [],
     this.uploadErrors = const {},
     this.savedObject,
+    this.derived = const {},
+    this.notes = const {},
   });
+
+  /// A line per field the form shows under it (what a calculation does).
+  final Map<String, String> notes;
 
   final Collection collection;
 
@@ -75,6 +80,9 @@ class ObjectEditorState extends Equatable {
   /// only changed keys were written).
   final MorkvaObject? savedObject;
 
+  /// Calculated values of what the form shows, by field id.
+  final Map<String, FieldValue> derived;
+
   String? get savedId => savedObject?.id;
 
   bool get isCreate => stored == null;
@@ -85,6 +93,7 @@ class ObjectEditorState extends Equatable {
 
   /// The value the form shows for [field]: draft ?? stored ?? prefill ?? empty.
   FieldValue valueOf(FieldDefinition field) =>
+      derived[field.id] ??
       draft[field.id] ??
       stored?.values[field.id] ??
       prefill[field.id] ??
@@ -145,6 +154,7 @@ class ObjectEditorState extends Equatable {
     List<PendingUpload>? uploads,
     Map<String, String>? uploadErrors,
     MorkvaObject? savedObject,
+    Map<String, FieldValue>? derived,
   }) => ObjectEditorState(
     collection: collection,
     readOnlyFieldIds: readOnlyFieldIds,
@@ -162,6 +172,8 @@ class ObjectEditorState extends Equatable {
     uploads: uploads ?? this.uploads,
     uploadErrors: uploadErrors ?? this.uploadErrors,
     savedObject: savedObject ?? this.savedObject,
+    derived: derived ?? this.derived,
+    notes: notes,
   );
 
   @override
@@ -182,5 +194,6 @@ class ObjectEditorState extends Equatable {
     uploads,
     uploadErrors,
     savedObject,
+    derived,
   ];
 }

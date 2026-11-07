@@ -10,6 +10,7 @@ abstract final class ViewModeIds {
   static const String board = 'board';
   static const String list = 'list';
   static const String calendar = 'calendar';
+  static const String summary = 'summary';
 }
 
 /// Filter operators. Serialized by [Enum.name]; which operators apply to a

@@ -27,6 +27,9 @@ class FakeDataRepository implements DataRepository {
   /// Set to a non-null factory to make the next [saveCollection] throw.
   Object Function()? saveError;
 
+  /// Last auto-number handed out, by collection id then field id.
+  final Map<String, Map<String, Object?>> sequenceCounters = {};
+
   /// Count of [saveCollection] calls, for assertions.
   int saveCount = 0;
 
@@ -213,7 +216,21 @@ class FakeDataRepository implements DataRepository {
     final list = [...?_objects[object.collectionId]];
     final index = list.indexWhere((o) => o.id == object.id);
     if (index < 0) {
-      list.add(object);
+      // Numbered like the real repository's transaction.
+      final counters = sequenceCounters[object.collectionId] ??= {};
+      final allocated = allocateSequences(schema, {
+        for (final e in object.values.entries) e.key: e.value.toJson(),
+      }, counters);
+      counters.addAll(allocated.counters);
+      list.add(
+        object.copyWith(
+          values: {
+            ...object.values,
+            for (final e in allocated.assigned.entries)
+              e.key: AutoNumberFieldValue(e.value),
+          },
+        ),
+      );
     } else {
       // Merged over the stored values, like the real repository.
       list[index] = object.copyWith(

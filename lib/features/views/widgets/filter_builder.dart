@@ -369,6 +369,10 @@ class _ValueStep extends StatelessWidget {
       final List<Object?> l => l.whereType<String>().toList(),
       _ => const <String>[],
     };
+    final field = switch (this.field) {
+      CalculatedFieldDefinition(:final outputField) => outputField,
+      final f => f,
+    };
     return switch (field) {
       SingleSelectFieldDefinition(:final options) ||
       MultiSelectFieldDefinition(:final options) => _CheckList(

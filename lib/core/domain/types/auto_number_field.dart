@@ -7,14 +7,9 @@ const String kAutoNumberFieldType = 'auto_number';
 
 /// A field whose value is an automatically assigned sequence number.
 ///
-/// **Scope (Epic 1): TYPE & CONFIG ONLY.** This declares the field type, its
-/// configuration ([prefix], [padding]), and its value shape. The actual
-/// sequence GENERATION — allocating the next number when an object is created,
-/// guaranteeing uniqueness/monotonicity, and persisting the counter — is the
-/// responsibility of the collection engine in **Epic 6**. Here the value is
-/// simply stored and round-tripped; nothing in this type produces new numbers.
-///
-/// Follows the reference shape established by `TextFieldDefinition`.
+/// Numbers are assigned when an object is first saved (see
+/// `allocateSequences`), starting at [start]; a per-field counter keeps them
+/// unique and never reuses one.
 class AutoNumberFieldDefinition extends FieldDefinition {
   const AutoNumberFieldDefinition({
     required super.id,
@@ -23,7 +18,11 @@ class AutoNumberFieldDefinition extends FieldDefinition {
     super.isRequired,
     this.prefix,
     this.padding,
+    this.start = 1,
   });
+
+  /// The first number handed out.
+  final int start;
 
   /// Optional string prepended when the number is rendered (e.g. `INV-`).
   /// Display/formatting hint only; not stored in the numeric value.
@@ -45,7 +44,8 @@ class AutoNumberFieldDefinition extends FieldDefinition {
       description: base.description,
       isRequired: base.isRequired,
       prefix: json['prefix'] as String?,
-      padding: json['padding'] as int?,
+      padding: (json['padding'] as num?)?.toInt(),
+      start: (json['start'] as num?)?.toInt() ?? 1,
     );
   }
 
@@ -53,10 +53,11 @@ class AutoNumberFieldDefinition extends FieldDefinition {
   Map<String, dynamic> configToJson() => {
     if (prefix != null) 'prefix': prefix,
     if (padding != null) 'padding': padding,
+    if (start != 1) 'start': start,
   };
 
   @override
-  List<Object?> get configProps => [prefix, padding];
+  List<Object?> get configProps => [prefix, padding, start];
 
   @override
   FieldValue emptyValue() => const AutoNumberFieldValue(null);

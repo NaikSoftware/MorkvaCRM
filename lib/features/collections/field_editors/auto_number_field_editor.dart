@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/domain/domain.dart';
+import '../../../design/design.dart';
 import 'field_editor.dart';
 import 'widgets/config_controls.dart';
 import 'widgets/preview_affordances.dart';
 
 /// [FieldEditor] for the auto-number field type.
 ///
-/// Declared-only in this epic: the prefix/padding persist, but the engine that
-/// allocates sequence numbers ships in a later update (see [isComputed]).
+/// Numbers are handed out when an item is first saved; this configures where
+/// they start and how they read.
 class AutoNumberFieldEditor extends FieldEditor {
   const AutoNumberFieldEditor();
 
@@ -44,6 +45,7 @@ class AutoNumberFieldEditor extends FieldEditor {
     AutoNumberFieldDefinition update({
       String? Function()? prefix,
       int? Function()? padding,
+      int? start,
     }) => AutoNumberFieldDefinition(
       id: field.id,
       name: field.name,
@@ -51,30 +53,73 @@ class AutoNumberFieldEditor extends FieldEditor {
       isRequired: field.isRequired,
       prefix: prefix == null ? field.prefix : prefix(),
       padding: padding == null ? field.padding : padding(),
+      start: start ?? field.start,
     );
 
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final next = formatFieldValue(field, AutoNumberFieldValue(field.start));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const ComputedLaterBanner(
-          message:
-              'Numbers are assigned automatically in a later update. '
-              'Your prefix and padding are saved now.',
+        ConfigTextField(
+          label: 'Start at',
+          hint: '1',
+          value: field.start == 1 ? '' : '${field.start}',
+          keyboardType: TextInputType.number,
+          onChanged: (text) {
+            final n = parseOptionalInt(text);
+            onChanged(update(start: n == null || n < 0 ? 1 : n));
+          },
         ),
         ConfigTextField(
           label: 'Prefix',
-          hint: 'e.g. INV-',
+          hint: 'e.g. ORD-',
           value: field.prefix ?? '',
           onChanged: (text) =>
               onChanged(update(prefix: () => text.isEmpty ? null : text)),
         ),
         ConfigTextField(
-          label: 'Padding (digits)',
-          hint: 'e.g. 5 → 00042',
+          label: 'Digits',
+          hint: 'e.g. 4 → 0042',
           value: field.padding?.toString() ?? '',
           keyboardType: TextInputType.number,
           onChanged: (text) =>
               onChanged(update(padding: () => parseOptionalInt(text))),
+        ),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(Spacing.md),
+          decoration: BoxDecoration(
+            color: scheme.surfaceContainer,
+            borderRadius: Radii.mdAll,
+          ),
+          child: Text.rich(
+            TextSpan(
+              children: [
+                const TextSpan(text: 'First number  '),
+                TextSpan(
+                  text: next,
+                  style: MorkvaTypography.tabular(
+                    (theme.textTheme.titleMedium ?? const TextStyle()).copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+        const SizedBox(height: Spacing.xs),
+        Text(
+          'New items get the next number when they are saved. '
+          'Items that already exist stay unnumbered.',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: scheme.onSurfaceVariant,
+          ),
         ),
       ],
     );
@@ -89,6 +134,7 @@ class AutoNumberFieldEditor extends FieldEditor {
     final parts = <String>[
       if (field.prefix != null) field.prefix!,
       if (field.padding != null) '${field.padding} digits',
+      if (field.start != 1) 'from ${field.start}',
     ];
     return parts.isEmpty ? 'auto' : parts.join(' · ');
   }

@@ -1,5 +1,7 @@
 # Epic 6 — Calculated & Aggregation Fields
 
+> **Status: done (branch `feat/epic-06-calculated-fields`).** Design: `docs/superpowers/specs/2026-11-07-epic-06-calculated-fields-design.md`.
+
 ## Goal
 Fields whose values are *derived*, not entered: per-object formulas, cross-collection
 aggregations over references, per-collection auto-numbers, and roll-up/dashboard objects.

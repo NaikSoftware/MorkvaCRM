@@ -892,7 +892,7 @@ class _NarrowLayoutState extends State<_NarrowLayout> {
                     child: FieldConfigPanel(
                       field: field,
                       editor: widget.registry.forType(field.type),
-                      collections: widget.collections,
+                      collections: state.draft.withWorkspace(widget.collections),
                       editingCollectionId: state.draft.id,
                       typeLocked: state.isFieldTypeLocked(field.id),
                     ),
@@ -1074,7 +1074,7 @@ class _ConfigRegion extends StatelessWidget {
       return FieldConfigPanel(
         field: field,
         editor: registry.forType(field.type),
-        collections: collections,
+        collections: state.draft.withWorkspace(collections),
         editingCollectionId: state.draft.id,
         typeLocked: state.isFieldTypeLocked(field.id),
       );

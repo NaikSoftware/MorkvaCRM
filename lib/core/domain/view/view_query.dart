@@ -18,6 +18,7 @@ const _empties = [FilterOp.isEmpty, FilterOp.isNotEmpty];
 
 /// The filter operators that apply to [field], in menu order.
 List<FilterOp> operatorsFor(FieldDefinition field) => switch (field) {
+  CalculatedFieldDefinition(:final outputField) => operatorsFor(outputField),
   TextFieldDefinition() => const [
     FilterOp.contains,
     FilterOp.notContains,
@@ -57,6 +58,9 @@ List<FilterOp> operatorsFor(FieldDefinition field) => switch (field) {
 /// whose operand is missing, blank (`''`, an empty list) or of the wrong type
 /// is ignored (passes).
 bool matchesFilter(ViewFilter filter, FieldDefinition field, FieldValue value) {
+  if (field is CalculatedFieldDefinition) {
+    return matchesFilter(filter, field.outputField, field.outputValue(value));
+  }
   final op = filter.op;
   if (!operatorsFor(field).contains(op)) return true;
   if (op == FilterOp.isEmpty) return value.isEmpty;
@@ -207,6 +211,9 @@ int _compareKeys(Object a, Object b) {
 /// before true; references by how many objects they link; everything else without a natural order by its formatted text.
 Object? _sortKey(FieldDefinition field, FieldValue value) {
   if (value.isEmpty) return null;
+  if (field is CalculatedFieldDefinition) {
+    return _sortKey(field.outputField, field.outputValue(value));
+  }
   return switch ((field, value)) {
     (_, TextFieldValue(:final text)) => text!.toLowerCase(),
     (_, NumberFieldValue(:final value)) => value,
@@ -222,8 +229,6 @@ Object? _sortKey(FieldDefinition field, FieldValue value) {
         -1 => options.length,
         final i => i,
       },
-    (_, CalculatedFieldValue(:final cached)) =>
-      cached is num ? cached : '$cached'.toLowerCase(),
     _ => formatFieldValue(field, value).toLowerCase(),
   };
 }

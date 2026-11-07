@@ -34,9 +34,8 @@ abstract class FieldEditor {
   /// Icon shown in the picker and on the field row.
   IconData get icon;
 
-  /// Whether this type is *declared* now but computed in a later epic
-  /// (`auto_number`, `calculated`). The UI tags these and shows a "computed
-  /// later" note instead of pretending the value is live.
+  /// Whether values of this type are filled in by the app, never typed
+  /// (`auto_number`, `calculated`). The picker tags these "Automatic".
   bool get isComputed => false;
 
   /// A fresh definition of this type with sensible defaults, using [id]/[name].

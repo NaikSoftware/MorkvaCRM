@@ -125,11 +125,11 @@ void main() {
       expect(operatorsFor(fileField), [FilterOp.isEmpty, FilterOp.isNotEmpty]);
     });
 
-    test('calculated: [isEmpty, isNotEmpty]', () {
-      expect(operatorsFor(calculatedField), [
-        FilterOp.isEmpty,
-        FilterOp.isNotEmpty,
-      ]);
+    test('calculated: the operators of its output type', () {
+      expect(
+        operatorsFor(calculatedField),
+        operatorsFor(const NumberFieldDefinition(id: 'n', name: 'N')),
+      );
     });
   });
 

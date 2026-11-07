@@ -110,6 +110,13 @@ class Collection extends Equatable {
     views: views ?? this.views,
   );
 
+  /// [workspace] with this collection in place of its stored copy (first).
+  List<Collection> withWorkspace(Iterable<Collection> workspace) => [
+    this,
+    for (final c in workspace)
+      if (c.id != id) c,
+  ];
+
   Map<String, dynamic> toJson() => {
     'schemaVersion': kCollectionSchemaVersion,
     'id': id,

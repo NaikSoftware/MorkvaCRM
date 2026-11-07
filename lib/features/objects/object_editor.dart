@@ -47,6 +47,8 @@ Future<ObjectEditorResult?> showObjectEditor(
   Map<String, FieldValue> prefill = const {},
   String? prefillNote,
   String? titleFieldId,
+  Map<String, FieldValue> Function(MorkvaObject draft)? derive,
+  Map<String, String> notes = const {},
 }) {
   final repository = context.read<DataRepository>();
   final attachments = _attachmentStoreOf(context);
@@ -60,6 +62,8 @@ Future<ObjectEditorResult?> showObjectEditor(
         prefill: prefill,
         titleFieldId: titleFieldId,
         attachments: attachments,
+        derive: derive,
+        notes: notes,
       );
       unawaited(cubit.initialize());
       return cubit;
@@ -936,6 +940,7 @@ class _FieldCell extends StatelessWidget {
                 error: error,
                 enabled: !state.isSaving,
                 references: state.references,
+                note: state.notes[field.id],
                 attachments: field is FileFieldDefinition && cubit.canUpload
                     ? AttachmentActions(
                         upload: (files) => cubit.upload(field.id, files),
