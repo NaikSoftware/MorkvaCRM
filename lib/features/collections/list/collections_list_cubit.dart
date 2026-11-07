@@ -75,6 +75,34 @@ class CollectionsListCubit extends Cubit<CollectionsListState> {
     return id;
   }
 
+  /// Adds [template]'s collections and sample objects to the workspace under
+  /// fresh ids; returns the id of its first collection.
+  ///
+  /// Collections are written first, so the objects' references and
+  /// auto-numbers (allocated on save) have their schema.
+  Future<String> importTemplate(
+    WorkspaceTemplate template, {
+    DateTime? now,
+  }) async {
+    final built = template.instantiate(
+      _registry,
+      collectionId: _ids.collectionId,
+      objectId: _ids.objectId,
+      now: now ?? DateTime.now(),
+    );
+    final byId = {for (final c in built.collections) c.id: c};
+    for (final c in built.collections) {
+      await _repository.saveCollection(c);
+    }
+    await Future.wait([
+      for (final o in built.objects)
+        _repository.saveObject(o, schema: byId[o.collectionId]!),
+    ]);
+    return built.collections.first.id;
+  }
+
+  static final _registry = defaultFieldTypeRegistry();
+
   /// Renames the collection [id], optionally updating its description.
   ///
   /// Preserves the existing field schema, layout and views. A no-op (other

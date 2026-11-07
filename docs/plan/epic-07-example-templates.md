@@ -1,5 +1,7 @@
 # Epic 7 — Example Templates (optional, non-hardcoded)
 
+> **Status: done (branch `feat/epic-07-templates`).** Walkthrough: `docs/superpowers/specs/2026-11-07-epic-07-templates-walkthrough.md`.
+
 ## Goal
 Ship a few **importable example templates** — built entirely as data on top of the generic
 engine — that a user can load to get started, and that double as the product's end-to-end

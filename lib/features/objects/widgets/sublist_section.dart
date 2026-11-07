@@ -205,9 +205,9 @@ class SublistSection extends StatelessWidget {
 /// What a sublist row shows for an item, read in its form's field order
 /// (so rearranging the card layout rearranges the row):
 /// - [title]: the first filled text, select or number-like value — a picked
-///   "Hoodie" titles the row, nobody has to type it;
-/// - [pills]: the other select values ("M", "Olive");
-/// - [note]: the first other text ("Lviv" on the chest), one line;
+///   option titles the row, nobody has to type it;
+/// - [pills]: the other select values;
+/// - [note]: the first other text, one line;
 /// - [amount]: the first other number, with its field name.
 /// Links, files and yes/no fields stay out (the checkbox shows yes/no), and
 /// so does the link back to the open object with its lookups.

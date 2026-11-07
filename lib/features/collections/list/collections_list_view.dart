@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/domain/domain.dart';
+import '../../templates/template_picker.dart';
 import '../../../design/design.dart';
 import 'collection_card.dart';
 import 'collections_list_cubit.dart';
@@ -39,7 +40,10 @@ class CollectionsListView extends StatelessWidget {
           CollectionsListError(:final message) => _ErrorState(message: message),
           CollectionsListReady(:final collections) =>
             collections.isEmpty
-                ? _EmptyCollections(onCreate: () => _create(context))
+                ? _EmptyCollections(
+                    onCreate: () => _create(context),
+                    onTemplate: () => _fromTemplate(context),
+                  )
                 : _CollectionsContent(collections: collections),
         };
       },
@@ -57,6 +61,21 @@ class CollectionsListView extends StatelessWidget {
       icon: result.icon,
     );
     router.go('/collections/$id/edit');
+  }
+
+  /// Picks a template and adds it; opens its first collection.
+  static Future<void> _fromTemplate(BuildContext context) async {
+    final cubit = context.read<CollectionsListCubit>();
+    final router = GoRouter.of(context);
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    String? first;
+    final added = await showTemplatePicker(
+      context,
+      onAdd: (template) async => first = await cubit.importTemplate(template),
+    );
+    if (added == null || first == null) return;
+    messenger?.showSnackBar(SnackBar(content: Text('Added ${added.name}')));
+    router.go('/collections/$first');
   }
 }
 
@@ -95,6 +114,21 @@ class _CollectionsContent extends StatelessWidget {
                         ),
                       ),
                     ),
+                    if (isWide)
+                      SecondaryButton(
+                        label: 'From template',
+                        icon: Icons.auto_awesome_mosaic_outlined,
+                        onPressed: () =>
+                            CollectionsListView._fromTemplate(context),
+                      )
+                    else
+                      IconButton.outlined(
+                        tooltip: 'From template',
+                        icon: const Icon(Icons.auto_awesome_mosaic_outlined),
+                        onPressed: () =>
+                            CollectionsListView._fromTemplate(context),
+                      ),
+                    const SizedBox(width: Spacing.xs),
                     PrimaryButton(
                       label: 'New collection',
                       icon: Icons.add,
@@ -193,9 +227,10 @@ class _CollectionsContent extends StatelessWidget {
 
 /// The empty workspace: teaches what a collection is and invites the first one.
 class _EmptyCollections extends StatelessWidget {
-  const _EmptyCollections({required this.onCreate});
+  const _EmptyCollections({required this.onCreate, required this.onTemplate});
 
   final VoidCallback onCreate;
+  final VoidCallback onTemplate;
 
   @override
   Widget build(BuildContext context) {
@@ -205,8 +240,23 @@ class _EmptyCollections extends StatelessWidget {
       message:
           'Collections hold your cards — orders, clients, inventory, anything. '
           'Create your first one to start organizing your work.',
-      actionLabel: 'New collection',
-      onAction: onCreate,
+      action: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: Spacing.xs,
+        runSpacing: Spacing.xs,
+        children: [
+          SecondaryButton(
+            label: 'Start from a template',
+            icon: Icons.auto_awesome_mosaic_outlined,
+            onPressed: onTemplate,
+          ),
+          PrimaryButton(
+            label: 'New collection',
+            icon: Icons.add,
+            onPressed: onCreate,
+          ),
+        ],
+      ),
     );
   }
 }
