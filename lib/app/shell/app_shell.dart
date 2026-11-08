@@ -123,10 +123,16 @@ class AppShell extends StatelessWidget {
   Widget _buildCompact(BuildContext context) {
     // No shell Scaffold under a full-screen page: its own Scaffold must be the
     // root one, so snackbars clear its FAB.
+    // A bottom-bar tab (a pinned collection) keeps the bar under its page.
     if (!showCompactChrome) {
       return ColoredBox(
         color: Theme.of(context).colorScheme.surface,
-        child: child,
+        child: Column(
+          children: [
+            Expanded(child: child),
+            ?bottomBar,
+          ],
+        ),
       );
     }
     return Scaffold(
@@ -174,4 +180,18 @@ class _PageHeader extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Tells the routed page whether it is a phone bottom-bar tab: such a page
+/// shows no back button and appears without a push transition.
+class ShellTab extends InheritedWidget {
+  const ShellTab({super.key, required this.isTab, required super.child});
+
+  final bool isTab;
+
+  static bool of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<ShellTab>()?.isTab ?? false;
+
+  @override
+  bool updateShouldNotify(ShellTab oldWidget) => oldWidget.isTab != isTab;
 }

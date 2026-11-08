@@ -203,7 +203,8 @@ Page<void> collectionPage(
     transitionDuration: wide ? Duration.zero : phone,
     reverseTransitionDuration: wide ? Duration.zero : phone,
     transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-        MediaQuery.sizeOf(context).width >= AppShell.expandedBreakpoint
+        MediaQuery.sizeOf(context).width >= AppShell.expandedBreakpoint ||
+            ShellTab.of(context)
         ? child
         : Theme.of(context).pageTransitionsTheme.buildTransitions(
             ModalRoute.of(context)! as PageRoute<void>,

@@ -108,6 +108,10 @@ class _ShellView extends StatelessWidget {
     final wide =
         MediaQuery.sizeOf(context).width >= AppShell.expandedBreakpoint;
     final inCollection = place == ShellPlace.collection;
+    // Phone: the first three pins and All are bottom-bar tabs.
+    final tabs = pinned.take(3).toList();
+    final isTab =
+        !wide && inCollection && tabs.any((c) => c.id == collectionId);
     return _JumpShortcut(
       onJump: jumpTo,
       child: AppShell(
@@ -157,12 +161,18 @@ class _ShellView extends StatelessWidget {
                   ),
                 ),
               ),
-        bottomBar: place == ShellPlace.allCollections && pinned.isNotEmpty
-            ? _PinsBar(pinned: pinned, onCollection: openCollection)
+        bottomBar:
+            tabs.isNotEmpty && (place == ShellPlace.allCollections || isTab)
+            ? _PinsBar(
+                tabs: tabs,
+                selectedId: collectionId,
+                onCollection: openCollection,
+                onAll: openAll,
+              )
             : null,
         banner: inCollection ? null : const ConflictWarningBanner(),
         showCompactChrome: !inCollection,
-        child: child,
+        child: ShellTab(isTab: isTab, child: child),
       ),
     );
   }
@@ -213,21 +223,30 @@ class _JumpShortcutState extends State<_JumpShortcut> {
   Widget build(BuildContext context) => widget.child;
 }
 
-/// Phone: the first three pins plus All collections (the current page).
+/// Phone: the first three pins plus All collections.
 class _PinsBar extends StatelessWidget {
-  const _PinsBar({required this.pinned, required this.onCollection});
+  const _PinsBar({
+    required this.tabs,
+    required this.selectedId,
+    required this.onCollection,
+    required this.onAll,
+  });
 
-  final List<Collection> pinned;
+  final List<Collection> tabs;
+
+  /// The open tab's collection; null = All.
+  final String? selectedId;
   final ValueChanged<String> onCollection;
+  final VoidCallback onAll;
 
   @override
   Widget build(BuildContext context) {
-    final shown = pinned.take(3).toList();
+    final shown = tabs;
+    final selected = shown.indexWhere((c) => c.id == selectedId);
     return NavigationBar(
-      selectedIndex: shown.length,
-      onDestinationSelected: (i) {
-        if (i < shown.length) onCollection(shown[i].id);
-      },
+      selectedIndex: selected < 0 ? shown.length : selected,
+      onDestinationSelected: (i) =>
+          i < shown.length ? onCollection(shown[i].id) : onAll(),
       destinations: [
         for (final c in shown)
           NavigationDestination(

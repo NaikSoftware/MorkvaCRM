@@ -31,7 +31,9 @@ those documents disagree with this one, this one wins.
   tooltip, open one gets a carrot ring + edge marker), settings, avatar with a sync dot.
 - **< 840 — phone:** header = logomark, "Collections", avatar (→ settings, sync dot). On `/` the
   bottom bar holds the first 3 pins + All; with no pins there is no bottom bar (a
-  `NavigationBar` needs two destinations). Collection pages stay full-screen with back.
+  `NavigationBar` needs two destinations). Those 3 pins are tabs: opening one keeps the bar,
+  with no back button and no push transition (owner, 2026-11-08). Any other collection opens
+  full-screen with back.
 
 ## Pins
 

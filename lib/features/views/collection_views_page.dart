@@ -522,12 +522,16 @@ class _PhoneFrame extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: theme.colorScheme.surface,
         surfaceTintColor: Colors.transparent,
-        titleSpacing: 0,
-        leading: IconButton(
-          tooltip: 'Back',
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.canPop() ? context.pop() : context.go('/'),
-        ),
+        titleSpacing: ShellTab.of(context) ? Spacing.md : 0,
+        automaticallyImplyLeading: false,
+        leading: ShellTab.of(context)
+            ? null
+            : IconButton(
+                tooltip: 'Back',
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () =>
+                    context.canPop() ? context.pop() : context.go('/'),
+              ),
         title: collection == null
             ? null
             : Row(

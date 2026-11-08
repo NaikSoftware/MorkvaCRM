@@ -23,6 +23,7 @@ void main() {
   Future<void> pumpApp(
     WidgetTester tester, {
     Size size = const Size(1280, 800),
+    List<String> pins = const ['deals'],
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
@@ -40,7 +41,7 @@ void main() {
       const Collection(id: 'other', name: 'Other', fields: []),
     ]);
     data.seedObjects('deals', sampleDeals());
-    data.pinnedIds.add(const ['deals']);
+    data.pinnedIds.add(pins);
     router = createAppRouter(authCubit, sessionReady: ValueNotifier(true));
     addTearDown(router.dispose);
 
@@ -162,7 +163,8 @@ void main() {
   testWidgets('phone: a full-screen page whose back returns Home', (
     tester,
   ) async {
-    await pumpApp(tester, size: const Size(400, 800));
+    // Deals is not pinned, so not a bottom-bar tab.
+    await pumpApp(tester, size: const Size(400, 800), pins: ['other']);
     expect(find.byType(NavigationBar), findsOneWidget);
 
     router.go('/collections/deals');
@@ -190,5 +192,23 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(CollectionViewsPage), findsNothing);
     expect(find.byType(NavigationBar), findsOneWidget);
+  });
+
+  testWidgets('phone: a pinned collection is a bottom-bar tab, no back', (
+    tester,
+  ) async {
+    await pumpApp(tester, size: const Size(400, 800));
+    final bar = find.byType(NavigationBar);
+    await tester.tap(find.descendant(of: bar, matching: find.text('Deals')));
+    await tester.pumpAndSettle();
+    expect(find.byType(CollectionViewsPage), findsOneWidget);
+    expect(bar, findsOneWidget);
+    expect(tester.widget<NavigationBar>(bar).selectedIndex, 0);
+    expect(find.byTooltip('Back'), findsNothing);
+
+    await tester.tap(find.descendant(of: bar, matching: find.text('All')));
+    await tester.pumpAndSettle();
+    expect(find.byType(CollectionViewsPage), findsNothing);
+    expect(tester.widget<NavigationBar>(bar).selectedIndex, 1);
   });
 }
