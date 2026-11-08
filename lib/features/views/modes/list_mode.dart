@@ -333,28 +333,33 @@ class _ViewListState extends State<ViewList> {
               },
             ),
           ),
-          // The sticky copy of the section header under the top edge.
+          // The sticky copy of the section header under the top edge,
+          // clipped so the next header pushing it up can't paint above the
+          // list (over the filter bar).
           Positioned.fill(
-            child: IgnorePointer(
-              child: ListenableBuilder(
-                listenable: Listenable.merge([_scroll, _relayout]),
-                builder: (context, _) {
-                  final pinned = _pinned(items);
-                  if (pinned == null) return const SizedBox.shrink();
-                  return Align(
-                    alignment: Alignment.topCenter,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 1),
-                      child: Transform.translate(
-                        key: const ValueKey('pinned-header'),
-                        offset: Offset(0, pinned.dy),
-                        child: ExcludeSemantics(
-                          child: _SectionHeader(group: pinned.group),
+            child: ClipRect(
+              key: const ValueKey('pinned-header-clip'),
+              child: IgnorePointer(
+                child: ListenableBuilder(
+                  listenable: Listenable.merge([_scroll, _relayout]),
+                  builder: (context, _) {
+                    final pinned = _pinned(items);
+                    if (pinned == null) return const SizedBox.shrink();
+                    return Align(
+                      alignment: Alignment.topCenter,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 1),
+                        child: Transform.translate(
+                          key: const ValueKey('pinned-header'),
+                          offset: Offset(0, pinned.dy),
+                          child: ExcludeSemantics(
+                            child: _SectionHeader(group: pinned.group),
+                          ),
                         ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
             ),
           ),
