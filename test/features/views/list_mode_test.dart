@@ -208,6 +208,14 @@ void main() {
       t.getTopLeft(pinned).dy,
       closeTo(t.getTopLeft(find.byType(ReorderableListView)).dy, 1),
     );
+    // Clipped to the list, so a header pushed up never paints above it (over
+    // the filter bar).
+    final clip = find.byKey(const ValueKey('pinned-header-clip'));
+    expect(find.descendant(of: clip, matching: pinned), findsOneWidget);
+    expect(
+      t.getTopLeft(clip).dy,
+      closeTo(t.getTopLeft(find.byType(ReorderableListView)).dy, 1),
+    );
   });
 
   testWidgets('the pinned header follows data changes without a scroll', (
