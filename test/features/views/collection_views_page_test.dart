@@ -155,11 +155,8 @@ void main() {
       expect(find.text('Change fields'), findsNothing);
     });
 
-    testWidgets('the table card hugs its rows; phone body clears the FAB', (
-      tester,
-    ) async {
+    testWidgets('the table card hugs its rows on phone', (tester) async {
       await pumpWorkPage(tester, size: _phone);
-      final card = tester.getRect(find.byType(ViewTable).first);
       final table = tester.getRect(
         find
             .descendant(
@@ -170,8 +167,6 @@ void main() {
       );
       // header 44 + 5 rows x 52 + footer 40.
       expect(table.height, 44 + 5 * 52 + 40);
-      final fab = tester.getRect(find.byType(FloatingActionButton));
-      expect(card.bottom, lessThanOrEqualTo(fab.top));
     });
   });
 
@@ -201,14 +196,8 @@ void main() {
       expect(find.byTooltip('Back'), findsOneWidget);
       expect(find.byTooltip('View settings'), findsOneWidget);
       expect(find.byType(FloatingActionButton), findsOneWidget);
-      // Extended: "New <item>" with the add icon.
-      expect(
-        find.descendant(
-          of: find.byType(FloatingActionButton),
-          matching: find.text('New deal'),
-        ),
-        findsOneWidget,
-      );
+      // A round "+" floating over the body, "New <item>" on hover.
+      expect(find.byTooltip('New deal'), findsOneWidget);
       expect(
         find.descendant(
           of: find.byType(FloatingActionButton),
@@ -524,7 +513,7 @@ void main() {
     ) async {
       final repo = workRepository();
       await pumpWorkPage(tester, repository: repo, size: const Size(390, 844));
-      await tester.tap(find.widgetWithText(FloatingActionButton, 'New deal'));
+      await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
       final appBar = find.descendant(
         of: find.byType(ObjectEditor),

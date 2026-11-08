@@ -221,7 +221,9 @@ void main() {
       expect(find.text('2 / 9'), findsOneWidget);
     });
 
-    testWidgets('the FAB never covers a card', (tester) async {
+    testWidgets('the board runs to the bottom; the FAB floats over it', (
+      tester,
+    ) async {
       await _pumpBoard(
         tester,
         repository: workRepository(
@@ -232,11 +234,7 @@ void main() {
         ),
       );
       final fab = tester.getRect(find.byType(FloatingActionButton));
-      expect(tester.getRect(_panel('Lead')).bottom, lessThanOrEqualTo(fab.top));
-      expect(
-        tester.getRect(find.byType(BoardPageIndicator)).bottom,
-        lessThanOrEqualTo(fab.top),
-      );
+      expect(tester.getRect(_panel('Lead')).bottom, greaterThan(fab.top));
     });
 
     testWidgets('desktop keeps the side-scrolling list', (tester) async {
