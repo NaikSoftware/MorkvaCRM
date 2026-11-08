@@ -94,6 +94,23 @@ void main() {
     },
   );
 
+  testWidgets('board: a numeric chip leads with its field name', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      ObjectCardDensity.board,
+      view: const ViewDefinition(
+        id: 'v',
+        name: 'V',
+        fieldIds: ['name', 'due', 'amount'],
+      ),
+      object: deal('d1', 0, name: 'Acme', amount: 2, due: t0),
+    );
+    // Due takes the top-right metric slot, so Amount drops to a chip.
+    expect(find.text('Amount 2 USD'), findsOneWidget);
+  });
+
   testWidgets('list: no subtitle → 56 px', (tester) async {
     await pump(
       tester,

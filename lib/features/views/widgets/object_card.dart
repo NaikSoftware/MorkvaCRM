@@ -153,12 +153,23 @@ class ObjectCard extends StatelessWidget {
             const SizedBox(width: Spacing.xxs),
           ],
           Flexible(
-            child: Text(
-              label,
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  // A bare number says nothing on its own: lead with the field name.
+                  if (isNumericField(f))
+                    TextSpan(
+                      text: '${f.name} ',
+                      style: TextStyle(color: theme.colorScheme.outline),
+                    ),
+                  TextSpan(text: label),
+                ],
+              ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.labelMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
+                fontFeatures: ObjectCard._tabular,
               ),
             ),
           ),

@@ -24,7 +24,8 @@ those documents disagree with this one, this one wins.
 ## Layout (breakpoints unchanged: 840 / 1240)
 
 - **≥ 1240 — sidebar (272 px, `surfaceContainer`):** brand block (carrot logomark + "Morkva" /
-  "CRM", taps to `/`), "Jump to… Ctrl K", All collections, `PINNED` list, profile row (initials,
+  "CRM", taps to `/`), "Jump to…" with its shortcut (Ctrl K; ⌘ K on macOS;
+  hidden on Android/iOS), All collections, `PINNED` list, profile row (initials,
   name, dense sync status, settings button).
 - **840–1240 — rail (76 px):** logomark, Jump to, All collections, pinned tiles (name in the
   tooltip, open one gets a carrot ring + edge marker), settings, avatar with a sync dot.

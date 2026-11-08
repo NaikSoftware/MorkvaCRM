@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -195,7 +196,9 @@ class ShellSidebar extends StatelessWidget {
           ),
           const SizedBox(height: Spacing.sm),
           _RailButton(
-            tooltip: 'Jump to… (Ctrl K)',
+            tooltip: jumpShortcutLabel == null
+                ? 'Jump to…'
+                : 'Jump to… ($jumpShortcutLabel)',
             onTap: onJumpTo,
             child: Icon(Icons.search_rounded, color: scheme.onSurfaceVariant),
           ),
@@ -348,23 +351,24 @@ class _JumpField extends StatelessWidget {
                 ),
                 const SizedBox(width: Spacing.xs),
                 Expanded(child: Text('Jump to…', style: muted)),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: scheme.surfaceContainer,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: scheme.outlineVariant),
-                  ),
-                  child: Text(
-                    'Ctrl K',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
+                if (jumpShortcutLabel case final shortcut?)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: scheme.surfaceContainer,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: scheme.outlineVariant),
+                    ),
+                    child: Text(
+                      shortcut,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ),
@@ -711,3 +715,11 @@ class UserAvatar extends StatelessWidget {
     );
   }
 }
+
+/// The Jump to shortcut as the keyboard prints it; null on phones and
+/// tablets (Android, iOS), where a hardware keyboard is the exception.
+String? get jumpShortcutLabel => switch (defaultTargetPlatform) {
+  TargetPlatform.macOS => '⌘ K',
+  TargetPlatform.android || TargetPlatform.iOS => null,
+  _ => 'Ctrl K',
+};

@@ -101,6 +101,9 @@ class _CarrotPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     canvas.scale(size.width / 24);
+    // The drawing sits off-centre on its grid; shift its bounds to the middle.
+    final ink = Rect.fromLTRB(2.4, 0.6, 21.9, 19.6);
+    canvas.translate(12 - ink.center.dx, 12 - ink.center.dy);
     final body = Path()
       ..moveTo(4.5, 19.5)
       ..relativeCubicTo(2.6, -1, 8.3, -5.6, 10.3, -8.6)
