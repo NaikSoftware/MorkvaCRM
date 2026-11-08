@@ -50,8 +50,9 @@ class _ViewTabsState extends State<ViewTabs> with TickerProviderStateMixin {
     return i < 0 ? 0 : i;
   }
 
+  // One extra slot: the trailing "+" rides at the end of the tab strip.
   TabController _newController() => TabController(
-    length: widget.views.length,
+    length: widget.views.length + 1,
     initialIndex: _activeIndex,
     vsync: this,
   );
@@ -178,32 +179,32 @@ class _ViewTabsState extends State<ViewTabs> with TickerProviderStateMixin {
         scheme.onSurface.withValues(alpha: 0.06),
       ),
       splashBorderRadius: Radii.smAll,
-      onTap: (i) => widget.onSelect(widget.views[i].id),
-      tabs: [for (final v in widget.views) _tab(v)],
+      onTap: (i) {
+        if (i < widget.views.length) return widget.onSelect(widget.views[i].id);
+        // The "+" slot (keyboard activation): never stay selected on it.
+        _controller.index = _activeIndex;
+        widget.onNewView();
+      },
+      tabs: [
+        for (final v in widget.views) _tab(v),
+        IconButton(
+          onPressed: widget.onNewView,
+          tooltip: 'New view',
+          icon: const Icon(Icons.add, size: 20),
+          color: scheme.onSurfaceVariant,
+          constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+          padding: EdgeInsets.zero,
+        ),
+      ],
     );
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: scheme.outlineVariant)),
+    // No full-width divider: the active tab's underline is the only rule, so
+    // a couple of tabs don't stretch a line across a wide screen.
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: widget.horizontalPadding - Spacing.sm,
       ),
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: widget.horizontalPadding - Spacing.sm,
-          right: widget.horizontalPadding - Spacing.xs,
-        ),
-        child: Row(
-          children: [
-            Flexible(child: EdgeFade(child: tabs)),
-            IconButton(
-              onPressed: widget.onNewView,
-              tooltip: 'New view',
-              icon: const Icon(Icons.add),
-              color: scheme.onSurfaceVariant,
-              constraints: const BoxConstraints.tightFor(width: 44, height: 44),
-            ),
-          ],
-        ),
-      ),
+      child: EdgeFade(child: tabs),
     );
   }
 

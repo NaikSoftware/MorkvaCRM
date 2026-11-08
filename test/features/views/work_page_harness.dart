@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:go_router/go_router.dart';
 import 'package:morkva_crm/api/api.dart';
 import 'package:morkva_crm/app/app.dart';
-import 'package:morkva_crm/app/navigation/navigation_cubit.dart';
 import 'package:morkva_crm/app/shell/app_shell_scaffold.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/design/design.dart';
@@ -27,6 +27,8 @@ FakeDataRepository workRepository({
   return repo;
 }
 
+class _MockAuthRepository extends Mock implements AuthRepository {}
+
 /// Pumps the Work page for `deals` at [size] inside a minimal router (Home
 /// at `/`, the editor at `/collections/:id/edit` as a marker text). With
 /// [initialize] false the cubit stays in [ViewsLoading].
@@ -47,8 +49,12 @@ Future<CollectionViewsCubit> pumpWorkPage(
   addTearDown(cubit.close);
   final sync = SyncStatusCubit();
   addTearDown(sync.close);
-  final nav = NavigationCubit();
-  addTearDown(nav.close);
+  final auth = _MockAuthRepository();
+  when(
+    () => auth.authStateChanges,
+  ).thenAnswer((_) => Stream.value(const AuthUser(uid: 'u1', email: 'a@b.c')));
+  final authCubit = AuthCubit(auth)..initialize();
+  addTearDown(authCubit.close);
 
   final router = GoRouter(
     initialLocation: '/collections/deals',
@@ -61,7 +67,7 @@ Future<CollectionViewsCubit> pumpWorkPage(
             path: 'collections/:id',
             // Inside the persistent shell, as in the app.
             builder: (_, _) => AppShellScaffold(
-              inCollection: true,
+              collectionId: 'deals',
               child: BlocProvider.value(
                 value: cubit,
                 child: CollectionViewsPage(modes: defaultViewModeRegistry()),
@@ -88,7 +94,7 @@ Future<CollectionViewsCubit> pumpWorkPage(
       child: MultiBlocProvider(
         providers: [
           BlocProvider.value(value: sync),
-          BlocProvider.value(value: nav),
+          BlocProvider.value(value: authCubit),
         ],
         child: MaterialApp.router(
           // As in the app: mouse drags scroll.

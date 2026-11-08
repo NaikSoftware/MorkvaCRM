@@ -56,52 +56,96 @@ abstract final class MorkvaColors {
   static ColorScheme scheme(Brightness brightness) =>
       brightness == Brightness.light ? _light : _dark;
 
-  static final ColorScheme _light = ColorScheme.fromSeed(
-    seedColor: MorkvaPalette.carrot,
-    brightness: Brightness.light,
-  ).copyWith(
-    primary: MorkvaPalette.carrot,
-    // White on carrot is ~2.8:1; dark brown clears WCAG AA.
-    onPrimary: const Color(0xFF3A1E00),
-    primaryContainer: MorkvaPalette.carrotContainerLight,
-    onPrimaryContainer: MorkvaPalette.onCarrotContainerLight,
-    secondary: MorkvaPalette.leaf,
-    onSecondary: Colors.white,
-    error: MorkvaPalette.error,
-    onError: Colors.white,
-    surface: MorkvaPalette.paper,
-    onSurface: MorkvaPalette.inkHigh,
-    onSurfaceVariant: MorkvaPalette.inkMedium,
-    surfaceContainerLowest: Colors.white,
-    surfaceContainerLow: const Color(0xFFFAF4EC),
-    surfaceContainer: MorkvaPalette.paperSunk,
-    surfaceContainerHigh: MorkvaPalette.paperSunkHigh,
-    surfaceContainerHighest: MorkvaPalette.paperSunkHighest,
-    outline: MorkvaPalette.outline,
-    outlineVariant: MorkvaPalette.outlineSoft,
-  );
+  static final ColorScheme _light =
+      ColorScheme.fromSeed(
+        seedColor: MorkvaPalette.carrot,
+        brightness: Brightness.light,
+      ).copyWith(
+        primary: MorkvaPalette.carrot,
+        // White on carrot is ~2.8:1; dark brown clears WCAG AA.
+        onPrimary: const Color(0xFF3A1E00),
+        primaryContainer: MorkvaPalette.carrotContainerLight,
+        onPrimaryContainer: MorkvaPalette.onCarrotContainerLight,
+        secondary: MorkvaPalette.leaf,
+        onSecondary: Colors.white,
+        error: MorkvaPalette.error,
+        onError: Colors.white,
+        surface: MorkvaPalette.paper,
+        onSurface: MorkvaPalette.inkHigh,
+        onSurfaceVariant: MorkvaPalette.inkMedium,
+        surfaceContainerLowest: Colors.white,
+        surfaceContainerLow: const Color(0xFFFAF4EC),
+        surfaceContainer: MorkvaPalette.paperSunk,
+        surfaceContainerHigh: MorkvaPalette.paperSunkHigh,
+        surfaceContainerHighest: MorkvaPalette.paperSunkHighest,
+        outline: MorkvaPalette.outline,
+        outlineVariant: MorkvaPalette.outlineSoft,
+      );
 
-  static final ColorScheme _dark = ColorScheme.fromSeed(
-    seedColor: MorkvaPalette.carrot,
-    brightness: Brightness.dark,
-  ).copyWith(
-    primary: MorkvaPalette.carrotBright,
-    onPrimary: const Color(0xFF3A1E00),
-    secondary: MorkvaPalette.leafBright,
-    onSecondary: const Color(0xFF12300A),
-    error: const Color(0xFFE6786B),
-    onError: const Color(0xFF44120B),
-    surface: MorkvaPalette.espresso,
-    onSurface: MorkvaPalette.creamHigh,
-    onSurfaceVariant: MorkvaPalette.creamMedium,
-    surfaceContainerLowest: MorkvaPalette.espressoSunk,
-    surfaceContainerLow: const Color(0xFF1F1813),
-    surfaceContainer: MorkvaPalette.espressoRaised,
-    surfaceContainerHigh: const Color(0xFF2E2620),
-    surfaceContainerHighest: const Color(0xFF39302A),
-    outline: MorkvaPalette.outlineDark,
-    outlineVariant: const Color(0xFF332A22),
-  );
+  static final ColorScheme _dark =
+      ColorScheme.fromSeed(
+        seedColor: MorkvaPalette.carrot,
+        brightness: Brightness.dark,
+      ).copyWith(
+        primary: MorkvaPalette.carrotBright,
+        onPrimary: const Color(0xFF3A1E00),
+        secondary: MorkvaPalette.leafBright,
+        onSecondary: const Color(0xFF12300A),
+        error: const Color(0xFFE6786B),
+        onError: const Color(0xFF44120B),
+        surface: MorkvaPalette.espresso,
+        onSurface: MorkvaPalette.creamHigh,
+        onSurfaceVariant: MorkvaPalette.creamMedium,
+        surfaceContainerLowest: MorkvaPalette.espressoSunk,
+        surfaceContainerLow: const Color(0xFF1F1813),
+        surfaceContainer: MorkvaPalette.espressoRaised,
+        surfaceContainerHigh: const Color(0xFF2E2620),
+        surfaceContainerHighest: const Color(0xFF39302A),
+        outline: MorkvaPalette.outlineDark,
+        outlineVariant: const Color(0xFF332A22),
+      );
+}
+
+/// A collection's tile colours: a soft [background] and an AA-legible
+/// [foreground] for its glyph.
+typedef CollectionTint = ({Color background, Color foreground});
+
+/// The soft tints that tell collections apart (sidebar, cards, headers).
+/// Picked from a collection's id, so a collection keeps its colour everywhere
+/// and across sessions without storing one.
+abstract final class CollectionTints {
+  static const List<CollectionTint> light = [
+    (background: Color(0xFFFFE0C2), foreground: Color(0xFF8A4708)), // carrot
+    (background: Color(0xFFE3EEDB), foreground: Color(0xFF3B6128)), // leaf
+    (background: Color(0xFFDCEAF3), foreground: Color(0xFF2F5F80)), // sky
+    (background: Color(0xFFEDE0EE), foreground: Color(0xFF6B3F70)), // plum
+    (background: Color(0xFFF6EBC8), foreground: Color(0xFF6E5310)), // sand
+    (background: Color(0xFFF7DEDA), foreground: Color(0xFF8A3328)), // rose
+    (background: Color(0xFFE6E2DC), foreground: Color(0xFF4A4036)), // slate
+    (background: Color(0xFFD8EEEA), foreground: Color(0xFF23605A)), // teal
+  ];
+
+  static const List<CollectionTint> dark = [
+    (background: Color(0xFF4A2A0E), foreground: Color(0xFFFFC48A)),
+    (background: Color(0xFF263A1C), foreground: Color(0xFFB5D99E)),
+    (background: Color(0xFF1C3344), foreground: Color(0xFFA9CCE6)),
+    (background: Color(0xFF3A2340), foreground: Color(0xFFDDB8E2)),
+    (background: Color(0xFF3D3112), foreground: Color(0xFFEBD38A)),
+    (background: Color(0xFF44201B), foreground: Color(0xFFF2B3A8)),
+    (background: Color(0xFF35302A), foreground: Color(0xFFD3C9BC)),
+    (background: Color(0xFF163834), foreground: Color(0xFF9FD9CF)),
+  ];
+
+  /// The tint for [seed] (a collection id). A hand-rolled hash because
+  /// `String.hashCode` differs between the VM and the web.
+  static CollectionTint of(String seed, Brightness brightness) {
+    var hash = 0;
+    for (final unit in seed.codeUnits) {
+      hash = (hash * 31 + unit) & 0x7fffffff;
+    }
+    final tints = brightness == Brightness.light ? light : dark;
+    return tints[hash % tints.length];
+  }
 }
 
 /// Semantic colors that have no home in [ColorScheme]. Read them with

@@ -466,7 +466,12 @@ class _WideHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          CollectionGlyph(iconKey: collection.icon, size: 44, iconSize: 24),
+          CollectionGlyph(
+            iconKey: collection.icon,
+            tintSeed: collection.id,
+            size: 44,
+            iconSize: 24,
+          ),
           const SizedBox(width: Spacing.sm),
           Expanded(
             child: Text(
@@ -476,8 +481,7 @@ class _WideHeader extends StatelessWidget {
               style: theme.textTheme.headlineMedium,
             ),
           ),
-          const SyncStatusIndicator(),
-          const SizedBox(width: Spacing.sm),
+          // Sync status lives in the sidebar's profile row (rail: avatar dot).
           OutlinedButton.icon(
             onPressed: () => _customize(context, collection.id),
             icon: const Icon(Icons.tune, size: 18),
@@ -518,18 +522,23 @@ class _PhoneFrame extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: theme.colorScheme.surface,
         surfaceTintColor: Colors.transparent,
-        titleSpacing: 0,
-        leading: IconButton(
-          tooltip: 'Back',
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.canPop() ? context.pop() : context.go('/'),
-        ),
+        titleSpacing: ShellTab.of(context) ? Spacing.md : 0,
+        automaticallyImplyLeading: false,
+        leading: ShellTab.of(context)
+            ? null
+            : IconButton(
+                tooltip: 'Back',
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () =>
+                    context.canPop() ? context.pop() : context.go('/'),
+              ),
         title: collection == null
             ? null
             : Row(
                 children: [
                   CollectionGlyph(
                     iconKey: collection.icon,
+                    tintSeed: collection.id,
                     size: 32,
                     iconSize: 18,
                   ),
@@ -575,10 +584,12 @@ class _PhoneFrame extends StatelessWidget {
       ),
       floatingActionButton: ready == null || ready.collection.fields.isEmpty
           ? null
-          : FloatingActionButton.extended(
+          // Floats over the body (no reserved strip), so a round "+" that
+          // covers as little as possible.
+          : FloatingActionButton(
               onPressed: () => _createObject(context, ready),
-              icon: const Icon(Icons.add),
-              label: Text('New ${itemLabelOf(ready.collection)}'),
+              tooltip: 'New ${itemLabelOf(ready.collection)}',
+              child: const Icon(Icons.add),
             ),
       body: SafeArea(
         top: false,
@@ -596,9 +607,6 @@ class _PhoneFrame extends StatelessWidget {
 // -----------------------------------------------------------------------------
 // Body
 // -----------------------------------------------------------------------------
-
-/// Bottom space under the phone body: the extended FAB (56) plus margins.
-const double _fabClearance = 88;
 
 class _WorkBody extends StatelessWidget {
   const _WorkBody({
@@ -703,13 +711,7 @@ class _WorkBody extends StatelessWidget {
           _UnknownModeNotice(modeId: view.mode, fallback: mode, gutter: gutter),
         Expanded(
           child: Padding(
-            padding: EdgeInsets.fromLTRB(
-              gutter,
-              Spacing.xxs,
-              gutter,
-              // Room for the FAB so it never covers the table footer.
-              compact ? _fabClearance : gutter,
-            ),
+            padding: EdgeInsets.fromLTRB(gutter, Spacing.xxs, gutter, gutter),
             child: noMatches
                 ? EmptyState(
                     icon: Icons.filter_alt_off_outlined,

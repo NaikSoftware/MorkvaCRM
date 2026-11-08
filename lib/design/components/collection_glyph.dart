@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../collection_icons.dart';
+import '../tokens/colors.dart';
 import '../tokens/radii.dart';
 import 'pressable_scale.dart';
 
@@ -20,6 +21,7 @@ class CollectionGlyph extends StatelessWidget {
     this.iconSize = 22,
     this.onTap,
     this.tooltip,
+    this.tintSeed,
   });
 
   /// The collection's persisted icon key (`Collection.icon`), or null.
@@ -38,22 +40,31 @@ class CollectionGlyph extends StatelessWidget {
   /// Accessibility / hover label when [onTap] is set.
   final String? tooltip;
 
+  /// The collection's id: picks its [CollectionTints] colour. Null keeps the
+  /// carrot tile (e.g. a collection not created yet).
+  final String? tintSeed;
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final seed = tintSeed;
+    final tint = seed == null
+        ? null
+        : CollectionTints.of(seed, Theme.of(context).brightness);
 
     final tile = Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: scheme.primary.withValues(alpha: 0.12),
-        borderRadius: Radii.mdAll,
+        color: tint?.background ?? scheme.primary.withValues(alpha: 0.12),
+        // Scales with the tile so small sidebar tiles stay squircles.
+        borderRadius: BorderRadius.circular(size * 0.3),
       ),
       alignment: Alignment.center,
       child: Icon(
         CollectionIcons.byKey(iconKey),
         size: iconSize,
-        color: scheme.primary,
+        color: tint?.foreground ?? scheme.primary,
       ),
     );
 

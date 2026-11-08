@@ -152,6 +152,34 @@ class FirestoreDataRepository implements DataRepository {
     );
   }
 
+  // shortcut: pins live on the workspace doc, so a shared workspace would share
+  // them; move them to a per-member doc when memberships land.
+  static const _pinsField = 'pinnedCollections';
+
+  @override
+  Stream<List<String>> watchPinnedCollectionIds() {
+    final wid = _wid;
+    return _watch<List<String>>(
+      (subject) => _refs
+          .workspace(wid)
+          .snapshots()
+          .listen(
+            (snapshot) {
+              if (subject.isClosed) return;
+              final raw = snapshot.data()?[_pinsField];
+              subject.add(raw is List ? raw.whereType<String>().toList() : []);
+            },
+            onError: (Object error, StackTrace stackTrace) {
+              if (!subject.isClosed) subject.addError(error, stackTrace);
+            },
+          ),
+    );
+  }
+
+  @override
+  Future<void> savePinnedCollectionIds(List<String> ids) =>
+      _refs.workspace(_wid).set({_pinsField: ids}, SetOptions(merge: true));
+
   @override
   Future<List<Collection>> getCollections() async {
     final snapshot = await _refs.collections(_wid).get();

@@ -18,7 +18,10 @@ import '../../design/design.dart';
 /// [SyncStatusCubit.dismissConflict] (so the chip and the
 /// `ConflictWarningBanner` share one acknowledgement path).
 class SyncStatusIndicator extends StatelessWidget {
-  const SyncStatusIndicator({super.key});
+  const SyncStatusIndicator({super.key, this.dense = false});
+
+  /// A bare icon + label line (no pill), for the sidebar's profile row.
+  final bool dense;
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +34,7 @@ class SyncStatusIndicator extends StatelessWidget {
         final onTap = status is SyncConflict
             ? () => context.read<SyncStatusCubit>().dismissConflict()
             : null;
-        return _SyncChip(spec: spec, onTap: onTap);
+        return _SyncChip(spec: spec, onTap: onTap, dense: dense);
       },
     );
   }
@@ -100,24 +103,31 @@ class _SyncChipSpec {
 /// fully rounded. When [onTap] is set it gains the shared [PressableScale]
 /// press feel; otherwise it is a static, non-interactive label.
 class _SyncChip extends StatelessWidget {
-  const _SyncChip({required this.spec, this.onTap});
+  const _SyncChip({required this.spec, this.onTap, this.dense = false});
 
   final _SyncChipSpec spec;
   final VoidCallback? onTap;
+  final bool dense;
 
   @override
   Widget build(BuildContext context) {
-    final textStyle = Theme.of(context).textTheme.labelMedium;
+    final textStyle = dense
+        ? Theme.of(context).textTheme.labelSmall
+        : Theme.of(context).textTheme.labelMedium;
 
     final pill = Container(
-      height: 28,
-      padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
-      decoration: BoxDecoration(
-        // A barely-there wash of the status color keeps the chip calm while
-        // still letting attention states read at a glance.
-        color: spec.foreground.withValues(alpha: 0.12),
-        borderRadius: Radii.fullAll,
-      ),
+      height: dense ? 18 : 28,
+      padding: dense
+          ? EdgeInsets.zero
+          : const EdgeInsets.symmetric(horizontal: Spacing.sm),
+      decoration: dense
+          ? null
+          : BoxDecoration(
+              // A barely-there wash of the status color keeps the chip calm
+              // while still letting attention states read at a glance.
+              color: spec.foreground.withValues(alpha: 0.12),
+              borderRadius: Radii.fullAll,
+            ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [

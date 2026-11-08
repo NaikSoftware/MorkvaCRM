@@ -34,7 +34,8 @@ defining fields. No domain is hardcoded; the user authors it here.
   aggregation in Epic 6) — make picking a target collection and defining option sets smooth.
 
 ## Deliverables
-- Collection list/home screen with create/rename/delete.
+- Collection list/home screen with create/rename/delete. (Now the "All collections" page with
+  sidebar pins — see `docs/superpowers/specs/2026-11-07-sidebar-pins-design.md`.)
 - A collection editor screen with the full field-schema editor.
 - Blocs managing collection and schema state, persisting via the storage repository.
 - Graceful handling of schema edits against existing objects.

@@ -153,12 +153,34 @@ class ObjectCard extends StatelessWidget {
             const SizedBox(width: Spacing.xxs),
           ],
           Flexible(
-            child: Text(
-              label,
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  // A bare number says nothing on its own: lead with the field name.
+                  if (isNumericField(f))
+                    TextSpan(
+                      text: '${f.name} ',
+                      // Caption keeps the chip's readable tone; the value steps up.
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  TextSpan(
+                    text: label,
+                    style: isNumericField(f)
+                        ? TextStyle(
+                            color: theme.colorScheme.onSurface,
+                            fontWeight: FontWeight.w600,
+                          )
+                        : null,
+                  ),
+                ],
+              ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.labelMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
+                fontFeatures: ObjectCard._tabular,
               ),
             ),
           ),

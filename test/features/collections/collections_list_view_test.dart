@@ -7,6 +7,7 @@ import 'package:morkva_crm/design/design.dart';
 import 'package:morkva_crm/features/collections/list/collection_card.dart';
 import 'package:morkva_crm/features/collections/list/collections_list_cubit.dart';
 import 'package:morkva_crm/features/collections/list/collections_list_view.dart';
+import 'package:morkva_crm/features/collections/pins/pinned_collections_cubit.dart';
 
 import 'fake_data_repository.dart';
 
@@ -14,24 +15,24 @@ void main() {
   // A minimal router so the view's navigation resolves without the real Work
   // and editor pages. The list view itself is the unit under test.
   GoRouter router() => GoRouter(
-        initialLocation: '/',
-        routes: [
-          GoRoute(
-            path: '/',
-            builder: (_, _) => const Scaffold(body: CollectionsListView()),
-          ),
-          GoRoute(
-            path: '/collections/:id',
-            builder: (_, state) =>
-                Scaffold(body: Text('work:${state.pathParameters['id']}')),
-          ),
-          GoRoute(
-            path: '/collections/:id/edit',
-            builder: (_, state) =>
-                Scaffold(body: Text('editor:${state.pathParameters['id']}')),
-          ),
-        ],
-      );
+    initialLocation: '/',
+    routes: [
+      GoRoute(
+        path: '/',
+        builder: (_, _) => const Scaffold(body: CollectionsListView()),
+      ),
+      GoRoute(
+        path: '/collections/:id',
+        builder: (_, state) =>
+            Scaffold(body: Text('work:${state.pathParameters['id']}')),
+      ),
+      GoRoute(
+        path: '/collections/:id/edit',
+        builder: (_, state) =>
+            Scaffold(body: Text('editor:${state.pathParameters['id']}')),
+      ),
+    ],
+  );
 
   Future<void> pumpView(
     WidgetTester tester,
@@ -39,9 +40,14 @@ void main() {
   ) async {
     final cubit = CollectionsListCubit(repository)..initialize();
     addTearDown(cubit.close);
+    final pins = PinnedCollectionsCubit(repository)..initialize();
+    addTearDown(pins.close);
     await tester.pumpWidget(
-      BlocProvider.value(
-        value: cubit,
+      MultiBlocProvider(
+        providers: [
+          BlocProvider.value(value: cubit),
+          BlocProvider.value(value: pins),
+        ],
         child: MaterialApp.router(
           theme: AppTheme.light,
           routerConfig: router(),
@@ -112,6 +118,39 @@ void main() {
 
       final id = (await repository.getCollections()).single.id;
       expect(find.text('editor:$id'), findsOneWidget);
+    });
+
+    testWidgets('the pin moves a collection into Pinned and saves it', (
+      tester,
+    ) async {
+      final repository = FakeDataRepository([
+        const Collection(id: 'c_orders', name: 'Orders'),
+        const Collection(id: 'c_clients', name: 'Clients'),
+      ]);
+      await pumpView(tester, repository);
+      expect(find.text('PINNED'), findsNothing);
+
+      await tester.tap(find.byTooltip('Pin to sidebar').last);
+      await tester.pumpAndSettle();
+
+      expect(repository.pinnedIds.value, ['c_clients']);
+      expect(find.text('PINNED'), findsOneWidget);
+      expect(find.text('EVERYTHING ELSE'), findsOneWidget);
+      expect(find.byTooltip('Unpin from sidebar'), findsOneWidget);
+    });
+
+    testWidgets('the filter narrows the cards by name', (tester) async {
+      final repository = FakeDataRepository([
+        const Collection(id: 'c_orders', name: 'Orders'),
+        const Collection(id: 'c_clients', name: 'Clients'),
+      ]);
+      await pumpView(tester, repository);
+
+      await tester.enterText(find.byType(TextField), 'cli');
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CollectionCard), findsOneWidget);
+      expect(find.text('Clients'), findsOneWidget);
     });
   });
 }

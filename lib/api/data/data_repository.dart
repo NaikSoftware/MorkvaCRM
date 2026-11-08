@@ -35,6 +35,15 @@ abstract interface class DataRepository {
   /// Deletes the collection identified by [collectionId].
   Future<void> deleteCollection(String collectionId);
 
+  // Sidebar pins.
+
+  /// Streams the ids of the collections pinned to the sidebar, in display
+  /// order. Ids of deleted collections may linger; callers filter them.
+  Stream<List<String>> watchPinnedCollectionIds();
+
+  /// Replaces the pinned collection ids with [ids], in display order.
+  Future<void> savePinnedCollectionIds(List<String> ids);
+
   // Objects.
 
   /// Streams the objects in [collectionId], emitting on every change.

@@ -12,7 +12,8 @@ Tasks run strictly in order; each ends with `flutter analyze` clean, its tests g
 ## Task 0 — Epic 4 leftovers (from the design audit)
 - Setup card sheet: intro line "Choose which fields show on each card in “⟨view⟩” and drag to set
   their order." and footnote "Empty fields are skipped on the card." (`fields_editor_sheet.dart`).
-- Phone: the main add button becomes an extended FAB "+ New ⟨item⟩" (collapses to icon while
+- Phone (superseded 2026-11-08: a round "+" FAB floating over the body, "New ⟨item⟩" as its
+  tooltip, no bottom padding): the main add button becomes an extended FAB "+ New ⟨item⟩" (collapses to icon while
   scrolling down is NOT needed — keep it simple: always extended).
 - Calendar month grid on a collection with no objects: a centered hint "Click a day to add a
   ⟨item⟩" (phone agenda keeps "Nothing scheduled yet").

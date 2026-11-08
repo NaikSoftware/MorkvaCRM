@@ -9,6 +9,8 @@ import '../../api/api.dart';
 import '../../features/auth/session_loading_page.dart';
 import '../../features/auth/sign_in_page.dart';
 import '../../features/collections/collections.dart';
+import '../../features/home/home_page.dart';
+import '../../features/settings/settings_page.dart';
 import '../../features/views/views.dart';
 import '../shell/app_shell.dart';
 import '../shell/app_shell_scaffold.dart';
@@ -16,8 +18,8 @@ import '../shell/app_shell_scaffold.dart';
 /// The app's route table.
 ///
 /// Three top-level routes: the auth-gated app shell (a [ShellRoute] holding
-/// Home at `/` and a collection's Work page `/collections/:id` in its main
-/// panel; the editor `/collections/:id/edit` covers it full-screen), the
+/// All collections at `/`, `/settings` and a collection's Work page
+/// `/collections/:id` in its main panel; the editor `/collections/:id/edit` covers it full-screen), the
 /// public sign-in
 /// screen at `/sign-in`, and a neutral `/loading` interstitial. Routing is
 /// gated on two signals merged into [GoRouter.refreshListenable]: the
@@ -83,14 +85,23 @@ GoRouter createAppRouter(
       // main panel's page changes between Home and a collection.
       ShellRoute(
         builder: (context, state, child) => AppShellScaffold(
-          inCollection: state.pathParameters.containsKey('id'),
+          collectionId: state.pathParameters['id'],
+          inSettings: state.matchedLocation == '/settings',
           child: child,
         ),
         routes: [
           GoRoute(
             path: '/',
-            builder: (context, state) => const HomeSections(),
+            builder: (context, state) => const HomePage(),
             routes: [
+              GoRoute(
+                path: 'settings',
+                pageBuilder: (context, state) => collectionPage(
+                  context,
+                  key: state.pageKey,
+                  child: const SettingsPage(),
+                ),
+              ),
               // A collection's Work surface. Nested under `/` so back returns
               // Home. Same auth+session gate as `/` (the redirect above holds
               // any protected location on `/loading` until the workspace is
@@ -102,7 +113,10 @@ GoRouter createAppRouter(
                   final id = state.pathParameters['id']!;
                   return collectionPage(
                     context,
-                    key: state.pageKey,
+                    // Per id: go_router's pageKey is the route pattern, so
+                    // one collection → another (sidebar) would keep the old
+                    // page and its cubit.
+                    key: ValueKey('/collections/$id'),
                     child: BlocProvider(
                       create: (context) => CollectionViewsCubit(
                         context.read<DataRepository>(),
@@ -172,7 +186,7 @@ class GoRouterRefreshStream extends ChangeNotifier {
   }
 }
 
-/// The collection page inside the shell. Wide, only the main panel changes,
+/// A page inside the shell (a collection, settings). Wide, only the main panel changes,
 /// at once, so the rail stays put; phone, the platform's push transition, as
 /// a full-screen page with back. One page type for both, so resizing across
 /// the breakpoint keeps the page (and its state).
@@ -189,7 +203,8 @@ Page<void> collectionPage(
     transitionDuration: wide ? Duration.zero : phone,
     reverseTransitionDuration: wide ? Duration.zero : phone,
     transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-        MediaQuery.sizeOf(context).width >= AppShell.expandedBreakpoint
+        MediaQuery.sizeOf(context).width >= AppShell.expandedBreakpoint ||
+            ShellTab.of(context)
         ? child
         : Theme.of(context).pageTransitionsTheme.buildTransitions(
             ModalRoute.of(context)! as PageRoute<void>,

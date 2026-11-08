@@ -6,13 +6,11 @@ import '../../../design/design.dart';
 /// What an overflow-menu selection on a [CollectionCard] resolves to.
 enum CollectionCardAction { customize, rename, delete }
 
-/// One collection tile on the Home surface.
+/// One collection on the All collections page.
 ///
-/// Reads like a tidy index card: the collection name as the anchor, an optional
-/// description line, and a quiet footer that counts the fields in its schema.
-/// The whole card is pressable (opens the editor); a borderless overflow button
-/// holds the rename / delete actions so destructive actions never sit under the
-/// thumb by accident.
+/// Its tinted glyph, a pin toggle (pinned collections show in the sidebar),
+/// the overflow menu, the name, an optional description and the field count.
+/// The whole card is pressable (opens the collection).
 ///
 /// Purely presentational — it reports taps and menu picks through callbacks and
 /// owns no state. Built on the shared [SurfaceCard] so it inherits the house
@@ -23,85 +21,117 @@ class CollectionCard extends StatelessWidget {
     required this.collection,
     required this.onOpen,
     required this.onAction,
+    this.pinned = false,
+    this.onTogglePin,
   });
 
   final Collection collection;
 
-  /// Invoked when the card body is tapped (navigate to the editor).
+  /// Invoked when the card body is tapped (open the collection).
   final VoidCallback onOpen;
 
   /// Invoked with the chosen overflow-menu action.
   final ValueChanged<CollectionCardAction> onAction;
+
+  /// Whether the collection is pinned to the sidebar.
+  final bool pinned;
+
+  /// Pins or unpins; null hides the pin button.
+  final VoidCallback? onTogglePin;
+
+  /// The card's fixed height in a grid.
+  static const double height = 176;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final fieldCount = collection.fields.length;
+    final description = collection.description?.trim() ?? '';
 
     return SurfaceCard(
       onTap: onOpen,
       semanticLabel: 'Open ${collection.name}',
-      padding: const EdgeInsets.all(Spacing.md),
+      padding: const EdgeInsets.fromLTRB(
+        Spacing.md,
+        Spacing.md,
+        Spacing.xs,
+        Spacing.md,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CollectionGlyph(iconKey: collection.icon),
-              const SizedBox(width: Spacing.sm),
-              Expanded(
-                child: Padding(
-                  // Optically center the title against the glyph.
-                  padding: const EdgeInsets.only(top: Spacing.xxs),
-                  child: Text(
-                    collection.name,
-                    style: theme.textTheme.titleMedium,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+              CollectionGlyph(
+                iconKey: collection.icon,
+                tintSeed: collection.id,
+                size: 44,
+                iconSize: 22,
+              ),
+              const Spacer(),
+              if (onTogglePin != null)
+                IconButton(
+                  tooltip: pinned ? 'Unpin from sidebar' : 'Pin to sidebar',
+                  isSelected: pinned,
+                  visualDensity: VisualDensity.compact,
+                  onPressed: onTogglePin,
+                  style: IconButton.styleFrom(
+                    foregroundColor: pinned
+                        ? scheme.primary
+                        : scheme.onSurfaceVariant,
+                    backgroundColor: pinned
+                        ? scheme.primary.withValues(alpha: 0.12)
+                        : null,
+                  ),
+                  icon: Icon(
+                    pinned ? Icons.push_pin : Icons.push_pin_outlined,
+                    size: 18,
                   ),
                 ),
-              ),
               _OverflowMenu(onAction: onAction),
             ],
           ),
-          if (collection.description != null &&
-              collection.description!.trim().isNotEmpty) ...[
-            const SizedBox(height: Spacing.xs),
-            Text(
-              collection.description!,
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: scheme.onSurfaceVariant),
+          const SizedBox(height: Spacing.sm),
+          Padding(
+            padding: const EdgeInsets.only(right: Spacing.xs),
+            child: Text(
+              collection.name,
+              // The brand face, as in the mockup.
+              style: theme.textTheme.titleLarge?.copyWith(fontSize: 18),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
+          ),
+          if (description.isNotEmpty) ...[
+            const SizedBox(height: Spacing.xxs),
+            Padding(
+              padding: const EdgeInsets.only(right: Spacing.xs),
+              child: Text(
+                description,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
-          const SizedBox(height: Spacing.sm),
-          Row(
-            children: [
-              Icon(
-                Icons.view_column_outlined,
-                size: 16,
-                color: scheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: Spacing.xxs),
-              Text(
-                fieldCount == 0
-                    ? 'No fields yet'
-                    : '$fieldCount ${fieldCount == 1 ? 'field' : 'fields'}',
-                style: theme.textTheme.labelMedium
-                    ?.copyWith(color: scheme.onSurfaceVariant),
-              ),
-            ],
+          const Spacer(),
+          Text(
+            fieldCount == 0
+                ? 'No fields yet'
+                : '$fieldCount ${fieldCount == 1 ? 'field' : 'fields'}',
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
     );
   }
 }
-
 
 /// The borderless rename / delete menu. Kept compact so it doesn't compete with
 /// the card title; delete is tinted with the error role as a quiet warning.
@@ -116,6 +146,7 @@ class _OverflowMenu extends StatelessWidget {
     return PopupMenuButton<CollectionCardAction>(
       tooltip: 'More actions',
       icon: Icon(Icons.more_vert, size: 20, color: scheme.onSurfaceVariant),
+      style: IconButton.styleFrom(visualDensity: VisualDensity.compact),
       padding: EdgeInsets.zero,
       splashRadius: 20,
       onSelected: onAction,
