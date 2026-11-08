@@ -149,20 +149,6 @@ class ShellSidebar extends StatelessWidget {
                       elevation: 0,
                       child: child,
                     ),
-                    footer: Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        Spacing.sm,
-                        Spacing.xs,
-                        Spacing.sm,
-                        0,
-                      ),
-                      child: Text(
-                        'Drag to reorder · right-click to unpin',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
                     itemBuilder: (context, i) {
                       final c = pinned[i];
                       return _NavRow(
