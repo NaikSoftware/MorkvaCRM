@@ -160,9 +160,20 @@ class ObjectCard extends StatelessWidget {
                   if (isNumericField(f))
                     TextSpan(
                       text: '${f.name} ',
-                      style: TextStyle(color: theme.colorScheme.outline),
+                      // Caption keeps the chip's readable tone; the value steps up.
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
-                  TextSpan(text: label),
+                  TextSpan(
+                    text: label,
+                    style: isNumericField(f)
+                        ? TextStyle(
+                            color: theme.colorScheme.onSurface,
+                            fontWeight: FontWeight.w600,
+                          )
+                        : null,
+                  ),
                 ],
               ),
               maxLines: 1,
