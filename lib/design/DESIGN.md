@@ -73,7 +73,8 @@ shadow — never a white card on near-white with an invisible shadow.
 One breakpoint at **840dp**: `< 840` = compact (phone header + a bottom bar of
 the first 3 pinned collections + All), `>= 840` = expanded: a slim 76px rail of
 pinned tiles up to 1240dp, the full 272px sidebar (brand, Jump to, All
-collections, pinned collections, profile + settings) above it. Touch targets ≥
+collections, pinned collections, profile + settings) above it; tapping the logo
+swaps sidebar and rail for the session. Touch targets ≥
 44px. The `AppShell` owns this; components are width-agnostic. Spec:
 `docs/superpowers/specs/2026-11-07-sidebar-pins-design.md`.
 

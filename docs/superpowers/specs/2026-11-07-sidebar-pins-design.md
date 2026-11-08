@@ -24,10 +24,10 @@ those documents disagree with this one, this one wins.
 ## Layout (breakpoints unchanged: 840 / 1240)
 
 - **≥ 1240 — sidebar (272 px, `surfaceContainer`):** brand block (carrot logomark + "Morkva" /
-  "CRM", taps to `/`), "Jump to…" with its shortcut (Ctrl K; ⌘ K on macOS;
+  "CRM"; tapping it collapses the sidebar to the rail), "Jump to…" with its shortcut (Ctrl K; ⌘ K on macOS;
   hidden on Android/iOS), All collections, `PINNED` list, profile row (initials,
   name, dense sync status, settings button).
-- **840–1240 — rail (76 px):** logomark, Jump to, All collections, pinned tiles (name in the
+- **840–1240 — rail (76 px):** logomark (tap expands to the full sidebar), Jump to, All collections, pinned tiles (name in the
   tooltip, open one gets a carrot ring + edge marker), settings, avatar with a sync dot.
 - **< 840 — phone:** header = logomark, "Collections", avatar (→ settings, sync dot). On `/` the
   bottom bar holds the first 3 pins + All; with no pins there is no bottom bar (a
@@ -69,5 +69,6 @@ those documents disagree with this one, this one wins.
   and collections have no `updatedAt`. Cards show the field count instead.
 - Workspace name under the logo: workspaces have no name; the block reads "Morkva / CRM".
 - Rail "library flyout": the rail's grid button opens the All collections page instead.
-- Manual collapse button: width decides rail vs sidebar.
+- A separate collapse button: the logo toggles sidebar ↔ rail instead (owner, 2026-11-08); the
+  choice lasts for the session (`SidebarExtendedCubit`), otherwise width decides.
 - Jump to searches collections only (cards search would be a separate epic).

@@ -25,6 +25,7 @@ class ShellSidebar extends StatelessWidget {
     required this.place,
     required this.pinned,
     required this.onAllCollections,
+    required this.onToggleExtended,
     required this.onCollection,
     required this.onSettings,
     required this.onJumpTo,
@@ -45,6 +46,9 @@ class ShellSidebar extends StatelessWidget {
   final AuthUser? user;
 
   final VoidCallback onAllCollections;
+
+  /// The logo: collapses the full sidebar to the rail, or expands the rail.
+  final VoidCallback onToggleExtended;
   final ValueChanged<String> onCollection;
   final VoidCallback onSettings;
   final VoidCallback onJumpTo;
@@ -106,7 +110,10 @@ class ShellSidebar extends StatelessWidget {
             ),
             child: Align(
               alignment: Alignment.centerLeft,
-              child: BrandWordmark(onTap: onAllCollections),
+              child: BrandWordmark(
+                onTap: onToggleExtended,
+                tooltip: 'Collapse sidebar',
+              ),
             ),
           ),
           _JumpField(onTap: onJumpTo),
@@ -187,9 +194,9 @@ class ShellSidebar extends StatelessWidget {
       child: Column(
         children: [
           Tooltip(
-            message: 'All collections',
+            message: 'Expand sidebar',
             child: InkWell(
-              onTap: onAllCollections,
+              onTap: onToggleExtended,
               borderRadius: Radii.mdAll,
               child: const BrandLogomark(size: 40),
             ),

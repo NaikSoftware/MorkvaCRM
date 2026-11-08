@@ -42,6 +42,7 @@ void main() {
                     displayName: 'Olena Kovalenko',
                   ),
                   onAllCollections: () {},
+                  onToggleExtended: () {},
                   onCollection: onCollection ?? (_) {},
                   onSettings: () {},
                   onJumpTo: () {},

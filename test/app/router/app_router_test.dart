@@ -124,6 +124,23 @@ void main() {
     expect(current().place, ShellPlace.settings);
   });
 
+  testWidgets('wide: the logo collapses the sidebar and expands the rail', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+    ShellSidebar current() => tester.widget(find.byType(ShellSidebar));
+    expect(current().extended, isTrue);
+
+    await tester.tap(find.byTooltip('Collapse sidebar'));
+    await tester.pumpAndSettle();
+    expect(current().extended, isFalse);
+    expect(current().place, ShellPlace.allCollections);
+
+    await tester.tap(find.byTooltip('Expand sidebar'));
+    await tester.pumpAndSettle();
+    expect(current().extended, isTrue);
+  });
+
   testWidgets('one collection to another swaps the page', (tester) async {
     await pumpApp(tester);
     router.go('/collections/deals');

@@ -25,6 +25,7 @@ class AppShell extends StatelessWidget {
     this.banner,
     this.header,
     this.showCompactChrome = true,
+    this.extended,
   });
 
   /// Builds the sidebar for the expanded layout; `extended` is false for the
@@ -61,6 +62,10 @@ class AppShell extends StatelessWidget {
   /// collection) owns the screen.
   final bool showCompactChrome;
 
+  /// Wide layouts only: forces the full sidebar (true) or the rail (false);
+  /// null picks by width ([extendedRailBreakpoint]).
+  final bool? extended;
+
   /// Width at/above which the expanded sidebar layout is used (`DESIGN.md` §8).
   static const double expandedBreakpoint = 840;
 
@@ -75,7 +80,8 @@ class AppShell extends StatelessWidget {
         return isExpanded
             ? _buildExpanded(
                 context,
-                extended: constraints.maxWidth >= extendedRailBreakpoint,
+                extended:
+                    extended ?? constraints.maxWidth >= extendedRailBreakpoint,
               )
             : _buildCompact(context);
       },

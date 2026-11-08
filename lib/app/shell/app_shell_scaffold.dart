@@ -47,6 +47,7 @@ class AppShellScaffold extends StatelessWidget {
               CollectionsListCubit(context.read<DataRepository>())
                 ..initialize(),
         ),
+        BlocProvider(create: (_) => SidebarExtendedCubit()),
         BlocProvider(
           create: (context) =>
               PinnedCollectionsCubit(context.read<DataRepository>())
@@ -110,6 +111,7 @@ class _ShellView extends StatelessWidget {
     return _JumpShortcut(
       onJump: jumpTo,
       child: AppShell(
+        extended: context.watch<SidebarExtendedCubit>().state,
         sidebarBuilder: (context, extended) => ShellSidebar(
           extended: extended,
           place: place,
@@ -117,6 +119,8 @@ class _ShellView extends StatelessWidget {
           pinned: pinned,
           user: user,
           onAllCollections: openAll,
+          onToggleExtended: () =>
+              context.read<SidebarExtendedCubit>().set(!extended),
           onCollection: openCollection,
           onSettings: openSettings,
           onJumpTo: jumpTo,
@@ -237,4 +241,13 @@ class _PinsBar extends StatelessWidget {
       ],
     );
   }
+}
+
+/// The user's sidebar choice from the logo: true = full sidebar, false =
+/// rail, null = by window width.
+// shortcut: kept for the session only; persist it if people ask.
+class SidebarExtendedCubit extends Cubit<bool?> {
+  SidebarExtendedCubit() : super(null);
+
+  void set(bool extended) => emit(extended);
 }
