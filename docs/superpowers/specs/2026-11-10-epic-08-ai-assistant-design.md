@@ -1602,7 +1602,7 @@ none of them touches the same path. Every other task creates new files only.
 
 ## Review notes (revision 2)
 
-All 58 critique issues were checked against the code and the SDK sources (`firebase_ai` 3.14.0,
+All 58 critique issues were checked against the code and the SDK sources (`firebase_ai` 3.13.1,
 `http` 1.6.0); none was rejected outright. Notes on how they were resolved:
 
 - **Duplicates resolved once:** 9 / 26 / 47 (offline batch hang) → D6 online gate + 30 s ack
@@ -1619,7 +1619,7 @@ All 58 critique issues were checked against the code and the SDK sources (`fireb
 - **25 (adapter tests):** route (b): the aggregator takes `Stream<GenerateContentResponse>`
   (`FunctionCall.forTest` exists; `createModelWithClient` is not exported; `UsageMetadata` is not
   constructible, so usage mapping is covered by e2e).
-- **28:** `ThinkingLevel.minimal` exists in firebase_ai 3.14.0, so "off" maps to it on 3.x.
+- **28:** `ThinkingLevel.minimal` exists in firebase_ai 3.13.1, so "off" maps to it on 3.x.
 - **10b (`removeOptions`):** chose "plan a clear-values item per affected card" over leaving
   unknown option ids, so views and boards never show an orphaned option.
 - **14 (layoutField):** the table mirrors the code (`isGroupable` for board and list,

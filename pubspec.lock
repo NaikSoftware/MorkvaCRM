@@ -301,10 +301,10 @@ packages:
     dependency: "direct main"
     description:
       name: firebase_ai
-      sha256: bf86219ef8b3ef0db8db021f17b70bc119f598e136b088ae9f7944f299aacdcc
+      sha256: "8eea58a5430d3870af62428631c8f4ecfcee813c385a5b2bae048bcba4f3f937"
       url: "https://pub.dev"
     source: hosted
-    version: "3.14.0"
+    version: "3.13.1"
   firebase_app_check:
     dependency: transitive
     description:
@@ -333,10 +333,10 @@ packages:
     dependency: "direct main"
     description:
       name: firebase_auth
-      sha256: c3fc520e4fc4bf23a455643df07921d63cd6601936e99aeca3c04b5bd0ce3594
+      sha256: "7996a49c4b4054573eac9124c1c412095ae1406ca367bd2373de1ad2eaba04b8"
       url: "https://pub.dev"
     source: hosted
-    version: "6.5.5"
+    version: "6.5.4"
   firebase_auth_platform_interface:
     dependency: transitive
     description:
