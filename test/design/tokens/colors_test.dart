@@ -46,5 +46,27 @@ void main() {
       expect(light.copyWith().primaryText, light.primaryText);
       expect(light.lerp(dark, 1).primaryText, dark.primaryText);
     });
+
+    test('warning banner text on its container, light and dark', () {
+      for (final colors in [
+        MorkvaSemanticColors.light,
+        MorkvaSemanticColors.dark,
+      ]) {
+        expect(
+          _contrast(colors.onWarningContainer, colors.warningContainer),
+          greaterThan(4.5),
+        );
+      }
+    });
+
+    test('warning container pair survives copyWith and lerp', () {
+      const light = MorkvaSemanticColors.light;
+      const dark = MorkvaSemanticColors.dark;
+      expect(light.copyWith().warningContainer, light.warningContainer);
+      expect(light.copyWith().onWarningContainer, light.onWarningContainer);
+      final lerped = light.lerp(dark, 1);
+      expect(lerped.warningContainer, dark.warningContainer);
+      expect(lerped.onWarningContainer, dark.onWarningContainer);
+    });
   });
 }
