@@ -448,6 +448,7 @@ class FirestoreDataRepository implements DataRepository {
     _syncStatus.reportPendingWrite();
     final written = <String>[];
     final failed = <String, String>{};
+    var errored = false;
     for (var start = 0; start < writes.length; start += maxBatchWrites) {
       final chunk = writes.sublist(
         start,
@@ -471,7 +472,10 @@ class FirestoreDataRepository implements DataRepository {
               _localRev[write.id] = 1;
             case ObjectUpdate():
               final rev = _localRev[write.id];
-              if (rev != null) _localRev[write.id] = rev + 1;
+              // Unless a server snapshot already adopted the new rev.
+              if (rev != null && _pendingObjects.contains(write.id)) {
+                _localRev[write.id] = rev + 1;
+              }
             case ObjectDelete():
           }
           written.add(write.id);
@@ -483,14 +487,16 @@ class FirestoreDataRepository implements DataRepository {
         }
         // A vanished object is an expected stale outcome the caller handles.
         if (code != 'not-found') {
+          errored = true;
           _syncStatus.reportError('Failed to save objects', cause: error);
         }
       } finally {
         _pendingObjects.removeAll(tracked);
       }
     }
-    // Batches complete only once the server committed them (see saveObject).
-    if (failed.isEmpty && _pendingObjects.isEmpty) {
+    // Batches complete only once the server committed them (see saveObject),
+    // and a rejected chunk wrote nothing, so only an error leaves it unsettled.
+    if (!errored && _pendingObjects.isEmpty) {
       _syncStatus.reportSnapshotMeta(
         isFromCache: false,
         hasPendingWrites: false,

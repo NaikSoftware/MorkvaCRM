@@ -188,7 +188,7 @@ void main() {
         'gone-2': 'not-found',
       });
       // An expected stale outcome: no sync error banner for it.
-      expect(syncStatus.state, isNot(isA<SyncError>()));
+      expect(syncStatus.state, isA<SyncSynced>());
     });
 
     test('commit in chunks of $maxBatchWrites; a failed chunk leaves the '
