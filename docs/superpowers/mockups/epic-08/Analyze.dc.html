@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ask Morkva — analysis and undo</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&amp;family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#FFFFFF}
+.ib{width:44px;height:44px;border-radius:14px;border:0;background:transparent;color:#6B5E52;display:inline-flex;align-items:center;justify-content:center}
+.chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:13px;background:#F4EDE3;color:#2B2018;font:600 12px 'Hanken Grotesk',sans-serif;border:0}
+.step{display:flex;align-items:center;gap:8px;font-size:12px;color:#6B5E52;height:24px}
+</style>
+</helmet>
+<div style="width: 440px; height: 900px; box-sizing: border-box; display: flex; flex-direction: column; background: #FFFFFF; font-family: 'Hanken Grotesk', sans-serif; color: #2B2018; border-left: 1px solid #EEE5D8; position: relative">
+  <header style="display: flex; align-items: center; gap: 10px; height: 60px; padding: 0 10px 0 18px; border-bottom: 1px solid #EEE5D8">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="#E8821E" aria-hidden="true"><path d="M12 2.5c.6 4.6 2.9 6.9 7.5 7.5-4.6.6-6.9 2.9-7.5 7.5-.6-4.6-2.9-6.9-7.5-7.5 4.6-.6 6.9-2.9 7.5-7.5zM19 15.5c.3 2 1.2 2.9 3.2 3.2-2 .3-2.9 1.2-3.2 3.2-.3-2-1.2-2.9-3.2-3.2 2-.3 2.9-1.2 3.2-3.2z"/></svg>
+    <span style="display: flex; flex-direction: column; flex: 1 1 auto"><span style="font: 700 16px 'Bricolage Grotesque', sans-serif">Ask Morkva</span><span style="font-size: 12px; color: #6B5E52">Revenue by month</span></span>
+    <button class="ib" aria-label="Conversation history"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6M3 4v4h4M12 8v4l3 2"/></svg></button>
+    <button class="ib" aria-label="Close assistant"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </header>
+
+  <div style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 14px; padding: 18px; background: #FBF7F2; overflow: hidden">
+    <div style="align-self: flex-end; max-width: 82%; padding: 10px 14px; border-radius: 16px 16px 4px 16px; background: #EEE5D8; color: #2B2018; font-size: 14px; line-height: 1.45">Show revenue by month this year</div>
+
+    <!-- expanded tool steps -->
+    <div style="display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; border-radius: 12px; background: #FFFFFF; border: 1px solid #EEE5D8">
+      <div class="step"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2E8B57" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Read the Orders schema</div>
+      <div class="step"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2E8B57" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Grouped 148 orders by Created (month), summed Total</div>
+      <div class="step"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2E8B57" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Made a bar chart</div>
+    </div>
+
+    <p style="margin: 0; font-size: 14px; line-height: 1.55">October was your best month at <b>₴ 48 200</b> — 31% above September. Summer dipped, then sales climbed every month since July.</p>
+
+    <figure style="margin: 0; padding: 14px 14px 10px; border-radius: 14px; background: #FFFFFF; border: 1px solid #EEE5D8; display: flex; flex-direction: column; gap: 10px">
+      <figcaption style="display: flex; align-items: baseline; gap: 8px"><span style="font: 700 14px 'Hanken Grotesk', sans-serif; flex: 1 1 auto">Revenue by month, 2026</span><span style="font-size: 12px; color: #6B5E52">Sum of Total, ₴</span></figcaption>
+      <div role="img" aria-label="Bar chart: revenue per month from January to November 2026, peak in October at 48 200" style="display: flex; align-items: flex-end; gap: 8px; height: 170px; padding-top: 18px; border-bottom: 1px solid #E0D5C7">
+        <sc-for list="{{bars}}" as="b" hint-placeholder-count="11">
+          <div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 4px">
+            <span style="font: 600 10px 'Hanken Grotesk', sans-serif; color: {{b.labelColor}}">{{b.label}}</span>
+            <span style="{{b.barStyle}}"></span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display: flex; gap: 8px">
+        <sc-for list="{{bars}}" as="b" hint-placeholder-count="11">
+          <span style="flex: 1 1 0; text-align: center; font-size: 11px; color: #6B5E52">{{b.m}}</span>
+        </sc-for>
+      </div>
+    </figure>
+    <div style="display: flex; gap: 8px"><button class="chip" style="height: 36px; padding: 0 12px">Show as table</button><button class="chip" style="height: 36px; padding: 0 12px">Save as a view on Orders</button></div>
+
+    <div style="align-self: flex-end; max-width: 82%; padding: 10px 14px; border-radius: 16px 16px 4px 16px; background: #EEE5D8; color: #2B2018; font-size: 14px; line-height: 1.45">Mark the October orders without a delivery date as Done</div>
+
+    <!-- applied result -->
+    <section aria-label="Applied changes" style="border-radius: 14px; background: #FFFFFF; border: 1px solid #EEE5D8; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px">
+      <div style="display: flex; align-items: center; gap: 10px">
+        <span style="width: 26px; height: 26px; border-radius: 13px; background: #E3EEDB; color: #2E8B57; display: inline-flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+        <span style="display: flex; flex-direction: column; flex: 1 1 auto"><span style="font: 700 14px 'Hanken Grotesk', sans-serif">Set Status to Done · 12 orders</span><span style="font-size: 12px; color: #6B5E52">You approved 12 of 14 · undo available for 9 min</span></span>
+        <button style="height: 44px; padding: 0 12px; border-radius: 12px; border: 0; background: #F4EDE3; color: #8A4708; font: 600 14px 'Hanken Grotesk', sans-serif">Undo</button>
+      </div>
+      <p style="margin: 0; font-size: 13px; color: #6B5E52; line-height: 1.45">#1012 and #1019 were left as they were.</p>
+    </section>
+  </div>
+
+  <!-- undo snackbar -->
+  <div role="status" style="position: absolute; left: 14px; right: 14px; bottom: 96px; display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 8px 0 16px; border-radius: 14px; background: #2B2018; color: #FBF7F2; box-shadow: 0 8px 24px rgba(43,32,24,.28); font-size: 14px">
+    <span style="flex: 1 1 auto">12 orders updated</span>
+    <button style="height: 36px; padding: 0 12px; border-radius: 10px; border: 0; background: transparent; color: #F59B3C; font: 700 14px 'Hanken Grotesk', sans-serif">Undo</button>
+  </div>
+
+  <footer style="padding: 10px 14px 14px; border-top: 1px solid #EEE5D8">
+    <label style="display: flex; align-items: flex-end; gap: 8px; min-height: 52px; padding: 4px 4px 4px 14px; box-sizing: border-box; border-radius: 16px; border: 1px solid #B6A593; background: #FBF7F2">
+      <textarea aria-label="Message Morkva" rows="1" placeholder="Ask a follow-up…" style="flex: 1 1 auto; border: 0; outline: 0; resize: none; font: 500 14px 'Hanken Grotesk', sans-serif; color: #2B2018; padding: 8px 0; background: transparent"></textarea>
+      <button aria-label="Send" style="width: 44px; height: 44px; flex: 0 0 44px; border-radius: 12px; border: 0; background: #EEE5D8; color: #6B5E52; display: inline-flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5.5 11.5L12 5l6.5 6.5"/></svg></button>
+    </label>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":440,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+  const data = [['J', 21.4], ['F', 19.8], ['M', 26.1], ['A', 29.0], ['M', 31.5], ['J', 24.2], ['J', 22.8], ['A', 27.6], ['S', 36.8], ['O', 48.2], ['N', 14.1]];
+  const max = 48.2;
+  const bars = data.map(([m, v], i) => ({
+    m, label: i === 9 ? '48.2k' : (i === 10 ? 'so far' : ''),
+    labelColor: i === 9 ? '#8A4708' : '#6B5E52',
+    barStyle: 'width: 100%; box-sizing: border-box; border-radius: 6px 6px 2px 2px; height: ' + Math.round((v / max) * 130) + 'px; ' +
+      (i === 9 ? 'background: #C2650F' : (i === 10 ? 'background: transparent; border: 2px dashed #8A4708' : 'background: #9A8571'))
+  }));
+  return { bars };
+}
+}
+</script>
+</body>
+</html>

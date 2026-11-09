@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ask Morkva — schema change and limits</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&amp;family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#FFFFFF}
+.ib{width:44px;height:44px;border-radius:14px;border:0;background:transparent;color:#6B5E52;display:inline-flex;align-items:center;justify-content:center}
+.btn{height:44px;padding:0 14px;border-radius:12px;border:0;display:inline-flex;align-items:center;gap:8px;font:600 14px 'Hanken Grotesk',sans-serif}
+.fld{display:flex;align-items:center;gap:10px;min-height:36px;padding:0 14px;border-top:1px solid #F4EDE3;font-size:13px}
+.ty{font:600 11px 'Hanken Grotesk',sans-serif;color:#6B5E52;background:#F4EDE3;border-radius:6px;padding:2px 7px}
+.chip{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:13px;background:#FFF3E6;color:#8A4708;font:600 12px 'Hanken Grotesk',sans-serif;text-decoration:none}
+</style>
+</helmet>
+<div style="width: 440px; height: 900px; box-sizing: border-box; display: flex; flex-direction: column; background: #FFFFFF; font-family: 'Hanken Grotesk', sans-serif; color: #2B2018; border-left: 1px solid #EEE5D8">
+  <header style="display: flex; align-items: center; gap: 10px; height: 60px; padding: 0 8px 0 18px; border-bottom: 1px solid #EEE5D8">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="#E8821E" aria-hidden="true"><path d="M12 2.5c.6 4.6 2.9 6.9 7.5 7.5-4.6.6-6.9 2.9-7.5 7.5-.6-4.6-2.9-6.9-7.5-7.5 4.6-.6 6.9-2.9 7.5-7.5zM19 15.5c.3 2 1.2 2.9 3.2 3.2-2 .3-2.9 1.2-3.2 3.2-.3-2-1.2-2.9-3.2-3.2 2-.3 2.9-1.2 3.2-3.2z"/></svg>
+    <span style="display: flex; flex-direction: column; flex: 1 1 auto"><span style="font: 700 16px 'Bricolage Grotesque', sans-serif">Ask Morkva</span><span style="font-size: 12px; color: #6B5E52">Suppliers collection</span></span>
+    <button class="ib" aria-label="Close assistant"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </header>
+
+  <!-- rate-limit banner -->
+  <div role="status" style="display: flex; align-items: center; gap: 10px; padding: 0 8px 0 16px; min-height: 48px; background: #FBF3DC; border-bottom: 1px solid #EBDDB0; font-size: 13px; color: #5A4410">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+    <span style="flex: 1 1 auto">Gemini is busy. Retrying in 20 s.</span>
+    <button class="btn" style="background: transparent; color: #5A4410; font-size: 13px">Retry now</button>
+  </div>
+
+  <div style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 12px; padding: 16px 18px; background: #FBF7F2; overflow: hidden">
+    <div style="align-self: flex-end; max-width: 82%; padding: 10px 14px; border-radius: 16px 16px 4px 16px; background: #EEE5D8; color: #2B2018; font-size: 14px; line-height: 1.45">Add a Suppliers collection — name, phone, city, and which fabrics they sell</div>
+
+    <!-- applied schema change (collapsed) -->
+    <section aria-label="Applied schema change" style="border-radius: 14px; background: #FFFFFF; border: 1px solid #EEE5D8; overflow: hidden">
+      <div style="display: flex; align-items: center; gap: 10px; padding: 10px 8px 10px 14px">
+        <span style="width: 28px; height: 28px; border-radius: 9px; background: #FFE0C2; color: #8A4708; display: inline-flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 21V8l6-4v17M10 21V10l10 3v8M2 21h20"/></svg></span>
+        <span style="display: flex; flex-direction: column; flex: 1 1 auto"><span style="font: 700 14px 'Hanken Grotesk', sans-serif">Created “Suppliers” · 4 fields</span><span style="font-size: 12px; color: #2E6B45; font-weight: 600">Applied · Fabrics now shows Suppliers</span></span>
+        <button class="btn" style="background: #F4EDE3; color: #8A4708">Undo</button>
+      </div>
+      <div class="fld"><span style="flex: 1 1 auto; font-weight: 600">Name</span><span class="ty">Text · title</span></div>
+      <div class="fld"><span style="flex: 1 1 auto; font-weight: 600">Phone</span><span class="ty">Text</span></div>
+      <div class="fld"><span style="flex: 1 1 auto; font-weight: 600">City</span><span class="ty">Select · Kyiv, Lviv, Odesa</span></div>
+      <div class="fld"><span style="flex: 1 1 auto; font-weight: 600">Fabrics sold</span><span class="ty">Link → Fabrics, many</span></div>
+    </section>
+
+    <div style="align-self: flex-end; max-width: 82%; padding: 10px 14px; border-radius: 16px 16px 4px 16px; background: #EEE5D8; color: #2B2018; font-size: 14px; line-height: 1.45">Also delete the test orders I made last week</div>
+
+    <!-- destructive, pending -->
+    <section aria-label="Proposed deletion" style="border-radius: 16px; background: #FFFFFF; border: 2px solid #C0392B; overflow: hidden">
+      <div style="display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px 8px">
+        <span style="width: 28px; height: 28px; flex: 0 0 28px; border-radius: 9px; background: #F7DEDA; color: #8A3328; display: inline-flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span>
+        <span style="display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto"><span style="font: 700 14px 'Hanken Grotesk', sans-serif">Delete 7 orders</span><span style="font-size: 12px; color: #8A3328">Client is “Test”. You can undo this for 10 minutes.</span></span>
+      </div>
+      <label style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 14px; border-top: 1px solid #F4EDE3; font: 600 12px 'Hanken Grotesk', sans-serif; color: #6B5E52"><input type="checkbox" checked aria-label="Select all 7 orders" style="width: 18px; height: 18px; accent-color: #C0392B; margin: 0">All 7 selected</label>
+      <sc-for list="{{dels}}" as="d" hint-placeholder-count="3">
+        <label style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 14px; border-top: 1px solid #F4EDE3; font-size: 13px"><input type="checkbox" checked aria-label="Delete order {{d.n}}" style="width: 18px; height: 18px; accent-color: #C0392B; margin: 0"><a href="#" class="chip">#{{d.n}}</a><span style="flex: 1 1 auto">{{d.what}}</span><span style="color: #6B5E52">{{d.when}}</span></label>
+      </sc-for>
+      <button class="btn" style="width: 100%; justify-content: flex-start; border-radius: 0; border-top: 1px solid #F4EDE3; background: transparent; color: #8A4708; padding: 0 14px 0 42px">Show 4 more</button>
+      <div style="display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-top: 1px solid #F4EDE3">
+        <span style="flex: 1 1 auto"></span>
+        <button class="btn" style="background: transparent; color: #2B2018">Keep them</button>
+        <button class="btn" style="background: #C0392B; color: #FFFFFF">Delete 7 orders</button>
+      </div>
+    </section>
+
+    <!-- error -->
+    <div style="display: flex; align-items: center; gap: 10px; padding: 4px 4px 4px 12px; border-radius: 12px; background: #FFFFFF; border: 1px dashed #B6A593; font-size: 13px; color: #6B5E52">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16.2v.3"/></svg>
+      <span style="flex: 1 1 auto">The connection dropped before I finished. Nothing was changed.</span>
+      <button class="btn" style="background: #F4EDE3; color: #2B2018; font-size: 13px">Try again</button>
+    </div>
+  </div>
+
+  <footer style="padding: 10px 14px 14px; border-top: 1px solid #EEE5D8; display: flex; flex-direction: column; gap: 6px">
+    <p style="margin: 0; font-size: 12px; color: #6B5E52">Approve or keep the orders above — or send a new message to skip them.</p>
+    <label style="display: flex; align-items: flex-end; gap: 8px; min-height: 52px; padding: 4px 4px 4px 14px; box-sizing: border-box; border-radius: 16px; border: 1px solid #B6A593; background: #FBF7F2">
+      <textarea aria-label="Message Morkva" rows="1" placeholder="Ask a follow-up…" style="flex: 1 1 auto; border: 0; outline: 0; resize: none; font: 500 14px 'Hanken Grotesk', sans-serif; color: #2B2018; padding: 12px 0; background: transparent"></textarea>
+      <button aria-label="Send" style="width: 44px; height: 44px; flex: 0 0 44px; border-radius: 13px; border: 0; background: #EEE5D8; color: #6B5E52; display: inline-flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5.5 11.5L12 5l6.5 6.5"/></svg></button>
+    </label>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":440,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+  return { dels: [
+    { n: '1029', what: 'Test · hoodie M', when: '3 Nov' },
+    { n: '1028', what: 'Test · tee S', when: '3 Nov' },
+    { n: '1027', what: 'Test · custom', when: '2 Nov' }
+  ] };
+}
+}
+</script>
+</body>
+</html>

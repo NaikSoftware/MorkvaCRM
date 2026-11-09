@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ask Morkva — rail layout, overlay sheet</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&amp;family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#FBF7F2}
+.rb{width:56px;height:48px;border-radius:16px;border:0;background:transparent;color:#6B5E52;display:inline-flex;align-items:center;justify-content:center}
+.ib{width:44px;height:44px;border-radius:14px;border:0;background:transparent;color:#6B5E52;display:inline-flex;align-items:center;justify-content:center}
+</style>
+</helmet>
+<div style="width: 1024px; height: 768px; position: relative; display: flex; background: #FBF7F2; font-family: 'Hanken Grotesk', sans-serif; color: #2B2018; overflow: hidden">
+  <nav aria-label="Main" style="width: 80px; flex: 0 0 80px; background: #F4EDE3; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px 0">
+    <span style="width: 40px; height: 40px; border-radius: 12px; background: #E8821E; margin-bottom: 8px"></span>
+    <button class="rb" aria-label="Jump to (Ctrl K)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></button>
+    <button class="rb" aria-label="Ask Morkva (Ctrl J)" aria-pressed="true" style="background: #FFE0C2; color: #8A4708"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5c.6 4.6 2.9 6.9 7.5 7.5-4.6.6-6.9 2.9-7.5 7.5-.6-4.6-2.9-6.9-7.5-7.5 4.6-.6 6.9-2.9 7.5-7.5zM19 15.5c.3 2 1.2 2.9 3.2 3.2-2 .3-2.9 1.2-3.2 3.2-.3-2-1.2-2.9-3.2-3.2 2-.3 2.9-1.2 3.2-3.2z"/></svg></button>
+    <span style="width: 32px; height: 1px; background: #E0D5C7; margin: 6px 0"></span>
+    <button class="rb" aria-label="Orders" style="background: #FFFFFF"><span style="width: 28px; height: 28px; border-radius: 9px; background: #FFE0C2"></span></button>
+    <button class="rb" aria-label="Clients"><span style="width: 28px; height: 28px; border-radius: 9px; background: #E3EEDB"></span></button>
+    <button class="rb" aria-label="Products"><span style="width: 28px; height: 28px; border-radius: 9px; background: #DCEAF3"></span></button>
+    <span style="position: absolute; left: 82px; top: 108px; padding: 5px 9px; border-radius: 8px; background: #2B2018; color: #FBF7F2; font: 600 12px 'Hanken Grotesk', sans-serif">Ask Morkva · Ctrl J</span>
+  </nav>
+  <main style="flex: 1 1 auto; padding: 28px; display: flex; flex-direction: column; gap: 16px">
+    <h1 style="margin: 0; font: 700 28px 'Bricolage Grotesque', sans-serif">Orders</h1>
+    <div style="flex: 1 1 auto; border-radius: 16px; background: #FFFFFF; border: 1px solid #EEE5D8"></div>
+  </main>
+  <!-- scrim + overlay sheet below 1280 px -->
+  <div aria-hidden="true" style="position: absolute; left: 80px; top: 0; right: 0; bottom: 0; background: rgba(43,32,24,.32)"></div>
+  <aside aria-label="Ask Morkva" style="position: absolute; top: 0; right: 0; bottom: 0; width: 440px; background: #FFFFFF; box-shadow: -12px 0 32px rgba(43,32,24,.22); display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 10px; height: 60px; padding: 0 8px 0 18px; border-bottom: 1px solid #EEE5D8">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="#E8821E" aria-hidden="true"><path d="M12 2.5c.6 4.6 2.9 6.9 7.5 7.5-4.6.6-6.9 2.9-7.5 7.5-.6-4.6-2.9-6.9-7.5-7.5 4.6-.6 6.9-2.9 7.5-7.5z"/></svg>
+      <span style="flex: 1 1 auto; font: 700 16px 'Bricolage Grotesque', sans-serif">Ask Morkva</span>
+      <button class="ib" aria-label="Conversation history"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6M3 4v4h4M12 8v4l3 2"/></svg></button>
+      <button class="ib" aria-label="Close assistant"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </header>
+    <!-- history list -->
+    <div style="flex: 1 1 auto; background: #FBF7F2; padding: 14px; display: flex; flex-direction: column; gap: 6px">
+      <label style="display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px; border-radius: 12px; border: 1px solid #E0D5C7; background: #FFFFFF; color: #6B5E52"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input aria-label="Search conversations" placeholder="Search conversations" style="border: 0; outline: 0; background: transparent; font: 500 14px 'Hanken Grotesk', sans-serif; flex: 1 1 auto"></label>
+      <p style="margin: 10px 4px 2px; font: 700 11px 'Hanken Grotesk', sans-serif; letter-spacing: .08em; text-transform: uppercase; color: #6B5E52">Today</p>
+      <sc-for list="{{convs}}" as="c" hint-placeholder-count="5">
+        <button style="display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 56px; padding: 8px 12px; border-radius: 12px; border: 0; background: {{c.bg}}; text-align: left; font-family: 'Hanken Grotesk', sans-serif; color: #2B2018">
+          <span style="font: 600 14px 'Hanken Grotesk', sans-serif">{{c.title}}</span>
+          <span style="font-size: 12px; color: #6B5E52">{{c.meta}}</span>
+        </button>
+      </sc-for>
+    </div>
+  </aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1024,"height":768}}'>
+class Component extends DCLogic {
+renderVals() {
+  const c = (title, meta, cur) => ({ title, meta, bg: cur ? '#FFFFFF' : 'transparent' });
+  return { convs: [
+    c('Unpaid orders this month', '12:40 · 3 changes applied', true),
+    c('Revenue by month', '10:05 · chart'),
+    c('Suppliers collection', '09:20 · collection created'),
+    c('Low stock fabrics', 'Yesterday'),
+    c('Clean up test orders', 'Yesterday · 7 deleted')
+  ] };
+}
+}
+</script>
+</body>
+</html>
