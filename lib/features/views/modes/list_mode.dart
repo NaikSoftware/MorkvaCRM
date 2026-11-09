@@ -288,14 +288,17 @@ class _ViewListState extends State<ViewList> {
 
     return Align(
       alignment: Alignment.topCenter,
-      child: Stack(
-        key: _stackKey,
-        children: [
-          // The list is the scroll view itself (shrink-wrapped so the card
-          // hugs short lists), so a drag auto-scrolls it and rows build
-          // lazily.
-          ListCard(
-            child: ReorderableListView.builder(
+      // The sticky header sits inside the card, so the card's rounded clip
+      // and border apply to it and a pushed header can't paint above it.
+      child: ListCard(
+        key: const ValueKey('pinned-header-clip'),
+        child: Stack(
+          key: _stackKey,
+          children: [
+            // The list is the scroll view itself (shrink-wrapped so the card
+            // hugs short lists), so a drag auto-scrolls it and rows build
+            // lazily.
+            ReorderableListView.builder(
               scrollController: _scroll,
               shrinkWrap: true,
               buildDefaultDragHandles: false,
@@ -332,13 +335,8 @@ class _ViewListState extends State<ViewList> {
                 };
               },
             ),
-          ),
-          // The sticky copy of the section header under the top edge,
-          // clipped so the next header pushing it up can't paint above the
-          // list (over the filter bar).
-          Positioned.fill(
-            child: ClipRect(
-              key: const ValueKey('pinned-header-clip'),
+            // The sticky copy of the section header under the top edge.
+            Positioned.fill(
               child: IgnorePointer(
                 child: ListenableBuilder(
                   listenable: Listenable.merge([_scroll, _relayout]),
@@ -347,14 +345,11 @@ class _ViewListState extends State<ViewList> {
                     if (pinned == null) return const SizedBox.shrink();
                     return Align(
                       alignment: Alignment.topCenter,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 1),
-                        child: Transform.translate(
-                          key: const ValueKey('pinned-header'),
-                          offset: Offset(0, pinned.dy),
-                          child: ExcludeSemantics(
-                            child: _SectionHeader(group: pinned.group),
-                          ),
+                      child: Transform.translate(
+                        key: const ValueKey('pinned-header'),
+                        offset: Offset(0, pinned.dy),
+                        child: ExcludeSemantics(
+                          child: _SectionHeader(group: pinned.group),
                         ),
                       ),
                     );
@@ -362,8 +357,8 @@ class _ViewListState extends State<ViewList> {
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
