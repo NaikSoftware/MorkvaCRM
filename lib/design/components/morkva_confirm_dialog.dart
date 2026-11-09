@@ -4,6 +4,7 @@ import '../tokens/radii.dart';
 import '../tokens/spacing.dart';
 import 'buttons/primary_button.dart';
 import 'buttons/text_action_button.dart';
+import 'inputs/morkva_text_field.dart';
 import 'pressable_scale.dart';
 
 /// A single, consistent confirmation dialog for the whole app.
@@ -17,7 +18,11 @@ import 'pressable_scale.dart';
 /// Use [show] to present it and await the boolean result (`true` = confirmed,
 /// `null`/`false` = dismissed or cancelled), so no caller hand-rolls an
 /// [AlertDialog] with mismatched buttons.
-class MorkvaConfirmDialog extends StatelessWidget {
+///
+/// Pass [confirmText] for the riskiest actions (deleting a whole collection):
+/// the dialog then asks the user to type it, and confirm stays disabled until
+/// the typed text matches.
+class MorkvaConfirmDialog extends StatefulWidget {
   const MorkvaConfirmDialog({
     super.key,
     required this.title,
@@ -25,6 +30,7 @@ class MorkvaConfirmDialog extends StatelessWidget {
     required this.confirmLabel,
     this.cancelLabel = 'Cancel',
     this.destructive = false,
+    this.confirmText,
   });
 
   final String title;
@@ -36,6 +42,10 @@ class MorkvaConfirmDialog extends StatelessWidget {
   /// other irreversible action).
   final bool destructive;
 
+  /// When set, the user must type this exact text (surrounding whitespace
+  /// ignored, case-sensitive) before confirm enables.
+  final String? confirmText;
+
   /// Shows the dialog and resolves to `true` when confirmed, or `null` when
   /// cancelled / dismissed.
   static Future<bool?> show(
@@ -45,6 +55,7 @@ class MorkvaConfirmDialog extends StatelessWidget {
     required String confirmLabel,
     String cancelLabel = 'Cancel',
     bool destructive = false,
+    String? confirmText,
   }) {
     return showDialog<bool>(
       context: context,
@@ -54,16 +65,58 @@ class MorkvaConfirmDialog extends StatelessWidget {
         confirmLabel: confirmLabel,
         cancelLabel: cancelLabel,
         destructive: destructive,
+        confirmText: confirmText,
       ),
     );
   }
 
   @override
+  State<MorkvaConfirmDialog> createState() => _MorkvaConfirmDialogState();
+}
+
+class _MorkvaConfirmDialogState extends State<MorkvaConfirmDialog> {
+  final _typed = TextEditingController();
+
+  bool get _matches {
+    final expected = widget.confirmText;
+    return expected == null || _typed.text.trim() == expected.trim();
+  }
+
+  void _confirm() {
+    if (_matches) Navigator.of(context).pop(true);
+  }
+
+  @override
+  void dispose() {
+    _typed.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final confirmText = widget.confirmText;
     return AlertDialog(
       shape: const RoundedRectangleBorder(borderRadius: Radii.lgAll),
-      title: Text(title),
-      content: Text(message),
+      title: Text(widget.title),
+      content: confirmText == null
+          ? Text(widget.message)
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(widget.message),
+                const SizedBox(height: Spacing.md),
+                MorkvaTextField(
+                  controller: _typed,
+                  label: 'Type “$confirmText” to confirm',
+                  hint: confirmText,
+                  autofocus: true,
+                  textInputAction: TextInputAction.done,
+                  onChanged: (_) => setState(() {}),
+                  onSubmitted: (_) => _confirm(),
+                ),
+              ],
+            ),
       actionsPadding: const EdgeInsets.fromLTRB(
         Spacing.lg,
         0,
@@ -80,13 +133,13 @@ class MorkvaConfirmDialog extends StatelessWidget {
           runSpacing: Spacing.xs,
           children: [
             TextActionButton(
-              label: cancelLabel,
+              label: widget.cancelLabel,
               onPressed: () => Navigator.of(context).pop(false),
             ),
             _ConfirmButton(
-              label: confirmLabel,
-              destructive: destructive,
-              onPressed: () => Navigator.of(context).pop(true),
+              label: widget.confirmLabel,
+              destructive: widget.destructive,
+              onPressed: _matches ? _confirm : null,
             ),
           ],
         ),
@@ -107,7 +160,9 @@ class _ConfirmButton extends StatelessWidget {
 
   final String label;
   final bool destructive;
-  final VoidCallback onPressed;
+
+  /// Null while the dialog's typed-name check has not passed.
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -121,26 +176,30 @@ class _ConfirmButton extends StatelessWidget {
       onPressed: onPressed,
       semanticLabel: label,
       borderRadius: Radii.mdAll,
-      child: Container(
-        height: 44,
-        padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
-        decoration: BoxDecoration(
-          color: scheme.error,
-          borderRadius: Radii.mdAll,
-        ),
-        // A min-size centered Row (not Container.alignment, which grows to fill
-        // a bounded width) keeps the button hugging its label inside a Wrap.
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              label,
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: scheme.onError,
+      // Disabled reads like PrimaryButton's: the whole button at 38 %.
+      child: Opacity(
+        opacity: onPressed == null ? 0.38 : 1,
+        child: Container(
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
+          decoration: BoxDecoration(
+            color: scheme.error,
+            borderRadius: Radii.mdAll,
+          ),
+          // A min-size centered Row (not Container.alignment, which grows to fill
+          // a bounded width) keeps the button hugging its label inside a Wrap.
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                label,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: scheme.onError,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
