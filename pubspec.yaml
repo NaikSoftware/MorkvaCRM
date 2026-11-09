@@ -51,6 +51,9 @@ dependencies:
   url_launcher: ^6.3.3
   mime: ^2.1.0
 
+  # Epic 8 (Ask Morkva): MockClient in tests and the Gemini client seam.
+  http: ^1.6.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

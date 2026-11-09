@@ -124,6 +124,24 @@ class FakeDataRepository implements DataRepository {
 
   @override
   Future<void> deleteObject(String collectionId, String objectId) async {}
+
+  @override
+  Future<BatchResult> saveObjectsBatch(
+    List<ObjectWrite> writes, {
+    required Map<String, Collection> schemas,
+  }) async => BatchResult(written: [for (final w in writes) w.id]);
+
+  @override
+  Future<void> updateCollection(
+    String id,
+    Collection Function(Collection server) apply,
+  ) async {}
+
+  @override
+  Future<void> updateViews(
+    String collectionId,
+    List<ViewDefinition> Function(List<ViewDefinition> server) apply,
+  ) async {}
 }
 
 void main() {
