@@ -918,10 +918,48 @@ date change. Target ≤ 1.5k tokens of rules plus the digest:
    tokens, the digest drops to names and counts, and the model calls `workspace.describe` or
    `collections.get`.
 
-**Focus line.** Each user message is prefixed with one line, built by `AssistantFocus` from the
-router and the views page: `[Looking at: collection "Orders" › view "Unpaid" | card "#1042"]`.
-Names and titles in it are JSON-quoted, sanitized and capped at 60 characters. It is a hint, not a
-scope limit. The user can remove the chip, and the line is then omitted.
+**Screen context (owner request 2026-11-10: "the agent should understand what data is displayed
+now").** The assistant knows exactly what the user is looking at, not just which collection.
+
+- **`ScreenContext`** (pure Dart, `lib/core/harness/api/screen_context.dart`, carried as
+  `HarnessContext.focus`) is a snapshot of the screen taken **when the user sends the message**:
+  - `page`: `home` | `allCollections` | `collection` | `card` | `settings` | `other`;
+  - `collectionId`, `viewId`, `viewName`, `mode` (`table`/`board`/`calendar`/…);
+  - the **effective query of what is on screen**: the view's filters **plus** transient
+    ("From assistant") filters and quick filters, the search text, the sort, the group-by field and
+    any collapsed groups/columns, in domain JSON (`ViewFilter`, sort, group);
+  - `visibleFieldIds` (the columns / card fields shown, in order);
+  - `shownCount` (cards after filtering) and `shownIds`: the first ≤ 50 card ids **in display
+    order** (row order in a table, column-then-position order on a board, day order on a calendar);
+  - `openCardId` (the card open in the editor/sheet), and `selectedIds` when a selection exists.
+  `AssistantFocus` (features layer) is the Flutter-side `ValueNotifier` that the views page and the
+  card editor keep up to date; the bloc converts it to a `ScreenContext` per turn.
+- **Screen line.** Each user message is prefixed with one compact line built from it, e.g.
+  `[Screen: collection "Orders" › view "Unpaid" (table) · filters: Paid is false, Status any of
+  [Packing] · search "melnyk" · sort Total desc · 23 shown · columns: #, Client, Status, Total ·
+  open card "#1042"]`. Names, labels and the search text are JSON-quoted, sanitized and capped (60
+  chars each, 600 chars total). **No row values** go into the line: the model reads rows with tools,
+  which keeps tokens low and data-is-data intact.
+- **`@screen` and `@card` references.** The harness resolves reserved refs from the turn's
+  `ScreenContext`:
+  - `cards.query` / `cards.aggregate` / `cards.distinct` accept `"from": "@screen"`: the same
+    collection, filters, search and sort as the screen (plus any extra `where`), so "how much do
+    these add up to?" or "which of these are overdue?" mean exactly the visible cards;
+  - `Target` accepts `{"screen": true}` for write ops (`cards.update`, `cards.delete`): it expands
+    to the screen query's ids **at plan time**, and the preview lists the concrete cards, so "mark
+    all of these as shipped" is safe and reviewable; `expectedCount` still applies;
+  - any card `Ref` accepts `"@card"` (the open card), and `"@selected"` when a selection exists.
+  If the screen has no collection, `@screen` gets `invalid_args` ("Nothing is on screen to refer
+  to"). A stale snapshot (the user navigated after sending) is fine: the turn uses the snapshot it
+  was sent with, and the preview shows exactly which cards it means.
+- The chip in the composer shows the short form ("Looking at: Orders › Unpaid · 23 shown" or
+  "Looking at: #1042"); removing it omits the line and disables `@screen`/`@card` for that message.
+- Grounding tells the model: "The [Screen: …] line describes what the user sees right now. When they
+  say *these, this, here, the shown ones*, use `from: "@screen"`, `{"screen": true}` or `"@card"`."
+- Owners: **T4** (`screen_context.dart` + `@screen`/`@card`/`@selected` resolution in the ref
+  resolver and filter compiler), **T5b/T6** (accept `from`/`screen` in read and write ops), **T8**
+  (screen line in grounding), **T8a** (`AssistantFocus` carries all the fields above), **T13a**
+  (the views page and the card editor publish them, including display order of `shownIds`).
 
 **History compaction** (`HistoryCompactor`, before every model call):
 - FunctionResponse payloads older than the last 2 user turns are replaced with
@@ -1361,8 +1399,11 @@ sealed class LlmFailure
 sealed class PlanOutcome  Receipt · Rejected(reason{user|skipped|stopped})
 
 // lib/features/assistant/bloc/assistant_focus.dart
-final class AssistantFocus { String collectionId; String? viewId; String? cardId;
-                             String collectionName; String? viewName; String? cardTitle; }
+final class AssistantFocus { ScreenPage page; String? collectionId; String? collectionName;
+  String? viewId; String? viewName; String? mode; List<ViewFilter> filters; String? search;
+  SortSpec? sort; String? groupByFieldId; List<String> visibleFieldIds; int? shownCount;
+  List<String> shownIds /* ≤50, display order */; String? openCardId; String? openCardTitle;
+  List<String> selectedIds;  ScreenContext toScreenContext(); }   // see "Screen context"
 ```
 
 ```jsonc
@@ -1530,7 +1571,7 @@ none of them touches the same path. Every other task creates new files only.
 | T2 | **Harness core**: envelope (`details`, `turnId`, events), descriptor, capabilities and actor, context, `Harness.call` pipeline, `openTurn`, `harness.describe`, `ops/registry.dart` with stubs, JSON-schema builder and validator, field specs (incl. icon ids), import-boundary test | T1a | `lib/core/harness/api/*`, `schema/*`, `ops/registry.dart`, `ops/protocol_ops.dart` (describe only), `harness.dart`, `test/core/harness/{api,schema}/*`, `test/core/import_boundary_test.dart` |
 | T2b | **Seed workspace fixture**: Orders/Clients/Fabrics with every field type, linked references, calculated fields and 2 views each; a 5k-card generator for perf tests | T1b | `test/core/harness/fixtures/seed_workspace.dart` |
 | T3 | **Cache**: WorkspaceCache (leases, panel-open keep-alive, configurable TTL, **resubscribe on schema change**), CollectionSnapshot, DerivedSnapshot, LabelIndex, ResultStore + perf/listener tests | T2, T2b | `lib/core/harness/cache/*`, `test/core/harness/cache/*` |
-| T4 | **Strict input**: ref resolver, value codec, filter compiler (relative dates from `today`, `@createdAt`/`@updatedAt`), multi-error collection | T2, T2b | `lib/core/harness/input/*`, `test/core/harness/input/*` |
+| T4 | **Strict input**: ref resolver, value codec, filter compiler (relative dates from `today`, `@createdAt`/`@updatedAt`), multi-error collection, **`ScreenContext` + `@screen`/`@card`/`@selected` resolution** (see "Screen context") | T2, T2b | `lib/core/harness/input/*`, `lib/core/harness/api/screen_context.dart`, `test/core/harness/input/*` |
 | T5a | **Query engine**: QueryEngine, AggregateEngine, ResultShaper (row/aggregate/schema budgets, sanitizer) | T3, T4 | `lib/core/harness/query/{query_engine,aggregate_engine,result_shaper}.dart`, tests |
 | T5b | **Read ops**: WorkspaceDigest, `read_ops.dart`, `ui_ops.dart`, `ui_port.dart` (`registerReadOps`, `registerUiOps`) | T5a | `lib/core/harness/query/workspace_digest.dart`, `ops/{read_ops,ui_ops}.dart`, `ui_port.dart`, tests |
 | T6 | **Plans**: Plan model (`createdBy`, risk per item), PlanningOverlay + PlanStore keyed by `(actor, turnId)`, planners (incl. `setFrom`, `add`/`remove`, schema side effects), `schema_ops` / `card_ops` / `view_ops`, `plans.seal`/`plans.get` | T3, T4, T5a | `lib/core/harness/plan/{plan,planning_overlay,plan_store}.dart`, `plan/planners/*`, `ops/{schema_ops,card_ops,view_ops,plan_protocol_ops}.dart`, tests |
@@ -1541,7 +1582,7 @@ none of them touches the same path. Every other task creates new files only.
 | T10 | **Persistence + config**: ThreadRepository over opaque maps (+ Firestore, checkpoints, size guard helpers), AssistantConfig (+ repository, consent doc) | T1b | `lib/api/assistant/*`, `test/api/assistant/*` |
 | T11 | **Bloc layer**: AssistantBloc (sole user-actor caller, checkpoints, restore mapping, thread-switch rules), AssistantSession (`initialize`/`reset`), AssistantPanelCubit, ThreadListCubit, RouterUiPort | T7, T8, T8a, T10, T13a (deep-link contract) | `lib/features/assistant/bloc/{assistant_bloc,assistant_event,assistant_session,assistant_panel_cubit,thread_list_cubit}.dart`, `host/*`, `test/features/assistant/bloc/*` |
 | T12 | **Assistant UI**: panel, page, thread list, consent state, all message widgets, per mockup, against `FakeAssistantBloc` | T8a, T1c | `lib/features/assistant/view/**`, `test/features/assistant/view/*` |
-| T13a | **Views deep links**: query-param reactivity in `CollectionViewsPage`, transient filters + "From assistant" chip, filter validation through `filter_compiler`, focus publishing | T1a, T4, T8a (`AssistantFocus`) | `lib/features/views/{collection_views_page,collection_views_cubit}.dart`, tests |
+| T13a | **Views deep links**: query-param reactivity in `CollectionViewsPage`, transient filters + "From assistant" chip, filter validation through `filter_compiler`, **screen-context publishing** (effective filters/search/sort/group, visible fields, shownCount, first 50 shownIds in display order, open card) from the views page and the card editor | T1a, T4, T8a (`AssistantFocus`) | `lib/features/views/{collection_views_page,collection_views_cubit}.dart`, tests |
 | T13b | **App integration**: `AssistantSession` DI in `MorkvaApp` (always-provided `late final` fields, `initialize`/`reset` from `_onAuthChanged`), panel in `AppShell`, sidebar/rail/header entries, Ctrl+J, `/assistant` routes, App Check activation | T11, T12, T13a | `lib/app/app.dart`, `lib/app/router/app_router.dart`, `lib/app/shell/{app_shell,app_shell_scaffold,shell_sidebar}.dart`, `lib/main.dart`, tests |
 | T14 | **Verification**: deploy `firestore.rules`; e2e on web with real Gemini; web `--profile` and read/token measurements; parity on 8 artboards (fix or update the mockups); refresh the descriptors golden; `flutter analyze`, full test run, PR | T13b, T9 | fixes only; no new feature files |
 

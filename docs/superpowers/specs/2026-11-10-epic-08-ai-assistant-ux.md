@@ -92,8 +92,11 @@ cards and tables must not depend on model formatting; avoids a markdown dependen
 15. **History** — header button opens the conversation list (search, grouped by day, delete a
     conversation with confirm, empty state "No conversations yet"). On phone it's a full-screen
     list.
-16. **Context chip** — "Looking at: Orders" (current collection) or "Looking at: #1042" (open
-    card); removable; sent with the next turn as a hint, not as data.
+16. **Context chip** — "Looking at: Orders › Unpaid · 23 shown" (current collection, view and how
+    many cards are on screen after filters/search) or "Looking at: #1042" (open card); removable.
+    The assistant understands what is displayed right now (filters, search, sort, visible columns,
+    the shown cards in order), so "these", "this one" and "the shown ones" work — see the
+    architecture spec's "Screen context".
 17. **Dark theme** — Dark artboard: soft raised bubble, `primary` (carrotBright) preview border,
     `error` destructive border, warning container banner.
 
