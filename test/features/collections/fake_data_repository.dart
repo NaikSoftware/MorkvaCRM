@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' show min;
 
 import 'package:morkva_crm/api/data/data_repository.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
@@ -226,21 +227,7 @@ class FakeDataRepository implements DataRepository {
     final list = [...?_objects[object.collectionId]];
     final index = list.indexWhere((o) => o.id == object.id);
     if (index < 0) {
-      // Numbered like the real repository's transaction.
-      final counters = sequenceCounters[object.collectionId] ??= {};
-      final allocated = allocateSequences(schema, {
-        for (final e in object.values.entries) e.key: e.value.toJson(),
-      }, counters);
-      counters.addAll(allocated.counters);
-      list.add(
-        object.copyWith(
-          values: {
-            ...object.values,
-            for (final e in allocated.assigned.entries)
-              e.key: AutoNumberFieldValue(e.value),
-          },
-        ),
-      );
+      list.add(_numbered(object, schema));
     } else {
       // Merged over the stored values, like the real repository.
       list[index] = object.copyWith(
@@ -251,6 +238,23 @@ class FakeDataRepository implements DataRepository {
     _emitObjects(object.collectionId);
   }
 
+  /// [object] with numbers for the auto-number fields it lacks, from
+  /// [sequenceCounters] — like the real repository's counter transaction.
+  MorkvaObject _numbered(MorkvaObject object, Collection schema) {
+    final counters = sequenceCounters[object.collectionId] ??= {};
+    final allocated = allocateSequences(schema, {
+      for (final e in object.values.entries) e.key: e.value.toJson(),
+    }, counters);
+    counters.addAll(allocated.counters);
+    return object.copyWith(
+      values: {
+        ...object.values,
+        for (final e in allocated.assigned.entries)
+          e.key: AutoNumberFieldValue(e.value),
+      },
+    );
+  }
+
   @override
   Future<void> deleteObject(String collectionId, String objectId) async {
     _throwIfWriteFails();
@@ -258,6 +262,118 @@ class FakeDataRepository implements DataRepository {
       ...?_objects[collectionId]?.where((o) => o.id != objectId),
     ];
     _emitObjects(collectionId);
+  }
+
+  /// Count of [saveObjectsBatch] calls, for assertions.
+  int batchCalls = 0;
+
+  /// Called with each [saveObjectsBatch] chunk before it applies; a non-null
+  /// return is the error code every id of that chunk fails with, and nothing
+  /// of the chunk is written (batches are atomic).
+  String? Function(List<ObjectWrite> chunk)? batchWriteError;
+
+  /// When true, [saveObjectsBatch] applies its first chunk (and emits) but
+  /// never completes — like a batch waiting for a server ack while offline.
+  bool batchNeverCompletes = false;
+
+  @override
+  Future<BatchResult> saveObjectsBatch(
+    List<ObjectWrite> writes, {
+    required Map<String, Collection> schemas,
+  }) async {
+    batchCalls++;
+    for (final write in writes) {
+      if (write is! ObjectDelete && !schemas.containsKey(write.collectionId)) {
+        throw ArgumentError.value(write.collectionId, 'schemas');
+      }
+    }
+    final written = <String>[];
+    final failed = <String, String>{};
+    for (var start = 0; start < writes.length; start += maxBatchWrites) {
+      final chunk = writes.sublist(
+        start,
+        min(start + maxBatchWrites, writes.length),
+      );
+      // Like Firestore: updating a missing object fails its whole batch.
+      final code =
+          batchWriteError?.call(chunk) ??
+          (chunk.any((w) => w is ObjectUpdate && !_exists(w))
+              ? 'not-found'
+              : null);
+      if (code != null) {
+        for (final write in chunk) {
+          failed[write.id] = code;
+        }
+        continue;
+      }
+      final touched = <String>{};
+      for (final write in chunk) {
+        final cid = write.collectionId;
+        final rest = [...?_objects[cid]?.where((o) => o.id != write.id)];
+        _objects[cid] = switch (write) {
+          ObjectCreate(:final object) => [
+            ...rest,
+            _numbered(object, schemas[cid]!),
+          ],
+          ObjectUpdate() => [
+            for (final o in _objects[cid]!)
+              o.id == write.id ? _updated(o, write, schemas[cid]!) : o,
+          ],
+          ObjectDelete() => rest,
+        };
+        touched.add(cid);
+        written.add(write.id);
+      }
+      touched.forEach(_emitObjects);
+      if (batchNeverCompletes) await Completer<void>().future;
+    }
+    return BatchResult(written: written, failed: failed);
+  }
+
+  bool _exists(ObjectWrite write) =>
+      _objects[write.collectionId]?.any((o) => o.id == write.id) ?? false;
+
+  /// [object] with the touched values of [update] (domain JSON) decoded over
+  /// it; calculated and unknown field ids are skipped like the real encoder.
+  static MorkvaObject _updated(
+    MorkvaObject object,
+    ObjectUpdate update,
+    Collection schema,
+  ) => object.copyWith(
+    values: {
+      ...object.values,
+      for (final e in update.values.entries)
+        if (schema.fieldById(e.key) case final field?
+            when field is! CalculatedFieldDefinition)
+          e.key: field.valueFromJson(e.value),
+    },
+    updatedAt: DateTime.now().toUtc(),
+  );
+
+  /// Applies [apply] to the stored collection through [saveCollection], so
+  /// it counts in [saveCount] and honours [saveError] / [collectionAck].
+  @override
+  Future<void> updateCollection(
+    String id,
+    Collection Function(Collection server) apply,
+  ) async {
+    final server = await getCollection(id);
+    if (server == null) throw StateError('Collection $id does not exist.');
+    await saveCollection(apply(server));
+  }
+
+  /// Applies [apply] to the stored views through [saveViews], so it counts
+  /// in [saveViewsCount] and honours [saveError] / [collectionAck].
+  @override
+  Future<void> updateViews(
+    String collectionId,
+    List<ViewDefinition> Function(List<ViewDefinition> server) apply,
+  ) async {
+    final server = await getCollection(collectionId);
+    if (server == null) {
+      throw StateError('Collection $collectionId does not exist.');
+    }
+    await saveViews(collectionId, apply(server.views));
   }
 
   @override
