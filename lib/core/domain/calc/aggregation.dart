@@ -146,3 +146,31 @@ class Lookup extends Equatable {
   @override
   List<Object?> get props => [referenceFieldId, fieldId];
 }
+
+/// Folds [values] with [op]: the one fold behind calculated aggregates and
+/// the assistant's metrics, so the two can never disagree.
+///
+/// [count] is the number of [values] (nulls included: one per object).
+/// [sum] adds the numbers and ignores everything else (0 when none);
+/// [average] is null when there are no numbers. [min] / [max] compare the
+/// non-null values, so they also work on dates; null when there are none.
+Object? foldAggregate(AggregateOp op, Iterable<Object?> values) {
+  switch (op) {
+    case AggregateOp.count:
+      return values.length;
+    case AggregateOp.sum:
+      return values.whereType<num>().fold<num>(0, (s, v) => s + v);
+    case AggregateOp.average:
+      final nums = values.whereType<num>().toList();
+      return nums.isEmpty
+          ? null
+          : nums.fold<num>(0, (s, v) => s + v) / nums.length;
+    case AggregateOp.min || AggregateOp.max:
+      final present = values.nonNulls;
+      if (present.isEmpty) return null;
+      return present.reduce((x, y) {
+        final c = (x as Comparable).compareTo(y);
+        return (op == AggregateOp.min ? c <= 0 : c >= 0) ? x : y;
+      });
+  }
+}

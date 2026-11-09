@@ -273,24 +273,9 @@ class Derivation {
     if (a.op == AggregateOp.count) return kept.length;
     final field = source.fieldById(a.fieldId ?? '');
     if (field == null) return null;
-    final values = [for (final o in kept) ?_aggregatable(source, o, field)];
-    switch (a.op) {
-      case AggregateOp.sum:
-        return values.whereType<num>().fold<num>(0, (s, v) => s + v);
-      case AggregateOp.average:
-        final nums = values.whereType<num>().toList();
-        return nums.isEmpty
-            ? null
-            : nums.fold<num>(0, (s, v) => s + v) / nums.length;
-      case AggregateOp.min || AggregateOp.max:
-        if (values.isEmpty) return null;
-        return values.reduce((x, y) {
-          final c = (x as Comparable).compareTo(y);
-          return (a.op == AggregateOp.min ? c <= 0 : c >= 0) ? x : y;
-        });
-      case AggregateOp.count:
-        return kept.length;
-    }
+    return foldAggregate(a.op, [
+      for (final o in kept) ?_aggregatable(source, o, field),
+    ]);
   }
 
   /// The source objects of [refField] by the id each points at; built once.
