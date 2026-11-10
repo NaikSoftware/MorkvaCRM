@@ -41,14 +41,15 @@ Map<String, Object?> fieldRefSchema({String? description}) => JsonSchema.string(
 /// (`YYYY-MM-DD` or ISO), an option label, a card title or id, or a list of
 /// those for multi-select and multi-reference fields.
 Map<String, Object?> anyValueSchema({String? description}) {
-  final scalar = [
+  // Fresh maps per use, so a lowering pass never sees one instance twice.
+  List<Map<String, Object?>> scalar() => [
     JsonSchema.string(),
     JsonSchema.number(),
     JsonSchema.boolean(),
   ];
   return JsonSchema.anyOf([
-    ...scalar,
-    JsonSchema.array(JsonSchema.anyOf(scalar)),
+    ...scalar(),
+    JsonSchema.array(JsonSchema.anyOf(scalar())),
   ], description: description);
 }
 

@@ -267,8 +267,8 @@ abstract final class JsonSchema {
               childPath,
               'Unknown argument "$key"'
               '${path.isEmpty ? '' : ' in $path'}. '
-              'Allowed: ${properties.keys.join(', ')}.',
-              candidates: properties.keys.toList(),
+              '${properties.isEmpty ? 'It takes no arguments.' : 'Allowed: ${properties.keys.join(', ')}.'}',
+              candidates: properties.isEmpty ? null : properties.keys.toList(),
             ),
           );
         } else if (additional is Map<String, Object?>) {

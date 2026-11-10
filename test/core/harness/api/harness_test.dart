@@ -510,6 +510,8 @@ void main() {
         _ctx(),
       );
       expect(errorOf(response).code, ErrorCode.invalidArgs);
+      expect(errorOf(response).message, contains('takes no arguments'));
+      expect(errorOf(response).candidates, isNull);
     });
   });
 
