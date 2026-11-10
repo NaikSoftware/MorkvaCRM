@@ -1,0 +1,5293 @@
+{
+  "apiVersion": "1.0",
+  "ops": [
+    {
+      "id": "cards.aggregate",
+      "since": "1.0",
+      "kind": "read",
+      "capability": "data:read",
+      "summary": "Counts, sums, averages, min or max over matching cards, optionally grouped by a field or date bucket. Use present to show a table or chart.",
+      "modelVisible": true,
+      "args": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "A collection id or name (omit with from)."
+          },
+          "from": {
+            "type": "string",
+            "enum": [
+              "@screen"
+            ],
+            "description": "The cards on the user's screen, instead of \"collection\"."
+          },
+          "where": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "description": "A field id or name, or @createdAt / @updatedAt."
+                },
+                "op": {
+                  "type": "string",
+                  "enum": [
+                    "isEmpty",
+                    "isNotEmpty",
+                    "equals",
+                    "notEquals",
+                    "contains",
+                    "notContains",
+                    "greaterThan",
+                    "lessThan",
+                    "before",
+                    "after",
+                    "onDay",
+                    "anyOf",
+                    "noneOf",
+                    "isTrue",
+                    "isFalse"
+                  ]
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "boolean"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "description": "The operand; a list for anyOf/noneOf."
+                },
+                "relative": {
+                  "type": "string",
+                  "enum": [
+                    "today",
+                    "yesterday",
+                    "tomorrow",
+                    "this_week",
+                    "last_week",
+                    "this_month",
+                    "last_month",
+                    "this_year",
+                    "last_n_days",
+                    "next_n_days"
+                  ],
+                  "description": "A date relative to today, instead of value."
+                },
+                "n": {
+                  "type": "integer",
+                  "description": "Days for last_n_days / next_n_days.",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "field",
+                "op"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Filters, all of which must match.",
+            "minItems": 1,
+            "maxItems": 10
+          },
+          "search": {
+            "type": "string",
+            "description": "Words every card must contain."
+          },
+          "groupBy": {
+            "type": "object",
+            "properties": {
+              "field": {
+                "type": "string",
+                "description": "A field id or name, or @createdAt / @updatedAt."
+              },
+              "bucket": {
+                "type": "string",
+                "enum": [
+                  "day",
+                  "week",
+                  "month",
+                  "quarter",
+                  "year"
+                ],
+                "description": "For date fields."
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 50
+              }
+            },
+            "required": [
+              "field"
+            ],
+            "additionalProperties": false
+          },
+          "metrics": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "op": {
+                  "type": "string",
+                  "enum": [
+                    "count",
+                    "sum",
+                    "average",
+                    "min",
+                    "max"
+                  ]
+                },
+                "field": {
+                  "type": "string",
+                  "description": "Not for count."
+                }
+              },
+              "required": [
+                "op"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Defaults to a count.",
+            "minItems": 1,
+            "maxItems": 4
+          },
+          "orderBy": {
+            "type": "object",
+            "properties": {
+              "by": {
+                "type": "string",
+                "enum": [
+                  "key",
+                  "metric"
+                ]
+              },
+              "index": {
+                "type": "integer",
+                "description": "Which metric.",
+                "minimum": 0,
+                "maximum": 3
+              },
+              "dir": {
+                "type": "string",
+                "enum": [
+                  "asc",
+                  "desc"
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
+          "present": {
+            "type": "string",
+            "enum": [
+              "none",
+              "table",
+              "bar",
+              "line"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "metrics": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "boolean"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "label": {
+                  "type": "string"
+                },
+                "count": {
+                  "type": "integer"
+                },
+                "m": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ]
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "totals": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "otherGroups": {
+            "type": "integer"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "hint": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "handle",
+          "total",
+          "metrics",
+          "totals",
+          "summary"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "cards.create",
+      "since": "1.0",
+      "kind": "plan",
+      "capability": "data:write",
+      "summary": "Plans new cards (shown to the user for approval, nothing is written yet). Give a card a \"ref\" like \"@c1\" to link to it from later calls.",
+      "modelVisible": true,
+      "args": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "A collection id, name, or @ref from this turn."
+          },
+          "cards": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "ref": {
+                  "type": "string",
+                  "description": "\"@c1\": a turn-local ref."
+                },
+                "values": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "boolean"
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  },
+                  "description": "Field name or id → value."
+                }
+              },
+              "required": [
+                "values"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 1,
+            "maxItems": 200
+          }
+        },
+        "required": [
+          "collection",
+          "cards"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "planned"
+            ]
+          },
+          "planId": {
+            "type": "string"
+          },
+          "itemCount": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "summary": {
+            "type": "string"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "status",
+          "planId",
+          "itemCount",
+          "summary"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "cards.delete",
+      "since": "1.0",
+      "kind": "plan",
+      "capability": "data:delete",
+      "summary": "Plans deleting cards (undoable for 10 minutes once applied). Filters and {\"screen\": true} need expectedCount.",
+      "modelVisible": true,
+      "args": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "An id, or a name/label/title (case-insensitive)."
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Card ids or titles, \"@card\" or \"@selected\".",
+                    "minItems": 1,
+                    "maxItems": 500
+                  }
+                },
+                "required": [
+                  "ids"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "where": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "field": {
+                          "type": "string",
+                          "description": "A field id or name, or @createdAt / @updatedAt."
+                        },
+                        "op": {
+                          "type": "string",
+                          "enum": [
+                            "isEmpty",
+                            "isNotEmpty",
+                            "equals",
+                            "notEquals",
+                            "contains",
+                            "notContains",
+                            "greaterThan",
+                            "lessThan",
+                            "before",
+                            "after",
+                            "onDay",
+                            "anyOf",
+                            "noneOf",
+                            "isTrue",
+                            "isFalse"
+                          ]
+                        },
+                        "value": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "boolean"
+                            },
+                            {
+                              "type": "array",
+                              "items": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ]
+                              }
+                            }
+                          ],
+                          "description": "The operand; a list for anyOf/noneOf."
+                        },
+                        "relative": {
+                          "type": "string",
+                          "enum": [
+                            "today",
+                            "yesterday",
+                            "tomorrow",
+                            "this_week",
+                            "last_week",
+                            "this_month",
+                            "last_month",
+                            "this_year",
+                            "last_n_days",
+                            "next_n_days"
+                          ],
+                          "description": "A date relative to today, instead of value."
+                        },
+                        "n": {
+                          "type": "integer",
+                          "description": "Days for last_n_days / next_n_days.",
+                          "minimum": 1
+                        }
+                      },
+                      "required": [
+                        "field",
+                        "op"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "description": "Filters, all of which must match.",
+                    "minItems": 1,
+                    "maxItems": 10
+                  }
+                },
+                "required": [
+                  "where"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "screen": {
+                    "type": "boolean",
+                    "description": "true: the cards on screen (the screen query)."
+                  },
+                  "where": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "field": {
+                          "type": "string",
+                          "description": "A field id or name, or @createdAt / @updatedAt."
+                        },
+                        "op": {
+                          "type": "string",
+                          "enum": [
+                            "isEmpty",
+                            "isNotEmpty",
+                            "equals",
+                            "notEquals",
+                            "contains",
+                            "notContains",
+                            "greaterThan",
+                            "lessThan",
+                            "before",
+                            "after",
+                            "onDay",
+                            "anyOf",
+                            "noneOf",
+                            "isTrue",
+                            "isFalse"
+                          ]
+                        },
+                        "value": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "boolean"
+                            },
+                            {
+                              "type": "array",
+                              "items": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ]
+                              }
+                            }
+                          ],
+                          "description": "The operand; a list for anyOf/noneOf."
+                        },
+                        "relative": {
+                          "type": "string",
+                          "enum": [
+                            "today",
+                            "yesterday",
+                            "tomorrow",
+                            "this_week",
+                            "last_week",
+                            "this_month",
+                            "last_month",
+                            "this_year",
+                            "last_n_days",
+                            "next_n_days"
+                          ],
+                          "description": "A date relative to today, instead of value."
+                        },
+                        "n": {
+                          "type": "integer",
+                          "description": "Days for last_n_days / next_n_days.",
+                          "minimum": 1
+                        }
+                      },
+                      "required": [
+                        "field",
+                        "op"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "description": "Filters, all of which must match.",
+                    "minItems": 1,
+                    "maxItems": 10
+                  }
+                },
+                "required": [
+                  "screen"
+                ],
+                "additionalProperties": false
+              }
+            ],
+            "description": "Card ids, filters, or {\"screen\": true} for what is shown."
+          },
+          "expectedCount": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "collection",
+          "target"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "planned"
+            ]
+          },
+          "planId": {
+            "type": "string"
+          },
+          "itemCount": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "summary": {
+            "type": "string"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "status",
+          "planId",
+          "itemCount",
+          "summary"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "cards.distinct",
+      "since": "1.0",
+      "kind": "read",
+      "capability": "data:read",
+      "summary": "The distinct values of one field over matching cards, most frequent first, with counts.",
+      "modelVisible": true,
+      "args": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "A collection id or name (omit with from)."
+          },
+          "from": {
+            "type": "string",
+            "enum": [
+              "@screen"
+            ],
+            "description": "The cards on the user's screen, instead of \"collection\"."
+          },
+          "field": {
+            "type": "string",
+            "description": "A field id or name, or @createdAt / @updatedAt."
+          },
+          "where": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "description": "A field id or name, or @createdAt / @updatedAt."
+                },
+                "op": {
+                  "type": "string",
+                  "enum": [
+                    "isEmpty",
+                    "isNotEmpty",
+                    "equals",
+                    "notEquals",
+                    "contains",
+                    "notContains",
+                    "greaterThan",
+                    "lessThan",
+                    "before",
+                    "after",
+                    "onDay",
+                    "anyOf",
+                    "noneOf",
+                    "isTrue",
+                    "isFalse"
+                  ]
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "boolean"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "description": "The operand; a list for anyOf/noneOf."
+                },
+                "relative": {
+                  "type": "string",
+                  "enum": [
+                    "today",
+                    "yesterday",
+                    "tomorrow",
+                    "this_week",
+                    "last_week",
+                    "this_month",
+                    "last_month",
+                    "this_year",
+                    "last_n_days",
+                    "next_n_days"
+                  ],
+                  "description": "A date relative to today, instead of value."
+                },
+                "n": {
+                  "type": "integer",
+                  "description": "Days for last_n_days / next_n_days.",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "field",
+                "op"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Filters, all of which must match.",
+            "minItems": 1,
+            "maxItems": 10
+          },
+          "search": {
+            "type": "string",
+            "description": "Words every card must contain."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          }
+        },
+        "required": [
+          "field"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer"
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "boolean"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "label": {
+                  "type": "string"
+                },
+                "count": {
+                  "type": "integer"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "otherValues": {
+            "type": "integer"
+          },
+          "empty": {
+            "type": "integer"
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "total",
+          "values",
+          "summary"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "cards.find",
+      "since": "1.0",
+      "kind": "read",
+      "capability": "data:read",
+      "summary": "Searches card titles and text across collections. Without collections it searches the screen's and recently read ones.",
+      "modelVisible": true,
+      "args": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "An id, or a name/label/title (case-insensitive)."
+            },
+            "minItems": 1,
+            "maxItems": 5
+          },
+          "from": {
+            "type": "string",
+            "enum": [
+              "@screen"
+            ],
+            "description": "The cards on the user's screen, instead of \"collection\"."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "hits": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "collection": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "matchedField": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "collection",
+                "id",
+                "title"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "searched": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "hint": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "hits",
+          "searched",
+          "summary"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "cards.get",
+      "since": "1.0",
+      "kind": "read",
+      "capability": "data:read",
+      "summary": "Reads cards by id with calculated values and link titles. \"@card\" is the open card, \"@selected\" the selected ones.",
+      "modelVisible": true,
+      "args": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "A collection id or name (omit with from)."
+          },
+          "from": {
+            "type": "string",
+            "enum": [
+              "@screen"
+            ],
+            "description": "The cards on the user's screen, instead of \"collection\"."
+          },
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "maxItems": 25
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "A field id or name, or @createdAt / @updatedAt."
+            },
+            "description": "The fields each row shows after its title.",
+            "maxItems": 12
+          },
+          "meta": {
+            "type": "boolean",
+            "description": "Add createdAt / updatedAt."
+          }
+        },
+        "required": [
+          "ids"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "rows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "v": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "title": {
+                                  "type": "string"
+                                }
+                              },
+                              "additionalProperties": false
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                },
+                "createdAt": {
+                  "type": "string"
+                },
+                "updatedAt": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "v"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "missing": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "hint": {
+            "type": "string"
+          },
+          "units": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "rows",
+          "missing",
+          "summary"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "cards.page",
+      "since": "1.0",
+      "kind": "read",
+      "capability": "data:read",
+      "summary": "The next page of an earlier cards.query result.",
+      "modelVisible": true,
+      "args": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string"
+          },
+          "cursor": {
+            "type": "string",
+            "description": "The nextCursor you got."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "A field id or name, or @createdAt / @updatedAt."
+            },
+            "description": "The fields each row shows after its title.",
+            "maxItems": 12
+          }
+        },
+        "required": [
+          "handle",
+          "cursor"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "v": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "title": {
+                                  "type": "string"
+                                }
+                              },
+                              "additionalProperties": false
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                },
+                "createdAt": {
+                  "type": "string"
+                },
+                "updatedAt": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "v"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "nextCursor": {
+            "type": "string"
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "snapshotChanged": {
+            "type": "boolean"
+          },
+          "hint": {
+            "type": "string"
+          },
+          "units": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "handle",
+          "total",
+          "rows",
+          "summary"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "cards.query",
+      "since": "1.0",
+      "kind": "read",
+      "capability": "data:read",
+      "summary": "Finds cards by filters, search and sort and returns a page of rows plus the total. Use present \"table\" to show the rows to the user.",
+      "modelVisible": true,
+      "args": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "A collection id or name (omit with from)."
+          },
+          "from": {
+            "type": "string",
+            "enum": [
+              "@screen"
+            ],
+            "description": "The cards on the user's screen, instead of \"collection\"."
+          },
+          "where": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "description": "A field id or name, or @createdAt / @updatedAt."
+                },
+                "op": {
+                  "type": "string",
+                  "enum": [
+                    "isEmpty",
+                    "isNotEmpty",
+                    "equals",
+                    "notEquals",
+                    "contains",
+                    "notContains",
+                    "greaterThan",
+                    "lessThan",
+                    "before",
+                    "after",
+                    "onDay",
+                    "anyOf",
+                    "noneOf",
+                    "isTrue",
+                    "isFalse"
+                  ]
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "boolean"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "description": "The operand; a list for anyOf/noneOf."
+                },
+                "relative": {
+                  "type": "string",
+                  "enum": [
+                    "today",
+                    "yesterday",
+                    "tomorrow",
+                    "this_week",
+                    "last_week",
+                    "this_month",
+                    "last_month",
+                    "this_year",
+                    "last_n_days",
+                    "next_n_days"
+                  ],
+                  "description": "A date relative to today, instead of value."
+                },
+                "n": {
+                  "type": "integer",
+                  "description": "Days for last_n_days / next_n_days.",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "field",
+                "op"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Filters, all of which must match.",
+            "minItems": 1,
+            "maxItems": 10
+          },
+          "sort": {
+            "type": "object",
+            "properties": {
+              "field": {
+                "type": "string",
+                "description": "A field id or name, or @createdAt / @updatedAt."
+              },
+              "dir": {
+                "type": "string",
+                "enum": [
+                  "asc",
+                  "desc"
+                ]
+              }
+            },
+            "required": [
+              "field",
+              "dir"
+            ],
+            "additionalProperties": false
+          },
+          "search": {
+            "type": "string",
+            "description": "Words every card must contain."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "A field id or name, or @createdAt / @updatedAt."
+            },
+            "description": "The fields each row shows after its title.",
+            "maxItems": 12
+          },
+          "view": {
+            "type": "string",
+            "description": "Start from this view's filters and sort."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "meta": {
+            "type": "boolean",
+            "description": "Add createdAt / updatedAt."
+          },
+          "present": {
+            "type": "string",
+            "enum": [
+              "none",
+              "table"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "v": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "title": {
+                                  "type": "string"
+                                }
+                              },
+                              "additionalProperties": false
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                },
+                "createdAt": {
+                  "type": "string"
+                },
+                "updatedAt": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "v"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "nextCursor": {
+            "type": "string"
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "snapshotChanged": {
+            "type": "boolean"
+          },
+          "hint": {
+            "type": "string"
+          },
+          "units": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "handle",
+          "total",
+          "rows",
+          "summary"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "cards.update",
+      "since": "1.0",
+      "kind": "plan",
+      "capability": "data:write",
+      "summary": "Plans changes to cards: set/clear/setFrom/add/remove on a target, or per-card patches. Use setFrom for computed or copied values and add/remove for one tag or link; pass expectedCount for filters.",
+      "modelVisible": true,
+      "args": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "An id, or a name/label/title (case-insensitive)."
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Card ids or titles, \"@card\" or \"@selected\".",
+                    "minItems": 1,
+                    "maxItems": 500
+                  }
+                },
+                "required": [
+                  "ids"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "where": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "field": {
+                          "type": "string",
+                          "description": "A field id or name, or @createdAt / @updatedAt."
+                        },
+                        "op": {
+                          "type": "string",
+                          "enum": [
+                            "isEmpty",
+                            "isNotEmpty",
+                            "equals",
+                            "notEquals",
+                            "contains",
+                            "notContains",
+                            "greaterThan",
+                            "lessThan",
+                            "before",
+                            "after",
+                            "onDay",
+                            "anyOf",
+                            "noneOf",
+                            "isTrue",
+                            "isFalse"
+                          ]
+                        },
+                        "value": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "boolean"
+                            },
+                            {
+                              "type": "array",
+                              "items": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ]
+                              }
+                            }
+                          ],
+                          "description": "The operand; a list for anyOf/noneOf."
+                        },
+                        "relative": {
+                          "type": "string",
+                          "enum": [
+                            "today",
+                            "yesterday",
+                            "tomorrow",
+                            "this_week",
+                            "last_week",
+                            "this_month",
+                            "last_month",
+                            "this_year",
+                            "last_n_days",
+                            "next_n_days"
+                          ],
+                          "description": "A date relative to today, instead of value."
+                        },
+                        "n": {
+                          "type": "integer",
+                          "description": "Days for last_n_days / next_n_days.",
+                          "minimum": 1
+                        }
+                      },
+                      "required": [
+                        "field",
+                        "op"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "description": "Filters, all of which must match.",
+                    "minItems": 1,
+                    "maxItems": 10
+                  }
+                },
+                "required": [
+                  "where"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "screen": {
+                    "type": "boolean",
+                    "description": "true: the cards on screen (the screen query)."
+                  },
+                  "where": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "field": {
+                          "type": "string",
+                          "description": "A field id or name, or @createdAt / @updatedAt."
+                        },
+                        "op": {
+                          "type": "string",
+                          "enum": [
+                            "isEmpty",
+                            "isNotEmpty",
+                            "equals",
+                            "notEquals",
+                            "contains",
+                            "notContains",
+                            "greaterThan",
+                            "lessThan",
+                            "before",
+                            "after",
+                            "onDay",
+                            "anyOf",
+                            "noneOf",
+                            "isTrue",
+                            "isFalse"
+                          ]
+                        },
+                        "value": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "boolean"
+                            },
+                            {
+                              "type": "array",
+                              "items": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ]
+                              }
+                            }
+                          ],
+                          "description": "The operand; a list for anyOf/noneOf."
+                        },
+                        "relative": {
+                          "type": "string",
+                          "enum": [
+                            "today",
+                            "yesterday",
+                            "tomorrow",
+                            "this_week",
+                            "last_week",
+                            "this_month",
+                            "last_month",
+                            "this_year",
+                            "last_n_days",
+                            "next_n_days"
+                          ],
+                          "description": "A date relative to today, instead of value."
+                        },
+                        "n": {
+                          "type": "integer",
+                          "description": "Days for last_n_days / next_n_days.",
+                          "minimum": 1
+                        }
+                      },
+                      "required": [
+                        "field",
+                        "op"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "description": "Filters, all of which must match.",
+                    "minItems": 1,
+                    "maxItems": 10
+                  }
+                },
+                "required": [
+                  "screen"
+                ],
+                "additionalProperties": false
+              }
+            ],
+            "description": "Card ids, filters, or {\"screen\": true} for what is shown."
+          },
+          "set": {
+            "type": "object",
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "boolean"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "description": "Field → new value for the target."
+          },
+          "clear": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "A field to empty."
+            },
+            "minItems": 1
+          },
+          "setFrom": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "description": "The field to fill."
+                },
+                "from": {
+                  "type": "string",
+                  "description": "Copy this field."
+                },
+                "formula": {
+                  "type": "string",
+                  "description": "Compute it, e.g. \"{Price} * 1.1\"."
+                }
+              },
+              "required": [
+                "field"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 1,
+            "maxItems": 5
+          },
+          "add": {
+            "type": "object",
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "boolean"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "description": "Multi-select / multi-link field → values to add."
+          },
+          "remove": {
+            "type": "object",
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "boolean"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "description": "Multi-select / multi-link field → values to remove."
+          },
+          "patches": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "set": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "boolean"
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  },
+                  "description": "Field name or id → value."
+                }
+              },
+              "required": [
+                "id",
+                "set"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 1,
+            "maxItems": 200
+          },
+          "expectedCount": {
+            "type": "integer",
+            "description": "How many cards the target matched when you queried.",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "collection"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "planned"
+            ]
+          },
+          "planId": {
+            "type": "string"
+          },
+          "itemCount": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "summary": {
+            "type": "string"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "status",
+          "planId",
+          "itemCount",
+          "summary"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "collections.create",
+      "since": "1.0",
+      "kind": "plan",
+      "capability": "schema:write",
+      "summary": "Plans new collections with their fields (and optional seed cards). Give each a ref like \"@suppliers\" so link fields and cards in the same call or turn can name it.",
+      "modelVisible": true,
+      "args": {
+        "type": "object",
+        "properties": {
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "ref": {
+                  "type": "string",
+                  "description": "\"@x\"."
+                },
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "icon": {
+                  "type": "string",
+                  "enum": [
+                    "cards",
+                    "grid",
+                    "box",
+                    "truck",
+                    "cart",
+                    "bag",
+                    "tag",
+                    "people",
+                    "person",
+                    "business",
+                    "store",
+                    "money",
+                    "receipt",
+                    "calendar",
+                    "task",
+                    "folder",
+                    "note",
+                    "star",
+                    "flag",
+                    "home",
+                    "car",
+                    "build",
+                    "pets",
+                    "restaurant"
+                  ],
+                  "description": "Collection icon."
+                },
+                "fields": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "ref": {
+                        "type": "string",
+                        "description": "An @placeholder other specs in the call can refer to."
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "text",
+                          "number",
+                          "boolean",
+                          "date",
+                          "single_select",
+                          "multi_select",
+                          "reference",
+                          "file",
+                          "auto_number",
+                          "calculated"
+                        ]
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "multiline": {
+                        "type": "boolean",
+                        "description": "text: several lines."
+                      },
+                      "maxLength": {
+                        "type": "integer",
+                        "description": "text.",
+                        "minimum": 1
+                      },
+                      "decimalPlaces": {
+                        "type": "integer",
+                        "description": "number, calculated.",
+                        "minimum": 0,
+                        "maximum": 10
+                      },
+                      "unitLabel": {
+                        "type": "string",
+                        "description": "number, calculated: unit such as USD or kg."
+                      },
+                      "min": {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "string"
+                          }
+                        ],
+                        "description": "number: a number; date: YYYY-MM-DD or ISO."
+                      },
+                      "max": {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "string"
+                          }
+                        ],
+                        "description": "number: a number; date: YYYY-MM-DD or ISO."
+                      },
+                      "includeTime": {
+                        "type": "boolean",
+                        "description": "date: has a time of day."
+                      },
+                      "options": {
+                        "type": "array",
+                        "items": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "label": {
+                                  "type": "string"
+                                },
+                                "color": {
+                                  "type": "string",
+                                  "description": "#RRGGBB"
+                                }
+                              },
+                              "required": [
+                                "label"
+                              ],
+                              "additionalProperties": false
+                            }
+                          ]
+                        },
+                        "description": "single_select, multi_select: option labels.",
+                        "minItems": 1
+                      },
+                      "target": {
+                        "type": "string",
+                        "description": "reference: the linked collection (id, name, or @ref of one created in the same call)."
+                      },
+                      "multiple": {
+                        "type": "boolean",
+                        "description": "reference, file: allow several."
+                      },
+                      "allowedExtensions": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "description": "file: e.g. [\"pdf\", \"png\"]."
+                      },
+                      "prefix": {
+                        "type": "string",
+                        "description": "auto_number: e.g. \"INV-\"."
+                      },
+                      "padding": {
+                        "type": "integer",
+                        "description": "auto_number: zero-pad to this many digits.",
+                        "minimum": 0,
+                        "maximum": 12
+                      },
+                      "start": {
+                        "type": "integer",
+                        "description": "auto_number: first number.",
+                        "minimum": 0
+                      },
+                      "formula": {
+                        "type": "string",
+                        "description": "calculated: e.g. \"{Price} * {Qty}\"."
+                      },
+                      "aggregate": {
+                        "type": "object",
+                        "properties": {
+                          "source": {
+                            "type": "string",
+                            "enum": [
+                              "linkedFrom",
+                              "linked",
+                              "all"
+                            ]
+                          },
+                          "collection": {
+                            "type": "string",
+                            "description": "An id, or a name/label/title (case-insensitive)."
+                          },
+                          "referenceField": {
+                            "type": "string",
+                            "description": "An id, or a name/label/title (case-insensitive)."
+                          },
+                          "op": {
+                            "type": "string",
+                            "enum": [
+                              "count",
+                              "sum",
+                              "average",
+                              "min",
+                              "max"
+                            ]
+                          },
+                          "field": {
+                            "type": "string",
+                            "description": "An id, or a name/label/title (case-insensitive)."
+                          },
+                          "where": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "field": {
+                                  "type": "string",
+                                  "description": "A field id or name, or @createdAt / @updatedAt."
+                                },
+                                "op": {
+                                  "type": "string",
+                                  "enum": [
+                                    "isEmpty",
+                                    "isNotEmpty",
+                                    "equals",
+                                    "notEquals",
+                                    "contains",
+                                    "notContains",
+                                    "greaterThan",
+                                    "lessThan",
+                                    "before",
+                                    "after",
+                                    "onDay",
+                                    "anyOf",
+                                    "noneOf",
+                                    "isTrue",
+                                    "isFalse"
+                                  ]
+                                },
+                                "value": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    },
+                                    {
+                                      "type": "array",
+                                      "items": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string"
+                                          },
+                                          {
+                                            "type": "number"
+                                          },
+                                          {
+                                            "type": "boolean"
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ],
+                                  "description": "The operand; a list for anyOf/noneOf."
+                                },
+                                "relative": {
+                                  "type": "string",
+                                  "enum": [
+                                    "today",
+                                    "yesterday",
+                                    "tomorrow",
+                                    "this_week",
+                                    "last_week",
+                                    "this_month",
+                                    "last_month",
+                                    "this_year",
+                                    "last_n_days",
+                                    "next_n_days"
+                                  ],
+                                  "description": "A date relative to today, instead of value."
+                                },
+                                "n": {
+                                  "type": "integer",
+                                  "description": "Days for last_n_days / next_n_days.",
+                                  "minimum": 1
+                                }
+                              },
+                              "required": [
+                                "field",
+                                "op"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "description": "Filters, all of which must match.",
+                            "minItems": 1,
+                            "maxItems": 10
+                          }
+                        },
+                        "required": [
+                          "source",
+                          "collection",
+                          "op"
+                        ],
+                        "additionalProperties": false,
+                        "description": "calculated: summarize linked or all cards."
+                      },
+                      "lookup": {
+                        "type": "object",
+                        "properties": {
+                          "via": {
+                            "type": "string",
+                            "description": "An id, or a name/label/title (case-insensitive)."
+                          },
+                          "field": {
+                            "type": "string",
+                            "description": "An id, or a name/label/title (case-insensitive)."
+                          }
+                        },
+                        "required": [
+                          "via"
+                        ],
+                        "additionalProperties": false,
+                        "description": "calculated: show a field of the linked card."
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "type"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "maxItems": 40
+                }
+              },
+              "required": [
+                "name",
+                "fields"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 1,
+            "maxItems": 5
+          },
+          "cards": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "collection": {
+                  "type": "string",
+                  "description": "The @ref of a collection created here."
+                },
+                "ref": {
+                  "type": "string"
+                },
+                "values": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "boolean"
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  },
+                  "description": "Field name or id → value."
+                }
+              },
+              "required": [
+                "collection",
+                "values"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 1,
+            "maxItems": 200
+          }
+        },
+        "required": [
+          "collections"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "planned"
+            ]
+          },
+          "planId": {
+            "type": "string"
+          },
+          "itemCount": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "summary": {
+            "type": "string"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "status",
+          "planId",
+          "itemCount",
+          "summary"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "collections.delete",
+      "since": "1.0",
+      "kind": "plan",
+      "capability": "schema:delete",
+      "summary": "Plans deleting a whole collection and its cards. Send it on its own, with no other change in the same turn.",
+      "modelVisible": true,
+      "args": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "An id, or a name/label/title (case-insensitive)."
+          }
+        },
+        "required": [
+          "collection"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "planned"
+            ]
+          },
+          "planId": {
+            "type": "string"
+          },
+          "itemCount": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "summary": {
+            "type": "string"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "status",
+          "planId",
+          "itemCount",
+          "summary"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "collections.get",
+      "since": "1.0",
+      "kind": "read",
+      "capability": "schema:read",
+      "summary": "One collection's full schema: every field's config and filter operators, formulas in name form, views and the card count.",
+      "modelVisible": true,
+      "args": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "An id, or a name/label/title (case-insensitive)."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "An id, or a name/label/title (case-insensitive)."
+            },
+            "description": "Only these fields.",
+            "maxItems": 40
+          }
+        },
+        "required": [
+          "collection"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "A field definition (domain JSON) plus operators."
+            }
+          },
+          "moreFields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "views": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "hint": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "fields",
+          "views",
+          "summary"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "collections.update",
+      "since": "1.0",
+      "kind": "plan",
+      "capability": "schema:write",
+      "summary": "Plans renaming a collection or changing its description or icon.",
+      "modelVisible": true,
+      "args": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "An id, or a name/label/title (case-insensitive)."
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string",
+            "enum": [
+              "cards",
+              "grid",
+              "box",
+              "truck",
+              "cart",
+              "bag",
+              "tag",
+              "people",
+              "person",
+              "business",
+              "store",
+              "money",
+              "receipt",
+              "calendar",
+              "task",
+              "folder",
+              "note",
+              "star",
+              "flag",
+              "home",
+              "car",
+              "build",
+              "pets",
+              "restaurant"
+            ],
+            "description": "Collection icon."
+          }
+        },
+        "required": [
+          "collection"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "planned"
+            ]
+          },
+          "planId": {
+            "type": "string"
+          },
+          "itemCount": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "summary": {
+            "type": "string"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "status",
+          "planId",
+          "itemCount",
+          "summary"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "fields.add",
+      "since": "1.0",
+      "kind": "plan",
+      "capability": "schema:write",
+      "summary": "Plans adding fields to a collection (added to every view). Fill a new field from others with cards.update setFrom.",
+      "modelVisible": true,
+      "args": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "An id, or a name/label/title (case-insensitive)."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "ref": {
+                  "type": "string",
+                  "description": "An @placeholder other specs in the call can refer to."
+                },
+                "name": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "text",
+                    "number",
+                    "boolean",
+                    "date",
+                    "single_select",
+                    "multi_select",
+                    "reference",
+                    "file",
+                    "auto_number",
+                    "calculated"
+                  ]
+                },
+                "required": {
+                  "type": "boolean"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "multiline": {
+                  "type": "boolean",
+                  "description": "text: several lines."
+                },
+                "maxLength": {
+                  "type": "integer",
+                  "description": "text.",
+                  "minimum": 1
+                },
+                "decimalPlaces": {
+                  "type": "integer",
+                  "description": "number, calculated.",
+                  "minimum": 0,
+                  "maximum": 10
+                },
+                "unitLabel": {
+                  "type": "string",
+                  "description": "number, calculated: unit such as USD or kg."
+                },
+                "min": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "number: a number; date: YYYY-MM-DD or ISO."
+                },
+                "max": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "number: a number; date: YYYY-MM-DD or ISO."
+                },
+                "includeTime": {
+                  "type": "boolean",
+                  "description": "date: has a time of day."
+                },
+                "options": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "label": {
+                            "type": "string"
+                          },
+                          "color": {
+                            "type": "string",
+                            "description": "#RRGGBB"
+                          }
+                        },
+                        "required": [
+                          "label"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "description": "single_select, multi_select: option labels.",
+                  "minItems": 1
+                },
+                "target": {
+                  "type": "string",
+                  "description": "reference: the linked collection (id, name, or @ref of one created in the same call)."
+                },
+                "multiple": {
+                  "type": "boolean",
+                  "description": "reference, file: allow several."
+                },
+                "allowedExtensions": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "file: e.g. [\"pdf\", \"png\"]."
+                },
+                "prefix": {
+                  "type": "string",
+                  "description": "auto_number: e.g. \"INV-\"."
+                },
+                "padding": {
+                  "type": "integer",
+                  "description": "auto_number: zero-pad to this many digits.",
+                  "minimum": 0,
+                  "maximum": 12
+                },
+                "start": {
+                  "type": "integer",
+                  "description": "auto_number: first number.",
+                  "minimum": 0
+                },
+                "formula": {
+                  "type": "string",
+                  "description": "calculated: e.g. \"{Price} * {Qty}\"."
+                },
+                "aggregate": {
+                  "type": "object",
+                  "properties": {
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "linkedFrom",
+                        "linked",
+                        "all"
+                      ]
+                    },
+                    "collection": {
+                      "type": "string",
+                      "description": "An id, or a name/label/title (case-insensitive)."
+                    },
+                    "referenceField": {
+                      "type": "string",
+                      "description": "An id, or a name/label/title (case-insensitive)."
+                    },
+                    "op": {
+                      "type": "string",
+                      "enum": [
+                        "count",
+                        "sum",
+                        "average",
+                        "min",
+                        "max"
+                      ]
+                    },
+                    "field": {
+                      "type": "string",
+                      "description": "An id, or a name/label/title (case-insensitive)."
+                    },
+                    "where": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "description": "A field id or name, or @createdAt / @updatedAt."
+                          },
+                          "op": {
+                            "type": "string",
+                            "enum": [
+                              "isEmpty",
+                              "isNotEmpty",
+                              "equals",
+                              "notEquals",
+                              "contains",
+                              "notContains",
+                              "greaterThan",
+                              "lessThan",
+                              "before",
+                              "after",
+                              "onDay",
+                              "anyOf",
+                              "noneOf",
+                              "isTrue",
+                              "isFalse"
+                            ]
+                          },
+                          "value": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "boolean"
+                              },
+                              {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "boolean"
+                                    }
+                                  ]
+                                }
+                              }
+                            ],
+                            "description": "The operand; a list for anyOf/noneOf."
+                          },
+                          "relative": {
+                            "type": "string",
+                            "enum": [
+                              "today",
+                              "yesterday",
+                              "tomorrow",
+                              "this_week",
+                              "last_week",
+                              "this_month",
+                              "last_month",
+                              "this_year",
+                              "last_n_days",
+                              "next_n_days"
+                            ],
+                            "description": "A date relative to today, instead of value."
+                          },
+                          "n": {
+                            "type": "integer",
+                            "description": "Days for last_n_days / next_n_days.",
+                            "minimum": 1
+                          }
+                        },
+                        "required": [
+                          "field",
+                          "op"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "description": "Filters, all of which must match.",
+                      "minItems": 1,
+                      "maxItems": 10
+                    }
+                  },
+                  "required": [
+                    "source",
+                    "collection",
+                    "op"
+                  ],
+                  "additionalProperties": false,
+                  "description": "calculated: summarize linked or all cards."
+                },
+                "lookup": {
+                  "type": "object",
+                  "properties": {
+                    "via": {
+                      "type": "string",
+                      "description": "An id, or a name/label/title (case-insensitive)."
+                    },
+                    "field": {
+                      "type": "string",
+                      "description": "An id, or a name/label/title (case-insensitive)."
+                    }
+                  },
+                  "required": [
+                    "via"
+                  ],
+                  "additionalProperties": false,
+                  "description": "calculated: show a field of the linked card."
+                }
+              },
+              "required": [
+                "name",
+                "type"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 1,
+            "maxItems": 20
+          },
+          "after": {
+            "type": "string",
+            "description": "Place them after this field."
+          }
+        },
+        "required": [
+          "collection",
+          "fields"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "planned"
+            ]
+          },
+          "planId": {
+            "type": "string"
+          },
+          "itemCount": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "summary": {
+            "type": "string"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "status",
+          "planId",
+          "itemCount",
+          "summary"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "fields.delete",
+      "since": "1.0",
+      "kind": "plan",
+      "capability": "schema:delete",
+      "summary": "Plans deleting fields (and their filters, sort and columns in views). Card values are kept, so undo brings them back.",
+      "modelVisible": true,
+      "args": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "An id, or a name/label/title (case-insensitive)."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "An id, or a name/label/title (case-insensitive)."
+            },
+            "minItems": 1,
+            "maxItems": 10
+          }
+        },
+        "required": [
+          "collection",
+          "fields"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "planned"
+            ]
+          },
+          "planId": {
+            "type": "string"
+          },
+          "itemCount": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "summary": {
+            "type": "string"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "status",
+          "planId",
+          "itemCount",
+          "summary"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "fields.update",
+      "since": "1.0",
+      "kind": "plan",
+      "capability": "schema:write",
+      "summary": "Plans changing a field: name, description, required, settings and options (add, rename, remove). The type is locked: add a new field and fill it with cards.update setFrom instead.",
+      "modelVisible": true,
+      "args": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "An id, or a name/label/title (case-insensitive)."
+          },
+          "field": {
+            "type": "string",
+            "description": "An id, or a name/label/title (case-insensitive)."
+          },
+          "patch": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "Locked; always refused."
+              },
+              "name": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "multiline": {
+                "type": "boolean",
+                "description": "text: several lines."
+              },
+              "maxLength": {
+                "type": "integer",
+                "description": "text.",
+                "minimum": 1
+              },
+              "decimalPlaces": {
+                "type": "integer",
+                "description": "number, calculated.",
+                "minimum": 0,
+                "maximum": 10
+              },
+              "unitLabel": {
+                "type": "string",
+                "description": "number, calculated: unit such as USD or kg."
+              },
+              "min": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ],
+                "description": "number: a number; date: YYYY-MM-DD or ISO."
+              },
+              "max": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ],
+                "description": "number: a number; date: YYYY-MM-DD or ISO."
+              },
+              "includeTime": {
+                "type": "boolean",
+                "description": "date: has a time of day."
+              },
+              "options": {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string"
+                        },
+                        "color": {
+                          "type": "string",
+                          "description": "#RRGGBB"
+                        }
+                      },
+                      "required": [
+                        "label"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                "description": "single_select, multi_select: option labels.",
+                "minItems": 1
+              },
+              "target": {
+                "type": "string",
+                "description": "reference: the linked collection (id, name, or @ref of one created in the same call)."
+              },
+              "multiple": {
+                "type": "boolean",
+                "description": "reference, file: allow several."
+              },
+              "allowedExtensions": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "file: e.g. [\"pdf\", \"png\"]."
+              },
+              "prefix": {
+                "type": "string",
+                "description": "auto_number: e.g. \"INV-\"."
+              },
+              "padding": {
+                "type": "integer",
+                "description": "auto_number: zero-pad to this many digits.",
+                "minimum": 0,
+                "maximum": 12
+              },
+              "start": {
+                "type": "integer",
+                "description": "auto_number: first number.",
+                "minimum": 0
+              },
+              "formula": {
+                "type": "string",
+                "description": "calculated: e.g. \"{Price} * {Qty}\"."
+              },
+              "aggregate": {
+                "type": "object",
+                "properties": {
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "linkedFrom",
+                      "linked",
+                      "all"
+                    ]
+                  },
+                  "collection": {
+                    "type": "string",
+                    "description": "An id, or a name/label/title (case-insensitive)."
+                  },
+                  "referenceField": {
+                    "type": "string",
+                    "description": "An id, or a name/label/title (case-insensitive)."
+                  },
+                  "op": {
+                    "type": "string",
+                    "enum": [
+                      "count",
+                      "sum",
+                      "average",
+                      "min",
+                      "max"
+                    ]
+                  },
+                  "field": {
+                    "type": "string",
+                    "description": "An id, or a name/label/title (case-insensitive)."
+                  },
+                  "where": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "field": {
+                          "type": "string",
+                          "description": "A field id or name, or @createdAt / @updatedAt."
+                        },
+                        "op": {
+                          "type": "string",
+                          "enum": [
+                            "isEmpty",
+                            "isNotEmpty",
+                            "equals",
+                            "notEquals",
+                            "contains",
+                            "notContains",
+                            "greaterThan",
+                            "lessThan",
+                            "before",
+                            "after",
+                            "onDay",
+                            "anyOf",
+                            "noneOf",
+                            "isTrue",
+                            "isFalse"
+                          ]
+                        },
+                        "value": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "boolean"
+                            },
+                            {
+                              "type": "array",
+                              "items": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "boolean"
+                                  }
+                                ]
+                              }
+                            }
+                          ],
+                          "description": "The operand; a list for anyOf/noneOf."
+                        },
+                        "relative": {
+                          "type": "string",
+                          "enum": [
+                            "today",
+                            "yesterday",
+                            "tomorrow",
+                            "this_week",
+                            "last_week",
+                            "this_month",
+                            "last_month",
+                            "this_year",
+                            "last_n_days",
+                            "next_n_days"
+                          ],
+                          "description": "A date relative to today, instead of value."
+                        },
+                        "n": {
+                          "type": "integer",
+                          "description": "Days for last_n_days / next_n_days.",
+                          "minimum": 1
+                        }
+                      },
+                      "required": [
+                        "field",
+                        "op"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "description": "Filters, all of which must match.",
+                    "minItems": 1,
+                    "maxItems": 10
+                  }
+                },
+                "required": [
+                  "source",
+                  "collection",
+                  "op"
+                ],
+                "additionalProperties": false,
+                "description": "calculated: summarize linked or all cards."
+              },
+              "lookup": {
+                "type": "object",
+                "properties": {
+                  "via": {
+                    "type": "string",
+                    "description": "An id, or a name/label/title (case-insensitive)."
+                  },
+                  "field": {
+                    "type": "string",
+                    "description": "An id, or a name/label/title (case-insensitive)."
+                  }
+                },
+                "required": [
+                  "via"
+                ],
+                "additionalProperties": false,
+                "description": "calculated: show a field of the linked card."
+              },
+              "addOptions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "label": {
+                      "type": "string"
+                    },
+                    "color": {
+                      "type": "string",
+                      "description": "#RRGGBB"
+                    }
+                  },
+                  "required": [
+                    "label"
+                  ],
+                  "additionalProperties": false
+                },
+                "minItems": 1
+              },
+              "renameOptions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "option": {
+                      "type": "string",
+                      "description": "An id, or a name/label/title (case-insensitive)."
+                    },
+                    "label": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "option",
+                    "label"
+                  ],
+                  "additionalProperties": false
+                },
+                "minItems": 1
+              },
+              "removeOptions": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "description": "An option to remove; cards using it are cleared."
+                },
+                "minItems": 1
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "collection",
+          "field",
+          "patch"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "planned"
+            ]
+          },
+          "planId": {
+            "type": "string"
+          },
+          "itemCount": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "summary": {
+            "type": "string"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "status",
+          "planId",
+          "itemCount",
+          "summary"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "harness.describe",
+      "since": "1.0",
+      "kind": "read",
+      "capability": "schema:read",
+      "summary": "Describes the harness API: every op with its JSON Schemas, the error codes, capabilities and event names.",
+      "modelVisible": false,
+      "args": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "apiVersion": {
+            "type": "string",
+            "description": "major.minor"
+          },
+          "ops": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "since": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "read",
+                    "plan",
+                    "ui",
+                    "commit"
+                  ]
+                },
+                "capability": {
+                  "type": "string",
+                  "enum": [
+                    "schema:read",
+                    "data:read",
+                    "data:write",
+                    "data:delete",
+                    "schema:write",
+                    "schema:delete",
+                    "views:write",
+                    "ui:navigate",
+                    "host:commit"
+                  ]
+                },
+                "exempt": {
+                  "type": "string"
+                },
+                "summary": {
+                  "type": "string"
+                },
+                "modelVisible": {
+                  "type": "boolean"
+                },
+                "args": {
+                  "type": "object",
+                  "description": "JSON Schema"
+                },
+                "result": {
+                  "type": "object",
+                  "description": "JSON Schema"
+                }
+              },
+              "required": [
+                "id",
+                "since",
+                "kind",
+                "summary",
+                "modelVisible",
+                "args",
+                "result"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "errorCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "apiVersion",
+          "ops",
+          "errorCodes",
+          "capabilities",
+          "events"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "journal.restore",
+      "since": "1.0",
+      "kind": "commit",
+      "capability": "host:commit",
+      "summary": "Re-validates a mirrored journal entry after a reload and makes it undoable again until its original expiry.",
+      "modelVisible": false,
+      "args": {
+        "type": "object",
+        "properties": {
+          "entry": {
+            "type": "object",
+            "description": "A JournalEntry (schema 1) as plans.commit returned it."
+          }
+        },
+        "required": [
+          "entry"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "journalId": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string"
+          },
+          "dropped": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "journalId",
+          "expiresAt",
+          "dropped"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "journal.undo",
+      "since": "1.0",
+      "kind": "commit",
+      "capability": "host:commit",
+      "summary": "Reverts a commit, skipping what changed since.",
+      "modelVisible": false,
+      "args": {
+        "type": "object",
+        "properties": {
+          "journalId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "journalId"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "reverted": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "skipped": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "failed": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "reverted",
+          "skipped",
+          "failed",
+          "summary"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "plans.commit",
+      "since": "1.0",
+      "kind": "commit",
+      "capability": "host:commit",
+      "summary": "Applies the ticked items of an approved plan and journals their undo.",
+      "modelVisible": false,
+      "args": {
+        "type": "object",
+        "properties": {
+          "planId": {
+            "type": "string"
+          },
+          "itemIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The ticked items; all of them when absent."
+          }
+        },
+        "required": [
+          "planId"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "planId": {
+            "type": "string"
+          },
+          "applied": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "queued": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Written locally; the server ack is pending."
+          },
+          "declinedByUser": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "stale": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "itemId": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string",
+                  "enum": [
+                    "changed_elsewhere",
+                    "missing"
+                  ]
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "failed": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "itemId": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "journalId": {
+            "type": "string"
+          },
+          "undoUntil": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "journal": {
+            "type": "object",
+            "description": "The JournalEntry (schema 1) to mirror on the chat message; absent above 400 KB."
+          }
+        },
+        "required": [
+          "planId",
+          "applied",
+          "queued",
+          "declinedByUser",
+          "stale",
+          "failed",
+          "summary"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "plans.get",
+      "since": "1.0",
+      "kind": "read",
+      "capability": null,
+      "exempt": "own plan, or the user",
+      "summary": "Returns a plan with every item, for the approval card.",
+      "modelVisible": false,
+      "args": {
+        "type": "object",
+        "properties": {
+          "planId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "planId"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "planId": {
+            "type": "string"
+          },
+          "turnId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "risk": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ]
+          },
+          "createdBy": {
+            "type": "object",
+            "properties": {
+              "actor": {
+                "type": "string"
+              },
+              "grants": {
+                "type": "object"
+              }
+            },
+            "additionalProperties": false
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string"
+          },
+          "itemCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "itemId, callId, kind, label, collectionId, targetId?, risk, changes[{fieldId?, field, beforeText?, afterText?}], detail?, dependsOn?, plus the kind's data."
+            }
+          },
+          "moreItems": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "sharedChange": {
+            "type": "object"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "moreNotes": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "undo": {
+            "type": "string",
+            "enum": [
+              "full",
+              "partial",
+              "none"
+            ]
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "callId": {
+                  "type": "string"
+                },
+                "error": {
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "plans.reject",
+      "since": "1.0",
+      "kind": "commit",
+      "capability": "host:commit",
+      "summary": "Drops a plan without writing anything.",
+      "modelVisible": false,
+      "args": {
+        "type": "object",
+        "properties": {
+          "planId": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "user",
+              "skipped"
+            ]
+          }
+        },
+        "required": [
+          "planId"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "plans.retryFailed",
+      "since": "1.0",
+      "kind": "commit",
+      "capability": "host:commit",
+      "summary": "Retries the failed items of a committed plan.",
+      "modelVisible": false,
+      "args": {
+        "type": "object",
+        "properties": {
+          "planId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "planId"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "planId": {
+            "type": "string"
+          },
+          "applied": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "queued": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Written locally; the server ack is pending."
+          },
+          "declinedByUser": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "stale": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "itemId": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string",
+                  "enum": [
+                    "changed_elsewhere",
+                    "missing"
+                  ]
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "failed": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "itemId": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "journalId": {
+            "type": "string"
+          },
+          "undoUntil": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "journal": {
+            "type": "object",
+            "description": "The JournalEntry (schema 1) to mirror on the chat message; absent above 400 KB."
+          }
+        },
+        "required": [
+          "planId",
+          "applied",
+          "queued",
+          "declinedByUser",
+          "stale",
+          "failed",
+          "summary"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "plans.seal",
+      "since": "1.0",
+      "kind": "plan",
+      "capability": null,
+      "exempt": "own turn",
+      "summary": "Merges the plan calls of the caller's turn into one plan for the user to approve, or lists the calls that failed.",
+      "modelVisible": false,
+      "args": {
+        "type": "object",
+        "properties": {
+          "turnId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "turnId"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "planId": {
+            "type": "string"
+          },
+          "turnId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "risk": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ]
+          },
+          "createdBy": {
+            "type": "object",
+            "properties": {
+              "actor": {
+                "type": "string"
+              },
+              "grants": {
+                "type": "object"
+              }
+            },
+            "additionalProperties": false
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string"
+          },
+          "itemCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "itemId, callId, kind, label, collectionId, targetId?, risk, changes[{fieldId?, field, beforeText?, afterText?}], detail?, dependsOn?, plus the kind's data."
+            }
+          },
+          "moreItems": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "sharedChange": {
+            "type": "object"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "moreNotes": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "undo": {
+            "type": "string",
+            "enum": [
+              "full",
+              "partial",
+              "none"
+            ]
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "callId": {
+                  "type": "string"
+                },
+                "error": {
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "ui.open",
+      "since": "1.0",
+      "kind": "ui",
+      "capability": "ui:navigate",
+      "summary": "Posts a chip that opens a collection, a view, a card or a filtered list when the user taps it. \"@card\" is the open card.",
+      "modelVisible": true,
+      "args": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "A collection id or name."
+          },
+          "from": {
+            "type": "string",
+            "enum": [
+              "@screen"
+            ],
+            "description": "The collection on screen, instead of \"collection\"."
+          },
+          "view": {
+            "type": "string",
+            "description": "A view id or name."
+          },
+          "card": {
+            "type": "string",
+            "description": "A card id or title, or \"@card\"."
+          },
+          "where": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "description": "A field id or name, or @createdAt / @updatedAt."
+                },
+                "op": {
+                  "type": "string",
+                  "enum": [
+                    "isEmpty",
+                    "isNotEmpty",
+                    "equals",
+                    "notEquals",
+                    "contains",
+                    "notContains",
+                    "greaterThan",
+                    "lessThan",
+                    "before",
+                    "after",
+                    "onDay",
+                    "anyOf",
+                    "noneOf",
+                    "isTrue",
+                    "isFalse"
+                  ]
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "boolean"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "description": "The operand; a list for anyOf/noneOf."
+                },
+                "relative": {
+                  "type": "string",
+                  "enum": [
+                    "today",
+                    "yesterday",
+                    "tomorrow",
+                    "this_week",
+                    "last_week",
+                    "this_month",
+                    "last_month",
+                    "this_year",
+                    "last_n_days",
+                    "next_n_days"
+                  ],
+                  "description": "A date relative to today, instead of value."
+                },
+                "n": {
+                  "type": "integer",
+                  "description": "Days for last_n_days / next_n_days.",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "field",
+                "op"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Filters, all of which must match.",
+            "minItems": 1,
+            "maxItems": 10
+          }
+        },
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "shown": {
+            "type": "boolean"
+          },
+          "collectionId": {
+            "type": "string"
+          },
+          "viewId": {
+            "type": "string"
+          },
+          "cardId": {
+            "type": "string"
+          },
+          "where": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "description": "A field id or name, or @createdAt / @updatedAt."
+                },
+                "op": {
+                  "type": "string",
+                  "enum": [
+                    "isEmpty",
+                    "isNotEmpty",
+                    "equals",
+                    "notEquals",
+                    "contains",
+                    "notContains",
+                    "greaterThan",
+                    "lessThan",
+                    "before",
+                    "after",
+                    "onDay",
+                    "anyOf",
+                    "noneOf",
+                    "isTrue",
+                    "isFalse"
+                  ]
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "boolean"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "description": "The operand; a list for anyOf/noneOf."
+                },
+                "relative": {
+                  "type": "string",
+                  "enum": [
+                    "today",
+                    "yesterday",
+                    "tomorrow",
+                    "this_week",
+                    "last_week",
+                    "this_month",
+                    "last_month",
+                    "this_year",
+                    "last_n_days",
+                    "next_n_days"
+                  ],
+                  "description": "A date relative to today, instead of value."
+                },
+                "n": {
+                  "type": "integer",
+                  "description": "Days for last_n_days / next_n_days.",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "field",
+                "op"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Filters, all of which must match.",
+            "minItems": 1,
+            "maxItems": 10
+          },
+          "label": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "shown",
+          "collectionId",
+          "label",
+          "summary"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "views.create",
+      "since": "1.0",
+      "kind": "plan",
+      "capability": "views:write",
+      "summary": "Plans a new saved view of a collection (a table, board, list, calendar or summary with its own filters and sort).",
+      "modelVisible": true,
+      "args": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "An id, or a name/label/title (case-insensitive)."
+          },
+          "name": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "table",
+              "board",
+              "list",
+              "calendar",
+              "summary"
+            ],
+            "description": "board needs a single-select or single-link layoutField, calendar a date one; list may take one; table and summary none."
+          },
+          "where": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "description": "A field id or name, or @createdAt / @updatedAt."
+                },
+                "op": {
+                  "type": "string",
+                  "enum": [
+                    "isEmpty",
+                    "isNotEmpty",
+                    "equals",
+                    "notEquals",
+                    "contains",
+                    "notContains",
+                    "greaterThan",
+                    "lessThan",
+                    "before",
+                    "after",
+                    "onDay",
+                    "anyOf",
+                    "noneOf",
+                    "isTrue",
+                    "isFalse"
+                  ]
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "boolean"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "description": "The operand; a list for anyOf/noneOf."
+                },
+                "relative": {
+                  "type": "string",
+                  "enum": [
+                    "today",
+                    "yesterday",
+                    "tomorrow",
+                    "this_week",
+                    "last_week",
+                    "this_month",
+                    "last_month",
+                    "this_year",
+                    "last_n_days",
+                    "next_n_days"
+                  ],
+                  "description": "A date relative to today, instead of value."
+                },
+                "n": {
+                  "type": "integer",
+                  "description": "Days for last_n_days / next_n_days.",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "field",
+                "op"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Filters, all of which must match.",
+            "minItems": 1,
+            "maxItems": 10
+          },
+          "sort": {
+            "type": "object",
+            "properties": {
+              "field": {
+                "type": "string",
+                "description": "A field id or name, or @createdAt / @updatedAt."
+              },
+              "dir": {
+                "type": "string",
+                "enum": [
+                  "asc",
+                  "desc"
+                ]
+              }
+            },
+            "required": [
+              "field",
+              "dir"
+            ],
+            "additionalProperties": false
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "An id, or a name/label/title (case-insensitive)."
+            },
+            "description": "The fields shown, in order (the first is the title).",
+            "minItems": 1,
+            "maxItems": 40
+          },
+          "layoutField": {
+            "type": "string",
+            "description": "The field the mode lays out by."
+          }
+        },
+        "required": [
+          "collection",
+          "name",
+          "mode"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "planned"
+            ]
+          },
+          "planId": {
+            "type": "string"
+          },
+          "itemCount": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "summary": {
+            "type": "string"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "status",
+          "planId",
+          "itemCount",
+          "summary"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "views.delete",
+      "since": "1.0",
+      "kind": "plan",
+      "capability": "views:write",
+      "summary": "Plans deleting a saved view; a collection keeps at least one.",
+      "modelVisible": true,
+      "args": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "An id, or a name/label/title (case-insensitive)."
+          },
+          "view": {
+            "type": "string",
+            "description": "An id, or a name/label/title (case-insensitive)."
+          }
+        },
+        "required": [
+          "collection",
+          "view"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "planned"
+            ]
+          },
+          "planId": {
+            "type": "string"
+          },
+          "itemCount": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "summary": {
+            "type": "string"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "status",
+          "planId",
+          "itemCount",
+          "summary"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "views.update",
+      "since": "1.0",
+      "kind": "plan",
+      "capability": "views:write",
+      "summary": "Plans changing a saved view; where replaces its filters, and sort and fields replace its own.",
+      "modelVisible": true,
+      "args": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "An id, or a name/label/title (case-insensitive)."
+          },
+          "view": {
+            "type": "string",
+            "description": "An id, or a name/label/title (case-insensitive)."
+          },
+          "name": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "table",
+              "board",
+              "list",
+              "calendar",
+              "summary"
+            ],
+            "description": "board needs a single-select or single-link layoutField, calendar a date one; list may take one; table and summary none."
+          },
+          "where": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "description": "A field id or name, or @createdAt / @updatedAt."
+                },
+                "op": {
+                  "type": "string",
+                  "enum": [
+                    "isEmpty",
+                    "isNotEmpty",
+                    "equals",
+                    "notEquals",
+                    "contains",
+                    "notContains",
+                    "greaterThan",
+                    "lessThan",
+                    "before",
+                    "after",
+                    "onDay",
+                    "anyOf",
+                    "noneOf",
+                    "isTrue",
+                    "isFalse"
+                  ]
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "boolean"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "description": "The operand; a list for anyOf/noneOf."
+                },
+                "relative": {
+                  "type": "string",
+                  "enum": [
+                    "today",
+                    "yesterday",
+                    "tomorrow",
+                    "this_week",
+                    "last_week",
+                    "this_month",
+                    "last_month",
+                    "this_year",
+                    "last_n_days",
+                    "next_n_days"
+                  ],
+                  "description": "A date relative to today, instead of value."
+                },
+                "n": {
+                  "type": "integer",
+                  "description": "Days for last_n_days / next_n_days.",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "field",
+                "op"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Filters, all of which must match.",
+            "minItems": 1,
+            "maxItems": 10
+          },
+          "sort": {
+            "type": "object",
+            "properties": {
+              "field": {
+                "type": "string",
+                "description": "A field id or name, or @createdAt / @updatedAt."
+              },
+              "dir": {
+                "type": "string",
+                "enum": [
+                  "asc",
+                  "desc"
+                ]
+              }
+            },
+            "required": [
+              "field",
+              "dir"
+            ],
+            "additionalProperties": false
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "An id, or a name/label/title (case-insensitive)."
+            },
+            "description": "The fields shown, in order (the first is the title).",
+            "minItems": 1,
+            "maxItems": 40
+          },
+          "layoutField": {
+            "type": "string",
+            "description": "The field the mode lays out by."
+          }
+        },
+        "required": [
+          "collection",
+          "view"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "planned"
+            ]
+          },
+          "planId": {
+            "type": "string"
+          },
+          "itemCount": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "summary": {
+            "type": "string"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "status",
+          "planId",
+          "itemCount",
+          "summary"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "workspace.describe",
+      "since": "1.0",
+      "kind": "read",
+      "capability": "schema:read",
+      "summary": "Lists the collections with their fields (type, options, links, formulas) and views. detail \"full\" adds option ids and descriptions.",
+      "modelVisible": true,
+      "args": {
+        "type": "object",
+        "properties": {
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "An id, or a name/label/title (case-insensitive)."
+            },
+            "description": "Only these collections.",
+            "maxItems": 30
+          },
+          "detail": {
+            "type": "string",
+            "enum": [
+              "digest",
+              "full"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "apiVersion": {
+            "type": "string"
+          },
+          "today": {
+            "type": "string"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "hint": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "apiVersion",
+          "today",
+          "collections",
+          "summary"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "errorCodes": [
+    "required",
+    "out_of_range",
+    "too_long",
+    "invalid_option",
+    "invalid_reference",
+    "too_many_references",
+    "too_many_files",
+    "invalid_extension",
+    "invalid_args",
+    "unsupported_version",
+    "unknown_op",
+    "not_permitted",
+    "wrong_type",
+    "unknown_collection",
+    "unknown_field",
+    "unknown_view",
+    "unknown_option",
+    "unknown_object",
+    "ambiguous_reference",
+    "invalid_filter",
+    "read_only_field",
+    "type_locked",
+    "schema_invalid",
+    "formula_error",
+    "formula_cycle",
+    "count_mismatch",
+    "last_view",
+    "limit_exceeded",
+    "plan_expired",
+    "stale_preview",
+    "offline",
+    "conflict",
+    "unsupported",
+    "internal"
+  ],
+  "capabilities": [
+    "schema:read",
+    "data:read",
+    "data:write",
+    "data:delete",
+    "schema:write",
+    "schema:delete",
+    "views:write",
+    "ui:navigate",
+    "host:commit"
+  ],
+  "events": [
+    "progress"
+  ]
+}
