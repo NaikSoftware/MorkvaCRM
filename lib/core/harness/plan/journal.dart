@@ -56,8 +56,9 @@ final class Journal {
   void reset() => _entries.clear();
 
   /// Re-validates the mirrored [json] and puts it back with its original
-  /// expiry. [collections] is the live schema. Throws `invalid_args` for an
-  /// unreadable entry, `plan_expired` past its `expiresAt` and
+  /// expiry, capped at `createdAt` + [ttl]. [collections] is the live
+  /// schema. Throws `invalid_args` for an unreadable entry or one made after
+  /// [now], `plan_expired` past its expiry or when no item survives, and
   /// `not_permitted` when [actor] did not commit it.
   ///
   /// An item survives only if it can still apply as written: its collection
@@ -81,7 +82,25 @@ final class Journal {
         path: 'entry',
       );
     }
-    final entry = parsed.entry;
+    final head = parsed.entry;
+    if (head.createdAt.isAfter(now)) {
+      throw HarnessException.of(
+        ErrorCode.invalidArgs,
+        'The journal entry was made in the future '
+        '(${head.createdAt.toUtc().toIso8601String()}).',
+        path: 'entry.createdAt',
+      );
+    }
+    // The mirror is member-writable: undo never outlives createdAt + ttl.
+    final limit = head.createdAt.add(ttl);
+    final entry = JournalEntry(
+      journalId: head.journalId,
+      planId: head.planId,
+      actor: head.actor,
+      createdAt: head.createdAt,
+      expiresAt: head.expiresAt.isAfter(limit) ? limit : head.expiresAt,
+      items: head.items,
+    );
     if (entry.isExpired(now)) {
       throw HarnessException.of(
         ErrorCode.planExpired,
@@ -124,8 +143,15 @@ final class Journal {
         dropped.add((id: item.targetId, reason: reason));
       }
     }
+    if (kept.isEmpty) {
+      throw HarnessException.of(
+        ErrorCode.planExpired,
+        'Nothing of this change can be undone any more.',
+        path: 'entry.items',
+      );
+    }
     final restored = entry.withItems(kept);
-    if (kept.isNotEmpty) _entries[restored.journalId] = restored;
+    _entries[restored.journalId] = restored;
     return RestoreResult(restored, dropped);
   }
 

@@ -119,8 +119,9 @@ final class UndoResult {
 /// 4. schema and view edits, one transaction per collection on the
 ///    **server** copy (`updateCollection`, or `updateViews` when only views
 ///    change), each item stale-checked on its touched keys inside it;
-/// 5. card updates and deletes, then card creates, through
-///    `saveObjectsBatch` in chunks, stale-checked against the live cache;
+/// 5. card creates, then card updates and deletes (an update may link a
+///    created card and depends on its create), through `saveObjectsBatch`
+///    in chunks, stale-checked against the live cache;
 /// 6. a collection delete: its cards in chunks, the schema doc last, so a
 ///    failure midway can be retried.
 ///
@@ -224,11 +225,13 @@ final class PlanCommitter {
     await cache.ready;
     await c.createCollections(attempt.whereType<CreateCollectionItem>());
     await c.editSchemas(attempt.where(_isSchemaEdit));
+    // Creates first: an update may link a card created here and depends on
+    // its create, so it must see that create's outcome.
+    await c.createCards(attempt.whereType<CreateCardItem>());
     await c.editCards([
       for (final i in attempt)
         if (i is UpdateCardItem || i is DeleteCardItem) i,
     ]);
-    await c.createCards(attempt.whereType<CreateCardItem>());
     await c.deleteCollections(attempt.whereType<DeleteCollectionItem>());
     for (final i in attempt) {
       outcomes.putIfAbsent(
@@ -709,7 +712,8 @@ final class _Commit {
           if (!skip(i)) i,
       ];
       if (ready.isEmpty) continue;
-      final cached = cache.collection(cid);
+      // A collection created by this commit may not be in the cache yet.
+      final cached = schemaOf(cid);
       if (cached == null) {
         for (final i in ready) {
           settle(i, ItemOutcome.missing);
@@ -1499,14 +1503,18 @@ final class _Undo {
               skipped(item, kMissing);
               continue;
             }
-            final changed = after.entries.any(
-              (e) => switch (schema.fieldById(e.key)) {
-                null => false,
-                final f => !jsonEquals(
-                  (card[e.key] ?? f.emptyValue()).toJson(),
-                  e.value,
-                ),
-              },
+            // Every writable field: one left empty at creation and filled
+            // since is a change too.
+            final changed = schema.fields.any(
+              (f) =>
+                  f is! CalculatedFieldDefinition &&
+                  f is! AutoNumberFieldDefinition &&
+                  (after.containsKey(f.id)
+                      ? !jsonEquals(
+                          (card[f.id] ?? f.emptyValue()).toJson(),
+                          after[f.id],
+                        )
+                      : !(card[f.id]?.isEmpty ?? true)),
             );
             if (changed) {
               skipped(item, _changedSince);

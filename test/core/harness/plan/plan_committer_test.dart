@@ -2,6 +2,7 @@
 // ignore: depend_on_referenced_packages
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:morkva_crm/api/data/data_repository.dart';
 import 'package:morkva_crm/core/agent/agent_event.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/core/harness/harness.dart';
@@ -260,6 +261,105 @@ void main() {
       await h.commit(plan);
       final twice = await h.error('plans.commit', {'planId': plan.planId});
       expect(twice.code, ErrorCode.invalidArgs);
+    });
+
+    test('an update linking a card created in the same turn waits for the '
+        'create: a failed create leaves no dangling reference', () async {
+      final [n] = notShipped(1);
+      final was = h.card(SeedIds.orders, order(n))![OrderFields.client];
+      h.p.newTurn();
+      await h.p.ok('cards.create', {
+        'collection': 'Clients',
+        'cards': [
+          {
+            'ref': '@nova',
+            'values': {'Name': 'Nova Atelier'},
+          },
+        ],
+      });
+      await h.p.ok('cards.update', {
+        'collection': 'Orders',
+        'target': {
+          'ids': [order(n)],
+        },
+        'set': {'Client': '@nova'},
+      });
+      final plan = await h.p.sealPlan();
+      final create = plan.items.whereType<CreateCardItem>().single;
+      final update = plan.items.whereType<UpdateCardItem>().single;
+      expect(update.dependsOn, contains(create.itemId));
+      h.p.repo.batchWriteError = (chunk) =>
+          chunk.any((w) => w is ObjectCreate) ? 'unavailable' : null;
+
+      final r = Receipt.fromJson(await h.commit(plan));
+      expect(r.applied, isEmpty);
+      expect(
+        {for (final f in r.failed) f.itemId},
+        {create.itemId, update.itemId},
+      );
+      expect(h.card(SeedIds.orders, order(n))![OrderFields.client], was);
+      expect(h.card(SeedIds.clients, create.object.id), isNull);
+    });
+
+    test('a view on a collection created in the same turn is added even '
+        'before the cache has the new schema', () async {
+      h.p.newTurn();
+      await h.p.ok('collections.create', {
+        'collections': [
+          {
+            'ref': '@sup',
+            'name': 'Suppliers',
+            'fields': [
+              {'name': 'Name', 'type': 'text'},
+            ],
+          },
+        ],
+      });
+      await h.p.ok('views.create', {
+        'collection': '@sup',
+        'name': 'All suppliers',
+        'mode': 'table',
+      });
+      final plan = await h.p.sealPlan();
+      final id = plan.items
+          .whereType<CreateCollectionItem>()
+          .single
+          .collectionId;
+
+      final r = await h.commit(plan);
+      expect(r['stale'], isEmpty);
+      expect(r['failed'], isEmpty);
+      expect(r['applied'], hasLength(plan.itemCount));
+      expect(
+        (await h.stored(id))!.views.map((v) => v.name),
+        contains('All suppliers'),
+      );
+    });
+
+    test('a second commit of a plan still committing is refused', () async {
+      final c = CommitHarness(ackTimeout: const Duration(milliseconds: 50));
+      addTearDown(c.dispose);
+      final plan = await c.plan('cards.update', {
+        'collection': 'Orders',
+        'target': {
+          'ids': [for (final n in notShippedIn(c, 2)) order(n)],
+        },
+        'set': {'Status': 'Shipped'},
+      });
+      c.p.repo.batchNeverCompletes = true;
+      final first = c.host('plans.commit', {'planId': plan.planId});
+      await c.settle();
+      final again = await c.error('plans.commit', {'planId': plan.planId});
+      expect(again.code, ErrorCode.invalidArgs);
+      expect(again.message, contains('already committing'));
+      final retry = await c.error('plans.retryFailed', {'planId': plan.planId});
+      expect(retry.code, ErrorCode.invalidArgs);
+      expect(retry.message, contains('already committing'));
+      expect(await first, isA<HarnessOk>());
+      expect(c.p.repo.batchCalls, 1);
+      // Done: the usual "already committed" from now on.
+      final twice = await c.error('plans.commit', {'planId': plan.planId});
+      expect(twice.message, contains('already committed.'));
     });
 
     test('progress events above 20 items, ending at the total', () async {

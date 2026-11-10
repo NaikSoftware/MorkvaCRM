@@ -20,6 +20,26 @@ final class HostServices {
   final PlanStore store;
   final PlanCommitter committer;
   final Journal journal;
+
+  /// Plan and journal ids whose commit, retry or undo is running.
+  final Set<String> _running = {};
+
+  /// Runs [body] unless [id] is already running (a double click, a bloc
+  /// race): a second call fails `invalid_args` until the first is done.
+  Future<T> _once<T>(String id, String path, Future<T> Function() body) async {
+    if (!_running.add(id)) {
+      throw HarnessException.of(
+        ErrorCode.invalidArgs,
+        '"$id" is already committing; wait for it to finish.',
+        path: path,
+      );
+    }
+    try {
+      return await body();
+    } finally {
+      _running.remove(id);
+    }
+  }
 }
 
 /// Registers the host-only commit ops: `plans.commit/reject/retryFailed` and
@@ -122,6 +142,8 @@ Map<String, Object?> _receiptSchema() => JsonSchema.object(
   ],
 );
 
+/// A second `plans.commit`/`plans.retryFailed` of a plan still committing
+/// (or `journal.undo` of an entry still undoing) fails `invalid_args`.
 final _commit = _host(
   'plans.commit',
   'Applies the ticked items of an approved plan and journals their undo.',
@@ -187,6 +209,9 @@ final _undo = _host(
   ),
 );
 
+/// T11 contract: fails `plan_expired` when no item can be put back (hide
+/// Undo), and returns an `expiresAt` capped at the entry's `createdAt` +
+/// the journal's ttl; an entry dated after now fails `invalid_args`.
 final _restore = _host(
   'journal.restore',
   'Re-validates a mirrored journal entry after a reload and makes it '
@@ -264,13 +289,15 @@ Future<Map<String, Object?>> _runCommit(
       );
     }
   }
-  final result = await s.committer.commit(
-    plan,
-    ctx,
-    callId: request.callId,
-    selected: selected,
-  );
-  return _finish(s, plan, result, ctx);
+  return s._once(plan.planId, 'planId', () async {
+    final result = await s.committer.commit(
+      plan,
+      ctx,
+      callId: request.callId,
+      selected: selected,
+    );
+    return _finish(s, plan, result, ctx);
+  });
 }
 
 Future<Map<String, Object?>> _runRetry(
@@ -280,6 +307,17 @@ Future<Map<String, Object?>> _runRetry(
   HarnessRequest request,
 ) async {
   final plan = _plan(s, args, ctx);
+  // Refused before the receipt check: a retry during the first commit
+  // finds no receipt yet.
+  return s._once(plan.planId, 'planId', () => _retryOf(s, plan, ctx, request));
+}
+
+Future<Map<String, Object?>> _retryOf(
+  HostServices s,
+  Plan plan,
+  HarnessContext ctx,
+  HarnessRequest request,
+) async {
   final last = s.store.receiptOf(plan.planId);
   if (last == null) {
     throw HarnessException.of(
@@ -376,10 +414,10 @@ Future<Map<String, Object?>> _runUndo(
       path: 'journalId',
     );
   }
-  final (:result, :summary) = await s.committer.undo(
-    entry,
-    ctx,
-    callId: request.callId,
+  final (:result, :summary) = await s._once(
+    journalId,
+    'journalId',
+    () => s.committer.undo(entry, ctx, callId: request.callId),
   );
   // What failed to write stays undoable; everything else is done.
   if (result.failedItems.isEmpty) {

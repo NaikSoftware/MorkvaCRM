@@ -339,6 +339,103 @@ void main() {
       expect(h.p.repo.objectsOf(id), isEmpty);
     });
 
+    test('a created card whose empty field was filled since is kept', () async {
+      final plan = await h.plan('cards.create', {
+        'collection': 'Clients',
+        'cards': [
+          {
+            'values': {'Name': 'Nova'},
+          },
+        ],
+      });
+      final id = plan.items.whereType<CreateCardItem>().single.object.id;
+      final r = await h.commit(plan);
+      await h.settle();
+      expect(h.card(SeedIds.clients, id)![ClientFields.phone]?.isEmpty, true);
+      await edit(SeedIds.clients, id, ClientFields.phone, '+380');
+      await h.settle();
+
+      final u = await h.undo(r['journalId']! as String);
+      expect(u['reverted'], 0);
+      expect(u['skipped'], [
+        {'id': id, 'reason': 'changed_since'},
+      ]);
+      expect(h.card(SeedIds.clients, id)![ClientFields.phone], isNotNull);
+    });
+
+    test('collections.create undo keeps the collection when its seed card '
+        'was filled in since', () async {
+      final plan = await h.plan('collections.create', {
+        'collections': [
+          {
+            'ref': '@sup',
+            'name': 'Suppliers',
+            'fields': [
+              {'name': 'Name', 'type': 'text'},
+              {'name': 'Phone', 'type': 'text'},
+            ],
+          },
+        ],
+        'cards': [
+          {
+            'collection': '@sup',
+            'values': {'Name': 'Nova'},
+          },
+        ],
+      });
+      final create = plan.items.whereType<CreateCollectionItem>().single;
+      final seedCard = plan.items.whereType<CreateCardItem>().single.object;
+      final phone = create.collection.fields
+          .firstWhere((f) => f.name == 'Phone')
+          .id;
+      final r = await h.commit(plan);
+      await h.settle();
+      final card = h.card(create.collectionId, seedCard.id)!;
+      final stored = (await h.stored(create.collectionId))!;
+      await h.p.repo.saveObject(
+        card.copyWith(
+          values: {...card.values, phone: const TextFieldValue('+380')},
+        ),
+        schema: stored,
+      );
+      await h.settle();
+
+      final u = await h.undo(r['journalId']! as String);
+      expect(u['reverted'], 0);
+      expect(u['skipped'], [
+        {'id': seedCard.id, 'reason': 'changed_since'},
+        {'id': create.collectionId, 'reason': 'has_cards'},
+      ]);
+      expect(await h.stored(create.collectionId), isNotNull);
+      expect(
+        h.card(create.collectionId, seedCard.id)![phone],
+        const TextFieldValue('+380'),
+      );
+    });
+
+    test('a second undo of an entry still undoing is refused', () async {
+      final c = CommitHarness(ackTimeout: const Duration(milliseconds: 50));
+      addTearDown(c.dispose);
+      final plan = await c.plan('cards.update', {
+        'collection': 'Orders',
+        'target': {
+          'ids': [for (final n in notShipped(1)) order(n)],
+        },
+        'set': {'Status': 'Shipped'},
+      });
+      final r = await c.commit(plan);
+      await c.settle();
+      final id = r['journalId']! as String;
+      c.p.repo.batchNeverCompletes = true;
+      final first = c.host('journal.undo', {'journalId': id});
+      await c.settle();
+      final again = await c.error('journal.undo', {'journalId': id});
+      expect(again.code, ErrorCode.invalidArgs);
+      expect(again.message, contains('already committing'));
+      expect(await first, isA<HarnessOk>());
+      expect(c.p.repo.batchCalls, 2);
+    });
+
     test('offline undo writes nothing; an expired one is refused', () async {
       final r = await shipAndCommit(notShipped(1));
       final id = r['journalId']! as String;
@@ -531,6 +628,46 @@ void main() {
         expect(h.journal.get(r['journalId']! as String), isNull);
       },
     );
+
+    test('a tampered expiry is capped at createdAt + 10 min; a future '
+        'createdAt is refused', () async {
+      final r = await shipAndCommit(notShipped(1));
+      final mirror =
+          jsonDecode(jsonEncode(r['journal'])) as Map<String, Object?>;
+      h.journal.reset();
+      final future = await h.error('journal.restore', {
+        'entry': {
+          ...mirror,
+          'createdAt': now.add(const Duration(days: 1)).toIso8601String(),
+          'expiresAt': now.add(const Duration(days: 2)).toIso8601String(),
+        },
+      });
+      expect(future.code, ErrorCode.invalidArgs);
+      expect(future.path, 'entry.createdAt');
+
+      final tampered = {
+        ...mirror,
+        'expiresAt': now.add(const Duration(days: 365)).toIso8601String(),
+      };
+      final restored = await h.ok('journal.restore', {'entry': tampered});
+      expect(restored['expiresAt'], r['undoUntil']);
+      final late = await h.error('journal.undo', {
+        'journalId': r['journalId'],
+      }, at: now.add(const Duration(minutes: 10)));
+      expect(late.code, ErrorCode.planExpired);
+    });
+
+    test('an entry with nothing left to restore fails plan_expired', () async {
+      final r = await shipAndCommit(notShipped(1));
+      final mirror =
+          jsonDecode(jsonEncode(r['journal'])) as Map<String, Object?>;
+      final item = (mirror['items']! as List).single as Map<String, Object?>;
+      item['extra'] = true;
+      h.journal.reset();
+      final e = await h.error('journal.restore', {'entry': mirror});
+      expect(e.code, ErrorCode.planExpired);
+      expect(h.journal.get(r['journalId']! as String), isNull);
+    });
   });
 
   group('JournalEntry', () {
