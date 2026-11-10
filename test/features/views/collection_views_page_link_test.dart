@@ -19,6 +19,10 @@ final _wonOrLead = [
 void _go(WidgetTester tester, String location) =>
     GoRouter.of(tester.element(find.byType(CollectionViewsPage))).go(location);
 
+Uri _uri(WidgetTester tester) => GoRouter.of(
+  tester.element(find.byType(CollectionViewsPage)),
+).routerDelegate.currentConfiguration.uri;
+
 void main() {
   setUp(resetFirstItemNudges);
 
@@ -40,23 +44,42 @@ void main() {
       expect(state.activeView.filters, isEmpty);
     });
 
-    testWidgets('the same link again is not re-applied', (tester) async {
-      final cubit = await pumpWorkPage(
-        tester,
-        location: collectionLink('deals', where: _wonOrLead),
-      );
+    testWidgets('a cleared link filter leaves the location; the same link '
+        'applies again', (tester) async {
+      final link = collectionLink('deals', where: _wonOrLead);
+      final cubit = await pumpWorkPage(tester, location: link);
       expect(find.textContaining('From assistant'), findsOneWidget);
       cubit.clearTransientFilters();
       await tester.pumpAndSettle();
-      // A new location with the same (view, filter, card) keeps the user's
-      // choice.
-      _go(tester, '${collectionLink('deals', where: _wonOrLead)}&x=1');
+      expect(_uri(tester).queryParameters, isEmpty);
+      // Another location on the page keeps the user's choice.
+      _go(tester, '/collections/deals?x=1');
       await tester.pumpAndSettle();
       expect(find.textContaining('From assistant'), findsNothing);
-      // A different link applies again.
-      _go(tester, collectionLink('deals', view: 'all', where: _wonOrLead));
+      // The same chip tapped again is a new link.
+      _go(tester, link);
       await tester.pumpAndSettle();
       expect(find.textContaining('From assistant'), findsOneWidget);
+    });
+
+    testWidgets('a view link applies again after the user switched views', (
+      tester,
+    ) async {
+      final cubit = await pumpWorkPage(tester);
+      final link = collectionLink('deals', view: 'board');
+      _go(tester, link);
+      await tester.pumpAndSettle();
+      expect((cubit.state as ViewsReady).activeViewId, 'board');
+      // While the linked view shows, the location keeps it.
+      expect(_uri(tester).queryParameters['view'], 'board');
+
+      cubit.selectView('all');
+      await tester.pumpAndSettle();
+      expect(_uri(tester).queryParameters.containsKey('view'), isFalse);
+
+      _go(tester, link);
+      await tester.pumpAndSettle();
+      expect((cubit.state as ViewsReady).activeViewId, 'board');
     });
 
     testWidgets('a cold link selects the view and filters it', (tester) async {
@@ -113,12 +136,8 @@ void main() {
       await tester.tap(find.byTooltip('Close').last);
       await tester.pumpAndSettle();
       expect(find.byType(ObjectEditor), findsNothing);
-      final router = GoRouter.of(
-        tester.element(find.byType(CollectionViewsPage)),
-      );
-      final uri = router.routerDelegate.currentConfiguration.uri;
-      expect(uri.queryParameters.containsKey('card'), isFalse);
-      expect(uri.queryParameters['filter'], isNotNull);
+      // Clearing took the filter out of the location; closing took the card.
+      expect(_uri(tester).queryParameters, isEmpty);
       expect((cubit.state as ViewsReady).transientFilters, isEmpty);
 
       _go(tester, link);

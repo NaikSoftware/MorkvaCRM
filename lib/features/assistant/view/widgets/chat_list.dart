@@ -161,21 +161,27 @@ class _ChatListState extends State<ChatList> {
 
 /// [items] in reading order: a turn's intro text that arrived after its
 /// result ("Here are the 2 orders:" below the table) moves above the turn's
-/// first table or chart, as the mockups put it. Moved: a text after that
-/// result ending with ':', or the turn's only text.
+/// first table or chart, as the mockups put it. Moved: a settled text that
+/// trails the turn's results (no table, chart, plan or applied card after it)
+/// and ends with ':' or is the turn's only text. A text still streaming stays
+/// put, so it never jumps while it grows.
 @visibleForTesting
 List<ChatItem> displayOrder(List<ChatItem> items) {
   final out = <ChatItem>[];
   var turn = <ChatItem>[];
+  bool isResult(ChatItem i) =>
+      i is TableItem || i is ChartItem || i is PlanItem || i is AppliedItem;
   void flush() {
     final first = turn.indexWhere((i) => i is TableItem || i is ChartItem);
     if (first < 0) {
       out.addAll(turn);
     } else {
       final texts = turn.whereType<AssistantTextItem>().length;
+      final last = turn.lastIndexWhere(isResult);
       final intro = [
-        for (final i in turn.skip(first + 1))
+        for (final i in turn.skip(last + 1))
           if (i is AssistantTextItem &&
+              !i.streaming &&
               (texts == 1 || i.currentText.trimRight().endsWith(':')))
             i,
       ];

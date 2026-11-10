@@ -285,6 +285,9 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
     _emitReady();
   }
 
+  /// An [openLink] is still waiting to be applied.
+  bool get linkPending => _pendingLink != null;
+
   /// Puts [filters] over the active view, unsaved, until [clearTransientFilters]
   /// or another view is shown. Callers validate them (see `parseLinkFilter`).
   void setTransientFilters(List<ViewFilter> filters) {

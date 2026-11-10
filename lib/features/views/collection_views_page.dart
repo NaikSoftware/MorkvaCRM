@@ -133,27 +133,46 @@ class _CollectionViewsPageState extends State<CollectionViewsPage> {
     final object = state.objectById(id) ?? cubit.findObject(id);
     if (object == null) {
       _notify(context, "This link's ${itemLabelOf(state.collection)} is gone");
-      _dropCardParam(id);
+      _dropParams({'card': id});
       return;
     }
-    _openObject(context, state, object).whenComplete(() => _dropCardParam(id));
+    _openObject(
+      context,
+      state,
+      object,
+    ).whenComplete(() => _dropParams({'card': id}));
   }
 
-  /// Takes the handled `card` out of the location (in place, no history
-  /// entry), so the same chip tapped again is a new link and reopens it.
-  void _dropCardParam(String id) {
+  /// Once the user leaves the linked view or clears the linked filter, takes
+  /// them out of the location, so the same chip tapped again applies them.
+  void _dropLeftLink() {
+    final (view, filter, _) = _link ?? (null, null, null);
+    final cubit = context.read<CollectionViewsCubit>();
+    // The current state, not the delivered one: that may predate the link.
+    final state = cubit.state;
+    if (state is! ViewsReady || cubit.linkPending) return;
+    final left =
+        (view != null && state.activeViewId != view) ||
+        (filter != null && state.transientFilters.isEmpty);
+    if (left) _dropParams({'view': ?view, 'filter': ?filter});
+  }
+
+  /// Takes [handled] link parameters out of the location (in place, no
+  /// history entry), so the same chip tapped again is a new link.
+  void _dropParams(Map<String, String> handled) {
     if (!mounted) return;
     final router = GoRouter.maybeOf(context);
     if (router == null) return;
     final uri = router.routerDelegate.currentConfiguration.uri;
+    final params = {...uri.queryParameters};
     // Only while this page's linked location is still the current one.
-    if (uri.queryParameters['card'] != id ||
-        uri.path != GoRouterState.of(context).uri.path) {
+    if (uri.path != GoRouterState.of(context).uri.path ||
+        handled.entries.any((e) => params[e.key] != e.value)) {
       return;
     }
-    final params = {...uri.queryParameters}..remove('card');
-    // The view and filter stay applied: don't re-apply them.
-    _link = (params['view'], params['filter'], null);
+    params.removeWhere((key, _) => handled.containsKey(key));
+    // What stays in the location stays applied: don't re-apply it.
+    _link = (params['view'], params['filter'], params['card']);
     final location = Uri(
       path: uri.path,
       queryParameters: params.isEmpty ? null : params,
@@ -201,6 +220,7 @@ class _CollectionViewsPageState extends State<CollectionViewsPage> {
       listener: (_, _) {
         _schedulePublish();
         _openPendingCard();
+        _dropLeftLink();
       },
       child: _consumer(modes),
     );

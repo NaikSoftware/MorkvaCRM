@@ -51,6 +51,20 @@ void main() {
         ids([user, table, const UserItem(id: 'u2', text: 'And?'), after]),
         ['u', 't', 'u2', 'y'],
       );
+      // A text that introduces a later card stays right above that card.
+      const t2 = TableItem(id: 't2', title: 'Overdue');
+      const mid = AssistantTextItem(id: 'm', text: 'And the overdue ones:');
+      const plan = PlanItem(
+        id: 'p',
+        plan: PlanView(planId: 'p', title: 'Mark paid'),
+        selected: {},
+      );
+      const pre = AssistantTextItem(id: 'r', text: 'I will mark these paid:');
+      expect(ids([user, table, mid, t2]), ['u', 't', 'm', 't2']);
+      expect(ids([user, table, pre, plan]), ['u', 't', 'r', 'p']);
+      // A text still streaming stays put until it settles.
+      final live = intro.copyWith(streaming: true);
+      expect(ids([user, table, live]), ['u', 't', 'x']);
     },
   );
 
