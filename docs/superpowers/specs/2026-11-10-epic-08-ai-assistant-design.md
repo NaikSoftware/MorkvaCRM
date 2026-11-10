@@ -555,7 +555,7 @@ Commit ops (`modelVisible:false`, cap `host:commit`, `actor.kind == user`; calle
 | `plans.reject` C | `{planId, reason?: "user"\|"skipped"}` | `{}` |
 | `plans.retryFailed` C | `{planId}` | the same shape as commit, retrying only the failed items; `PlanStore` keeps each plan's last receipt for the plan TTL (failed items were never journaled) (UX "Retry failed") |
 | `journal.undo` C | `{journalId}` | `{reverted:int, skipped:[{id,reason}], failed:[…]}` |
-| `journal.restore` C | `{entry: JournalEntry}` | `{journalId, expiresAt, dropped:[{id,reason}]}`; `plan_expired` if `expiresAt` passed. Re-validates every inverse item (see Undo journal) and re-inserts the entry into the in-memory Journal |
+| `journal.restore` C | `{entry: JournalEntry}` | `{journalId, expiresAt, dropped:[{id,reason}]}`; `plan_expired` if `expiresAt` passed **or no item survives re-validation**; `expiresAt` is capped at `createdAt` + 10 min; a `createdAt` in the future is `invalid_args`. Re-validates every inverse item (see Undo journal) and re-inserts the entry into the in-memory Journal |
 
 That is 8 read, 12 plan and 1 UI op: **21 tools declared to the model**, plus 3 protocol and 5
 commit ops.
@@ -1640,6 +1640,12 @@ none of them touches the same path. Every other task creates new files only.
 | All data the user can access, membership-ready | grants ∩ user access on every touched collection, per-member history path, `workspaceId` from the resolver |
 | Performance with thousands of objects | one leased listener per collection (shared with the views page), lazy indexes, a Derivation memo/skip, handles, 4/8/16 KB result caps, TPM-aware budget; perf tests at 5k cards on the VM and web `--profile` |
 | Conventions | BLoC with sealed states, pure-Dart core with the boundary test, Material house components, unit/bloc/widget tests, `flutter analyze` clean |
+
+## Build notes
+
+- **Apply order (T7):** card creates are applied **before** card updates and deletes, so an update that links a card created in the same plan sees whether that create succeeded.
+- A second `plans.commit`/`retryFailed` of a plan still committing, or `journal.undo` of an entry still undoing, fails `invalid_args` ("already committing").
+- Undo of a created card checks every writable field; a card edited since is skipped (`changed_since`) and its new collection is kept (`has_cards`).
 
 ## Review notes (revision 2)
 
