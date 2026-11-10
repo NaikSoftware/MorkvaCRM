@@ -169,6 +169,23 @@ void main() {
       expect(actions.calls, ['suggest(Orders by month this year)']);
     });
 
+    testWidgets('suggestions do nothing while sending is off', (tester) async {
+      await pumpInScope(
+        tester,
+        SizedBox(
+          height: 900,
+          child: EmptyChat(
+            state: AssistantSeeds.empty().copyWith(
+              availability: const AvailabilityOffline(),
+            ),
+          ),
+        ),
+        actions: actions,
+      );
+      await tester.tap(find.text('Orders by month this year'));
+      expect(actions.calls, isEmpty);
+    });
+
     testWidgets('consent: disclosure and "Enable Ask Morkva"', (tester) async {
       await pumpInScope(
         tester,

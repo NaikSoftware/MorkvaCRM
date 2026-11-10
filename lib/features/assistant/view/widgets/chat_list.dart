@@ -105,15 +105,22 @@ class _ChatListState extends State<ChatList> {
                   ? const EdgeInsets.all(Spacing.md)
                   : const EdgeInsets.fromLTRB(18, 18, 18, 8),
               itemCount: count,
+              // Keys sit on the builder's top-level child, so a card's state
+              // follows its item id if items ever move.
+              findChildIndexCallback: (key) {
+                if (key is! ValueKey<String>) return null;
+                final i = items.indexWhere((it) => it.id == key.value);
+                return i < 0 ? null : i;
+              },
               itemBuilder: (context, i) {
-                final child = i == items.length
+                final thinkingRow = i == items.length;
+                final child = thinkingRow
                     ? const ThinkingRow()
-                    : ChatItemView(
-                        key: ValueKey(items[i].id),
-                        item: items[i],
-                        state: state,
-                      );
+                    : ChatItemView(item: items[i], state: state);
                 return Padding(
+                  key: thinkingRow
+                      ? const ValueKey(#thinking)
+                      : ValueKey(items[i].id),
                   padding: EdgeInsets.only(top: i == 0 ? 0 : _gap(items, i)),
                   child: child,
                 );

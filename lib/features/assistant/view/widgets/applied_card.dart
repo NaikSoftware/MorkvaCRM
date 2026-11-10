@@ -91,23 +91,44 @@ class _AppliedCardState extends State<AppliedCard> {
         ? plan.notes.join(' ')
         : null;
 
-    Widget? action;
-    if (_undoOpen) {
-      action = TintedButton(
-        label: 'Undo',
-        loading: item.undoState == UndoState.undoing,
-        onPressed: () => actions.undo(receipt.journalId!),
-      );
-    } else if (failed > 0 && !undone) {
-      action = TintedButton(
-        label: 'Retry failed',
-        onPressed: () => actions.retryFailed(receipt.planId),
-      );
-    }
+    // The undo line ticks down by the minute: keep it out of the live region
+    // so the status is announced once, not on every tick.
+    final undoLine = switch (item.undoState) {
+      UndoState.undone || UndoState.failed => null,
+      _ => _undoLine(),
+    };
+    final spoken = undoLine == null
+        ? status
+        : status.replaceFirst(' · $undoLine', '');
+
+    final undo = _undoOpen
+        ? TintedButton(
+            label: 'Undo',
+            loading: item.undoState == UndoState.undoing,
+            onPressed: () => actions.undo(receipt.journalId!),
+          )
+        : null;
+    // A partly failed apply is journaled too: offer the retry while undo is
+    // open, since the plan (which retry needs) outlives it only briefly.
+    final retry = failed > 0 && !undone
+        ? TintedButton(
+            label: 'Retry failed',
+            onPressed: () => actions.retryFailed(receipt.planId),
+          )
+        : null;
+    final Widget? action = undo != null && retry != null
+        ? Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [undo, retry],
+          )
+        : undo ?? retry;
 
     return Semantics(
       container: true,
       label: schema ? 'Applied schema change' : 'Applied changes',
+      // Read on focus, never announced.
+      value: undoLine,
       child: Container(
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
@@ -140,14 +161,18 @@ class _AppliedCardState extends State<AppliedCard> {
                           ),
                         ),
                         Semantics(
+                          container: true,
                           liveRegion: true,
-                          child: Text(
-                            status,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: statusColor,
-                              fontWeight: statusColor == null
-                                  ? null
-                                  : FontWeight.w600,
+                          label: spoken,
+                          child: ExcludeSemantics(
+                            child: Text(
+                              status,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: statusColor,
+                                fontWeight: statusColor == null
+                                    ? null
+                                    : FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),

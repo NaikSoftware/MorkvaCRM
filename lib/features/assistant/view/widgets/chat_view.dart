@@ -35,35 +35,51 @@ class _AssistantChatViewState extends State<AssistantChatView> {
   final _messenger = GlobalKey<ScaffoldMessengerState>();
   final _composerKey = GlobalKey();
 
-  /// A plan applied in this thread since the last state: snackbar it.
+  /// A plan this state just finished applying: snackbar it. Only a plan the
+  /// previous state was committing counts, so an applied card that arrives
+  /// with a loaded or restored thread stays quiet.
   void _onApplied(BuildContext context, AssistantState prev, AssistantState s) {
     if (prev.threadId != s.threadId) return;
-    final known = {for (final i in prev.items) i.id};
+    final wasApplied = {
+      for (final i in prev.items.whereType<AppliedItem>()) i.receipt.planId,
+    };
+    final committing = {
+      for (final i in prev.items.whereType<PlanItem>())
+        if (i.status == PlanStatus.committing) i.plan.planId,
+    };
+    final applying = prev.phase is ApplyingPhase;
     final fresh = s.items.whereType<AppliedItem>().where(
-      (i) => !known.contains(i.id),
+      (i) =>
+          !wasApplied.contains(i.receipt.planId) &&
+          (applying || committing.contains(i.receipt.planId)),
     );
     if (fresh.isEmpty) return;
     final applied = fresh.last;
     final journal = applied.receipt.journalId;
     final actions = AssistantScope.of(context).actions;
-    final composer = _composerKey.currentContext?.findRenderObject();
-    final lift = composer is RenderBox && composer.hasSize
-        ? composer.size.height
-        : 96.0;
-    _messenger.currentState
-      ?..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(applied.receipt.summary),
-          margin: EdgeInsets.fromLTRB(14, 0, 14, lift + 8),
-          action: journal == null
-              ? null
-              : SnackBarAction(
-                  label: 'Undo',
-                  onPressed: () => actions.undo(journal),
-                ),
-        ),
-      );
+    // After the frame: the composer leaves its applying state in this same
+    // rebuild, and the snackbar sits above its new height.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final composer = _composerKey.currentContext?.findRenderObject();
+      final lift = composer is RenderBox && composer.hasSize
+          ? composer.size.height
+          : 96.0;
+      _messenger.currentState
+        ?..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(applied.receipt.summary),
+            margin: EdgeInsets.fromLTRB(14, 0, 14, lift + 8),
+            action: journal == null
+                ? null
+                : SnackBarAction(
+                    label: 'Undo',
+                    onPressed: () => actions.undo(journal),
+                  ),
+          ),
+        );
+    });
   }
 
   @override

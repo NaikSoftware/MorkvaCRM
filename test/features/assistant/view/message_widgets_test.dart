@@ -435,6 +435,56 @@ void main() {
       await tester.tap(find.text('Retry failed'));
       expect(actions.calls, ['retryFailed(p_f)']);
     });
+
+    testWidgets('a partly failed apply offers Undo and Retry failed at once', (
+      tester,
+    ) async {
+      final semantics = tester.ensureSemantics();
+      var now = testNow;
+      final until = testNow.add(const Duration(minutes: 10));
+      await pumpInScope(
+        tester,
+        AppliedCard(
+          item: AppliedItem(
+            id: 'f',
+            plan: const PlanView(planId: 'p_f', title: 'Set Status · 200'),
+            receipt: Receipt(
+              planId: 'p_f',
+              applied: [for (var i = 0; i < 190; i++) 'a$i'],
+              failed: [
+                for (var i = 0; i < 10; i++)
+                  FailedItem('b$i', 'offline', 'Needs a connection'),
+              ],
+              journalId: 'j_f',
+              undoUntil: until,
+              summary: 'Updated 190 orders',
+            ),
+            undoUntil: until,
+          ),
+        ),
+        actions: actions,
+        now: () => now,
+      );
+      expect(
+        find.text('Updated 190, 10 failed · undo available for 10 min'),
+        findsOneWidget,
+      );
+      // The live region leaves the minute countdown out.
+      expect(find.bySemanticsLabel('Updated 190, 10 failed'), findsOneWidget);
+
+      now = testNow.add(const Duration(minutes: 2));
+      await tester.pump(const Duration(seconds: 15));
+      expect(
+        find.text('Updated 190, 10 failed · undo available for 8 min'),
+        findsOneWidget,
+      );
+      expect(find.bySemanticsLabel('Updated 190, 10 failed'), findsOneWidget);
+
+      await tester.tap(find.text('Undo'));
+      await tester.tap(find.text('Retry failed'));
+      expect(actions.calls, ['undo(j_f)', 'retryFailed(p_f)']);
+      semantics.dispose();
+    });
   });
 
   group('ErrorRow', () {
@@ -493,6 +543,33 @@ void main() {
 
       await tester.tap(find.text('Retry now'));
       expect(actions.calls, ['retryNow()']);
+    });
+
+    testWidgets('announces once, not on every tick', (tester) async {
+      final semantics = tester.ensureSemantics();
+      var now = testNow;
+      await pumpInScope(
+        tester,
+        LimitBannerView(
+          banner: RetryBanner(
+            testNow.add(const Duration(seconds: 20)),
+            RetryReason.rpm,
+          ),
+        ),
+        actions: actions,
+        now: () => now,
+      );
+      final live = find.bySemanticsLabel('Gemini is busy. Retrying shortly.');
+      expect(live, findsOneWidget);
+      expect(tester.getSemantics(live).flagsCollection.isLiveRegion, isTrue);
+
+      now = testNow.add(const Duration(seconds: 1));
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.text('Gemini is busy. Retrying in 19 s.'), findsOneWidget);
+      expect(live, findsOneWidget);
+      expect(find.bySemanticsLabel(RegExp('Retrying in')), findsNothing);
+      expect(find.bySemanticsLabel(RegExp('Retry now')), findsOneWidget);
+      semantics.dispose();
     });
 
     testWidgets('TPM waits read differently', (tester) async {

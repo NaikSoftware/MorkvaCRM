@@ -75,7 +75,7 @@ class EmptyChat extends StatelessWidget {
           )
         else
           for (final group in suggestionGroups(names)) ...[
-            _SuggestionGroup(group: group),
+            _SuggestionGroup(group: group, enabled: state.availability.canSend),
             const SizedBox(height: 22),
           ],
       ],
@@ -134,9 +134,12 @@ List<SuggestionGroup> suggestionGroups(List<String> names) {
 }
 
 class _SuggestionGroup extends StatelessWidget {
-  const _SuggestionGroup({required this.group});
+  const _SuggestionGroup({required this.group, required this.enabled});
 
   final SuggestionGroup group;
+
+  /// Whether a tap can send (it cannot while the composer is disabled).
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -169,7 +172,7 @@ class _SuggestionGroup extends StatelessWidget {
         for (final text in group.items) ...[
           const SizedBox(height: Spacing.xs),
           PressableScale(
-            onPressed: () => actions.suggest(text),
+            onPressed: enabled ? () => actions.suggest(text) : null,
             semanticLabel: text,
             borderRadius: BorderRadius.circular(14),
             child: Container(

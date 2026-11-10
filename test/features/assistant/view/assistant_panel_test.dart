@@ -104,13 +104,24 @@ void main() {
       tester,
     ) async {
       final full = AssistantSeeds.analyze(now: testNow);
+      final applied = full.items.whereType<AppliedItem>().single;
+      // The plan card being written, then replaced in place by its receipt.
       final bloc = FakeAssistantBloc(
         full.copyWith(
-          items: full.items.takeWhile((i) => i is! AppliedItem).toList(),
+          items: [
+            ...full.items.takeWhile((i) => i is! AppliedItem),
+            PlanItem(
+              id: applied.id,
+              plan: applied.plan,
+              selected: const {},
+              status: PlanStatus.committing,
+            ),
+          ],
         ),
       );
       await pumpPanel(tester, bloc, actions: actions);
-      await tester.pumpAndSettle();
+      // The committing card spins: pump instead of settling.
+      await tester.pump(const Duration(seconds: 1));
       expect(find.byType(SnackBar), findsNothing);
 
       bloc.set(full);
@@ -122,6 +133,21 @@ void main() {
 
       await tester.tap(find.widgetWithText(SnackBarAction, 'Undo'));
       expect(actions.calls, ['undo(j_done)']);
+    });
+
+    testWidgets('a thread loaded in two steps raises no snackbar', (
+      tester,
+    ) async {
+      final bloc = FakeAssistantBloc.main();
+      await pumpPanel(tester, bloc, actions: actions);
+      await tester.pumpAndSettle();
+
+      final other = AssistantSeeds.analyze(now: testNow);
+      bloc.set(other.copyWith(items: const []));
+      await tester.pumpAndSettle();
+      bloc.set(other);
+      await tester.pumpAndSettle();
+      expect(find.byType(SnackBar), findsNothing);
     });
 
     testWidgets('an applied plan loaded with the thread raises no snackbar', (
@@ -266,6 +292,20 @@ void main() {
 
       await tester.tap(find.byTooltip('Stop generating'));
       expect(actions.calls, ['stop()']);
+    });
+
+    testWidgets('"New conversation" follows availability', (tester) async {
+      final bloc = FakeAssistantBloc.main();
+      await pumpPage(tester, bloc);
+      expect(find.byTooltip('New conversation'), findsOneWidget);
+
+      bloc.set(bloc.state.copyWith(availability: const AvailabilityOffline()));
+      await tester.pump();
+      expect(find.byTooltip('New conversation'), findsNothing);
+
+      bloc.set(bloc.state.copyWith(availability: const AvailabilityEnabled()));
+      await tester.pump();
+      expect(find.byTooltip('New conversation'), findsOneWidget);
     });
 
     testWidgets('back and history reach the host', (tester) async {

@@ -1,6 +1,12 @@
 // Screenshots of each Epic 8 mockup artboard's seeded state, for the design
 // critic to compare with docs/superpowers/mockups/epic-08/*.dc.html.
 //
+// The shots are pixel-exact and the fonts come from this SDK's
+// flutter_tester install, so they only match on the machine and Flutter build
+// that made them (Linux, Flutter 3.47.9). A plain `flutter test` skips them.
+//
+// Compare: flutter test --dart-define=GOLDENS=true
+//   test/features/assistant/view/assistant_screenshots_test.dart
 // Regenerate: flutter test --update-goldens
 //   test/features/assistant/view/assistant_screenshots_test.dart
 //
@@ -8,6 +14,9 @@
 // google_fonts and are not on disk, so the shots use the SDK's Roboto under
 // those family names (see loadAppFonts). Spacing, colour and layout are
 // exact; letterforms and widths differ slightly from the mockups.
+@Tags(['golden'])
+library;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/design/design.dart';
@@ -21,7 +30,15 @@ import '../fakes/assistant_seeds.dart';
 import '../fakes/fake_assistant_bloc.dart';
 import 'assistant_view_harness.dart';
 
-void main() {
+void main() => group(
+  'assistant screenshots',
+  _shots,
+  skip: const bool.fromEnvironment('GOLDENS') || autoUpdateGoldenFiles
+      ? false
+      : 'pixel-exact goldens; run with --dart-define=GOLDENS=true',
+);
+
+void _shots() {
   setUpAll(loadAppFonts);
 
   Future<void> shoot(WidgetTester tester, String name) => expectLater(
@@ -75,9 +92,11 @@ void main() {
     tester,
   ) async {
     final full = AssistantSeeds.analyze(now: testNow);
+    // Mid-commit, so the receipt that follows raises the snackbar.
     final bloc = FakeAssistantBloc(
       full.copyWith(
         items: full.items.takeWhile((i) => i is! AppliedItem).toList(),
+        phase: const ApplyingPhase(12, 12),
       ),
     );
     await pumpPanel(tester, bloc, actions: RecordingActions());

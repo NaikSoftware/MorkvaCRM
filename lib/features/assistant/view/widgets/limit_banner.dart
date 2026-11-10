@@ -57,6 +57,9 @@ class _LimitBannerViewState extends State<LimitBannerView> {
     final banner = widget.banner;
 
     final String text;
+    // What the live region says: no seconds, so it is announced once per
+    // banner instead of on every tick.
+    final String spoken;
     final bool retry;
     switch (banner) {
       case RetryBanner(:final until, :final reason):
@@ -71,17 +74,20 @@ class _LimitBannerViewState extends State<LimitBannerView> {
                 ? 'Gemini is busy. Retrying now…'
                 : 'Gemini is busy. Retrying in $seconds s.',
         };
+        spoken = reason == RetryReason.tpm
+            ? 'This conversation is large; waiting before it continues.'
+            : 'Gemini is busy. Retrying shortly.';
         retry = seconds > 0;
       case DailyLimitBanner(:final resetsAt):
         text =
             'Today’s free AI limit is used up. It resets at '
             '${clockTime(resetsAt)}.';
+        spoken = text;
         retry = false;
     }
 
     return Semantics(
       container: true,
-      liveRegion: true,
       child: Container(
         constraints: const BoxConstraints(minHeight: 48),
         padding: EdgeInsetsDirectional.fromSTEB(16, 0, retry ? 8 : 16, 0),
@@ -109,11 +115,18 @@ class _LimitBannerViewState extends State<LimitBannerView> {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Text(
-                  text,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontSize: 13,
-                    color: fg,
+                child: Semantics(
+                  container: true,
+                  liveRegion: true,
+                  label: spoken,
+                  child: ExcludeSemantics(
+                    child: Text(
+                      text,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontSize: 13,
+                        color: fg,
+                      ),
+                    ),
                   ),
                 ),
               ),

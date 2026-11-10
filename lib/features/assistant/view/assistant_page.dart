@@ -50,7 +50,9 @@ class AssistantPage extends StatelessWidget {
                     bloc: bloc,
                     buildWhen: (a, b) =>
                         a.threadTitle != b.threadTitle ||
-                        a.items.isEmpty != b.items.isEmpty,
+                        a.items.isEmpty != b.items.isEmpty ||
+                        a.availability.runtimeType !=
+                            b.availability.runtimeType,
                     builder: (context, state) => AssistantHeader(
                       subtitle: state.threadTitle,
                       onBack: onBack,
