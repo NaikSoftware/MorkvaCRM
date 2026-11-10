@@ -27,9 +27,13 @@ class ResultTableCard extends StatelessWidget {
 
     final card = ClipRRect(
       borderRadius: BorderRadius.circular(14),
-      child: DecoratedBox(
+      // The border paints over the rows, so the totals fill never covers it.
+      child: Container(
         decoration: BoxDecoration(
           color: colors.panel,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        foregroundDecoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: colors.border),
         ),

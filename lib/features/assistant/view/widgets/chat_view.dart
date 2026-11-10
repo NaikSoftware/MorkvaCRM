@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/agent/agent_event.dart' show Receipt;
 import '../../bloc/assistant_state.dart';
 import '../../bloc/chat_item.dart';
 import 'assistant_scope.dart';
@@ -69,8 +70,8 @@ class _AssistantChatViewState extends State<AssistantChatView> {
         ?..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text(applied.receipt.summary),
-            margin: EdgeInsets.fromLTRB(14, 0, 14, lift + 8),
+            content: Text(_snackText(applied.receipt)),
+            margin: EdgeInsets.fromLTRB(14, 0, 14, lift + 16),
             action: journal == null
                 ? null
                 : SnackBarAction(
@@ -85,7 +86,9 @@ class _AssistantChatViewState extends State<AssistantChatView> {
   @override
   Widget build(BuildContext context) {
     final colors = AssistantColors.of(context);
-    return ScaffoldMessenger(
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final messenger = ScaffoldMessenger(
       key: _messenger,
       child: Scaffold(
         backgroundColor: colors.panel,
@@ -99,7 +102,28 @@ class _AssistantChatViewState extends State<AssistantChatView> {
         ),
       ),
     );
+    if (scheme.brightness == Brightness.dark) return messenger;
+    // Light: the ink (#2B2018) the mockup draws, darker than the seeded
+    // inverseSurface.
+    return Theme(
+      data: theme.copyWith(
+        snackBarTheme: theme.snackBarTheme.copyWith(
+          backgroundColor: scheme.onSurface,
+        ),
+      ),
+      child: messenger,
+    );
   }
+}
+
+/// "12 orders updated": the applied count with the noun of the receipt's
+/// "Updated 12 orders"; any other summary (created, partial) reads as is.
+String _snackText(Receipt receipt) {
+  final noun = RegExp(r'^Updated \d+ (.+)$').firstMatch(receipt.summary)?[1];
+  if (noun == null || receipt.failed.isNotEmpty || receipt.stale.isNotEmpty) {
+    return receipt.summary;
+  }
+  return '${receipt.applied.length} $noun updated';
 }
 
 class _Body extends StatefulWidget {

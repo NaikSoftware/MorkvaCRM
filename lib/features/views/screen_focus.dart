@@ -18,6 +18,7 @@ AssistantFocus screenFocusOf(
     page: openCardId == null ? FocusPage.collection : FocusPage.card,
     collectionId: collection.id,
     collectionName: collection.name,
+    collectionIcon: collection.icon,
     viewId: view.id,
     viewName: view.name,
     mode: view.mode,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import '../../../design/design.dart';
 import 'widgets/assistant_header.dart';
@@ -173,6 +174,7 @@ class _ThreadListViewState extends State<ThreadListView> {
           ),
         if (widget.threads.isNotEmpty)
           SearchField(
+            dense: true,
             hintText: 'Search conversations',
             onChanged: (v) => setState(() => _query = v),
           ),
@@ -203,7 +205,9 @@ class _DayHeader extends StatelessWidget {
   );
 }
 
-class _ThreadTile extends StatelessWidget {
+/// With a mouse, the delete button shows on hover or keyboard focus; on
+/// touch-only screens it is always there.
+class _ThreadTile extends StatefulWidget {
   const _ThreadTile({
     required this.thread,
     required this.current,
@@ -219,65 +223,102 @@ class _ThreadTile extends StatelessWidget {
   final VoidCallback onDelete;
 
   @override
+  State<_ThreadTile> createState() => _ThreadTileState();
+}
+
+class _ThreadTileState extends State<_ThreadTile> {
+  bool _hovered = false;
+  bool _focused = false;
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = AssistantColors.of(context);
+    final _ThreadTile(:thread, :current, :enabled, :onTap, :onDelete) = widget;
     final time = clockTime(thread.updatedAt);
     final meta = thread.snippet == null ? time : '$time · ${thread.snippet}';
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
-      child: Opacity(
-        opacity: enabled ? 1 : 0.5,
-        child: Container(
-          decoration: BoxDecoration(
-            color: current ? colors.panel : Colors.transparent,
-            borderRadius: Radii.mdAll,
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: PressableScale(
-                  onPressed: enabled ? onTap : null,
-                  semanticLabel: '${thread.title}, $meta',
-                  borderRadius: Radii.mdAll,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(minHeight: 56),
-                    child: Padding(
-                      padding: const EdgeInsetsDirectional.fromSTEB(
-                        12,
-                        8,
-                        4,
-                        8,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            thread.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.titleSmall,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            meta,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodySmall,
-                          ),
-                        ],
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        child: Opacity(
+          opacity: enabled ? 1 : 0.5,
+          child: Container(
+            decoration: BoxDecoration(
+              color: current ? colors.panel : Colors.transparent,
+              borderRadius: Radii.mdAll,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: PressableScale(
+                    onPressed: enabled ? onTap : null,
+                    semanticLabel: '${thread.title}, $meta',
+                    borderRadius: Radii.mdAll,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(minHeight: 56),
+                      child: Padding(
+                        padding: const EdgeInsetsDirectional.fromSTEB(
+                          12,
+                          8,
+                          4,
+                          8,
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              thread.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.titleSmall,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              meta,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              IconActionButton(
-                icon: Icons.delete_outline_rounded,
-                tooltip: 'Delete “${thread.title}”',
-                onPressed: enabled ? onDelete : null,
-              ),
-            ],
+                ListenableBuilder(
+                  listenable: RendererBinding.instance.mouseTracker,
+                  builder: (context, child) {
+                    final shown =
+                        _hovered ||
+                        _focused ||
+                        !RendererBinding.instance.mouseTracker.mouseIsConnected;
+                    // Hidden: no pointer hits, but still in the focus order;
+                    // focusing it reveals it.
+                    return IgnorePointer(
+                      ignoring: !shown,
+                      child: AnimatedOpacity(
+                        opacity: shown ? 1 : 0,
+                        duration: MotionDurations.fast,
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: Focus(
+                    canRequestFocus: false,
+                    skipTraversal: true,
+                    onFocusChange: (f) => setState(() => _focused = f),
+                    child: IconActionButton(
+                      icon: Icons.delete_outline_rounded,
+                      tooltip: 'Delete “${thread.title}”',
+                      onPressed: enabled ? onDelete : null,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
