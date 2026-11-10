@@ -196,6 +196,10 @@ class _AssistantRoute extends StatefulWidget {
 
 class _AssistantRouteState extends State<_AssistantRoute> {
   late final AssistantSession _session = context.read<AssistantSession>();
+  late final _actions = SessionAssistantActions(
+    _session.bloc,
+    RouterUiPort(() => GoRouter.of(context)),
+  );
 
   @override
   void initState() {
@@ -215,14 +219,10 @@ class _AssistantRouteState extends State<_AssistantRoute> {
 
   @override
   Widget build(BuildContext context) {
-    final router = GoRouter.of(context);
     return Scaffold(
       body: AssistantPage(
         bloc: _session.bloc,
-        actions: SessionAssistantActions(
-          _session.bloc,
-          RouterUiPort(() => router),
-        ),
+        actions: _actions,
         onBack: () => context.canPop() ? context.pop() : context.go('/'),
         onOpenHistory: () => context.push('/assistant/history'),
       ),

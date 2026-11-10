@@ -150,6 +150,8 @@ class AppShell extends StatelessWidget {
                       color: Theme.of(
                         context,
                       ).colorScheme.onSurface.withValues(alpha: 0.32),
+                      // Without a handler it would pop the route.
+                      dismissible: onDismissSidePanel != null,
                       onDismiss: onDismissSidePanel,
                     ),
                     Positioned(top: 0, right: 0, bottom: 0, child: sheet),

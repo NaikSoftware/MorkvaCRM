@@ -104,6 +104,28 @@ class _ShellViewState extends State<_ShellView> {
   /// already holds the shell's focus scope.
   final _composerFocus = FocusNode(debugLabel: 'Ask Morkva composer');
 
+  /// One instance, so a shell rebuild does not rebuild the whole chat
+  /// (the assistant scope compares its actions).
+  SessionAssistantActions? _actions;
+
+  /// The panel is a sheet over the page, as last laid out.
+  bool _sheet = false;
+
+  SessionAssistantActions _actionsFor(
+    AssistantSession assistant, {
+    required bool sheet,
+  }) {
+    _sheet = sheet;
+    return _actions ??= SessionAssistantActions(
+      assistant.bloc,
+      RouterUiPort(() => GoRouter.of(context)),
+      // A sheet over the page would hide what was just opened.
+      onNavigated: () {
+        if (_sheet) assistant.panel.hide();
+      },
+    );
+  }
+
   @override
   void dispose() {
     _composerFocus.dispose();
@@ -259,12 +281,7 @@ class _ShellViewState extends State<_ShellView> {
                   key: _panelKey,
                   composerFocus: _composerFocus,
                   bloc: assistant.bloc,
-                  actions: SessionAssistantActions(
-                    assistant.bloc,
-                    RouterUiPort(() => router),
-                    // A sheet over the page would hide what was opened.
-                    onNavigated: overlay ? assistant.panel.hide : null,
-                  ),
+                  actions: _actionsFor(assistant, sheet: overlay),
                   overlay: overlay,
                   onClose: assistant.panel.hide,
                   historyBuilder: (context, back) =>
