@@ -145,12 +145,20 @@ Future<void> planCollectionsCreate(
   }
   errors.throwIfAny(hint: 'Fix every listed field and send the call again.');
 
+  // Minted up front (in item order) so a field can depend on a collection
+  // or field this call adds later.
+  final itemIds = <Object, String>{};
+  for (final m in made) {
+    itemIds[m.id] = call.nextItemId();
+    for (final f in call.changes.drafts[m.id]!.fields) {
+      itemIds[(m.id, f.id)] = call.nextItemId();
+    }
+  }
   for (final m in made) {
     final draft = call.changes.drafts[m.id]!;
-    final createId = call.nextItemId();
     call.add(
       CreateCollectionItem(
-        itemId: createId,
+        itemId: itemIds[m.id]!,
         callId: call.callId,
         label: call.name(draft.name),
         risk: Risk.low,
@@ -164,7 +172,7 @@ Future<void> planCollectionsCreate(
     for (final (k, f) in draft.fields.indexed) {
       call.add(
         AddFieldItem(
-          itemId: call.nextItemId(),
+          itemId: itemIds[(draft.id, f.id)]!,
           callId: call.callId,
           collectionId: draft.id,
           label: call.name(f.name),
@@ -173,7 +181,7 @@ Future<void> planCollectionsCreate(
           index: k,
           newCollection: true,
           detail: typeTag(call, f, draft),
-          dependsOn: [createId],
+          dependsOn: call.fieldDependencies(draft, f, reserved: itemIds),
         ),
       );
     }

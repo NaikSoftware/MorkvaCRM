@@ -70,6 +70,12 @@ final class PlanStore {
   /// The overlay is closed either way, so the next plan call of the turn
   /// starts a new plan.
   ///
+  /// Only failures of calls that reached a plan op are recorded: a call
+  /// `Harness.call` refuses before the op runs (its args fail the JSON
+  /// schema, a missing capability) never touches the overlay, so a caller
+  /// that saw such a failure in the turn must drop the sealed plan itself
+  /// (the agent loop does).
+  ///
   /// Throws `invalid_args` when the turn planned nothing and
   /// `limit_exceeded` above [kMaxPlanItems] items.
   SealResult seal(Actor actor, String turnId, {required DateTime now}) {

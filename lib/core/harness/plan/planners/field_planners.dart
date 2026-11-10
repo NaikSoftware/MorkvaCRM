@@ -84,6 +84,10 @@ Future<void> planFieldsAdd(Map<String, Object?> args, PlanCall call) async {
     call.changes.putDraft(draft);
 
     final count = call.view.objectsOf(before.id).length;
+    // Minted up front so a field can depend on one listed after it.
+    final itemIds = {
+      for (final f in added) (before.id, f.id): call.nextItemId(),
+    };
     for (final f in added) {
       // Each item records only its own field's effect, so undoing one add
       // leaves the others' view and layout entries alone.
@@ -98,7 +102,7 @@ Future<void> planFieldsAdd(Map<String, Object?> args, PlanCall call) async {
           .withNewFieldsInViews(before);
       call.add(
         AddFieldItem(
-          itemId: call.nextItemId(),
+          itemId: itemIds[(before.id, f.id)]!,
           callId: call.callId,
           collectionId: before.id,
           label: call.name(f.name),
@@ -109,7 +113,7 @@ Future<void> planFieldsAdd(Map<String, Object?> args, PlanCall call) async {
           layoutBefore: before.layout,
           layoutAfter: solo.layout,
           detail: typeTag(call, f, draft),
-          dependsOn: call.dependencies(before.id),
+          dependsOn: call.fieldDependencies(draft, f, reserved: itemIds),
         ),
       );
       if (f.isRequired && count > 0) {
@@ -203,7 +207,10 @@ Future<void> planFieldsUpdate(Map<String, Object?> args, PlanCall call) async {
         views: viewEntries(before.views, views),
         changes: changes,
         detail: typeTag(call, after, draft),
-        dependsOn: call.dependencies(before.id, fieldIds: [field.id]),
+        dependsOn: {
+          ...call.dependencies(before.id, fieldIds: [field.id]),
+          ...call.fieldDependencies(draft, after),
+        }.toList(),
       ),
     );
 
@@ -254,6 +261,14 @@ void _clearRemoved(
       _ => null,
     };
     if (cleared == null) continue;
+    if (call.view.isCreated(schema.id, o.id)) {
+      throw invalidArgs(
+        '${call.cardLabel(schema, o)} is created in this turn with a removed '
+        'option; create the card without that option, or remove the option '
+        'in a later turn.',
+        path: 'patch.removeOptions',
+      );
+    }
     if (earlier.contains((o.id, field.id))) {
       throw invalidArgs(
         '${call.cardLabel(schema, o)}: ${field.name} is already changed by '

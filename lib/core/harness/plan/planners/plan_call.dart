@@ -298,6 +298,75 @@ final class PlanCall {
     ];
   }
 
+  /// The planned items new or changed [field] of [owner] needs: [owner]'s
+  /// create, the creates of the collections it links to or reads, and the
+  /// adds of the fields its formula, lookup or aggregate reads. [reserved]
+  /// holds item ids this call minted but has not added yet: a collection id
+  /// → its create, a `(collectionId, fieldId)` → its add.
+  List<String> fieldDependencies(
+    Collection owner,
+    FieldDefinition field, {
+    Map<Object, String> reserved = const {},
+  }) {
+    final collections = {owner.id};
+    final fields = <(String, String)>{};
+    String? target(String? fieldId) => switch (owner.fieldById(fieldId ?? '')) {
+      ReferenceFieldDefinition(:final targetCollectionId) => targetCollectionId,
+      _ => null,
+    };
+    switch (field) {
+      case ReferenceFieldDefinition(:final targetCollectionId):
+        collections.add(targetCollectionId);
+      case CalculatedFieldDefinition(:final expression?):
+        for (final id in formulaFieldIds(expression, owner.fields)) {
+          fields.add((owner.id, id));
+        }
+      case CalculatedFieldDefinition(:final lookup?):
+        fields.add((owner.id, lookup.referenceFieldId));
+        if (target(lookup.referenceFieldId) case final t?) {
+          collections.add(t);
+          if (lookup.fieldId case final f?) fields.add((t, f));
+        }
+      case CalculatedFieldDefinition(:final aggregate?):
+        // The reference lives on the owner for `linked`, on the source for
+        // `linkedFrom` (see Aggregation.referenceFieldId).
+        final linked = aggregate.source == AggregateSource.linked;
+        final source = linked
+            ? target(aggregate.referenceFieldId)
+            : aggregate.collectionId;
+        if (aggregate.referenceFieldId case final r?) {
+          fields.add((linked ? owner.id : aggregate.collectionId, r));
+        }
+        if (source != null) {
+          collections.add(source);
+          for (final id in [
+            aggregate.fieldId,
+            for (final f in aggregate.filters) f.fieldId,
+          ]) {
+            if (id != null) fields.add((source, id));
+          }
+        }
+      default:
+        break;
+    }
+    return {
+      for (final item in view.items)
+        if (switch (item) {
+          CreateCollectionItem(:final collection) => collections.contains(
+            collection.id,
+          ),
+          AddFieldItem(field: final added) => fields.contains((
+            item.collectionId,
+            added.id,
+          )),
+          _ => false,
+        })
+          item.itemId,
+      for (final c in collections) ?reserved[c],
+      for (final f in fields) ?reserved[f],
+    }.toList();
+  }
+
   /// The pending cards a [value] of [field] links to, as
   /// `(collectionId, id)`.
   Iterable<(String, String)> linkedCards(

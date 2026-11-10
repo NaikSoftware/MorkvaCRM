@@ -176,6 +176,8 @@ final OperationDescriptor _fieldsUpdate = OperationDescriptor(
       'collection': refSchema(),
       'field': refSchema(),
       'patch': JsonSchema.object({
+        // Accepted so a type change reaches the planner's type_locked hint.
+        'type': JsonSchema.string(description: 'Locked; always refused.'),
         'name': JsonSchema.string(),
         'description': JsonSchema.string(),
         'required': JsonSchema.boolean(),

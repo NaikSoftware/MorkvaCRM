@@ -245,6 +245,66 @@ void main() {
       },
     );
 
+    test('an update where every card already has the value fails with the '
+        'skip notes', () async {
+      final card = h.seed.card(SeedIds.orders, SeedCards.order(1001));
+      final item = (card[OrderFields.item]! as TextFieldValue).text!;
+      final e = await h.error('cards.update', {
+        'collection': 'Orders',
+        'target': {
+          'ids': [card.id],
+        },
+        'set': {'Item': item},
+      });
+      expect(e.code, ErrorCode.invalidArgs);
+      expect(e.message, startsWith('Nothing would change.'));
+      expect(e.message, contains('already'));
+      expect(e.message, contains('— skipped'));
+    });
+
+    test('a setFrom no card converts fails with every card listed', () async {
+      final ids = [
+        for (final o in orders())
+          if ((o[OrderFields.item] as TextFieldValue?)?.text case final t?
+              when t.isNotEmpty && num.tryParse(t) == null)
+            o.id,
+      ].take(3).toList();
+      expect(ids, hasLength(3));
+      final e = await h.error('cards.update', {
+        'collection': 'Orders',
+        'target': {'ids': ids},
+        'setFrom': [
+          {'field': 'Price', 'from': 'Item'},
+        ],
+      });
+      expect(e.code, ErrorCode.wrongType);
+      expect(e.details, hasLength(3));
+      expect(e.details!.every((d) => d.code == ErrorCode.wrongType), isTrue);
+    });
+
+    test('a target above 500 cards is limit_exceeded', () async {
+      final big = PlanHarness(SeedWorkspace(orders: 501));
+      addTearDown(big.dispose);
+      final target = {
+        'where': [
+          {'field': 'Status', 'op': 'isNotEmpty'},
+        ],
+      };
+      final update = await big.error('cards.update', {
+        'collection': 'Orders',
+        'target': target,
+        'set': {'Item': 'x'},
+        'expectedCount': 501,
+      });
+      expect(update.code, ErrorCode.limitExceeded);
+      final delete = await big.error('cards.delete', {
+        'collection': 'Orders',
+        'target': target,
+        'expectedCount': 501,
+      });
+      expect(delete.code, ErrorCode.limitExceeded);
+    });
+
     test('a card both in the target and patched is refused', () async {
       final e = await h.error('cards.update', {
         'collection': 'Orders',

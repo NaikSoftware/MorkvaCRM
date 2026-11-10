@@ -171,6 +171,49 @@ void main() {
                 as CalculatedFieldDefinition;
         expect(lookup.declaredOutputType, kSingleSelectFieldType);
         expect(plan.title, 'Create 2 collections');
+
+        // Unticking a collection or field skips every field that reads it.
+        final adds = plan.items.whereType<AddFieldItem>().toList();
+        String add(String collectionId, String name) => adds
+            .firstWhere(
+              (a) => a.collectionId == collectionId && a.label == name,
+            )
+            .itemId;
+        List<String> deps(String collectionId, String name) => adds
+            .firstWhere(
+              (a) => a.collectionId == collectionId && a.label == name,
+            )
+            .dependsOn;
+        expect(
+          deps(products.id, 'Brand'),
+          unorderedEquals([creates[1].itemId, creates[0].itemId]),
+        );
+        expect(
+          deps(products.id, 'Sum'),
+          unorderedEquals([
+            creates[1].itemId,
+            add(products.id, 'Price'),
+            add(products.id, 'Qty'),
+          ]),
+        );
+        expect(
+          deps(products.id, 'Brand country'),
+          unorderedEquals([
+            creates[1].itemId,
+            creates[0].itemId,
+            add(products.id, 'Brand'),
+            add(brands.id, 'Country'),
+          ]),
+        );
+        // Brands' aggregate reads Products, created after it in the call.
+        expect(
+          deps(brands.id, 'Products count'),
+          unorderedEquals([
+            creates[0].itemId,
+            creates[1].itemId,
+            add(products.id, 'Brand'),
+          ]),
+        );
       },
     );
 
@@ -304,6 +347,37 @@ void main() {
       );
     });
 
+    test('a field depends on the new collection it links to and the new '
+        'fields its formula reads, even ones listed after it', () async {
+      await h.ok('collections.create', {
+        'collections': [
+          {
+            'ref': '@sup',
+            'name': 'Suppliers',
+            'fields': [
+              {'name': 'Name', 'type': 'text'},
+            ],
+          },
+        ],
+      });
+      await h.ok('fields.add', {
+        'collection': 'Orders',
+        'fields': [
+          {'name': 'Double', 'type': 'calculated', 'formula': '{Base} * 2'},
+          {'name': 'Base', 'type': 'number'},
+          {'name': 'Supplier', 'type': 'reference', 'target': '@sup'},
+        ],
+      });
+      final plan = await h.sealPlan();
+      final create = plan.items.whereType<CreateCollectionItem>().single;
+      final adds = {
+        for (final a in plan.items.whereType<AddFieldItem>()) a.label: a,
+      };
+      expect(adds['Double']!.dependsOn, [adds['Base']!.itemId]);
+      expect(adds['Base']!.dependsOn, isEmpty);
+      expect(adds['Supplier']!.dependsOn, [create.itemId]);
+    });
+
     test('required fields warn about the cards left empty', () async {
       await h.ok('fields.add', {
         'collection': 'Clients',
@@ -386,6 +460,9 @@ void main() {
           (await patch('Client', {'target': 'Fabrics'})).code,
           ErrorCode.typeLocked,
         );
+        final type = await patch('Price', {'type': 'text'});
+        expect(type.code, ErrorCode.typeLocked);
+        expect(type.message, contains('setFrom'));
         final multiple = await patch('Fabrics', {'multiple': false});
         expect(multiple.code, ErrorCode.typeLocked);
         expect(multiple.message, contains('setFrom'));
@@ -399,6 +476,29 @@ void main() {
         );
       },
     );
+
+    test('removeOptions refuses a card created in the same turn', () async {
+      await h.ok('cards.create', {
+        'collection': 'Clients',
+        'cards': [
+          {
+            'values': {
+              'Name': 'Nova',
+              'Tags': ['VIP'],
+            },
+          },
+        ],
+      });
+      final e = await h.error('fields.update', {
+        'collection': 'Clients',
+        'field': 'Tags',
+        'patch': {
+          'removeOptions': ['VIP'],
+        },
+      });
+      expect(e.code, ErrorCode.invalidArgs);
+      expect(e.message, contains('later turn'));
+    });
 
     test(
       'removeOptions clears the option on cards and in view filters',

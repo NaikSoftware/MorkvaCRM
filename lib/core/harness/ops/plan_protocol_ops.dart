@@ -65,7 +65,9 @@ Map<String, Object?> planSchema() => JsonSchema.object({
 
 /// `plans.seal {turnId}`: merges the caller's plan calls of its own turn
 /// into one plan (the compact form the model sees), or returns every call's
-/// error when one failed. Above 500 items it fails `limit_exceeded`.
+/// error when one failed. Above 500 items it fails `limit_exceeded`. Calls
+/// the harness refused before their op ran are not known here; see
+/// [PlanStore.seal].
 final class SealOperation extends Operation<Map<String, Object?>> {
   SealOperation(this._store);
 

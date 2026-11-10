@@ -162,6 +162,8 @@ Future<void> planCardsUpdate(Map<String, Object?> args, PlanCall call) async {
     for (final e in ops.failures) {
       call.note('${e.path}: ${e.message} Skipped.');
     }
+    // Every card is a no-op: PlanOperation.run fails with the notes.
+    if (planned.isEmpty) return;
 
     final risk = planned.length > kUnguardedUpdateCards
         ? Risk.medium
