@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -455,6 +456,75 @@ void main() {
       expect(h.card(SeedIds.orders, order(1003)), isNotNull);
     });
 
+    test('a deleted card is re-created when the update in its undo chunk '
+        'is refused because that card is really gone', () async {
+      final [y] = notShipped(1);
+      h.p.newTurn();
+      await h.p.ok('cards.delete', {
+        'collection': 'Orders',
+        'target': {
+          'ids': [order(1003)],
+        },
+      });
+      await h.p.ok('cards.update', {
+        'collection': 'Orders',
+        'target': {
+          'ids': [order(y)],
+        },
+        'set': {'Status': 'Shipped'},
+      });
+      final r = await h.commit(await h.p.sealPlan());
+      expect(r['failed'], isEmpty);
+      await h.settle();
+
+      // Another device deletes Y just before the undo chunk reaches the
+      // server, which refuses the chunk not-found.
+      var calls = 0;
+      h.p.repo.batchWriteError = (_) {
+        if (calls++ > 0) return null;
+        h.p.repo.deleteObject(SeedIds.orders, order(y));
+        return 'not-found';
+      };
+      final u = await h.undo(r['journalId']! as String);
+      expect(u['failed'], isEmpty);
+      expect(u['skipped'], [
+        {'id': order(y), 'reason': 'missing'},
+      ]);
+      expect(u['reverted'], 1);
+      expect(
+        h.p.repo.objectsOf(SeedIds.orders).map((o) => o.id),
+        contains(order(1003)),
+      );
+    });
+
+    test('collections.create undo fails offline when the server cannot list '
+        'the cards', () async {
+      final plan = await h.plan('collections.create', {
+        'collections': [
+          {
+            'ref': '@sup',
+            'name': 'Suppliers',
+            'fields': [
+              {'name': 'Name', 'type': 'text'},
+            ],
+          },
+        ],
+      });
+      final id = plan.items
+          .whereType<CreateCollectionItem>()
+          .single
+          .collectionId;
+      final r = await h.commit(plan);
+      await h.settle();
+
+      h.p.repo.serverReadError = StateError('unavailable');
+      final u = await h.undo(r['journalId']! as String);
+      expect([
+        for (final f in u['failed']! as List) ((f as Map)['id'], f['code']),
+      ], contains((id, 'offline')));
+      expect(await h.stored(id), isNotNull);
+    });
+
     test('collections.create undo checks the server for cards the cache '
         'does not hold', () async {
       final plan = await h.plan('collections.create', {
@@ -626,6 +696,54 @@ void main() {
       expect(
         h.p.repo.objectsOf(SeedIds.fabrics).map((o) => o.id).toSet(),
         fabrics.map((o) => o.id).toSet(),
+      );
+    });
+    test('undo keeps the cards for another try when their collection '
+        're-create is stopped by an earlier timeout', () async {
+      final c = CommitHarness(ackTimeout: const Duration(milliseconds: 50));
+      addTearDown(c.dispose);
+      final clients = {for (final o in c.seed.clientCards) o.id};
+      Future<JournalEntry> deleted(String name) async {
+        final r = await c.commit(
+          await c.plan('collections.delete', {'collection': name}),
+        );
+        expect(r['failed'], isEmpty);
+        await c.settle();
+        return c.journal.get(r['journalId']! as String)!;
+      }
+
+      // A plan deletes one collection, so two entries are merged into one.
+      final fabrics = await deleted('Fabrics');
+      final both = fabrics.withItems([
+        ...fabrics.items,
+        ...(await deleted('Clients')).items,
+      ]);
+      c.journal.put(both);
+      final id = both.journalId;
+      expect(await c.stored(SeedIds.clients), isNull);
+
+      // The Fabrics re-create misses the ack, so the Clients one is stopped.
+      c.p.repo.collectionAck = Completer();
+      final u = await c.undo(id);
+      final skipped = {for (final s in u['skipped']! as List) (s as Map)['id']};
+      expect(skipped.intersection(clients), isEmpty);
+      final failed = {
+        for (final f in u['failed']! as List) (f as Map)['id']: f['code'],
+      };
+      for (final card in clients) {
+        expect(failed[card], 'offline', reason: card);
+      }
+      expect(await c.stored(SeedIds.clients), isNull);
+
+      c.p.repo.collectionAck!.complete();
+      c.p.repo.collectionAck = null;
+      await c.settle();
+      final again = await c.undo(id);
+      expect(again['failed'], isEmpty);
+      expect(await c.stored(SeedIds.clients), isNotNull);
+      expect(
+        c.p.repo.objectsOf(SeedIds.clients).map((o) => o.id).toSet(),
+        clients,
       );
     });
   });

@@ -219,11 +219,18 @@ class FakeDataRepository implements DataRepository {
     required Collection schema,
   }) async => objectsOf(collectionId);
 
+  /// When non-null, [getServerObjects] throws it — like a server read
+  /// while the server is unreachable.
+  Object? serverReadError;
+
   @override
   Future<List<MorkvaObject>> getServerObjects(
     String collectionId, {
     required Collection schema,
-  }) async => objectsOf(collectionId);
+  }) async {
+    if (serverReadError case final e?) throw e;
+    return objectsOf(collectionId);
+  }
 
   @override
   Future<MorkvaObject?> getObject(
@@ -291,6 +298,11 @@ class FakeDataRepository implements DataRepository {
   /// never completes — like a batch waiting for a server ack while offline.
   bool batchNeverCompletes = false;
 
+  /// When true, [saveObjectsBatch] never completes and writes nothing for a
+  /// chunk with creates — like an auto-number reservation transaction that
+  /// cannot reach the server.
+  bool reservationNeverCompletes = false;
+
   @override
   Future<BatchResult> saveObjectsBatch(
     List<ObjectWrite> writes, {
@@ -320,6 +332,9 @@ class FakeDataRepository implements DataRepository {
           failed[write.id] = code;
         }
         continue;
+      }
+      if (reservationNeverCompletes && chunk.any((w) => w is ObjectCreate)) {
+        await Completer<void>().future;
       }
       final touched = <String>{};
       for (final write in chunk) {

@@ -414,8 +414,9 @@ final class PlanCommitter {
   }
 
   /// Writes [writes] in chunks of [batchSize], settling each one. Before a
-  /// chunk, updates of cards the live cache no longer has are settled
-  /// [ItemOutcome.missing]; a chunk refused `not-found` is re-verified
+  /// chunk, updates and deletes of cards the live cache no longer has are
+  /// settled [ItemOutcome.missing] (except [_CardWrite.serverListed]
+  /// deletes); a chunk refused `not-found` is re-verified
   /// (cache, then the repository), the missing updates dropped and the rest
   /// retried, until nothing more can be dropped. Only an update can fail
   /// `not-found`: a create is a set and deleting a missing card is a no-op.
@@ -442,7 +443,9 @@ final class PlanCommitter {
         }
         final rest = <_CardWrite>[];
         for (final w in chunk) {
-          if (w.write is ObjectUpdate && !_cached(w.write)) {
+          if (w.write is! ObjectCreate &&
+              !w.serverListed &&
+              !_cached(w.write)) {
             settle(w, ItemOutcome.missing);
           } else {
             rest.add(w);
@@ -463,12 +466,15 @@ final class PlanCommitter {
           if (acked == null) {
             run.stopped = true;
             // The auto-number reservation is a transaction, which is never
-            // queued: until it ran, nothing of the chunk was written.
-            final reserves = chunk.any((w) => _reserves(w.write, schemas));
+            // queued: until it ran, nothing of the chunk was written. Once it
+            // ran, the batch shows its creates in the cache and is queued.
+            final unwritten =
+                chunk.any((w) => _reserves(w.write, schemas)) &&
+                !chunk.any((w) => w.write is ObjectCreate && _cached(w.write));
             for (final w in chunk) {
               settle(
                 w,
-                reserves ? ItemOutcome.unconfirmed : ItemOutcome.queued,
+                unwritten ? ItemOutcome.unconfirmed : ItemOutcome.queued,
               );
             }
             break;
@@ -1114,16 +1120,22 @@ final class _Commit {
         final undoable = (listed ??= cards.length) <= kMaxUndoableCards;
         final writes = [
           for (final card in cards)
-            _CardWrite(ObjectDelete(collectionId: id, id: card.id), (o) {
-              if (o.written) {
-                if (undoable) _journal.add(JournalCardDelete.of(card, server));
-                // A queued delete still waits for the server.
-                if (o.status == ItemStatus.queued) left++;
-                return;
-              }
-              left++;
-              firstFailure ??= o;
-            }),
+            _CardWrite(
+              serverListed: true,
+              ObjectDelete(collectionId: id, id: card.id),
+              (o) {
+                if (o.written) {
+                  if (undoable) {
+                    _journal.add(JournalCardDelete.of(card, server));
+                  }
+                  // A queued delete still waits for the server.
+                  if (o.status == ItemStatus.queued) left++;
+                  return;
+                }
+                left++;
+                firstFailure ??= o;
+              },
+            ),
         ];
         await c._writeCards(writes, {id: server}, run, counts: false);
       }
@@ -1612,12 +1624,22 @@ final class _Undo {
         skipped(item, kMissing);
         continue;
       }
+      final List<MorkvaObject> cards;
       try {
         // From the server: the cache may not hold every card added since.
-        final cards = await c._repository.getServerObjects(
+        cards = await c._repository.getServerObjects(
           id,
           schema: cache.collection(id)!,
         );
+      } on Object catch (e) {
+        failed(
+          item,
+          ErrorCode.offline.wire,
+          'The cards could not be listed: $e',
+        );
+        continue;
+      }
+      try {
         final others = cards.where((o) => !deletedCards.contains(o.id));
         if (others.isNotEmpty) {
           skipped(item, 'has_cards');
@@ -1792,10 +1814,14 @@ final class _Run {
 
 /// One card write and what to do with its outcome.
 final class _CardWrite {
-  _CardWrite(this.write, this.settle);
+  _CardWrite(this.write, this.settle, {this.serverListed = false});
 
   final ObjectWrite write;
   final void Function(ItemOutcome outcome) settle;
+
+  /// A delete of a card listed from the server: written even when the
+  /// cache does not hold the card (yet).
+  final bool serverListed;
 }
 
 enum _Txn { acked, timedOut, missing, error }

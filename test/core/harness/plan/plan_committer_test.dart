@@ -193,6 +193,30 @@ void main() {
       expect(r['applied'], [plan.items[1].itemId]);
     });
 
+    test('a card another device deletes while an earlier chunk is written '
+        'is stale missing, not journaled', () async {
+      final c = CommitHarness(batchSize: 2);
+      addTearDown(c.dispose);
+      final ids = [for (final o in c.seed.orderCards.take(3)) o.id];
+      final plan = await c.plan('cards.delete', {
+        'collection': 'Orders',
+        'target': {'ids': ids},
+      });
+      var calls = 0;
+      c.p.repo.batchWriteError = (_) {
+        if (calls++ == 0) c.p.repo.deleteObject(SeedIds.orders, ids[2]);
+        return null;
+      };
+      final r = await c.commit(plan);
+      final [i1, i2, i3] = [for (final i in plan.items) i.itemId];
+      expect(r['stale'], [
+        {'itemId': i3, 'reason': 'missing'},
+      ]);
+      expect(r['applied'], [i1, i2]);
+      final journal = c.journal.get(r['journalId']! as String)!;
+      expect(journal.items, hasLength(2));
+    });
+
     test('a chunk refused not-found is re-verified, its missing ids dropped '
         'and the rest retried', () async {
       final numbers = notShipped(4);
@@ -521,8 +545,8 @@ void main() {
       ]);
     });
 
-    test('a create chunk that needs an auto-number and is never '
-        'acknowledged fails offline, not queued', () async {
+    test('a create chunk whose auto-number reservation never finishes '
+        'fails offline, not queued', () async {
       final w = CommitHarness(ackTimeout: const Duration(milliseconds: 50));
       addTearDown(w.dispose);
       final plan = await w.plan('cards.create', {
@@ -533,12 +557,34 @@ void main() {
           },
         ],
       });
-      w.p.repo.batchNeverCompletes = true;
+      w.p.repo.reservationNeverCompletes = true;
 
       final r = Receipt.fromJson(await w.commit(plan));
       expect(r.queued, isEmpty);
       expect([for (final f in r.failed) f.code], ['offline']);
       expect(r.journalId, isNull);
+    });
+
+    test('a create chunk whose reservation finished but whose batch is '
+        'never acknowledged is queued and journaled', () async {
+      final w = CommitHarness(ackTimeout: const Duration(milliseconds: 50));
+      addTearDown(w.dispose);
+      final plan = await w.plan('cards.create', {
+        'collection': 'Orders',
+        'cards': [
+          {
+            'values': {'Item': 'Linen'},
+          },
+        ],
+      });
+      final item = plan.items.single.itemId;
+      w.p.repo.batchNeverCompletes = true;
+
+      final r = Receipt.fromJson(await w.commit(plan));
+      expect(r.queued, [item]);
+      expect(r.failed, isEmpty);
+      expect(r.journalId, isNotNull);
+      expect(w.journal.get(r.journalId!)!.items, hasLength(1));
     });
 
     test('a batch never acknowledged: its items are queued and journaled, '
