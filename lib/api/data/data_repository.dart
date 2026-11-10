@@ -70,6 +70,14 @@ abstract interface class DataRepository {
     required Collection schema,
   });
 
+  /// Reads all objects in [collectionId] from the **server** only, never the
+  /// local cache (which may lag or be partial); throws when the server
+  /// cannot be reached. Decoded against [schema].
+  Future<List<MorkvaObject>> getServerObjects(
+    String collectionId, {
+    required Collection schema,
+  });
+
   /// Reads a single object by [objectId] in [collectionId], decoded against
   /// [schema]; `null` if missing.
   Future<MorkvaObject?> getObject(

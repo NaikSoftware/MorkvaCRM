@@ -113,6 +113,10 @@ class FakeDataRepository implements DataRepository {
   final Map<String, List<MorkvaObject>> _objects = {};
   final Map<String, BehaviorSubject<List<MorkvaObject>>> _objectSubjects = {};
 
+  /// Object ids [watchObjects] leaves out while the reads still return them
+  /// — a client cache that lags the server.
+  final Set<String> hiddenFromWatch = {};
+
   /// Count of [watchObjects] calls per collection id, for assertions.
   final Map<String, int> watchObjectsCalls = {};
 
@@ -166,7 +170,12 @@ class FakeDataRepository implements DataRepository {
     Collection? schema,
   }) {
     watchObjectsCalls.update(collectionId, (n) => n + 1, ifAbsent: () => 1);
-    final stream = _subjectFor(collectionId).stream;
+    final stream = _subjectFor(collectionId).stream.map(
+      (objects) => [
+        for (final o in objects)
+          if (!hiddenFromWatch.contains(o.id)) o,
+      ],
+    );
     // Decoded against [schema] like the real repository: values of fields
     // the schema lacks are dropped, missing ones come back empty.
     return _counted(
@@ -206,6 +215,12 @@ class FakeDataRepository implements DataRepository {
 
   @override
   Future<List<MorkvaObject>> getObjects(
+    String collectionId, {
+    required Collection schema,
+  }) async => objectsOf(collectionId);
+
+  @override
+  Future<List<MorkvaObject>> getServerObjects(
     String collectionId, {
     required Collection schema,
   }) async => objectsOf(collectionId);

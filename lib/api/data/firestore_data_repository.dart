@@ -342,6 +342,19 @@ class FirestoreDataRepository implements DataRepository {
   }
 
   @override
+  Future<List<MorkvaObject>> getServerObjects(
+    String collectionId, {
+    required Collection schema,
+  }) async {
+    final snapshot = await _refs
+        .objectsByCollection(_wid, collectionId)
+        .get(const GetOptions(source: Source.server));
+    return snapshot.docs
+        .map((doc) => _objectFromData(doc.id, doc.data(), schema))
+        .toList();
+  }
+
+  @override
   Future<MorkvaObject?> getObject(
     String collectionId,
     String objectId, {

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/api/data/data_repository.dart';
@@ -488,6 +490,57 @@ void main() {
   });
 
   group('watchdog', () {
+    test('a schema transaction never acknowledged fails offline: it is not '
+        'queued, not journaled, and retryFailed attempts it again', () async {
+      final w = CommitHarness(ackTimeout: const Duration(milliseconds: 50));
+      addTearDown(w.dispose);
+      final plan = await w.plan('fields.add', {
+        'collection': 'Orders',
+        'fields': [
+          {'name': 'Rush', 'type': 'boolean'},
+        ],
+      });
+      final item = plan.items.single.itemId;
+      w.p.repo.collectionAck = Completer();
+
+      final r = Receipt.fromJson(await w.commit(plan));
+      expect(r.queued, isEmpty);
+      expect(r.applied, isEmpty);
+      expect(
+        [for (final f in r.failed) (f.itemId, f.code)],
+        [(item, 'offline')],
+      );
+      expect(r.journalId, isNull);
+
+      w.p.repo.collectionAck = null;
+      await w.settle();
+      final again = await w.ok('plans.retryFailed', {'planId': plan.planId});
+      // The first attempt landed late, so the retry finds the field there.
+      expect(again['stale'], [
+        {'itemId': item, 'reason': 'changed_elsewhere'},
+      ]);
+    });
+
+    test('a create chunk that needs an auto-number and is never '
+        'acknowledged fails offline, not queued', () async {
+      final w = CommitHarness(ackTimeout: const Duration(milliseconds: 50));
+      addTearDown(w.dispose);
+      final plan = await w.plan('cards.create', {
+        'collection': 'Orders',
+        'cards': [
+          {
+            'values': {'Item': 'Linen'},
+          },
+        ],
+      });
+      w.p.repo.batchNeverCompletes = true;
+
+      final r = Receipt.fromJson(await w.commit(plan));
+      expect(r.queued, isEmpty);
+      expect([for (final f in r.failed) f.code], ['offline']);
+      expect(r.journalId, isNull);
+    });
+
     test('a batch never acknowledged: its items are queued and journaled, '
         'later chunks fail offline', () {
       fakeAsync((async) {

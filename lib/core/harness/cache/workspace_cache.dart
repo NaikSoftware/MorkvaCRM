@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' show min;
 
 import '../../../api/data/data_repository.dart';
 import '../../domain/domain.dart';
@@ -45,6 +46,8 @@ final class WorkspaceCache {
 
   String? _workspaceId;
   StreamSubscription<List<Collection>>? _schemaSub;
+  Timer? _schemaRetry;
+  int _schemaRetries = 0;
   Completer<void> _schemaReady = Completer();
   List<Collection> _collections = const [];
   Map<String, Collection> _byId = const {};
@@ -122,6 +125,10 @@ final class WorkspaceCache {
       throw StateError('WorkspaceCache is already bound to $_workspaceId.');
     }
     _workspaceId = workspaceId;
+    _listenSchema();
+  }
+
+  void _listenSchema() {
     _schemaSub = _repository.watchCollections().listen(
       _onSchema,
       onError: _onSchemaError,
@@ -134,6 +141,9 @@ final class WorkspaceCache {
     _session++;
     final cancels = <Future<void>>[?_schemaSub?.cancel()];
     _schemaSub = null;
+    _schemaRetry?.cancel();
+    _schemaRetry = null;
+    _schemaRetries = 0;
     _workspaceId = null;
     final reset = StateError('WorkspaceCache was reset.');
     _failPending(_schemaReady, reset);
@@ -251,6 +261,7 @@ final class WorkspaceCache {
     _collections = resolved;
     _byId = {for (final c in resolved) c.id: c};
     _schemaGeneration++;
+    _schemaRetries = 0;
     if (!_schemaReady.isCompleted) _schemaReady.complete();
     for (final e in [..._entries.values]) {
       final schema = _byId[e.id];
@@ -264,8 +275,19 @@ final class WorkspaceCache {
     }
   }
 
+  /// The backend closes a listener after an error, so listen again, backing
+  /// off from 1 s to [_maxSchemaRetry]; the last schema stays readable.
   void _onSchemaError(Object error, StackTrace stack) {
-    // A later emission still recovers: only waiters until now see it.
+    unawaited(_schemaSub?.cancel());
+    _schemaRetry?.cancel();
+    final session = _session;
+    final seconds = min(1 << _schemaRetries, _maxSchemaRetry.inSeconds);
+    _schemaRetries = min(_schemaRetries + 1, 6);
+    _schemaRetry = Timer(Duration(seconds: seconds), () {
+      _schemaRetry = null;
+      if (session == _session) _listenSchema();
+    });
+    // The re-listen still recovers: only waiters until now see it.
     if (_schemaReady.isCompleted) return;
     _failPending(_schemaReady, error, stack);
     _schemaReady = Completer();
@@ -339,6 +361,8 @@ final class WorkspaceCache {
       _derivedKeys.remove(e.id);
     });
   }
+
+  static const Duration _maxSchemaRetry = Duration(seconds: 60);
 
   void _checkSession(int session) {
     if (session != _session) throw StateError('WorkspaceCache was reset.');
