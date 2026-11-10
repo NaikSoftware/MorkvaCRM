@@ -1,6 +1,8 @@
 // fake_async ships with flutter_test; it is not a direct dev dependency.
 // ignore: depend_on_referenced_packages
 import 'package:fake_async/fake_async.dart';
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/agent/agent_event.dart';
 import 'package:morkva_crm/core/agent/agent_loop.dart';
@@ -531,6 +533,26 @@ void main() {
       final last = loop.history.single.contents.last as LlmFunctionResponses;
       expect(last.responses.single.geminiId, 'g_1');
       expect(last.responses.single.response['reason'], 'skipped');
+    });
+
+    test('the next turn can start as soon as a skipped turn is done', () async {
+      llm.addAll([
+        FakeReply(calls: [call('cards_update')]),
+        const FakeReply(text: ['next answer']),
+      ]);
+      final loop = loopFor();
+      final next = Completer<List<AgentEvent>>();
+
+      loop.run('ship').listen((e) {
+        if (e is PlanProposed) {
+          loop.deliverOutcome('p_1', const Rejection(RejectReason.skipped));
+        }
+        if (e is TurnDone) next.complete(loop.run('new message').toList());
+      });
+
+      final events = await next.future;
+      expect(events.last, isA<TurnDone>());
+      expect(textOf(events), 'next answer');
     });
 
     test('Stop at the gate ends the turn without another model call', () async {

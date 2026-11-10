@@ -205,7 +205,10 @@ final class AgentLoop {
     );
     controller
       ..onListen = (() => unawaited(_drive(turn)))
-      ..onCancel = stop;
+      // The done event also cancels; by then a later turn may be running.
+      ..onCancel = () {
+        if (identical(_active, turn)) stop();
+      };
     return controller.stream;
   }
 
@@ -227,7 +230,7 @@ final class AgentLoop {
     final turn = _active;
     if (turn == null || turn.stopped) return;
     turn.stopped = true;
-    turn.wake?.complete();
+    if (turn.wake case final wake? when !wake.isCompleted) wake.complete();
     if (turn.gate case final gate? when !gate.isCompleted) {
       gate.complete(const Rejection(RejectReason.stopped));
     }
