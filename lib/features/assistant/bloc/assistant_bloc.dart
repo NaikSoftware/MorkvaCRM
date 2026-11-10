@@ -165,6 +165,7 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
         ),
         _SyncChanged(:final online) => _sync(() {
           _online = online;
+          if (online) _clearOfflineNotes(emit);
           _emitAvailability(emit);
         }),
         _UndoTick() => _sync(() => _onTick(emit)),
@@ -776,12 +777,12 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
       return;
     }
     if (!_online) {
-      _replace(item.copyWith(message: 'Needs a connection'), emit);
+      _replace(item.copyWith(message: _needsConnection), emit);
       return;
     }
     final selected = [...item.selected];
     _replace(
-      item.copyWith(status: PlanStatus.committing),
+      item.copyWith(status: PlanStatus.committing, clearMessage: true),
       emit,
       phase: ApplyingPhase(0, selected.length),
     );
@@ -810,7 +811,7 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
       case HarnessFailure(:final error):
         expired = error.code == ErrorCode.planExpired;
         failure = error.code == ErrorCode.offline
-            ? 'Needs a connection'
+            ? _needsConnection
             : error.message;
     }
 
@@ -836,12 +837,14 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
         : PlanStatus.failed;
     final items = [...state.items];
     final index = items.indexWhere((i) => i.id == current.id);
+    final message = switch (status) {
+      PlanStatus.failed => receipt.failed.firstOrNull?.message,
+      _ => null,
+    };
     items[index] = current.copyWith(
       status: status,
-      message: switch (status) {
-        PlanStatus.failed => receipt.failed.firstOrNull?.message,
-        _ => null,
-      },
+      message: message,
+      clearMessage: message == null,
     );
     if (wrote) {
       final journalId = receipt.journalId;
@@ -942,7 +945,7 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
       case HarnessFailure(:final error):
         next = current.copyWith(
           undoNote: error.code == ErrorCode.offline
-              ? 'Needs a connection'
+              ? _needsConnection
               : error.message,
         );
     }
@@ -967,10 +970,13 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
     );
     if (applied == null) return;
     if (!_online) {
-      _replace(applied.copyWith(undoNote: 'Needs a connection to undo'), emit);
+      _replace(applied.copyWith(undoNote: _needsConnectionToUndo), emit);
       return;
     }
-    _replace(applied.copyWith(undoState: UndoState.undoing), emit);
+    _replace(
+      applied.copyWith(undoState: UndoState.undoing, clearUndoNote: true),
+      emit,
+    );
     final response = await _host('journal.undo', {'journalId': journalId});
     final current = _find<AppliedItem>(applied.id) ?? applied;
     final AppliedItem next;
@@ -983,6 +989,7 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
         next = current.copyWith(
           undoState: settled ? UndoState.undone : UndoState.available,
           undoNote: summary,
+          clearUndoNote: summary == null,
         );
       case HarnessFailure(:final error):
         settled = error.code != ErrorCode.offline;
@@ -993,7 +1000,7 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
             _ => UndoState.failed,
           },
           undoNote: error.code == ErrorCode.offline
-              ? 'Needs a connection to undo'
+              ? _needsConnectionToUndo
               : error.message,
         );
     }
@@ -1003,6 +1010,37 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
     if (seq == null) return;
     if (settled) _docs[seq]?.journal = null;
     _save(seq, emit: emit);
+  }
+
+  static const _needsConnection = 'Needs a connection';
+  static const _needsConnectionToUndo = 'Needs a connection to undo';
+
+  /// Back online: drop the "Needs a connection" notes the offline taps left
+  /// on pending plans and applied cards.
+  void _clearOfflineNotes(Emitter<AssistantState> emit) {
+    final seqs = <int>{};
+    var changed = false;
+    final items = <ChatItem>[];
+    for (final item in state.items) {
+      final cleared = switch (item) {
+        PlanItem(status: PlanStatus.pending, message: _needsConnection) =>
+          item.copyWith(clearMessage: true),
+        AppliedItem(undoNote: _needsConnection || _needsConnectionToUndo) =>
+          item.copyWith(clearUndoNote: true),
+        _ => null,
+      };
+      if (cleared != null) {
+        changed = true;
+        if (_seqOf[item.id] case final seq?) seqs.add(seq);
+      }
+      items.add(cleared ?? item);
+    }
+    if (!changed) return;
+    emit(state.copyWith(items: items));
+    // The notes are saved with their turn: drop them there too.
+    for (final seq in seqs) {
+      _save(seq, emit: emit);
+    }
   }
 
   AppliedItem? _appliedWhere(bool Function(AppliedItem) test) {

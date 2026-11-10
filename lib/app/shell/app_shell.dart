@@ -229,15 +229,27 @@ class _PageHeader extends StatelessWidget {
 }
 
 /// Tells the routed page whether it is a phone bottom-bar tab: such a page
-/// shows no back button and appears without a push transition.
+/// shows no back button and appears without a push transition. [onAsk]
+/// opens Ask Morkva from a page that draws its own phone header (null: no
+/// entry there).
 class ShellTab extends InheritedWidget {
-  const ShellTab({super.key, required this.isTab, required super.child});
+  const ShellTab({
+    super.key,
+    required this.isTab,
+    this.onAsk,
+    required super.child,
+  });
 
   final bool isTab;
+  final VoidCallback? onAsk;
 
   static bool of(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<ShellTab>()?.isTab ?? false;
 
+  static VoidCallback? askOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<ShellTab>()?.onAsk;
+
   @override
-  bool updateShouldNotify(ShellTab oldWidget) => oldWidget.isTab != isTab;
+  bool updateShouldNotify(ShellTab oldWidget) =>
+      oldWidget.isTab != isTab || oldWidget.onAsk != onAsk;
 }

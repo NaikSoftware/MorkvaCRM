@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 // flutter_bloc's providers reject a Listenable (the focus notifier).
-// ignore: depend_on_referenced_packages
 import 'package:provider/provider.dart' show ChangeNotifierProvider;
 
 import '../api/api.dart';

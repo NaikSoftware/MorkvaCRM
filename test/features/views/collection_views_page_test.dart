@@ -195,6 +195,8 @@ void main() {
       expect(find.byType(NavigationBar), findsNothing);
       expect(find.byTooltip('Back'), findsOneWidget);
       expect(find.byTooltip('View settings'), findsOneWidget);
+      // No assistant provided: no Ask Morkva entry.
+      expect(find.byTooltip('Ask Morkva'), findsNothing);
       expect(find.byType(FloatingActionButton), findsOneWidget);
       // A round "+" floating over the body, "New <item>" on hover.
       expect(find.byTooltip('New deal'), findsOneWidget);

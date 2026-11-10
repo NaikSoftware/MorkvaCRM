@@ -10,8 +10,7 @@ import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/design/design.dart';
 import 'package:morkva_crm/features/assistant/bloc/assistant_focus.dart';
 import 'package:morkva_crm/features/views/views.dart';
-// The app provides the notifier as a Listenable; provider comes with bloc.
-// ignore: depend_on_referenced_packages
+// The app provides the notifier as a Listenable.
 import 'package:provider/provider.dart' show ChangeNotifierProvider;
 
 import '../collections/fake_data_repository.dart';

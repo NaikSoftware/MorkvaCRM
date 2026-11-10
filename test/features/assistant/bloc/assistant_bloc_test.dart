@@ -392,6 +392,102 @@ void main() {
     );
 
     blocTest<AssistantBloc, AssistantState>(
+      'back online, a pending plan drops its "Needs a connection" note',
+      setUp: () async {
+        rig = AssistantRig(
+          replies: [
+            FakeReply(calls: [shipCall(notShipped(2))]),
+            const FakeReply(text: ['Left as they are.']),
+          ],
+        );
+        await rig.start();
+      },
+      build: () => rig.bloc,
+      act: (bloc) async {
+        await rig.ask('Ship two orders');
+        await rig.awaitingApproval();
+        rig.sync.reportSnapshotMeta(isFromCache: true, hasPendingWrites: false);
+        await rig.until((s) => s.availability is AvailabilityOffline);
+        bloc.add(PlanApproved(rig.plan.plan.planId));
+        await rig.until((s) => rig.plan.message == 'Needs a connection');
+
+        rig.sync.reportSnapshotMeta(
+          isFromCache: false,
+          hasPendingWrites: false,
+        );
+        await rig.until((s) => s.availability is AvailabilityEnabled);
+        expect(rig.plan.message, isNull);
+        expect(rig.plan.status, PlanStatus.pending);
+
+        bloc.add(PlanRejected(rig.plan.plan.planId));
+        await rig.idle();
+      },
+      expect: () => containsAllInOrder([
+        stateWhere(
+          (s) => s.items.whereType<PlanItem>().lastOrNull?.message != null,
+          'note',
+        ),
+        stateWhere(
+          (s) => s.items.whereType<PlanItem>().lastOrNull?.message == null,
+          'cleared',
+        ),
+      ]),
+      verify: (_) => expect(rig.repo.batchCalls, 0),
+    );
+
+    blocTest<AssistantBloc, AssistantState>(
+      'back online, an applied card drops its "Needs a connection to undo" '
+      'note and undo then works',
+      setUp: () async {
+        rig = AssistantRig(
+          replies: [
+            FakeReply(calls: [shipCall(notShipped(2))]),
+            const FakeReply(text: ['Shipped.']),
+          ],
+        );
+        await rig.start();
+      },
+      build: () => rig.bloc,
+      act: (bloc) async {
+        await rig.ask('Ship two orders');
+        await rig.awaitingApproval();
+        bloc.add(PlanApproved(rig.plan.plan.planId));
+        await rig.until(
+          (s) =>
+              s.phase is IdlePhase &&
+              s.items.whereType<AppliedItem>().isNotEmpty,
+        );
+        await rig.settle();
+        final journalId = rig.applied.receipt.journalId!;
+
+        rig.sync.reportSnapshotMeta(isFromCache: true, hasPendingWrites: false);
+        await rig.until((s) => s.availability is AvailabilityOffline);
+        bloc.add(UndoRequested(journalId));
+        await rig.until(
+          (s) => rig.applied.undoNote == 'Needs a connection to undo',
+        );
+        expect(rig.applied.undoState, UndoState.available);
+
+        rig.sync.reportSnapshotMeta(
+          isFromCache: false,
+          hasPendingWrites: false,
+        );
+        await rig.until((s) => s.availability is AvailabilityEnabled);
+        expect(rig.applied.undoNote, isNull);
+
+        bloc.add(UndoRequested(journalId));
+        await rig.until((s) => rig.applied.undoState == UndoState.undone);
+        await rig.settle();
+      },
+      verify: (_) {
+        expect(rig.applied.undoNote, isNot('Needs a connection to undo'));
+        for (final n in notShipped(2)) {
+          expect(rig.statusOf(n), isNot(SeedOptions.shipped));
+        }
+      },
+    );
+
+    blocTest<AssistantBloc, AssistantState>(
       'a message sent offline is ignored',
       setUp: () async {
         rig = AssistantRig();

@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/shell/app_shell.dart';
+import '../../app/shell/app_shell_scaffold.dart' show AskMorkvaAction;
 import '../../app/shell/sync_status_indicator.dart';
 import '../../core/domain/domain.dart';
 import '../../design/design.dart';
@@ -686,6 +687,7 @@ class _PhoneFrame extends StatelessWidget {
     final theme = Theme.of(context);
     final ready = state;
     final collection = ready?.collection;
+    final onAsk = ShellTab.askOf(context);
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
@@ -723,6 +725,7 @@ class _PhoneFrame extends StatelessWidget {
                 ],
               ),
         actions: [
+          if (onAsk != null) AskMorkvaAction(onTap: onAsk),
           if (collection != null) ...[
             const SyncStatusIndicator(),
             // Without fields the body's Customize carries the only `tune`.

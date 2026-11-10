@@ -231,7 +231,7 @@ class _ShellViewState extends State<_ShellView> {
         ? assistant.panel.toggle
         : () => router.push('/assistant');
     final ask = !wide && toggleAssistant != null
-        ? _AskAction(onTap: toggleAssistant)
+        ? AskMorkvaAction(onTap: toggleAssistant)
         : null;
     final avatar = Tooltip(
       message: 'Account and settings',
@@ -323,7 +323,11 @@ class _ShellViewState extends State<_ShellView> {
               : null,
           banner: inCollection ? null : const ConflictWarningBanner(),
           showCompactChrome: !inCollection,
-          child: ShellTab(isTab: isTab, child: widget.child),
+          child: ShellTab(
+            isTab: isTab,
+            onAsk: ask == null ? null : toggleAssistant,
+            child: widget.child,
+          ),
         ),
       ),
     );
@@ -395,9 +399,9 @@ class _KeyShortcutState extends State<_KeyShortcut> {
   Widget build(BuildContext context) => widget.child;
 }
 
-/// Phone: the tinted sparkle in a shell page's header; opens `/assistant`.
-class _AskAction extends StatelessWidget {
-  const _AskAction({required this.onTap});
+/// Phone: the tinted sparkle in a page's header; opens `/assistant`.
+class AskMorkvaAction extends StatelessWidget {
+  const AskMorkvaAction({super.key, required this.onTap});
 
   final VoidCallback onTap;
 

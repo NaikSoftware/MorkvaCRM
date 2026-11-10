@@ -1,8 +1,6 @@
-// fake_async ships with flutter_test; it is not a direct dev dependency.
-// ignore: depend_on_referenced_packages
-import 'package:fake_async/fake_async.dart';
 import 'dart:async';
 
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/agent/agent_event.dart';
 import 'package:morkva_crm/core/agent/agent_loop.dart';

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:morkva_crm/api/api.dart';
 import 'package:morkva_crm/app/shell/app_shell_scaffold.dart';
 import 'package:morkva_crm/design/design.dart';
@@ -12,6 +13,7 @@ import 'package:morkva_crm/features/assistant/view/assistant_page.dart';
 import 'package:morkva_crm/features/assistant/view/assistant_panel.dart';
 import 'package:morkva_crm/features/assistant/view/thread_list_page.dart';
 import 'package:morkva_crm/features/home/home_page.dart';
+import 'package:morkva_crm/features/views/collection_views_page.dart';
 
 import '../../widget_test.dart'
     show FakeAuthRepository, FakeDataRepository, testApp;
@@ -208,6 +210,28 @@ void main() {
     expect(session(tester).panel.isOpen, isFalse);
   });
 
+  testWidgets('phone: a collection page header has the sparkle too', (
+    tester,
+  ) async {
+    await pumpApp(tester, const Size(400, 800));
+    GoRouter.of(
+      tester.element(find.byType(AppShellScaffold)),
+    ).go('/collections/c1');
+    await tester.pumpAndSettle();
+    expect(find.byType(CollectionViewsPage), findsOneWidget);
+    // The shell draws no header over a collection: this one is the page's.
+    final ask = find.descendant(
+      of: find.byType(AppBar),
+      matching: find.byTooltip('Ask Morkva'),
+    );
+    expect(ask, findsOneWidget);
+
+    await tester.tap(ask);
+    await tester.pumpAndSettle();
+    expect(find.byType(AssistantPage), findsOneWidget);
+    expect(session(tester).panel.isOpen, isTrue);
+  });
+
   group('feature flag off', () {
     setUp(
       () => firestore.collection('featureFlags').doc('u1').set({
@@ -241,6 +265,17 @@ void main() {
       await flagRead(tester);
       expect(find.byTooltip('Ask Morkva'), findsNothing);
       expect(find.byTooltip('Account and settings'), findsOneWidget);
+    });
+
+    testWidgets('no phone header action on a collection page', (tester) async {
+      await pumpApp(tester, const Size(400, 800));
+      await flagRead(tester);
+      GoRouter.of(
+        tester.element(find.byType(AppShellScaffold)),
+      ).go('/collections/c1');
+      await tester.pumpAndSettle();
+      expect(find.byType(CollectionViewsPage), findsOneWidget);
+      expect(find.byTooltip('Ask Morkva'), findsNothing);
     });
 
     testWidgets('an open panel closes when the flag turns off', (tester) async {

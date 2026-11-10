@@ -590,12 +590,13 @@ final class PlanItem extends ChatItem {
     Set<String>? selected,
     PlanStatus? status,
     String? message,
+    bool clearMessage = false,
   }) => PlanItem(
     id: id,
     plan: plan ?? this.plan,
     selected: selected ?? this.selected,
     status: status ?? this.status,
-    message: message ?? this.message,
+    message: clearMessage ? null : message ?? this.message,
   );
 
   @override
@@ -651,6 +652,7 @@ final class AppliedItem extends ChatItem {
     Receipt? receipt,
     UndoState? undoState,
     String? undoNote,
+    bool clearUndoNote = false,
     bool? undoSessionOnly,
   }) => AppliedItem(
     id: id,
@@ -658,7 +660,7 @@ final class AppliedItem extends ChatItem {
     receipt: receipt ?? this.receipt,
     undoUntil: undoUntil,
     undoState: undoState ?? this.undoState,
-    undoNote: undoNote ?? this.undoNote,
+    undoNote: clearUndoNote ? null : undoNote ?? this.undoNote,
     undoSessionOnly: undoSessionOnly ?? this.undoSessionOnly,
   );
 
