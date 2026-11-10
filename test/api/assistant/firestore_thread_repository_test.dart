@@ -133,11 +133,12 @@ void main() {
 
       final messages = await repository.loadMessages('t1');
 
-      expect(messages.map((m) => m['seq']), [1, 2, 3, 12]);
+      expect(messages.records.map((m) => m['seq']), [1, 2, 3, 12]);
+      expect(messages.fromCache, isFalse);
     });
 
     test('an unknown thread has no messages', () async {
-      expect(await repository.loadMessages('nope'), isEmpty);
+      expect((await repository.loadMessages('nope')).records, isEmpty);
     });
 
     test('llm survives as one string: nested-list args, empty keys and '
@@ -187,7 +188,7 @@ void main() {
       );
       final restored = await repository.loadMessages('t1');
 
-      expect(jsonDecode(restored.single['llm']! as String), contents);
+      expect(jsonDecode(restored.records.single['llm']! as String), contents);
     });
   });
 

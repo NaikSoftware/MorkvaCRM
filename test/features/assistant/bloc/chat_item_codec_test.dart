@@ -14,10 +14,41 @@ List<ChatItem> roundTrip(List<ChatItem> items) => decodeChatItems(
   jsonDecode(jsonEncode(encodeChatItems(items))) as List<Object?>,
 );
 
+/// [plan] as a turn doc keeps it: every diff cut to its field.
+PlanView withoutValues(PlanView plan) {
+  PlanChange field(PlanChange c) =>
+      PlanChange(fieldId: c.fieldId, field: c.field);
+  return PlanView(
+    planId: plan.planId,
+    title: plan.title,
+    risk: plan.risk,
+    rows: [
+      for (final r in plan.rows)
+        PlanRow(
+          itemId: r.itemId,
+          kind: r.kind,
+          label: r.label,
+          collectionId: r.collectionId,
+          targetId: r.targetId,
+          risk: r.risk,
+          changes: [for (final c in r.changes) field(c)],
+          detail: r.detail,
+        ),
+    ],
+    itemCount: plan.itemCount,
+    sharedChange: plan.sharedChange == null ? null : field(plan.sharedChange!),
+    warnings: plan.warnings,
+    notes: plan.notes,
+    undo: plan.undo,
+    expiresAt: plan.expiresAt,
+  );
+}
+
 void main() {
   final now = DateTime.utc(2026, 11, 10, 12);
 
-  test('settled items of every mockup round-trip unchanged', () {
+  test('settled items of every mockup round-trip unchanged, but for the '
+      'values of plan diffs', () {
     for (final seed in [
       AssistantSeeds.main(),
       AssistantSeeds.analyze(now: now),
@@ -28,7 +59,54 @@ void main() {
           if (item is! PlanItem && item is! TableItem && item is! ChartItem)
             item,
       ];
-      expect(roundTrip(settled), settled);
+      expect(roundTrip(settled), [
+        for (final item in settled)
+          item is AppliedItem
+              ? AppliedItem(
+                  id: item.id,
+                  plan: withoutValues(item.plan),
+                  receipt: item.receipt,
+                  undoUntil: item.undoUntil,
+                  undoState: item.undoState,
+                  undoNote: item.undoNote,
+                  undoSessionOnly: item.undoSessionOnly,
+                )
+              : item,
+      ]);
+    }
+  });
+
+  test('a persisted plan keeps its title and labels, never the card values '
+      'of its diffs', () {
+    final plan = PlanItem(
+      id: 'p',
+      plan: AssistantSeeds.shipPlan,
+      selected: const {'i1'},
+      status: PlanStatus.rejected,
+    );
+    final applied = AppliedItem(
+      id: 'a',
+      plan: AssistantSeeds.shipPlan,
+      receipt: Receipt(
+        planId: AssistantSeeds.shipPlan.planId,
+        applied: const ['i1'],
+        summary: 'Updated 1 order',
+      ),
+    );
+
+    final json = jsonEncode(encodeChatItems([plan, applied]));
+    expect(json, isNot(contains('Packing')), reason: 'the old value');
+    expect('Shipped'.allMatches(json), hasLength(2), reason: 'titles only');
+
+    final [restoredPlan, restoredApplied] = roundTrip([plan, applied]);
+    for (final restored in [
+      (restoredPlan as PlanItem).plan,
+      (restoredApplied as AppliedItem).plan,
+    ]) {
+      expect(restored, withoutValues(AssistantSeeds.shipPlan));
+      expect(restored.title, 'Set Status to Shipped · 3 orders');
+      expect(restored.rows.first.label, '#1042 · Iryna Melnyk');
+      expect(restored.sharedChange?.field, 'Status');
     }
   });
 
@@ -136,7 +214,8 @@ void main() {
       );
     });
 
-    test('a pending or committing plan comes back expired', () {
+    test('a pending plan comes back expired, a committing one '
+        'interrupted', () {
       final pending = PlanItem.proposed(id: 'a', plan: AssistantSeeds.shipPlan);
       final committing = pending.copyWith(status: PlanStatus.committing);
 
@@ -144,7 +223,7 @@ void main() {
 
       expect(restored.map((p) => p.status), [
         PlanStatus.expired,
-        PlanStatus.expired,
+        PlanStatus.interrupted,
       ]);
     });
 

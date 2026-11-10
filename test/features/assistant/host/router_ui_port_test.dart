@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
+import 'package:morkva_crm/core/harness/harness.dart';
 import 'package:morkva_crm/core/harness/query/query_engine.dart';
 import 'package:morkva_crm/features/assistant/host/router_ui_port.dart';
 
@@ -125,5 +126,35 @@ void main() {
     ]);
 
     expect(port.openQuery({'kind': 'aggregate'}), isFalse);
+  });
+
+  testWidgets('a query with a search or a created/updated-date filter has no '
+      'filtered view: it is not opened with more cards than it showed', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+    final before = location();
+    const searched = QuerySpec(collectionId: 'c_orders', search: 'Acme');
+    final created = QuerySpec(
+      collectionId: 'c_orders',
+      filters: [
+        ViewFilter(
+          fieldId: kCreatedAtRef,
+          op: FilterOp.after,
+          operand: '2026-11-01',
+        ),
+      ],
+    );
+
+    for (final spec in [searched, created]) {
+      expect(RouterUiPort.viewQuery(spec.toJson()), isNull);
+      expect(port.openQuery(spec.toJson()), isFalse);
+    }
+    await tester.pumpAndSettle();
+    expect(location(), before);
+    expect(
+      RouterUiPort.viewQuery(const QuerySpec(collectionId: 'c').toJson()),
+      isNotNull,
+    );
   });
 }

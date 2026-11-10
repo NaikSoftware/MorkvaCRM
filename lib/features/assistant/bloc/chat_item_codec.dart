@@ -3,13 +3,16 @@
 ///
 /// What is kept is deliberately compact: tables and charts keep their title,
 /// summary and query spec but **no row values** and no handle (handles are not
-/// persisted; the spec re-runs), and plans keep only their first 5 items.
+/// persisted; the spec re-runs), and plans keep only their first 5 items,
+/// without the before/after values of their diffs (a restored card never
+/// shows them; deleting a card leaves no copy of its values).
 ///
 /// Decoding restores, it does not resurrect: a turn doc is member-writable,
 /// so a malformed record, an unknown `type` or a newer `schema` is skipped
 /// (null) rather than failing the thread, and in-flight states map to their
-/// settled form (streaming text → stopped, a pending or committing plan →
-/// expired, a running step → failed, an undo in progress → available).
+/// settled form (streaming text → stopped, a pending plan → expired, a
+/// committing one → interrupted, a running step → failed, an undo in
+/// progress → available).
 library;
 
 import 'package:morkva_crm/core/agent/agent_event.dart';
@@ -70,7 +73,7 @@ Map<String, Object?> encodeChatItem(ChatItem item) => {
     PlanItem() => {
       'type': 'plan',
       'planId': item.plan.planId,
-      'plan': item.plan.compact(maxItems: kPersistedPlanItems).toJson(),
+      'plan': _persistedPlan(item.plan),
       'selected': [...item.selected],
       'status': item.status.name,
       'message': ?item.message,
@@ -78,7 +81,7 @@ Map<String, Object?> encodeChatItem(ChatItem item) => {
     AppliedItem() => {
       'type': 'applied',
       'planId': item.plan.planId,
-      'plan': item.plan.compact(maxItems: kPersistedPlanItems).toJson(),
+      'plan': _persistedPlan(item.plan),
       'receipt': item.receipt.toJson(),
       if (item.undoUntil != null)
         'undoUntil': item.undoUntil!.toUtc().toIso8601String(),
@@ -95,6 +98,28 @@ Map<String, Object?> encodeChatItem(ChatItem item) => {
     },
   },
 };
+
+/// [plan]'s first items with each diff cut to its field: titles, labels
+/// and details stay.
+Map<String, Object?> _persistedPlan(PlanView plan) {
+  final json = plan.compact(maxItems: kPersistedPlanItems).toJson();
+  Map<String, Object?> field(Object? change) {
+    final c = change! as Map<String, Object?>;
+    return {'fieldId': ?c['fieldId'], 'field': c['field']};
+  }
+
+  return {
+    ...json,
+    'items': [
+      for (final row in json['items']! as List)
+        {
+          ...row as Map<String, Object?>,
+          'changes': [for (final c in row['changes']! as List) field(c)],
+        },
+    ],
+    if (json['sharedChange'] case final shared?) 'sharedChange': field(shared),
+  };
+}
 
 List<Map<String, Object?>> encodeChatItems(Iterable<ChatItem> items) => [
   for (final item in items) encodeChatItem(item),
@@ -177,9 +202,11 @@ ChatItem? _decode(Map<String, Object?> json) {
           for (final s in _list(json, 'selected'))
             if (s is String) s,
         },
-        status: status == PlanStatus.pending || status == PlanStatus.committing
-            ? PlanStatus.expired
-            : status,
+        status: switch (status) {
+          PlanStatus.pending => PlanStatus.expired,
+          PlanStatus.committing => PlanStatus.interrupted,
+          _ => status,
+        },
         message: json['message'] as String?,
       );
     case 'applied':

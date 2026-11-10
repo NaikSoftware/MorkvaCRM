@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 
+import '../../../core/harness/harness.dart';
 import '../../../core/harness/query/query_engine.dart';
 import '../../../core/harness/ui_port.dart';
 import '../../views/view_link.dart';
@@ -36,18 +37,34 @@ final class RouterUiPort implements UiPort {
     );
   }
 
-  /// Opens the cards a table card shows: its stored query spec (ids, every
-  /// filter already validated) as transient filters over its collection.
-  /// Returns false when [spec] is not a card query.
-  bool openQuery(Map<String, Object?> spec) {
+  /// The card query [spec] stands for when a filtered view can show exactly
+  /// its cards, else null: a search, or a filter on a card's created/updated
+  /// time, has no link filter, and dropping it would show more cards than
+  /// the table did. Hide "Open as filtered view" when this is null.
+  static QuerySpec? viewQuery(Map<String, Object?>? spec) {
+    if (spec == null) return null;
     final QuerySpec query;
     try {
       query = QuerySpec.fromJson(spec);
     } on FormatException {
-      return false;
+      return null;
     } on TypeError {
-      return false;
+      return null;
     }
+    final timestamps = {kCreatedAtRef, kUpdatedAtRef};
+    if (query.search != null ||
+        query.filters.any((f) => timestamps.contains(f.fieldId))) {
+      return null;
+    }
+    return query;
+  }
+
+  /// Opens the cards a table card shows: its stored query spec (ids, every
+  /// filter already validated) as transient filters over its collection.
+  /// Returns false when [spec] has no [viewQuery].
+  bool openQuery(Map<String, Object?> spec) {
+    final query = viewQuery(spec);
+    if (query == null) return false;
     open(
       collectionId: query.collectionId,
       viewId: query.orderViewId,

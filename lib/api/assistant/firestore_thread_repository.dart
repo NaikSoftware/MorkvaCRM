@@ -47,9 +47,14 @@ class FirestoreThreadRepository implements ThreadRepository {
           );
 
   @override
-  Future<List<AssistantRecord>> loadMessages(String threadId) async {
+  Future<({List<AssistantRecord> records, bool fromCache})> loadMessages(
+    String threadId,
+  ) async {
     final snapshot = await _messages(threadId).orderBy('seq').get();
-    return [for (final doc in snapshot.docs) doc.data()];
+    return (
+      records: [for (final doc in snapshot.docs) doc.data()],
+      fromCache: snapshot.metadata.isFromCache,
+    );
   }
 
   @override

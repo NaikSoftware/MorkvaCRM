@@ -25,8 +25,12 @@ abstract interface class ThreadRepository {
   /// `id`.
   Stream<List<AssistantRecord>> watchThreads({int limit = kThreadListLimit});
 
-  /// Every turn doc of [threadId], ordered by `seq`.
-  Future<List<AssistantRecord>> loadMessages(String threadId);
+  /// Every turn doc of [threadId], ordered by `seq`. [fromCache] is true
+  /// when the read came from the local cache only (offline), which may miss
+  /// turns written on another device.
+  Future<({List<AssistantRecord> records, bool fromCache})> loadMessages(
+    String threadId,
+  );
 
   /// Writes turn [seq] of [threadId] (replacing the whole doc, so the three
   /// checkpoints of a turn — plan proposed, committed, done — overwrite one

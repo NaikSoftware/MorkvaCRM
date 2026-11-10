@@ -568,6 +568,10 @@ enum PlanStatus {
   /// The plan outlived its 15 minutes (or the page reloaded): "Rebuild".
   expired,
 
+  /// The page reloaded while it was committing: some chunks may have been
+  /// written ("May have been partly applied"), so it is never rebuilt.
+  interrupted,
+
   /// The commit failed (e.g. "Needs a connection").
   failed,
 }
