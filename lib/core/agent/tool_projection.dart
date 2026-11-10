@@ -22,6 +22,14 @@ final class ToolSet {
   ) {
     final tools = <LlmTool>[];
     final byName = <String, OperationDescriptor>{};
+    // Summaries name other ops by id ("fill it with cards.update"); the
+    // model only knows tool names, and a dotted id next to a `cards_` tool
+    // invites made-up names like `cards_cards_create`.
+    final ids = {for (final d in descriptors) d.id};
+    String named(String text) => text.replaceAllMapped(
+      _dottedId,
+      (m) => ids.contains(m[0]) ? OperationRegistry.toolName(m[0]!) : m[0]!,
+    );
     for (final d in descriptors) {
       final cap = d.capability;
       if (!d.modelVisible || d.kind == OpKind.commit || cap == null) continue;
@@ -31,7 +39,7 @@ final class ToolSet {
       tools.add(
         LlmTool(
           name: name,
-          description: d.summary,
+          description: named(d.summary),
           parametersJsonSchema: lowerSchema(d.argsSchema),
         ),
       );
@@ -56,6 +64,8 @@ final class ToolSet {
         jsonEncode(t.parametersJsonSchema).length,
   );
 }
+
+final _dottedId = RegExp(r'\b[a-z][a-zA-Z0-9]*(?:\.[a-z][a-zA-Z0-9]*)+');
 
 /// A deep copy of [schema] keeping only the keywords the harness schemas
 /// use ([JsonSchema.keywords]), so whatever reaches the provider is the

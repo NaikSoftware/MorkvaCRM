@@ -401,7 +401,11 @@ final class Receipt extends PlanOutcome {
 
   @override
   Map<String, Object?> toModelJson() => {
-    'status': 'applied',
+    'status': switch (applied.length + queued.length) {
+      0 => 'not_applied',
+      final landed when landed < approvedCount => 'partial',
+      _ => 'applied',
+    },
     'applied': applied.length,
     'queued': queued.length,
     'declinedByUser': declinedByUser,

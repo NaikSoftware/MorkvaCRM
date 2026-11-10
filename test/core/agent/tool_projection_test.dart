@@ -50,13 +50,42 @@ void main() {
     );
   });
 
+  test('summaries name other ops by their tool names', () {
+    final registry = OperationRegistry()
+      ..register(FakeOp('cards.query'))
+      ..register(
+        FakeOp(
+          'cards.update',
+          kind: OpKind.plan,
+          capability: Capability.dataWrite,
+        ),
+      )
+      ..register(
+        FakeOp(
+          'fields.add',
+          kind: OpKind.plan,
+          capability: Capability.schemaWrite,
+          summary:
+              'Adds fields. Fill one with cards.update setFrom or '
+              'cards.query, e.g. a total.',
+        ),
+      );
+    final tools = ToolSet.project(registry.descriptors, Grants.all());
+
+    expect(
+      tools.tools.last.description,
+      'Adds fields. Fill one with cards_update setFrom or cards_query, e.g. a '
+      'total.',
+    );
+  });
+
   test('maps a called name back to its op, camel-case ids included', () {
     final registry = OperationRegistry()
       ..register(FakeOp('cards.retryLater', kind: OpKind.read));
     final tools = ToolSet.project(registry.descriptors, Grants.all());
 
     expect(tools.opFor('cards_retryLater')?.id, 'cards.retryLater');
-    expect(tools.tools.single.description, 'Fake cards.retryLater.');
+    expect(tools.tools.single.description, 'Fake cards_retryLater.');
   });
 
   group('lowerSchema', () {
