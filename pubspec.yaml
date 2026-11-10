@@ -56,6 +56,10 @@ dependencies:
 
   # Epic 8 (Ask Morkva): MockClient in tests and the Gemini client seam.
   http: ^1.6.0
+  # firebase_ai's transitive App Check 0.4.5+1 extends FirebasePlugin (core_platform_interface 8.x)
+  # but allows 7.x, like firebase_auth 6.5.5: any firebase_ai import fails to compile. Pin until
+  # the Firebase stack moves to platform_interface 8.
+  firebase_app_check: 0.4.5
 
 dev_dependencies:
   flutter_test:

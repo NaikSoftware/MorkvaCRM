@@ -306,13 +306,13 @@ packages:
     source: hosted
     version: "3.13.1"
   firebase_app_check:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: firebase_app_check
-      sha256: b610075bcdad524cde6b21ff29e28463eb3cccd1e8c8abdee3a8e3dcff270177
+      sha256: "9d5c79d382a8b87cc0d899294a5234a9f0d15125cd1c97c45ca2faeca6c62918"
       url: "https://pub.dev"
     source: hosted
-    version: "0.4.5+1"
+    version: "0.4.5"
   firebase_app_check_platform_interface:
     dependency: transitive
     description:
