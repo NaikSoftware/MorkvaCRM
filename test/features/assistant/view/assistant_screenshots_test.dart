@@ -40,10 +40,33 @@ void main() => group(
 
 void _shots() {
   setUpAll(loadAppFonts);
+  // Real elevation, not flutter_test's black outline. Set before the first
+  // paint; [shoot] restores it, since the binding checks the debug paint
+  // flags at the end of the test body, before tearDown runs.
+  setUp(() => debugDisableShadows = false);
 
-  Future<void> shoot(WidgetTester tester, String name) => expectLater(
-    find.byType(MaterialApp),
-    matchesGoldenFile('goldens/$name.png'),
+  Future<void> shoot(WidgetTester tester, String name) async {
+    try {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/$name.png'),
+      );
+    } finally {
+      debugDisableShadows = true;
+    }
+  }
+
+  final threads = [
+    for (final r in AssistantSeeds.threads(now: testNow))
+      ThreadSummary.fromRecord(r),
+  ];
+  // The header shows [history, new conversation, close] as drawn.
+  Widget history(BuildContext context, VoidCallback back) => ThreadListView(
+    threads: threads,
+    currentId: 't_unpaid',
+    onSelect: (_) => back(),
+    onDelete: (_) {},
+    now: () => testNow,
   );
 
   testWidgets('Main (light): table answer + pending plan', (tester) async {
@@ -51,6 +74,7 @@ void _shots() {
       tester,
       FakeAssistantBloc.main(),
       actions: RecordingActions(),
+      historyBuilder: history,
     );
     await tester.pumpAndSettle();
     await shoot(tester, 'main_light');
@@ -61,6 +85,7 @@ void _shots() {
       tester,
       FakeAssistantBloc.main(),
       actions: RecordingActions(),
+      historyBuilder: history,
       theme: AppTheme.dark,
     );
     await tester.pumpAndSettle();
@@ -72,6 +97,7 @@ void _shots() {
       tester,
       FakeAssistantBloc.empty(),
       actions: RecordingActions(),
+      historyBuilder: history,
       autofocus: true,
     );
     await tester.pumpAndSettle();
@@ -83,6 +109,7 @@ void _shots() {
       tester,
       FakeAssistantBloc.consent(),
       actions: RecordingActions(),
+      historyBuilder: history,
     );
     await tester.pumpAndSettle();
     await shoot(tester, 'consent');
@@ -99,7 +126,12 @@ void _shots() {
         phase: const ApplyingPhase(12, 12),
       ),
     );
-    await pumpPanel(tester, bloc, actions: RecordingActions());
+    await pumpPanel(
+      tester,
+      bloc,
+      actions: RecordingActions(),
+      historyBuilder: history,
+    );
     await tester.pumpAndSettle();
     // The artboard shows the steps expanded.
     await tester.tap(find.textContaining('Read the Orders schema'));
@@ -116,6 +148,7 @@ void _shots() {
       tester,
       FakeAssistantBloc.schema(now: testNow),
       actions: RecordingActions(),
+      historyBuilder: history,
     );
     await tester.pumpAndSettle();
     await shoot(tester, 'schema');
@@ -144,10 +177,6 @@ void _shots() {
 
   testWidgets('Tablet: rail modal sheet with the history list', (tester) async {
     await setSurface(tester, const Size(1024, 768));
-    final threads = [
-      for (final r in AssistantSeeds.threads(now: testNow))
-        ThreadSummary.fromRecord(r),
-    ];
     await tester.pumpWidget(
       MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -164,7 +193,8 @@ void _shots() {
                       children: [
                         Positioned.fill(
                           child: ColoredBox(
-                            color: scheme.shadow.withValues(alpha: 0.32),
+                            // Warm ink, rgba(43, 32, 24, .32) in light.
+                            color: scheme.onSurface.withValues(alpha: 0.32),
                           ),
                         ),
                         Positioned(
@@ -179,13 +209,7 @@ void _shots() {
                             autofocus: false,
                             initiallyShowHistory: true,
                             now: () => testNow,
-                            historyBuilder: (context, back) => ThreadListView(
-                              threads: threads,
-                              currentId: 't_unpaid',
-                              onSelect: (_) => back(),
-                              onDelete: (_) {},
-                              now: () => testNow,
-                            ),
+                            historyBuilder: history,
                           ),
                         ),
                       ],
@@ -217,6 +241,7 @@ void _shots() {
         ),
       ),
       actions: RecordingActions(),
+      historyBuilder: history,
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));

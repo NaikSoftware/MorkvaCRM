@@ -57,18 +57,18 @@ class AssistantPage extends StatelessWidget {
                       subtitle: state.threadTitle,
                       onBack: onBack,
                       actions: [
+                        if (onOpenHistory != null)
+                          IconActionButton(
+                            icon: Icons.history_rounded,
+                            tooltip: 'Conversation history',
+                            onPressed: onOpenHistory,
+                          ),
                         if (state.items.isNotEmpty &&
                             state.availability.canSend)
                           IconActionButton(
                             icon: Icons.edit_square,
                             tooltip: 'New conversation',
                             onPressed: actions.newThread,
-                          ),
-                        if (onOpenHistory != null)
-                          IconActionButton(
-                            icon: Icons.history_rounded,
-                            tooltip: 'Conversation history',
-                            onPressed: onOpenHistory,
                           ),
                       ],
                     ),

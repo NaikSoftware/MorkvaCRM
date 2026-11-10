@@ -19,6 +19,7 @@ final class AssistantFocus extends Equatable {
     required this.page,
     this.collectionId,
     this.collectionName,
+    this.collectionIcon,
     this.viewId,
     this.viewName,
     this.mode,
@@ -40,6 +41,9 @@ final class AssistantFocus extends Equatable {
   final FocusPage page;
   final String? collectionId;
   final String? collectionName;
+
+  /// The collection's `CollectionIcons` key, for the composer chip only.
+  final String? collectionIcon;
   final String? viewId;
   final String? viewName;
 
@@ -113,6 +117,7 @@ final class AssistantFocus extends Equatable {
     page,
     collectionId,
     collectionName,
+    collectionIcon,
     viewId,
     viewName,
     mode,

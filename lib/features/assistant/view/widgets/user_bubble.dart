@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'assistant_scope.dart';
 
-/// The user's message: a soft `surfaceContainerHigh` bubble with `onSurface`
-/// text, right-aligned, its bottom-right corner tucked (16/16/4/16).
+/// The user's message: a soft `surfaceContainerHigh` (dark:
+/// `surfaceContainerHighest`) bubble with `onSurface` text, right-aligned, its bottom-right corner tucked (16/16/4/16).
 class UserBubble extends StatelessWidget {
   const UserBubble({super.key, required this.text});
 
@@ -23,7 +23,10 @@ class UserBubble extends StatelessWidget {
           ),
           child: DecoratedBox(
             decoration: BoxDecoration(
-              color: scheme.surfaceContainerHigh,
+              // Dark: one step higher, so the bubble lifts off the canvas.
+              color: scheme.brightness == Brightness.dark
+                  ? scheme.surfaceContainerHighest
+                  : scheme.surfaceContainerHigh,
               borderRadius: const BorderRadiusDirectional.only(
                 topStart: Radius.circular(16),
                 topEnd: Radius.circular(16),

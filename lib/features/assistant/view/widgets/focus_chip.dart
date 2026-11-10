@@ -4,12 +4,21 @@ import '../../../../design/design.dart';
 import 'assistant_scope.dart';
 
 /// The composer's context chip ("Looking at: Orders › Unpaid · 23 shown",
-/// "Looking at: #1042") with a ✕ that drops it from the next message.
+/// "Looking at: #1042") with a ✕ that drops it from the next message,
+/// led by the focused collection's own icon ([iconKey]).
 class FocusChip extends StatelessWidget {
-  const FocusChip({super.key, required this.label, required this.onRemove});
+  const FocusChip({
+    super.key,
+    required this.label,
+    required this.onRemove,
+    this.iconKey,
+  });
 
   final String label;
   final VoidCallback onRemove;
+
+  /// The collection's `CollectionIcons` key; null shows a generic glyph.
+  final String? iconKey;
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +39,9 @@ class FocusChip extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  Icons.view_in_ar_outlined,
+                  iconKey == null
+                      ? Icons.view_in_ar_outlined
+                      : CollectionIcons.byKey(iconKey),
                   size: 14,
                   color: scheme.onSurface,
                 ),

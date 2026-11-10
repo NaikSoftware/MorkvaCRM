@@ -66,7 +66,6 @@ class _PlanCardState extends State<PlanCard> {
         decoration: BoxDecoration(
           color: colors.panel,
           borderRadius: Radii.lgAll,
-          border: Border.all(color: accent, width: 2),
           boxShadow: destructive || scheme.brightness == Brightness.dark
               ? null
               : [
@@ -76,6 +75,11 @@ class _PlanCardState extends State<PlanCard> {
                     offset: const Offset(0, 2),
                   ),
                 ],
+        ),
+        // Over the content, so the footer fill never covers the border.
+        foregroundDecoration: BoxDecoration(
+          borderRadius: Radii.lgAll,
+          border: Border.all(color: accent, width: 2),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -722,7 +726,10 @@ class _Footer extends StatelessWidget {
     final destructive = plan.destructive;
     final count = item.selected.length;
     final committing = item.status == PlanStatus.committing;
-    final approveLabel = destructive && plan.title.startsWith('Delete')
+    // While applying the button is a bare spinner: say what it is doing.
+    final approveLabel = committing
+        ? 'Applying changes'
+        : destructive && plan.title.startsWith('Delete')
         ? (count == plan.itemCount
               ? plan.title
               : 'Delete $count of ${plan.itemCount}')

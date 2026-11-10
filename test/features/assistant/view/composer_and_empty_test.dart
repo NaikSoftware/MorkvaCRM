@@ -134,6 +134,7 @@ void main() {
             page: FocusPage.collection,
             collectionId: 'c_orders',
             collectionName: 'Orders',
+            collectionIcon: 'cart',
             viewName: 'Unpaid',
             shownCount: 23,
           ),
@@ -143,6 +144,8 @@ void main() {
         find.text('Looking at: Orders › Unpaid · 23 shown'),
         findsOneWidget,
       );
+      // The collection's own icon, not a generic glyph.
+      expect(find.byIcon(Icons.shopping_cart_outlined), findsOneWidget);
       await tester.tap(find.byTooltip('Remove context'));
       expect(actions.calls, ['clearFocus()']);
     });

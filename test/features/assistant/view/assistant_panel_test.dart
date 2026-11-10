@@ -127,7 +127,7 @@ void main() {
       bloc.set(full);
       await tester.pumpAndSettle();
       expect(
-        find.widgetWithText(SnackBar, 'Updated 12 orders'),
+        find.widgetWithText(SnackBar, '12 orders updated'),
         findsOneWidget,
       );
 

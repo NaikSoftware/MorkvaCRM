@@ -186,7 +186,11 @@ class _ComposerState extends State<Composer> {
               const SizedBox(height: 6),
             ],
             if (focusLabel != null) ...[
-              FocusChip(label: focusLabel, onRemove: scope.actions.clearFocus),
+              FocusChip(
+                label: focusLabel,
+                iconKey: _state.focus?.collectionIcon,
+                onRemove: scope.actions.clearFocus,
+              ),
               const SizedBox(height: Spacing.xxs),
             ],
             box,

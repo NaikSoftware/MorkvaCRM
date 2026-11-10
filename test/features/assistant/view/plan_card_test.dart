@@ -218,7 +218,7 @@ void main() {
       final border =
           tester
                   .widgetList<Container>(find.byType(Container))
-                  .map((c) => c.decoration)
+                  .map((c) => c.foregroundDecoration)
                   .whereType<BoxDecoration>()
                   .firstWhere(
                     (d) => d.border != null && d.borderRadius == Radii.lgAll,
@@ -314,6 +314,8 @@ void main() {
 
       expect(find.text('Updating 120 of 200…'), findsOneWidget);
       expect(find.text('Reject'), findsNothing);
+      // The spinner-only Approve still says what it is doing.
+      expect(find.bySemanticsLabel('Applying changes'), findsOneWidget);
       await tester.tap(find.text('Iryna Melnyk'));
       expect(actions.calls, isEmpty);
     });
