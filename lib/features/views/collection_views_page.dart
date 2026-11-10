@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -6,11 +8,13 @@ import '../../app/shell/app_shell.dart';
 import '../../app/shell/sync_status_indicator.dart';
 import '../../core/domain/domain.dart';
 import '../../design/design.dart';
+import '../assistant/bloc/assistant_focus.dart';
 import '../auth/conflict_warning_banner.dart';
 import '../objects/object_editor.dart';
 import 'collection_views_cubit.dart';
 import 'collection_views_state.dart';
 import 'modes/view_mode.dart';
+import 'screen_focus.dart';
 import 'widgets/filter_builder.dart';
 import 'widgets/fields_editor_sheet.dart';
 import 'widgets/new_view_dialog.dart';
@@ -30,13 +34,151 @@ import 'widgets/views_skeleton.dart';
 /// panel, beside the rail.
 /// Phone: a pushed page with back, name, view settings (`tune`) and an
 /// overflow holding "Customize collection"; "+ New" is the FAB.
-class CollectionViewsPage extends StatelessWidget {
+///
+/// Deep links (`collectionLink`): the page applies the `view`, `filter` and
+/// `card` query parameters whenever they change, also while it stays on the
+/// same collection. It keeps the app's [AssistantFocusNotifier], when one is
+/// provided, up to date with what it shows (see `screenFocusOf`).
+class CollectionViewsPage extends StatefulWidget {
   const CollectionViewsPage({super.key, required this.modes});
 
   final ViewModeRegistry modes;
 
   @override
+  State<CollectionViewsPage> createState() => _CollectionViewsPageState();
+}
+
+/// How long the screen must settle before the assistant's focus is updated,
+/// so a burst of changes publishes once.
+const _focusDebounce = Duration(milliseconds: 150);
+
+class _CollectionViewsPageState extends State<CollectionViewsPage> {
+  /// The last applied deep link `(view, filter, card)`.
+  (String?, String?, String?)? _link;
+
+  /// A linked card to open once the objects have loaded.
+  String? _pendingCard;
+
+  /// The card open in the editor, for the assistant's focus.
+  ({String id, String title})? _openCard;
+
+  AssistantFocusNotifier? _focus;
+  AssistantFocus? _published;
+  Timer? _publishTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _schedulePublish();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _readLink();
+  }
+
+  @override
+  void didUpdateWidget(CollectionViewsPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // go_router reuses this page for the same collection: a new location
+    // rebuilds it with new query parameters.
+    _readLink();
+  }
+
+  @override
+  void dispose() {
+    _publishTimer?.cancel();
+    final focus = _focus;
+    final published = _published;
+    if (focus != null && published != null) {
+      // After the frame: listeners may rebuild, and the tree is locked now.
+      // The next page may already have published its own focus.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (identical(focus.value, published)) focus.value = null;
+      });
+    }
+    super.dispose();
+  }
+
+  void _readLink() {
+    final params = GoRouter.maybeOf(context) == null
+        ? const <String, String>{}
+        : GoRouterState.of(context).uri.queryParameters;
+    final link = (params['view'], params['filter'], params['card']);
+    if (link == _link) return;
+    _link = link;
+    final (view, filter, card) = link;
+    context.read<CollectionViewsCubit>().openLink(viewId: view, filter: filter);
+    _pendingCard = card;
+    if (card != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _openPendingCard());
+    }
+  }
+
+  /// Opens the linked card's editor once the objects are in.
+  void _openPendingCard() {
+    final id = _pendingCard;
+    if (id == null || !mounted) return;
+    final cubit = context.read<CollectionViewsCubit>();
+    final state = cubit.state;
+    if (state is ViewsLoading) return;
+    _pendingCard = null;
+    if (state is! ViewsReady) return;
+    final object = state.objectById(id) ?? cubit.findObject(id);
+    if (object == null) {
+      _notify(context, "This link's ${itemLabelOf(state.collection)} is gone");
+      return;
+    }
+    _openObject(context, state, object);
+  }
+
+  void _setOpenCard(({String id, String title})? card) {
+    _openCard = card;
+    _schedulePublish();
+  }
+
+  void _schedulePublish() {
+    _publishTimer?.cancel();
+    _publishTimer = Timer(_focusDebounce, _publish);
+  }
+
+  void _publish() {
+    if (!mounted) return;
+    final focus = _focus ??= _focusNotifierOf(context);
+    if (focus == null) return;
+    final state = context.read<CollectionViewsCubit>().state;
+    final next = state is ViewsReady
+        ? screenFocusOf(
+            state,
+            openCardId: _openCard?.id,
+            openCardTitle: _openCard?.title,
+          )
+        : null;
+    if (next == null) {
+      // Loading keeps the last focus; a missing or failed collection drops it.
+      if (state is! ViewsLoading && identical(focus.value, _published)) {
+        focus.value = _published = null;
+      }
+      return;
+    }
+    if (next == _published && identical(focus.value, _published)) return;
+    focus.value = _published = next;
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final modes = widget.modes;
+    return BlocListener<CollectionViewsCubit, CollectionViewsState>(
+      listener: (_, _) {
+        _schedulePublish();
+        _openPendingCard();
+      },
+      child: _consumer(modes),
+    );
+  }
+
+  Widget _consumer(ViewModeRegistry modes) {
     return BlocConsumer<CollectionViewsCubit, CollectionViewsState>(
       listenWhen: (prev, next) =>
           next is ViewsReady &&
@@ -73,6 +215,21 @@ class CollectionViewsPage extends StatelessWidget {
 // -----------------------------------------------------------------------------
 // Page actions. The stubs are swapped for the real sheets by later work.
 // -----------------------------------------------------------------------------
+
+/// The app's [AssistantFocusNotifier], or null where none is provided.
+AssistantFocusNotifier? _focusNotifierOf(BuildContext context) {
+  try {
+    return context.read<AssistantFocusNotifier>();
+  } on ProviderNotFoundException {
+    return null;
+  }
+}
+
+/// The page around [context] (or the page's own context).
+_CollectionViewsPageState? _pageOf(BuildContext context) => switch (context) {
+  StatefulElement(state: final _CollectionViewsPageState page) => page,
+  _ => context.findAncestorStateOfType<_CollectionViewsPageState>(),
+};
 
 /// Collections whose "Add your first `<item>`" nudge was shown this session.
 final _nudgedCollections = <String>{};
@@ -346,7 +503,11 @@ Future<void> _createObject(
 void _notifyIfHidden(BuildContext context, MorkvaObject object) {
   final now = context.read<CollectionViewsCubit>().state;
   if (now is ViewsReady &&
-      applyView(now.collection, now.activeView, [object]).isEmpty) {
+      applyView(
+        now.collection,
+        now.activeView.copyWith(filters: now.effectiveFilters),
+        [object],
+      ).isEmpty) {
     _notify(context, 'Saved — hidden by the filters');
   }
 }
@@ -357,6 +518,11 @@ Future<void> _openObject(
   MorkvaObject object,
 ) async {
   final cubit = context.read<CollectionViewsCubit>();
+  final page = _pageOf(context);
+  page?._setOpenCard((
+    id: object.id,
+    title: titleOf(state.activeView, state.collection, object),
+  ));
   final result = await showObjectEditor(
     context,
     collection: state.collection,
@@ -365,6 +531,9 @@ Future<void> _openObject(
     derive: cubit.deriveFor,
     notes: cubit.calculationNotes(),
   );
+  if (page != null && page.mounted && page._openCard?.id == object.id) {
+    page._setOpenCard(null);
+  }
   if (!context.mounted) return;
   switch (result) {
     case ObjectEditorSaved(:final object):
@@ -683,6 +852,19 @@ class _WorkBody extends StatelessWidget {
               fieldsLabel: mode.fieldsLabel,
               horizontalPadding: gutter,
               referenceLabels: state.referenceLabels,
+              leading: [
+                if (state.transientFilters.isNotEmpty) ...[
+                  _AssistantFiltersChip(
+                    state: state,
+                    onClear: cubit.clearTransientFilters,
+                  ),
+                  TextActionButton(
+                    label: 'Save as view',
+                    icon: Icons.bookmark_add_outlined,
+                    onPressed: cubit.saveTransientAsView,
+                  ),
+                ],
+              ],
               settingsChip: mode.buildSettingsChip(context, data),
               onAddFilter: () =>
                   _openFilterEditor(context, anchor: anchor(), inset: gutter),
@@ -723,7 +905,7 @@ class _WorkBody extends StatelessWidget {
                     action: SecondaryButton(
                       label: 'Clear filters',
                       icon: Icons.filter_alt_off_outlined,
-                      onPressed: () => cubit.setFilters(const []),
+                      onPressed: cubit.clearFilters,
                     ),
                   )
                 : KeyedSubtree(
@@ -733,6 +915,59 @@ class _WorkBody extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The deep link's transient filters: "From assistant · Stage is Won";
+/// removing it shows the view as saved.
+class _AssistantFiltersChip extends StatelessWidget {
+  const _AssistantFiltersChip({required this.state, required this.onClear});
+
+  final ViewsReady state;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final filters = [
+      for (final f in state.transientFilters)
+        filterLabel(
+          f,
+          state.collection,
+          referenceLabels: state.referenceLabels,
+        ),
+    ].join(' · ');
+    return Tooltip(
+      message: 'Filters from Ask Morkva, not saved: $filters',
+      child: InputChip(
+        avatar: Icon(
+          Icons.auto_awesome,
+          size: 16,
+          color: scheme.onSecondaryContainer,
+        ),
+        label: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 320),
+          child: Text(
+            'From assistant · $filters',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        onDeleted: onClear,
+        deleteIcon: const Icon(Icons.close, size: 16),
+        deleteButtonTooltipMessage: 'Clear assistant filters',
+        backgroundColor: scheme.secondaryContainer,
+        side: BorderSide.none,
+        shape: const RoundedRectangleBorder(borderRadius: Radii.smAll),
+        labelStyle: theme.textTheme.labelLarge?.copyWith(
+          color: scheme.onSecondaryContainer,
+        ),
+        deleteIconColor: scheme.onSecondaryContainer,
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        materialTapTargetSize: MaterialTapTargetSize.padded,
+      ),
     );
   }
 }

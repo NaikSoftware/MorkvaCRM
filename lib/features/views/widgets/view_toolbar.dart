@@ -25,6 +25,7 @@ class ViewToolbar extends StatelessWidget {
     this.settingsChip,
     this.horizontalPadding = Spacing.lg,
     this.referenceLabels = const {},
+    this.leading = const [],
   });
 
   final Collection collection;
@@ -44,6 +45,9 @@ class ViewToolbar extends StatelessWidget {
   final double horizontalPadding;
   final Map<String, String> referenceLabels;
 
+  /// Shown before the filter chips (the "From assistant" chip).
+  final List<Widget> leading;
+
   @override
   Widget build(BuildContext context) {
     final chips = SingleChildScrollView(
@@ -51,6 +55,10 @@ class ViewToolbar extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
       child: Row(
         children: [
+          for (final widget in leading) ...[
+            widget,
+            const SizedBox(width: Spacing.xs),
+          ],
           for (var i = 0; i < view.filters.length; i++) ...[
             _FilterChip(
               label: filterLabel(
