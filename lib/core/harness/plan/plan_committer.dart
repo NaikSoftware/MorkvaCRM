@@ -5,7 +5,6 @@ import '../../../api/data/data_repository.dart';
 import '../../domain/domain.dart';
 import '../api/envelope.dart';
 import '../api/harness_context.dart';
-import '../cache/collection_snapshot.dart';
 import '../cache/workspace_cache.dart';
 import '../query/result_shaper.dart';
 import 'journal_entry.dart';
@@ -51,6 +50,13 @@ final class ItemOutcome {
   static final ItemOutcome offline = ItemOutcome.failed(
     ErrorCode.offline.wire,
     'The connection dropped before this change was sent.',
+  );
+
+  /// A transaction the server did not confirm in time (never queued
+  /// offline): it may still land, so it stays retryable.
+  static final ItemOutcome unconfirmed = ItemOutcome.failed(
+    ErrorCode.offline.wire,
+    'The server did not confirm this change in time; it may still apply.',
   );
 
   final ItemStatus status;
@@ -408,11 +414,13 @@ final class PlanCommitter {
   }
 
   /// Writes [writes] in chunks of [batchSize], settling each one. Before a
-  /// chunk, writes to cards the live cache no longer has are settled
-  /// [ItemOutcome.missing]; a chunk refused `not-found` is re-verified
-  /// (cache, then the repository), the missing ids dropped and the rest
-  /// retried, until nothing more can be dropped. [counts] says whether
-  /// each write is one progress step.
+  /// chunk, updates and deletes of cards the live cache no longer has are
+  /// settled [ItemOutcome.missing] (except [_CardWrite.serverListed]
+  /// deletes); a chunk refused `not-found` is re-verified
+  /// (cache, then the repository), the missing updates dropped and the rest
+  /// retried, until nothing more can be dropped. Only an update can fail
+  /// `not-found`: a create is a set and deleting a missing card is a no-op.
+  /// [counts] says whether each write is one progress step.
   Future<void> _writeCards(
     List<_CardWrite> writes,
     Map<String, Collection> schemas,
@@ -435,7 +443,9 @@ final class PlanCommitter {
         }
         final rest = <_CardWrite>[];
         for (final w in chunk) {
-          if (w.write is! ObjectCreate && !_cached(w.write)) {
+          if (w.write is! ObjectCreate &&
+              !w.serverListed &&
+              !_cached(w.write)) {
             settle(w, ItemOutcome.missing);
           } else {
             rest.add(w);
@@ -455,8 +465,17 @@ final class PlanCommitter {
           final acked = await _ackedBatch(batch);
           if (acked == null) {
             run.stopped = true;
+            // The auto-number reservation is a transaction, which is never
+            // queued: until it ran, nothing of the chunk was written. Once it
+            // ran, the batch shows its creates in the cache and is queued.
+            final unwritten =
+                chunk.any((w) => _reserves(w.write, schemas)) &&
+                !chunk.any((w) => w.write is ObjectCreate && _cached(w.write));
             for (final w in chunk) {
-              settle(w, ItemOutcome.queued);
+              settle(
+                w,
+                unwritten ? ItemOutcome.unconfirmed : ItemOutcome.queued,
+              );
             }
             break;
           }
@@ -522,19 +541,31 @@ final class PlanCommitter {
 
   bool _cached(ObjectWrite w) => cache.current(w.collectionId)?[w.id] != null;
 
-  /// The writes of [refused] whose card is gone: by the live cache, else by
-  /// asking the repository.
+  /// Whether [w] is a create the repository reserves an auto-number for.
+  static bool _reserves(ObjectWrite w, Map<String, Collection> schemas) =>
+      w is ObjectCreate &&
+      (schemas[w.collectionId]?.fields
+              .whereType<AutoNumberFieldDefinition>()
+              .any((f) => w.object[f.id]?.isEmpty ?? true) ??
+          false);
+
+  /// The updates of [refused] whose card is gone: by the live cache, else
+  /// by asking the repository. Creates and deletes are never gone.
   Future<List<_CardWrite>> _gone(
     List<_CardWrite> refused,
     Map<String, Collection> schemas,
   ) async {
-    final byCache = [
+    final updates = [
       for (final w in refused)
+        if (w.write is ObjectUpdate) w,
+    ];
+    final byCache = [
+      for (final w in updates)
         if (!_cached(w.write)) w,
     ];
     if (byCache.isNotEmpty) return byCache;
     final found = await Future.wait([
-      for (final w in refused)
+      for (final w in updates)
         if (schemas[w.write.collectionId] case final schema?)
           _repository
               .getObject(w.write.collectionId, w.write.id, schema: schema)
@@ -580,6 +611,10 @@ final class PlanCommitter {
 
 final class _Commit {
   _Commit(this.c, this.plan, this.outcomes, this.run);
+
+  /// Delete rounds a collection delete runs before it gives up on cards
+  /// that keep appearing.
+  static const int _deleteRounds = 3;
 
   final PlanCommitter c;
   final Plan plan;
@@ -738,19 +773,19 @@ final class _Commit {
         viewsOf: viewsOnly ? cached : null,
       );
       switch (r) {
-        case _TxnResult(kind: _Txn.acked || _Txn.timedOut):
-          final ok = r.kind == _Txn.acked;
-          if (!ok) run.stopped = true;
+        case _TxnResult(kind: _Txn.acked):
           for (final i in ready) {
-            settle(
-              i,
-              local[i.itemId] ??
-                  (ok ? ItemOutcome.applied : ItemOutcome.queued),
-            );
+            settle(i, local[i.itemId] ?? ItemOutcome.applied);
           }
           if (before != null && after != null) {
             _journal.addAll(schemaDiff(before!, after!));
             written[cid] = after!;
+          }
+        case _TxnResult(kind: _Txn.timedOut):
+          // A transaction is never queued offline: unknown, so retryable.
+          run.stopped = true;
+          for (final i in ready) {
+            settle(i, ItemOutcome.unconfirmed);
           }
         case _TxnResult(kind: _Txn.missing):
           for (final i in ready) {
@@ -1055,35 +1090,61 @@ final class _Commit {
         run.done++;
         continue;
       }
-      final CollectionSnapshot snapshot;
-      final Collection server;
-      try {
-        snapshot = await cache.read(id);
-        server = await c._repository.getCollection(id) ?? item.before;
-      } on MissingCollectionException {
-        settle(item, ItemOutcome.missing);
+      var server = item.before;
+      var left = 0;
+      ItemOutcome? firstFailure;
+      // The first listing decides whether the delete is undoable.
+      int? listed;
+      // The cards come from the server, never the cache: one the cache does
+      // not hold (yet) would be orphaned once the schema doc is gone. Listed
+      // again until empty, for cards another device adds meanwhile.
+      for (var round = 0; left == 0 && !run.stopped; round++) {
+        final List<MorkvaObject> cards;
+        try {
+          if (round == 0) {
+            server = await c._repository.getCollection(id) ?? item.before;
+          }
+          cards = await c._repository.getServerObjects(id, schema: server);
+        } on Object catch (e) {
+          firstFailure = ItemOutcome.failed(
+            ErrorCode.offline.wire,
+            'The cards could not be listed: $e',
+          );
+          break;
+        }
+        if (cards.isEmpty) break;
+        if (round == _deleteRounds) {
+          left = cards.length;
+          break;
+        }
+        final undoable = (listed ??= cards.length) <= kMaxUndoableCards;
+        final writes = [
+          for (final card in cards)
+            _CardWrite(
+              serverListed: true,
+              ObjectDelete(collectionId: id, id: card.id),
+              (o) {
+                if (o.written) {
+                  if (undoable) {
+                    _journal.add(JournalCardDelete.of(card, server));
+                  }
+                  // A queued delete still waits for the server.
+                  if (o.status == ItemStatus.queued) left++;
+                  return;
+                }
+                left++;
+                firstFailure ??= o;
+              },
+            ),
+        ];
+        await c._writeCards(writes, {id: server}, run, counts: false);
+      }
+      if (firstFailure != null && left == 0) {
+        settle(item, firstFailure!);
         run.done++;
         continue;
       }
-      final undoable = snapshot.count <= kMaxUndoableCards;
-      var left = 0;
-      ItemOutcome? firstFailure;
-      final writes = [
-        for (final card in snapshot.raw)
-          _CardWrite(ObjectDelete(collectionId: id, id: card.id), (o) {
-            if (o.written || o.status == ItemStatus.stale) {
-              if (o.written && undoable) {
-                _journal.add(JournalCardDelete.of(card, server));
-              }
-              // A queued delete still waits for the server.
-              if (o.status == ItemStatus.queued) left++;
-              return;
-            }
-            left++;
-            firstFailure ??= o;
-          }),
-      ];
-      await c._writeCards(writes, {id: server}, run, counts: false);
+      final undoable = (listed ?? 0) <= kMaxUndoableCards;
       if (left > 0 || run.stopped) {
         settle(
           item,
@@ -1135,6 +1196,21 @@ final class _Undo {
   /// Created cards this undo deleted.
   final Set<String> deletedCards = {};
 
+  /// Deleted collections this undo did not re-create (failed or stopped),
+  /// by the outcome their own items inherit: kept for another undo.
+  final Map<String, ItemOutcome> notRecreated = {};
+
+  /// Settles [item], whose collection is gone: failed like its
+  /// collection's re-create when that is still pending, else skipped
+  /// [kMissing].
+  void settleGone(JournalItem item) {
+    if (notRecreated[item.collectionId] case final o?) {
+      settle(item, o);
+    } else {
+      skipped(item, kMissing);
+    }
+  }
+
   WorkspaceCache get cache => c.cache;
 
   void reverted(JournalItem item) {
@@ -1178,7 +1254,10 @@ final class _Undo {
     Iterable<JournalCollectionDelete> items,
   ) async {
     for (final item in items) {
-      if (stoppedFor(item)) continue;
+      if (stoppedFor(item)) {
+        notRecreated[item.collectionId] = ItemOutcome.offline;
+        continue;
+      }
       if (cache.collection(item.collectionId) != null) {
         skipped(item, 'exists');
         continue;
@@ -1191,6 +1270,10 @@ final class _Undo {
         reverted(item);
       } on Object catch (e) {
         failed(item, ErrorCode.internal.wire, 'Not re-created: $e');
+        notRecreated[item.collectionId] = ItemOutcome.failed(
+          ErrorCode.internal.wire,
+          'Its collection was not re-created.',
+        );
       }
     }
   }
@@ -1207,9 +1290,7 @@ final class _Undo {
       }
       final cached = cache.collection(cid);
       if (cached == null) {
-        for (final i in group) {
-          skipped(i, kMissing);
-        }
+        group.forEach(settleGone);
         continue;
       }
       final viewsOnly = group.every((i) => i is JournalViewEntry);
@@ -1252,8 +1333,13 @@ final class _Undo {
         viewsOf: viewsOnly ? cached : null,
       );
       switch (r) {
-        case _TxnResult(kind: _Txn.acked || _Txn.timedOut):
-          if (r.kind == _Txn.timedOut) run.stopped = true;
+        case _TxnResult(kind: _Txn.timedOut):
+          // A transaction is never queued offline: kept for another undo.
+          run.stopped = true;
+          for (final i in group) {
+            settle(i, ItemOutcome.unconfirmed);
+          }
+        case _TxnResult(kind: _Txn.acked):
           for (final i in group) {
             if (local[i] case final why?) {
               skipped(i, why);
@@ -1445,7 +1531,7 @@ final class _Undo {
         final cid = item.collectionId;
         final schema = written[cid] ?? cache.collection(cid);
         if (schema == null) {
-          skipped(item, kMissing);
+          settleGone(item);
           continue;
         }
         schemas[cid] = schema;
@@ -1538,9 +1624,23 @@ final class _Undo {
         skipped(item, kMissing);
         continue;
       }
+      final List<MorkvaObject> cards;
       try {
-        final snapshot = await cache.read(id);
-        final others = snapshot.raw.where((o) => !deletedCards.contains(o.id));
+        // From the server: the cache may not hold every card added since.
+        cards = await c._repository.getServerObjects(
+          id,
+          schema: cache.collection(id)!,
+        );
+      } on Object catch (e) {
+        failed(
+          item,
+          ErrorCode.offline.wire,
+          'The cards could not be listed: $e',
+        );
+        continue;
+      }
+      try {
+        final others = cards.where((o) => !deletedCards.contains(o.id));
         if (others.isNotEmpty) {
           skipped(item, 'has_cards');
           continue;
@@ -1548,8 +1648,6 @@ final class _Undo {
         final acked = await c._acked(c._repository.deleteCollection(id));
         if (!acked) run.stopped = true;
         reverted(item);
-      } on MissingCollectionException {
-        skipped(item, kMissing);
       } on Object catch (e) {
         failed(item, ErrorCode.internal.wire, 'Not deleted: $e');
       }
@@ -1716,10 +1814,14 @@ final class _Run {
 
 /// One card write and what to do with its outcome.
 final class _CardWrite {
-  _CardWrite(this.write, this.settle);
+  _CardWrite(this.write, this.settle, {this.serverListed = false});
 
   final ObjectWrite write;
   final void Function(ItemOutcome outcome) settle;
+
+  /// A delete of a card listed from the server: written even when the
+  /// cache does not hold the card (yet).
+  final bool serverListed;
 }
 
 enum _Txn { acked, timedOut, missing, error }

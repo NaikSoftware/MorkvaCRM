@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/api/data/data_repository.dart';
@@ -189,6 +191,30 @@ void main() {
         {'itemId': plan.items[0].itemId, 'reason': 'missing'},
       ]);
       expect(r['applied'], [plan.items[1].itemId]);
+    });
+
+    test('a card another device deletes while an earlier chunk is written '
+        'is stale missing, not journaled', () async {
+      final c = CommitHarness(batchSize: 2);
+      addTearDown(c.dispose);
+      final ids = [for (final o in c.seed.orderCards.take(3)) o.id];
+      final plan = await c.plan('cards.delete', {
+        'collection': 'Orders',
+        'target': {'ids': ids},
+      });
+      var calls = 0;
+      c.p.repo.batchWriteError = (_) {
+        if (calls++ == 0) c.p.repo.deleteObject(SeedIds.orders, ids[2]);
+        return null;
+      };
+      final r = await c.commit(plan);
+      final [i1, i2, i3] = [for (final i in plan.items) i.itemId];
+      expect(r['stale'], [
+        {'itemId': i3, 'reason': 'missing'},
+      ]);
+      expect(r['applied'], [i1, i2]);
+      final journal = c.journal.get(r['journalId']! as String)!;
+      expect(journal.items, hasLength(2));
     });
 
     test('a chunk refused not-found is re-verified, its missing ids dropped '
@@ -488,6 +514,79 @@ void main() {
   });
 
   group('watchdog', () {
+    test('a schema transaction never acknowledged fails offline: it is not '
+        'queued, not journaled, and retryFailed attempts it again', () async {
+      final w = CommitHarness(ackTimeout: const Duration(milliseconds: 50));
+      addTearDown(w.dispose);
+      final plan = await w.plan('fields.add', {
+        'collection': 'Orders',
+        'fields': [
+          {'name': 'Rush', 'type': 'boolean'},
+        ],
+      });
+      final item = plan.items.single.itemId;
+      w.p.repo.collectionAck = Completer();
+
+      final r = Receipt.fromJson(await w.commit(plan));
+      expect(r.queued, isEmpty);
+      expect(r.applied, isEmpty);
+      expect(
+        [for (final f in r.failed) (f.itemId, f.code)],
+        [(item, 'offline')],
+      );
+      expect(r.journalId, isNull);
+
+      w.p.repo.collectionAck = null;
+      await w.settle();
+      final again = await w.ok('plans.retryFailed', {'planId': plan.planId});
+      // The first attempt landed late, so the retry finds the field there.
+      expect(again['stale'], [
+        {'itemId': item, 'reason': 'changed_elsewhere'},
+      ]);
+    });
+
+    test('a create chunk whose auto-number reservation never finishes '
+        'fails offline, not queued', () async {
+      final w = CommitHarness(ackTimeout: const Duration(milliseconds: 50));
+      addTearDown(w.dispose);
+      final plan = await w.plan('cards.create', {
+        'collection': 'Orders',
+        'cards': [
+          {
+            'values': {'Item': 'Linen'},
+          },
+        ],
+      });
+      w.p.repo.reservationNeverCompletes = true;
+
+      final r = Receipt.fromJson(await w.commit(plan));
+      expect(r.queued, isEmpty);
+      expect([for (final f in r.failed) f.code], ['offline']);
+      expect(r.journalId, isNull);
+    });
+
+    test('a create chunk whose reservation finished but whose batch is '
+        'never acknowledged is queued and journaled', () async {
+      final w = CommitHarness(ackTimeout: const Duration(milliseconds: 50));
+      addTearDown(w.dispose);
+      final plan = await w.plan('cards.create', {
+        'collection': 'Orders',
+        'cards': [
+          {
+            'values': {'Item': 'Linen'},
+          },
+        ],
+      });
+      final item = plan.items.single.itemId;
+      w.p.repo.batchNeverCompletes = true;
+
+      final r = Receipt.fromJson(await w.commit(plan));
+      expect(r.queued, [item]);
+      expect(r.failed, isEmpty);
+      expect(r.journalId, isNotNull);
+      expect(w.journal.get(r.journalId!)!.items, hasLength(1));
+    });
+
     test('a batch never acknowledged: its items are queued and journaled, '
         'later chunks fail offline', () {
       fakeAsync((async) {

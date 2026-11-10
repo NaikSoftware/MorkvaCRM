@@ -113,6 +113,10 @@ class FakeDataRepository implements DataRepository {
   final Map<String, List<MorkvaObject>> _objects = {};
   final Map<String, BehaviorSubject<List<MorkvaObject>>> _objectSubjects = {};
 
+  /// Object ids [watchObjects] leaves out while the reads still return them
+  /// — a client cache that lags the server.
+  final Set<String> hiddenFromWatch = {};
+
   /// Count of [watchObjects] calls per collection id, for assertions.
   final Map<String, int> watchObjectsCalls = {};
 
@@ -166,7 +170,12 @@ class FakeDataRepository implements DataRepository {
     Collection? schema,
   }) {
     watchObjectsCalls.update(collectionId, (n) => n + 1, ifAbsent: () => 1);
-    final stream = _subjectFor(collectionId).stream;
+    final stream = _subjectFor(collectionId).stream.map(
+      (objects) => [
+        for (final o in objects)
+          if (!hiddenFromWatch.contains(o.id)) o,
+      ],
+    );
     // Decoded against [schema] like the real repository: values of fields
     // the schema lacks are dropped, missing ones come back empty.
     return _counted(
@@ -209,6 +218,19 @@ class FakeDataRepository implements DataRepository {
     String collectionId, {
     required Collection schema,
   }) async => objectsOf(collectionId);
+
+  /// When non-null, [getServerObjects] throws it — like a server read
+  /// while the server is unreachable.
+  Object? serverReadError;
+
+  @override
+  Future<List<MorkvaObject>> getServerObjects(
+    String collectionId, {
+    required Collection schema,
+  }) async {
+    if (serverReadError case final e?) throw e;
+    return objectsOf(collectionId);
+  }
 
   @override
   Future<MorkvaObject?> getObject(
@@ -276,6 +298,11 @@ class FakeDataRepository implements DataRepository {
   /// never completes — like a batch waiting for a server ack while offline.
   bool batchNeverCompletes = false;
 
+  /// When true, [saveObjectsBatch] never completes and writes nothing for a
+  /// chunk with creates — like an auto-number reservation transaction that
+  /// cannot reach the server.
+  bool reservationNeverCompletes = false;
+
   @override
   Future<BatchResult> saveObjectsBatch(
     List<ObjectWrite> writes, {
@@ -305,6 +332,9 @@ class FakeDataRepository implements DataRepository {
           failed[write.id] = code;
         }
         continue;
+      }
+      if (reservationNeverCompletes && chunk.any((w) => w is ObjectCreate)) {
+        await Completer<void>().future;
       }
       final touched = <String>{};
       for (final write in chunk) {

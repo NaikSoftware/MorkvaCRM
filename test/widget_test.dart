@@ -113,6 +113,12 @@ class FakeDataRepository implements DataRepository {
   }) async => const [];
 
   @override
+  Future<List<MorkvaObject>> getServerObjects(
+    String collectionId, {
+    required Collection schema,
+  }) async => const [];
+
+  @override
   Future<MorkvaObject?> getObject(
     String collectionId,
     String objectId, {

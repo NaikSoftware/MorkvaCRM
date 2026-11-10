@@ -384,6 +384,56 @@ void main() {
     });
   });
 
+  group('schema stream errors', () {
+    test('an error before the first schema is retried: a later lease '
+        'completes instead of hanging', () {
+      fakeAsync((async) {
+        final repo = _FlakySchemaRepo(
+          seed.collections,
+          (_) => Stream.error(StateError('permission-denied')),
+        );
+        final cache = WorkspaceCache(repo)..initialize('ws');
+        Object? readyError;
+        cache.ready.catchError((Object e) => readyError = e);
+        async.flushMicrotasks();
+        expect(readyError, isStateError);
+
+        Lease? lease;
+        cache.lease([_fabrics]).then((l) => lease = l);
+        async.flushMicrotasks();
+        expect(lease, isNull);
+
+        async.elapse(const Duration(seconds: 1));
+        expect(repo.schemaListens, 2);
+        expect(lease, isNotNull);
+        lease!.release();
+        cache.reset();
+        async.flushMicrotasks();
+        expect(async.pendingTimers, isEmpty);
+      });
+    });
+
+    test('an error after the schema is ready is re-listened: later schema '
+        'changes still arrive', () {
+      fakeAsync((async) {
+        final repo = _FlakySchemaRepo(seed.collections, (real) async* {
+          yield await real.first;
+          throw StateError('resource-exhausted');
+        });
+        final cache = WorkspaceCache(repo)..initialize('ws');
+        async.flushMicrotasks();
+        expect(cache.collection(_fabrics)!.name, isNot('Materials'));
+
+        async.elapse(const Duration(seconds: 1));
+        repo.saveCollection(seed.fabrics.copyWith(name: 'Materials'));
+        async.flushMicrotasks();
+        expect(cache.collection(_fabrics)!.name, 'Materials');
+        cache.reset();
+        async.flushMicrotasks();
+      });
+    });
+  });
+
   group('derive', () {
     test('awaits every source, then matches a full Derivation', () async {
       final derived = await cache.derive(_orders, today: seedToday);
@@ -482,4 +532,22 @@ void main() {
       await cache.reset();
     });
   });
+}
+
+/// Wraps the first schema stream (e.g. to make it fail); later listens get
+/// the real one, like a re-listened Firestore query.
+final class _FlakySchemaRepo extends FakeDataRepository {
+  _FlakySchemaRepo(super.initial, this._first);
+
+  Stream<List<Collection>> Function(Stream<List<Collection>> real)? _first;
+  int schemaListens = 0;
+
+  @override
+  Stream<List<Collection>> watchCollections() {
+    schemaListens++;
+    final first = _first;
+    _first = null;
+    final real = super.watchCollections();
+    return first == null ? real : first(real);
+  }
 }
