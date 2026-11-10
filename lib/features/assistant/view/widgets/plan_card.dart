@@ -771,6 +771,11 @@ class _Footer extends StatelessWidget {
               ),
               const SizedBox(height: 6),
             ],
+            // Approve was refused (offline): say so on the card.
+            if (item.message case final message? when !committing) ...[
+              CardNote(message),
+              const SizedBox(height: 6),
+            ],
             Wrap(
               alignment: WrapAlignment.end,
               spacing: Spacing.xs,
@@ -799,6 +804,42 @@ class _Footer extends StatelessWidget {
                     onPressed: count == 0 ? null : onApprove,
                   ),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Why the last action on a card did not run ("Needs a connection"),
+/// announced once.
+class CardNote extends StatelessWidget {
+  const CardNote(this.message, {super.key});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = theme.colorScheme.onSurfaceVariant;
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      label: message,
+      child: ExcludeSemantics(
+        child: Row(
+          children: [
+            Icon(Icons.info_outline_rounded, size: 16, color: color),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                message,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ],
         ),

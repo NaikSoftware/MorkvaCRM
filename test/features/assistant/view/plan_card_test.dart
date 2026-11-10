@@ -301,6 +301,37 @@ void main() {
     });
   });
 
+  testWidgets('approving offline says so and leaves the plan open', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    // As the bloc leaves it after an offline Approve.
+    await pump(
+      tester,
+      PlanItem.proposed(
+        id: 'm6',
+        plan: AssistantSeeds.shipPlan,
+      ).copyWith(message: 'Needs a connection'),
+    );
+
+    expect(find.text('Needs a connection'), findsOneWidget);
+    expect(find.bySemanticsLabel('Needs a connection'), findsOneWidget);
+    await tester.tap(find.text('Approve 3 changes'));
+    expect(actions.calls, ['approve(${AssistantSeeds.shipPlan.planId})']);
+
+    // Approved again online: the progress replaces the note.
+    await pump(
+      tester,
+      PlanItem.proposed(
+        id: 'm6',
+        plan: AssistantSeeds.shipPlan,
+      ).copyWith(status: PlanStatus.committing, message: 'Needs a connection'),
+      p: const ApplyingPhase(1, 3),
+    );
+    expect(find.text('Needs a connection'), findsNothing);
+    semantics.dispose();
+  });
+
   group('settled plans', () {
     testWidgets('committing shows progress and locks the card', (tester) async {
       await pump(
