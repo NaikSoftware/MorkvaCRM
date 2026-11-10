@@ -43,6 +43,7 @@ final class ViewsReady extends CollectionViewsState {
     this.referenceLabels = const {},
     this.referenceChoices = const {},
     this.calculationNotes = const {},
+    this.transientFilters = const [],
     this.writeError,
     this.writeErrorSeq = 0,
   });
@@ -77,6 +78,10 @@ final class ViewsReady extends CollectionViewsState {
   /// What each calculated field computes, in one line, by field id.
   final Map<String, String> calculationNotes;
 
+  /// Filters a deep link put over the active view ("From assistant"): not
+  /// saved, AND-ed with the view's own and already applied to [objects].
+  final List<ViewFilter> transientFilters;
+
   /// The last failed write, for a snackbar. A new failure bumps
   /// [writeErrorSeq], so listeners can tell repeats apart.
   final String? writeError;
@@ -90,6 +95,11 @@ final class ViewsReady extends CollectionViewsState {
     final id? => collection.fieldById(id),
     null => null,
   };
+
+  /// Every filter in effect: the view's own, then [transientFilters].
+  List<ViewFilter> get effectiveFilters => transientFilters.isEmpty
+      ? activeView.filters
+      : [...activeView.filters, ...transientFilters];
 
   /// Whether filters hide some objects.
   bool get isFiltered => objects.length < totalCount;
@@ -108,6 +118,7 @@ final class ViewsReady extends CollectionViewsState {
     referenceLabels,
     referenceChoices,
     calculationNotes,
+    transientFilters,
     writeError,
     writeErrorSeq,
   ];

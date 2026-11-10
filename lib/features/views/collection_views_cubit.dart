@@ -4,8 +4,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../api/data/data_repository.dart';
 import '../../core/domain/domain.dart';
+import '../../core/harness/input/ref_resolver.dart';
 import '../collections/util/id_generator.dart';
 import 'collection_views_state.dart';
+import 'view_link.dart';
 import 'widgets/view_labels.dart';
 
 /// Reverts one object write (or a manual-order change). Completes when the
@@ -70,6 +72,15 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
 
   /// A stream failed: stay on [ViewsError] until [retry].
   bool _streamFailed = false;
+
+  /// Filters a deep link put over view [_transientViewId]; dropped once
+  /// another view is shown.
+  List<ViewFilter> _transient = const [];
+  String? _transientViewId;
+
+  /// A deep link waiting for the collection (and, for a filter, the cards
+  /// its reference fields may name) to load.
+  ({String? viewId, String? filter})? _pendingLink;
 
   /// Starts watching. Call once after creating the cubit.
   void initialize() {
@@ -258,6 +269,104 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
     _emitReady();
   }
 
+  // ---------------------------------------------------------------------------
+  // Deep links
+  // ---------------------------------------------------------------------------
+
+  /// Applies a deep link's `view` and `filter` parameters (see
+  /// `collectionLink`) once the collection has loaded: selects [viewId] when
+  /// the collection has it, then puts the decoded [filter] over the view as
+  /// transient filters. Without a filter the transient ones stay, unless the
+  /// view changes. An invalid filter is dropped and reported through
+  /// [ViewsReady.writeError].
+  void openLink({String? viewId, String? filter}) {
+    if (isClosed || (viewId == null && filter == null)) return;
+    _pendingLink = (viewId: viewId, filter: filter);
+    _emitReady();
+  }
+
+  /// Puts [filters] over the active view, unsaved, until [clearTransientFilters]
+  /// or another view is shown. Callers validate them (see `parseLinkFilter`).
+  void setTransientFilters(List<ViewFilter> filters) {
+    _transient = List.unmodifiable(filters);
+    _transientViewId = _activeView?.id;
+    _emitReady();
+  }
+
+  void clearTransientFilters() => setTransientFilters(const []);
+
+  /// Saves the active view with its transient filters as a new view right
+  /// after it, selects it and returns its id.
+  Future<String?> saveTransientAsView() async {
+    final collection = _collection;
+    final view = _activeView;
+    final transient = _transient;
+    if (collection == null || view == null || transient.isEmpty) return null;
+    final copy = view.copyWith(
+      id: _ids.viewId(),
+      name: '${view.name} · filtered',
+      filters: List.unmodifiable([...view.filters, ...transient]),
+    );
+    final index = collection.views.indexOf(view);
+    _activeViewId = copy.id;
+    if (await _saveViews([...collection.views]..insert(index + 1, copy))) {
+      return copy.id;
+    }
+    _activeViewId = view.id;
+    _transient = transient;
+    _transientViewId = view.id;
+    _emitReady();
+    return null;
+  }
+
+  /// Applies [_pendingLink] once it can be: a filter waits for the cards of
+  /// every reference field's target, which its values may name.
+  void _resolveLink(Collection collection) {
+    final link = _pendingLink;
+    if (link == null) return;
+    if (link.viewId case final id?
+        when collection.views.any((v) => v.id == id)) {
+      _activeViewId = id;
+    }
+    final filter = link.filter;
+    // The view is selected once; the user may switch while the filter waits.
+    _pendingLink = filter == null ? null : (viewId: null, filter: filter);
+    if (filter == null) return;
+    final targets = {
+      for (final f in collection.fields.whereType<ReferenceFieldDefinition>())
+        f.targetCollectionId,
+    }..remove(collectionId);
+    targets.forEach(_watchCollection);
+    if (targets.any(
+      (t) =>
+          _targetSubs.containsKey(t) &&
+          !_targetObjects.containsKey(t) &&
+          !_failedTargets.contains(t),
+    )) {
+      return;
+    }
+    _pendingLink = null;
+    final filters = parseLinkFilter(
+      filter,
+      collection: collection,
+      workspace: StaticWorkspace(_workspace(collection), {
+        ..._targetObjects,
+        collectionId: _allObjects,
+      }),
+      today: _now(),
+    );
+    if (filters == null) {
+      _transient = const [];
+      _writeError = "This link's filter isn't valid";
+      _writeErrorSeq++;
+      return;
+    }
+    _transient = List.unmodifiable(filters);
+    _transientViewId =
+        collection.views.where((v) => v.id == _activeViewId).firstOrNull?.id ??
+        collection.views.first.id;
+  }
+
   static Collection _withViews(Collection c) => c.views.isNotEmpty
       ? c
       : c.copyWith(views: [ViewDefinition.defaultFor(c.fields)]);
@@ -312,16 +421,21 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
         isClosed) {
       return;
     }
+    _resolveLink(collection);
     final view =
         collection.views.where((v) => v.id == _activeViewId).firstOrNull ??
         collection.views.first;
     _activeViewId = view.id;
-    _watchTargets(collection, view);
+    if (_transientViewId != view.id) _transient = const [];
+    final effective = _transient.isEmpty
+        ? view
+        : view.copyWith(filters: [...view.filters, ..._transient]);
+    _watchTargets(collection, effective);
 
     final all = _derive(collection, _allObjects);
-    final applied = applyView(collection, view, all);
+    final applied = applyView(collection, effective, all);
     final labelsByTarget = {
-      for (final f in _viewReferences(collection, view))
+      for (final f in _viewReferences(collection, effective))
         f.targetCollectionId:
             _labelsFor(f.targetCollectionId, collection) ?? const {},
     };
@@ -356,6 +470,7 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
             f.id: ?_labelsFor(f.targetCollectionId, collection),
         },
         calculationNotes: calculationNotes(),
+        transientFilters: _transient,
         writeError: _writeError,
         writeErrorSeq: _writeErrorSeq,
       ),
@@ -536,6 +651,12 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
   Future<void> setFilters(List<ViewFilter> filters) =>
       _updateActive((v) => v.copyWith(filters: List.unmodifiable(filters)));
 
+  /// "Clear filters": drops the transient filters and the view's own.
+  Future<void> clearFilters() {
+    if (_transient.isNotEmpty) clearTransientFilters();
+    return setFilters(const []);
+  }
+
   /// Sets the active view's sort; null means manual order.
   Future<void> setSort(ViewSort? sort) =>
       _updateActive((v) => v.copyWith(sort: sort));
@@ -613,6 +734,9 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
 
   MorkvaObject? _objectById(String id) =>
       _allObjects.where((o) => o.id == id).firstOrNull;
+
+  /// The loaded object [id], even when the filters hide it.
+  MorkvaObject? findObject(String id) => _objectById(id);
 
   /// The group key of [object] under [field], as [groupObjects] sees it.
   static String? _groupKeyOf(FieldDefinition field, MorkvaObject object) =>

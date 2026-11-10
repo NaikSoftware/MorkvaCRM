@@ -12,6 +12,8 @@ export 'modes/calendar_mode.dart';
 export 'modes/list_mode.dart';
 export 'modes/table_mode.dart';
 export 'modes/view_mode.dart';
+export 'screen_focus.dart';
+export 'view_link.dart';
 export 'widgets/filter_builder.dart';
 export 'widgets/object_card.dart';
 export 'widgets/option_pill.dart';

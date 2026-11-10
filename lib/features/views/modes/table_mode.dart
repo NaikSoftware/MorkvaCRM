@@ -220,8 +220,7 @@ class _ViewTableState extends State<ViewTable> {
           ),
         );
         final notice = NoMatchesNotice(
-          onClear: () =>
-              context.read<CollectionViewsCubit>().setFilters(const []),
+          onClear: () => context.read<CollectionViewsCubit>().clearFilters(),
         );
         const noticeSpace = 44 + Spacing.xs;
         final room = math.max(
