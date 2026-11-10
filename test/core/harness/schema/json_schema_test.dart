@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/core/harness/harness.dart';
 
 List<String> _paths(List<ErrorDetail> problems) => [
@@ -23,6 +24,21 @@ void main() {
     test('an integer accepts an integral double, as JSON decoders send it', () {
       expect(JsonSchema.validate(JsonSchema.integer(), 20.0), isEmpty);
     });
+
+    test(
+      'an integer rejects infinity (jsonDecode("1e400")) without throwing',
+      () {
+        final problems = JsonSchema.validate(
+          JsonSchema.integer(),
+          jsonDecode('1e400'),
+        );
+        expect(problems.single.message, contains('an integer'));
+        expect(
+          JsonSchema.validate(JsonSchema.integer(), double.nan),
+          isNotEmpty,
+        );
+      },
+    );
 
     test('a number rejects NaN and infinity', () {
       expect(JsonSchema.validate(JsonSchema.number(), double.nan), isNotEmpty);
@@ -168,6 +184,39 @@ void main() {
         'ids': [1],
       }, path: 'target');
       expect(_paths(problems), ['target.ids[0]']);
+    });
+
+    test('a malformed where is explained through the where branch', () {
+      final empty = JsonSchema.validate(targetSchema(), {
+        'where': <Object?>[],
+      }, path: 'target');
+      expect(_paths(empty), ['target.where']);
+      expect(empty.single.message, contains('at least 1 item'));
+
+      final badOp = JsonSchema.validate(targetSchema(), {
+        'where': [
+          {'field': 'Status', 'op': 'bogus'},
+        ],
+      }).single;
+      expect(badOp.path, 'where[0].op');
+      expect(badOp.candidates, [for (final op in FilterOp.values) op.name]);
+    });
+
+    test('several bad filters still point at where, not at ids', () {
+      final problems = JsonSchema.validate(targetSchema(), {
+        'where': [
+          {'field': 'A', 'op': 'bogus'},
+          {'field': 'B', 'op': 'nope'},
+        ],
+      });
+      expect(_paths(problems), ['where[0].op', 'where[1].op']);
+    });
+
+    test('a bad ids list is explained through the ids branch', () {
+      final problems = JsonSchema.validate(targetSchema(), {
+        'ids': [1],
+      });
+      expect(_paths(problems), ['ids[0]']);
     });
 
     test('anyOf with no branch of the value type lists the expected types', () {

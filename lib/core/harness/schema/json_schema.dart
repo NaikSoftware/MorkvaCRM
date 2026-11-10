@@ -149,6 +149,7 @@ abstract final class JsonSchema {
     final anyOf = schema['anyOf'];
     if (anyOf is List) {
       List<ErrorDetail>? closest;
+      var closestStray = 0;
       var matched = false;
       for (final branch in anyOf.cast<Map<String, Object?>>()) {
         final errors = <ErrorDetail>[];
@@ -157,8 +158,17 @@ abstract final class JsonSchema {
           matched = true;
           break;
         }
-        // The branch of the right type explains the failure best.
-        if (closest == null && _hasType(branch, value)) closest = errors;
+        // The branch of the right type explains the failure best; among
+        // several, the one that knows the most of the value's keys, then the
+        // one with the fewest errors (the first on a tie).
+        if (!_hasType(branch, value)) continue;
+        final stray = _strayKeys(branch, value);
+        if (closest == null ||
+            stray < closestStray ||
+            (stray == closestStray && errors.length < closest.length)) {
+          closest = errors;
+          closestStray = stray;
+        }
       }
       if (!matched) {
         out.addAll(
@@ -283,10 +293,19 @@ abstract final class JsonSchema {
     return type is String && _isType(value, type);
   }
 
+  /// How many of a map [value]'s keys a closed object [schema] does not know.
+  static int _strayKeys(Map<String, Object?> schema, Object? value) {
+    if (value is! Map || schema['additionalProperties'] != false) return 0;
+    final properties = (schema['properties'] as Map?) ?? const {};
+    return value.keys.where((k) => !properties.containsKey(k)).length;
+  }
+
   static bool _isType(Object? value, String type) => switch (type) {
     'string' => value is String,
     'number' => value is num && value.isFinite,
-    'integer' => value is int || (value is double && value == value.truncate()),
+    'integer' =>
+      value is int ||
+          (value is double && value.isFinite && value == value.truncate()),
     'boolean' => value is bool,
     'object' => value is Map,
     'array' => value is List,

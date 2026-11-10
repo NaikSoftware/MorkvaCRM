@@ -93,7 +93,9 @@ final class Grants {
     : caps = Set.unmodifiable(caps),
       collections = collections == null ? null : Set.unmodifiable(collections);
 
-  /// Every capability, every collection the user can access.
+  /// Every capability, every collection the user can access. Includes
+  /// `host:commit`, which is inert without a user actor (spec: an assistant
+  /// plan records `caps: ["*"]`).
   factory Grants.all() => Grants(Capability.values);
 
   /// Parses `{caps: [...] | ["*"], collections: [...] | null}`.
