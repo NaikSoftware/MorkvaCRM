@@ -32,9 +32,9 @@ abstract interface class ThreadRepository {
     String threadId,
   );
 
-  /// Writes turn [seq] of [threadId] (replacing the whole doc, so the three
-  /// checkpoints of a turn — plan proposed, committed, done — overwrite one
-  /// doc) and, when given, merges [thread] into the thread meta, in one
+  /// Writes turn [seq] of [threadId] (replacing the whole doc, so the
+  /// checkpoints of a turn — plan proposed, committing, committed, done —
+  /// overwrite one doc) and, when given, merges [thread] into the thread meta, in one
   /// batch. Merging is shallow: pass nested maps such as `tokens` whole.
   Future<void> checkpoint(
     String threadId, {

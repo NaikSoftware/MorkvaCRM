@@ -33,8 +33,9 @@ part 'assistant_event.dart';
 /// emitted from inside the approve handler while it awaits the commit.
 ///
 /// Persistence: one turn doc per user turn, checkpointed at the plan
-/// proposal (`pending`), right after the commit receipt (`committed`, with
-/// the journal mirror) and at the turn's end (`done`). Restoring a thread
+/// proposal (`pending`), when it is approved (`committing`), once the
+/// receipt is the plan calls' response (`committed`, with the journal
+/// mirror) and at the turn's end (`done`). Restoring a thread
 /// maps in-flight states to settled ones (see `chat_item_codec.dart`),
 /// re-validates undo journals through `journal.restore`, drops the plan
 /// gate's unanswered calls and replays the last [replayTurns] turns.
