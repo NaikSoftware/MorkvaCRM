@@ -419,7 +419,7 @@ void main() {
         events.whereType<StepFinished>().single,
         isA<StepFinished>()
             .having((e) => e.ok, 'ok', isFalse)
-            .having((e) => e.summary, 'summary', AgentLoop.stepCorrected),
+            .having((e) => e.summary, 'summary', "didn't go through"),
       );
     });
 

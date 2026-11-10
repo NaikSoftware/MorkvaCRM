@@ -74,6 +74,8 @@ const _serverSide = [
   'unavailable',
   'overloaded',
   'internal error',
+  'server error',
+  'gateway',
   'deadline',
   'timed out',
   'timeout',

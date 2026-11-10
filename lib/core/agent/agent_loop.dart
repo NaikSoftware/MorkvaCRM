@@ -102,8 +102,9 @@ final class AgentLoop {
   /// Read and UI calls in flight at once.
   static const int maxParallelReads = 4;
 
-  /// The step summary of a harness error the model is expected to correct.
-  static const String stepCorrected = 'needed a correction';
+  /// The step summary of a harness error whose message means nothing to
+  /// the user; neutral because the model may retry or give up.
+  static const String stepFailed = "didn't go through";
 
   /// Harness errors whose message says something to the user.
   static const Set<ErrorCode> _userFacing = {
@@ -684,11 +685,11 @@ final class AgentLoop {
           StepFinished(
             callId: callId,
             // The full error goes to the model; the user sees plain copy
-            // for the slips the model corrects itself (unknown tool or
-            // field, bad args), and the message only where it is news.
+            // for internal slips (unknown tool or field, bad args), and the
+            // message only where it is news.
             summary: _userFacing.contains(error.code)
                 ? sanitizeName(error.message, max: 160)
-                : stepCorrected,
+                : stepFailed,
             ok: false,
             errorCode: error.code.wire,
           ),
