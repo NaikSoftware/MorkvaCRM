@@ -66,6 +66,7 @@ abstract final class AssistantSeeds {
         id: 'm4',
         title: 'Unpaid orders this month',
         handle: 'h_unpaid',
+        spec: {'kind': 'query', 'collectionId': ordersId},
         summary: 'Filtered 148 → 5 Orders',
         table: ResultTable(
           collectionId: ordersId,

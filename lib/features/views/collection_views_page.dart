@@ -49,6 +49,10 @@ class CollectionViewsPage extends StatefulWidget {
   State<CollectionViewsPage> createState() => _CollectionViewsPageState();
 }
 
+/// Wide-frame content narrower than this (a side panel beside the page)
+/// drops the Customize label.
+const _narrowContent = 720.0;
+
 /// How long the screen must settle before the assistant's focus is updated,
 /// so a burst of changes publishes once.
 const _focusDebounce = Duration(milliseconds: 150);
@@ -129,9 +133,51 @@ class _CollectionViewsPageState extends State<CollectionViewsPage> {
     final object = state.objectById(id) ?? cubit.findObject(id);
     if (object == null) {
       _notify(context, "This link's ${itemLabelOf(state.collection)} is gone");
+      _dropParams({'card': id});
       return;
     }
-    _openObject(context, state, object);
+    _openObject(
+      context,
+      state,
+      object,
+    ).whenComplete(() => _dropParams({'card': id}));
+  }
+
+  /// Once the user leaves the linked view or clears the linked filter, takes
+  /// them out of the location, so the same chip tapped again applies them.
+  void _dropLeftLink() {
+    final (view, filter, _) = _link ?? (null, null, null);
+    final cubit = context.read<CollectionViewsCubit>();
+    // The current state, not the delivered one: that may predate the link.
+    final state = cubit.state;
+    if (state is! ViewsReady || cubit.linkPending) return;
+    final left =
+        (view != null && state.activeViewId != view) ||
+        (filter != null && state.transientFilters.isEmpty);
+    if (left) _dropParams({'view': ?view, 'filter': ?filter});
+  }
+
+  /// Takes [handled] link parameters out of the location (in place, no
+  /// history entry), so the same chip tapped again is a new link.
+  void _dropParams(Map<String, String> handled) {
+    if (!mounted) return;
+    final router = GoRouter.maybeOf(context);
+    if (router == null) return;
+    final uri = router.routerDelegate.currentConfiguration.uri;
+    final params = {...uri.queryParameters};
+    // Only while this page's linked location is still the current one.
+    if (uri.path != GoRouterState.of(context).uri.path ||
+        handled.entries.any((e) => params[e.key] != e.value)) {
+      return;
+    }
+    params.removeWhere((key, _) => handled.containsKey(key));
+    // What stays in the location stays applied: don't re-apply it.
+    _link = (params['view'], params['filter'], params['card']);
+    final location = Uri(
+      path: uri.path,
+      queryParameters: params.isEmpty ? null : params,
+    );
+    Router.neglect(context, () => router.go(location.toString()));
   }
 
   void _setOpenCard(({String id, String title})? card) {
@@ -174,6 +220,7 @@ class _CollectionViewsPageState extends State<CollectionViewsPage> {
       listener: (_, _) {
         _schedulePublish();
         _openPendingCard();
+        _dropLeftLink();
       },
       child: _consumer(modes),
     );
@@ -191,7 +238,10 @@ class _CollectionViewsPageState extends State<CollectionViewsPage> {
         _maybeNudge(context, state);
         return LayoutBuilder(
           builder: (context, constraints) {
-            final compact = constraints.maxWidth < AppShell.expandedBreakpoint;
+            // The frame follows the window, as the shell and the modes do:
+            // a side panel pushing the page keeps it a desktop page.
+            final compact =
+                MediaQuery.sizeOf(context).width < AppShell.expandedBreakpoint;
             final ready = state is ViewsReady ? state : null;
             final body = switch (state) {
               ViewsLoading() => ViewsSkeleton(compact: compact),
@@ -205,7 +255,11 @@ class _CollectionViewsPageState extends State<CollectionViewsPage> {
             };
             return compact
                 ? _PhoneFrame(state: ready, modes: modes, body: body)
-                : _WideFrame(state: ready, body: body);
+                : _WideFrame(
+                    state: ready,
+                    body: body,
+                    narrow: constraints.maxWidth < _narrowContent,
+                  );
           },
         );
       },
@@ -595,10 +649,18 @@ Future<void> _deleteView(BuildContext context, ViewDefinition view) async {
 /// Wide: the page's own header and banner over the body, in the persistent
 /// shell's main panel (the shell draws the rail).
 class _WideFrame extends StatelessWidget {
-  const _WideFrame({required this.state, required this.body});
+  const _WideFrame({
+    required this.state,
+    required this.body,
+    required this.narrow,
+  });
 
   final ViewsReady? state;
   final Widget body;
+
+  /// The page is squeezed (a side panel beside it): Customize goes
+  /// icon-only.
+  final bool narrow;
 
   @override
   Widget build(BuildContext context) {
@@ -609,7 +671,11 @@ class _WideFrame extends StatelessWidget {
       child: Column(
         children: [
           if (ready != null)
-            _WideHeader(collection: ready.collection, state: ready),
+            _WideHeader(
+              collection: ready.collection,
+              state: ready,
+              narrow: narrow,
+            ),
           const ConflictWarningBanner(),
           Expanded(child: body),
         ],
@@ -619,10 +685,15 @@ class _WideFrame extends StatelessWidget {
 }
 
 class _WideHeader extends StatelessWidget {
-  const _WideHeader({required this.collection, required this.state});
+  const _WideHeader({
+    required this.collection,
+    required this.state,
+    required this.narrow,
+  });
 
   final Collection collection;
   final ViewsReady state;
+  final bool narrow;
 
   @override
   Widget build(BuildContext context) {
@@ -652,11 +723,18 @@ class _WideHeader extends StatelessWidget {
             ),
           ),
           // Sync status lives in the sidebar's profile row (rail: avatar dot).
-          OutlinedButton.icon(
-            onPressed: () => _customize(context, collection.id),
-            icon: const Icon(Icons.tune, size: 18),
-            label: const Text('Customize'),
-          ),
+          if (narrow)
+            IconButton.outlined(
+              tooltip: 'Customize',
+              onPressed: () => _customize(context, collection.id),
+              icon: const Icon(Icons.tune, size: 18),
+            )
+          else
+            OutlinedButton.icon(
+              onPressed: () => _customize(context, collection.id),
+              icon: const Icon(Icons.tune, size: 18),
+              label: const Text('Customize'),
+            ),
           if (collection.fields.isNotEmpty) ...[
             const SizedBox(width: Spacing.sm),
             PrimaryButton(
@@ -727,6 +805,7 @@ class _PhoneFrame extends StatelessWidget {
         actions: [
           if (onAsk != null) AskMorkvaAction(onTap: onAsk),
           if (collection != null) ...[
+            if (onAsk != null) const SizedBox(width: Spacing.xs),
             const SyncStatusIndicator(),
             // Without fields the body's Customize carries the only `tune`.
             if (collection.fields.isNotEmpty)

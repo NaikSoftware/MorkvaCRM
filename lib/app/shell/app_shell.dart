@@ -135,13 +135,18 @@ class AppShell extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   // The main panel: doodles behind its header and content.
-                  DoodleBackground(
-                    child: Column(
-                      children: [
-                        _pageHeader(),
-                        ?banner,
-                        Expanded(child: child),
-                      ],
+                  // Under the sheet's scrim Tab must not reach it (the
+                  // barrier only blocks the pointer); the sidebar stays.
+                  ExcludeFocus(
+                    excluding: sheet != null,
+                    child: DoodleBackground(
+                      child: Column(
+                        children: [
+                          _pageHeader(),
+                          ?banner,
+                          Expanded(child: child),
+                        ],
+                      ),
                     ),
                   ),
                   // A sheet over the page only; the navigation stays usable.

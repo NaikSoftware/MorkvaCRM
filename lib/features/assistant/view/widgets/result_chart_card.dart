@@ -139,14 +139,26 @@ String groupedNumber(double value) {
   return parts.length > 1 ? '$sign$grouped.${parts[1]}' : '$sign$grouped';
 }
 
-int? _peakIndex(List<ChartPoint> points) {
-  int? best;
-  for (var i = 0; i < points.length; i++) {
-    final v = points[i].value;
-    if (v == null) continue;
-    if (best == null || v > points[best].value!) best = i;
+/// The largest value, or null when no point has one.
+double? _maxValue(List<ChartPoint> points) {
+  double? max;
+  for (final p in points) {
+    final v = p.value;
+    if (v != null && (max == null || v > max)) max = v;
   }
-  return best;
+  return max;
+}
+
+/// The single highest point, or null when there is none or the top is tied
+/// (no bar is singled out then).
+int? _peakIndex(List<ChartPoint> points) {
+  final max = _maxValue(points);
+  if (max == null) return null;
+  final top = [
+    for (var i = 0; i < points.length; i++)
+      if (points[i].value == max) i,
+  ];
+  return top.length == 1 ? top.single : null;
 }
 
 String _chartSemantics(ResultChart chart, String kind) {
@@ -178,7 +190,7 @@ class _BarChart extends StatelessWidget {
     final scheme = theme.colorScheme;
     final points = chart.points;
     final peak = _peakIndex(points);
-    final max = peak == null ? 0.0 : points[peak].value!;
+    final max = _maxValue(points) ?? 0.0;
     final valueStyle = theme.textTheme.labelSmall?.copyWith(
       fontSize: 10,
       letterSpacing: 0,
@@ -304,15 +316,15 @@ class _AxisLabels extends StatelessWidget {
         for (var i = 0; i < points.length; i++) ...[
           if (i > 0) const SizedBox(width: Spacing.xs),
           Expanded(
-            // A long group label ellipsizes; hover shows it whole.
+            // A long group label wraps once, then ellipsizes; hover shows
+            // it whole.
             child: Tooltip(
               message: points[i].label,
               child: Text(
                 points[i].label,
                 textAlign: TextAlign.center,
-                maxLines: 1,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                softWrap: false,
                 style: style,
               ),
             ),
@@ -384,9 +396,9 @@ class _LinePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    final max = _maxValue(points);
+    if (max == null) return;
     final peak = _peakIndex(points);
-    if (peak == null) return;
-    final max = points[peak].value!;
     // Points sit at the centres of the axis label slots (gap 8 between).
     const gap = Spacing.xs;
     final slot = (size.width - gap * (points.length - 1)) / points.length;
@@ -431,6 +443,7 @@ class _LinePainter extends CustomPainter {
       prev = i;
     }
 
+    if (peak == null) return;
     final tp = TextPainter(
       text: TextSpan(text: compactNumber(max), style: labelStyle),
       textDirection: TextDirection.ltr,

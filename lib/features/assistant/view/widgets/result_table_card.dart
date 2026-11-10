@@ -66,7 +66,8 @@ class ResultTableCard extends StatelessWidget {
             child: Wrap(
               spacing: Spacing.xs,
               children: [
-                if (table.collectionId != null)
+                // An aggregate's groups are no card query to filter by.
+                if (table.collectionId != null && item.spec?['kind'] == 'query')
                   ChipButton(
                     label: 'Open as filtered view',
                     onPressed: () => scope.actions.openTable(item),
@@ -168,6 +169,8 @@ class _ResultTable extends StatelessWidget {
     final column = table.columns[i];
     if (i == 0 && row.cardId != null && table.collectionId != null) {
       final label = value.startsWith('#') ? value.substring(1) : value;
+      // The `#` tile marks a number ("#1042", "ORD-0002"), not a name.
+      final number = RegExp(r'^#?\S*\d$').hasMatch(value);
       return _pad(
         i,
         Align(
@@ -175,7 +178,7 @@ class _ResultTable extends StatelessWidget {
           widthFactor: 1,
           child: ObjectChip(
             label: label,
-            leading: const HashGlyph(),
+            leading: number ? const HashGlyph() : null,
             semanticLabel: 'Open ${column.label} $label',
             onTap: () => AssistantScope.of(context).actions.openObject(
               collectionId: table.collectionId!,

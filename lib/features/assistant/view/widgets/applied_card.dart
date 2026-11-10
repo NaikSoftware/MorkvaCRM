@@ -165,7 +165,11 @@ class _AppliedCardState extends State<AppliedCard> {
               ),
               child: Row(
                 children: [
-                  _Badge(schema: schema, failed: failed > 0 && done == 0),
+                  _Badge(
+                    schema: schema,
+                    failed: failed > 0 && done == 0,
+                    undone: undone,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
@@ -311,10 +315,17 @@ class _AppliedCardState extends State<AppliedCard> {
 }
 
 class _Badge extends StatelessWidget {
-  const _Badge({required this.schema, required this.failed});
+  const _Badge({
+    required this.schema,
+    required this.failed,
+    required this.undone,
+  });
 
   final bool schema;
   final bool failed;
+
+  /// Reverted: a neutral undo tile, no longer the green check.
+  final bool undone;
 
   @override
   Widget build(BuildContext context) {
@@ -322,6 +333,22 @@ class _Badge extends StatelessWidget {
     final scheme = theme.colorScheme;
     final colors = AssistantColors.of(context);
     final semantic = theme.extension<MorkvaSemanticColors>()!;
+    if (undone) {
+      return Container(
+        width: schema ? 28 : 26,
+        height: schema ? 28 : 26,
+        decoration: BoxDecoration(
+          color: colors.neutralChip,
+          shape: schema ? BoxShape.rectangle : BoxShape.circle,
+          borderRadius: schema ? BorderRadius.circular(9) : null,
+        ),
+        child: Icon(
+          Icons.undo_rounded,
+          size: schema ? 16 : 14,
+          color: scheme.onSurfaceVariant,
+        ),
+      );
+    }
     if (schema) {
       return Container(
         width: 28,

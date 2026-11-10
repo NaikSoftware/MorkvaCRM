@@ -153,6 +153,55 @@ void main() {
       expect(actions.openedTables.single, item);
     });
 
+    testWidgets('an aggregate table has no "Open as filtered view"', (
+      tester,
+    ) async {
+      final main = _item<TableItem>(AssistantSeeds.main());
+      await pumpInScope(
+        tester,
+        ResultTableCard(
+          item: TableItem(
+            id: 'x',
+            title: 'Revenue by stage',
+            spec: const {'kind': 'aggregate', 'collectionId': 'c_orders'},
+            table: main.table,
+          ),
+        ),
+        actions: actions,
+      );
+      expect(find.text('Open as filtered view'), findsNothing);
+      expect(find.text('Copy table'), findsOneWidget);
+    });
+
+    testWidgets('the # tile marks numbers only, not names', (tester) async {
+      await pumpInScope(
+        tester,
+        const ResultTableCard(
+          item: TableItem(
+            id: 'x',
+            title: 'People',
+            table: ResultTable(
+              collectionId: 'c_people',
+              columns: [ResultColumn('Name')],
+              rows: [
+                ResultRow(cardId: 'p1', cells: ['Iryna Melnyk']),
+                ResultRow(cardId: 'p2', cells: ['ORD-0002']),
+              ],
+            ),
+          ),
+        ),
+        actions: actions,
+      );
+      expect(find.byType(HashGlyph), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.widgetWithText(ObjectChip, 'ORD-0002'),
+          matching: find.byType(HashGlyph),
+        ),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('"Copy table" puts tab-separated text on the clipboard', (
       tester,
     ) async {
@@ -301,7 +350,7 @@ void main() {
       );
     });
 
-    testWidgets('long axis labels ellipsize and keep their full text', (
+    testWidgets('long axis labels wrap to 2 lines and keep their full text', (
       tester,
     ) async {
       final semantics = tester.ensureSemantics();
@@ -331,10 +380,16 @@ void main() {
       );
       final label = find.text('To clarify');
       expect(tester.widget<Text>(label).overflow, TextOverflow.ellipsis);
+      expect(tester.widget<Text>(label).maxLines, 2);
+      // Two words fit on two lines instead of "To cl…".
       expect(
         tester.renderObject<RenderParagraph>(label).didExceedMaxLines,
-        isTrue,
+        isFalse,
       );
+      // A tie singles out no bar, but every bar keeps its height.
+      expect(find.text('3'), findsNothing);
+      expect(find.bySemanticsLabel(RegExp('peak')), findsNothing);
+      expect(tester.takeException(), isNull);
       expect(
         find.ancestor(of: label, matching: find.byType(Tooltip)),
         findsOneWidget,
@@ -454,6 +509,19 @@ void main() {
       );
       expect(find.text('Select · Kyiv, Lviv, Odesa'), findsOneWidget);
       expect(find.text('Undo'), findsOneWidget);
+    });
+
+    testWidgets('a reverted card trades the check for an undo tile', (
+      tester,
+    ) async {
+      final applied = _item<AppliedItem>(AssistantSeeds.analyze(now: testNow));
+      await pumpInScope(
+        tester,
+        AppliedCard(item: applied.copyWith(undoState: UndoState.undone)),
+        actions: actions,
+      );
+      expect(find.byIcon(Icons.undo_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.check_rounded), findsNothing);
     });
 
     testWidgets('undone and partial failure states', (tester) async {

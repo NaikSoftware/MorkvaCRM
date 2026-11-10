@@ -91,7 +91,7 @@ class _ChatListState extends State<ChatList> {
   @override
   Widget build(BuildContext context) {
     final state = widget.state;
-    final items = state.items;
+    final items = displayOrder(state.items);
     final thinking = state.phase is ThinkingPhase;
     final count = items.length + (thinking ? 1 : 0);
     final scope = AssistantScope.of(context);
@@ -157,6 +157,52 @@ class _ChatListState extends State<ChatList> {
     final card = cur is PlanItem || cur is AppliedItem || cur is ErrorItem;
     return sameAnswer && !card ? 10 : 14;
   }
+}
+
+/// [items] in reading order: a turn's intro text that arrived after its
+/// result ("Here are the 2 orders:" below the table) moves above the turn's
+/// first table or chart, as the mockups put it. Moved: a settled text that
+/// trails the turn's results (no table, chart, plan or applied card after it)
+/// and ends with ':' or is the turn's only text. A text still streaming stays
+/// put, so it never jumps while it grows.
+@visibleForTesting
+List<ChatItem> displayOrder(List<ChatItem> items) {
+  final out = <ChatItem>[];
+  var turn = <ChatItem>[];
+  bool isResult(ChatItem i) =>
+      i is TableItem || i is ChartItem || i is PlanItem || i is AppliedItem;
+  void flush() {
+    final first = turn.indexWhere((i) => i is TableItem || i is ChartItem);
+    if (first < 0) {
+      out.addAll(turn);
+    } else {
+      final texts = turn.whereType<AssistantTextItem>().length;
+      final last = turn.lastIndexWhere(isResult);
+      final intro = [
+        for (final i in turn.skip(last + 1))
+          if (i is AssistantTextItem &&
+              !i.streaming &&
+              (texts == 1 || i.currentText.trimRight().endsWith(':')))
+            i,
+      ];
+      out
+        ..addAll(turn.take(first))
+        ..addAll(intro)
+        ..addAll(turn.skip(first).where((i) => !intro.contains(i)));
+    }
+    turn = [];
+  }
+
+  for (final item in items) {
+    if (item is UserItem) {
+      flush();
+      out.add(item);
+    } else {
+      turn.add(item);
+    }
+  }
+  flush();
+  return out;
 }
 
 /// Renders one [ChatItem].

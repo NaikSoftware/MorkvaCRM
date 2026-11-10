@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:morkva_crm/core/agent/agent_event.dart'
+    show FailedItem, Receipt;
 import 'package:morkva_crm/design/design.dart';
 import 'package:morkva_crm/features/assistant/bloc/assistant_state.dart';
 import 'package:morkva_crm/features/assistant/bloc/chat_item.dart';
@@ -8,6 +10,7 @@ import 'package:morkva_crm/features/assistant/view/assistant_page.dart';
 import 'package:morkva_crm/features/assistant/view/assistant_panel.dart';
 import 'package:morkva_crm/features/assistant/view/thread_list_page.dart';
 import 'package:morkva_crm/features/assistant/view/widgets/chat_list.dart';
+import 'package:morkva_crm/features/assistant/view/widgets/chat_view.dart';
 
 import '../fakes/assistant_seeds.dart';
 import '../fakes/fake_assistant_bloc.dart';
@@ -17,6 +20,87 @@ void main() {
   late RecordingActions actions;
 
   setUp(() => actions = RecordingActions());
+
+  test(
+    'a turn reads intro first: trailing intro text goes above its table',
+    () {
+      const user = UserItem(id: 'u', text: 'Unpaid orders?');
+      const steps = StepsItem(id: 's', steps: []);
+      const table = TableItem(id: 't', title: 'Unpaid');
+      const chart = ChartItem(id: 'c', title: 'By month');
+      const intro = AssistantTextItem(id: 'x', text: 'Here are the 2 orders:');
+      const after = AssistantTextItem(id: 'y', text: 'Both are from October.');
+      List<String> ids(List<ChatItem> items) => [
+        for (final i in displayOrder(items)) i.id,
+      ];
+
+      expect(ids([user, steps, table, intro]), ['u', 's', 'x', 't']);
+      // The turn's only text moves too, above the first result.
+      expect(ids([user, steps, table, chart, after]), [
+        'u',
+        's',
+        'y',
+        't',
+        'c',
+      ]);
+      // A closing remark after an intro stays below; text first stays first.
+      expect(ids([user, table, after, intro]), ['u', 'x', 't', 'y']);
+      expect(ids([user, intro, table, after]), ['u', 'x', 't', 'y']);
+      // Turns are separate: a later turn's text never crosses its question.
+      expect(
+        ids([user, table, const UserItem(id: 'u2', text: 'And?'), after]),
+        ['u', 't', 'u2', 'y'],
+      );
+      // A text that introduces a later card stays right above that card.
+      const t2 = TableItem(id: 't2', title: 'Overdue');
+      const mid = AssistantTextItem(id: 'm', text: 'And the overdue ones:');
+      const plan = PlanItem(
+        id: 'p',
+        plan: PlanView(planId: 'p', title: 'Mark paid'),
+        selected: {},
+      );
+      const pre = AssistantTextItem(id: 'r', text: 'I will mark these paid:');
+      expect(ids([user, table, mid, t2]), ['u', 't', 'm', 't2']);
+      expect(ids([user, table, pre, plan]), ['u', 't', 'r', 'p']);
+      // A text still streaming stays put until it settles.
+      final live = intro.copyWith(streaming: true);
+      expect(ids([user, table, live]), ['u', 't', 'x']);
+    },
+  );
+
+  test('the undo snackbar names the count and the verb, not the title', () {
+    String text(String title, int n, {List<FailedItem> failed = const []}) =>
+        snackText(
+          PlanView(planId: 'p', title: title),
+          Receipt(
+            planId: 'p',
+            applied: [for (var i = 0; i < n; i++) 'i$i'],
+            failed: failed,
+            summary: title,
+          ),
+        );
+    expect(text('Set Status to Done · 14 orders', 12), '12 orders updated');
+    expect(text('Clear Notes · 3 orders', 3), '3 orders updated');
+    expect(text('Update 3 orders', 1), '1 order updated');
+    expect(text('Add 3 orders', 3), '3 orders created');
+    expect(
+      text('Delete 2 cards from “Big Co”', 2),
+      '2 cards from “Big Co” deleted',
+    );
+    // Not a card plan, or partly failed: the receipt's own summary.
+    expect(
+      text('Create view “Late” in Orders', 1),
+      'Create view “Late” in Orders',
+    );
+    expect(
+      text(
+        'Update 3 orders',
+        2,
+        failed: const [FailedItem('i9', 'offline', 'Needs a connection')],
+      ),
+      'Update 3 orders',
+    );
+  });
 
   group('AssistantPanel', () {
     testWidgets('is 440 px wide and shows the thread title', (tester) async {
