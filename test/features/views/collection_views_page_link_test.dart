@@ -4,7 +4,6 @@ import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/features/assistant/bloc/assistant_focus.dart';
 import 'package:morkva_crm/features/objects/object_editor.dart';
 import 'package:morkva_crm/features/views/views.dart';
-import 'package:morkva_crm/features/views/view_link.dart';
 
 import 'work_page_harness.dart';
 
@@ -49,11 +48,15 @@ void main() {
       expect(find.textContaining('From assistant'), findsOneWidget);
       cubit.clearTransientFilters();
       await tester.pumpAndSettle();
-      // A rebuild with the same parameters keeps the user's choice.
-      cubit.selectView('board');
-      cubit.selectView('all');
+      // A new location with the same (view, filter, card) keeps the user's
+      // choice.
+      _go(tester, '${collectionLink('deals', where: _wonOrLead)}&x=1');
       await tester.pumpAndSettle();
       expect(find.textContaining('From assistant'), findsNothing);
+      // A different link applies again.
+      _go(tester, collectionLink('deals', view: 'all', where: _wonOrLead));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('From assistant'), findsOneWidget);
     });
 
     testWidgets('a cold link selects the view and filters it', (tester) async {
