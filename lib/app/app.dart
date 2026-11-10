@@ -5,8 +5,14 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+// flutter_bloc's providers reject a Listenable (the focus notifier).
+// ignore: depend_on_referenced_packages
+import 'package:provider/provider.dart' show ChangeNotifierProvider;
 
 import '../api/api.dart';
+import '../api/assistant/assistant_config_repository.dart';
+import '../api/assistant/firestore_thread_repository.dart';
+import '../api/assistant/thread_repository.dart';
 // Concrete Firebase-backed implementations are not exported from the api
 // barrel (it exposes only the contracts), so import them directly for the
 // production defaults.
@@ -14,6 +20,10 @@ import '../api/auth/firestore_auth_repository.dart';
 import '../api/data/firestore_data_repository.dart';
 import '../api/files/firebase_attachment_store.dart';
 import '../design/design.dart';
+import '../features/assistant/bloc/assistant_bloc.dart';
+import '../features/assistant/bloc/assistant_focus.dart';
+import '../features/assistant/bloc/assistant_panel_cubit.dart';
+import '../features/assistant/bloc/assistant_session.dart';
 import 'router/app_router.dart';
 
 /// App-wide scroll behavior: no colored overscroll glow (it clashed with the
@@ -56,6 +66,8 @@ class MorkvaApp extends StatefulWidget {
     this.syncStatusCubit,
     this.workspaceResolver,
     this.attachmentStore,
+    this.threadRepository,
+    this.assistantConfigRepository,
   });
 
   /// Auth backend; defaults to [FirestoreAuthRepository].
@@ -74,6 +86,13 @@ class MorkvaApp extends StatefulWidget {
 
   /// File-field blob store; defaults to [FirebaseAttachmentStore].
   final AttachmentStore? attachmentStore;
+
+  /// Ask Morkva's conversations; defaults to [FirestoreThreadRepository].
+  final ThreadRepository? threadRepository;
+
+  /// Ask Morkva's config, feature flag and consent; defaults to one over
+  /// `FirebaseFirestore.instance`.
+  final AssistantConfigRepository? assistantConfigRepository;
 
   @override
   State<MorkvaApp> createState() => _MorkvaAppState();
@@ -97,6 +116,21 @@ class _MorkvaAppState extends State<MorkvaApp> {
       widget.attachmentStore ?? FirebaseAttachmentStore();
   late final WorkspaceResolver _workspaceResolver =
       widget.workspaceResolver ?? const UidWorkspaceResolver();
+
+  late final ThreadRepository _threads =
+      widget.threadRepository ??
+      FirestoreThreadRepository(firestore: FirebaseFirestore.instance);
+
+  /// Ask Morkva for the signed-in member: always provided, bound per
+  /// workspace in [_onAuthChanged].
+  late final AssistantSession _assistant = AssistantSession(
+    dataRepository: _dataRepository,
+    threads: _threads,
+    config:
+        widget.assistantConfigRepository ??
+        AssistantConfigRepository(firestore: FirebaseFirestore.instance),
+    syncStatus: _syncStatusCubit,
+  );
 
   late final AuthCubit _authCubit = AuthCubit(_authRepository)..initialize();
 
@@ -135,13 +169,18 @@ class _MorkvaAppState extends State<MorkvaApp> {
             await _dataRepository.dispose();
             return;
           }
+          await _assistant.initialize(workspaceId, user: user);
           _sessionReady.value = true;
 
         case AuthUnauthenticated() || AuthError():
           if (_initializedWorkspaceId == null) return;
           _initializedWorkspaceId = null;
           _sessionReady.value = false;
+          // Unbinds at once, so the assistant's cache cancels its listeners
+          // before the repository goes; their cancels need not hold it up.
+          final reset = _assistant.reset();
           await _dataRepository.dispose();
+          await reset;
 
         case AuthInitial() || AuthLoading():
           break;
@@ -162,6 +201,7 @@ class _MorkvaAppState extends State<MorkvaApp> {
   /// repository first (so its Firestore listeners stop reporting into the sync
   /// cubit), then closes the cubits. Idempotent at the repository/cubit level.
   Future<void> _cleanup() async {
+    await _assistant.dispose();
     await _dataRepository.dispose();
     await _authCubit.close();
     await _syncStatusCubit.close();
@@ -187,11 +227,18 @@ class _MorkvaAppState extends State<MorkvaApp> {
         RepositoryProvider<AuthRepository>.value(value: _authRepository),
         RepositoryProvider<DataRepository>.value(value: _dataRepository),
         RepositoryProvider<AttachmentStore>.value(value: _attachmentStore),
+        RepositoryProvider<ThreadRepository>.value(value: _threads),
+        RepositoryProvider<AssistantSession>.value(value: _assistant),
+        ChangeNotifierProvider<AssistantFocusNotifier>.value(
+          value: _assistant.focus,
+        ),
       ],
       child: MultiBlocProvider(
         providers: [
           BlocProvider<AuthCubit>.value(value: _authCubit),
           BlocProvider<SyncStatusCubit>.value(value: _syncStatusCubit),
+          BlocProvider<AssistantBloc>.value(value: _assistant.bloc),
+          BlocProvider<AssistantPanelCubit>.value(value: _assistant.panel),
         ],
         child: BlocListener<AuthCubit, AuthState>(
           listener: _onAuthChanged,

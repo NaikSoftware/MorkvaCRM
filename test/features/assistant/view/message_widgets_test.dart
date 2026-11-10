@@ -485,6 +485,59 @@ void main() {
       expect(actions.calls, ['undo(j_f)', 'retryFailed(p_f)']);
       semantics.dispose();
     });
+
+    testWidgets('Undo refused offline says so and keeps Undo', (tester) async {
+      final semantics = tester.ensureSemantics();
+      final applied = _item<AppliedItem>(AssistantSeeds.analyze(now: testNow));
+      Future<void> show(AppliedItem item) =>
+          pumpInScope(tester, AppliedCard(item: item), actions: actions);
+
+      // As the bloc leaves it after an offline Undo.
+      await show(applied.copyWith(undoNote: 'Needs a connection to undo'));
+      expect(find.text('Needs a connection to undo'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('Needs a connection to undo'),
+        findsOneWidget,
+      );
+      expect(find.text('Undo'), findsOneWidget);
+
+      // Undoing again (online): the note gives way to the spinner state.
+      await show(
+        applied.copyWith(
+          undoState: UndoState.undoing,
+          undoNote: 'Needs a connection to undo',
+        ),
+      );
+      expect(find.text('Needs a connection to undo'), findsNothing);
+      semantics.dispose();
+    });
+
+    testWidgets('a note from before a later receipt is dropped', (
+      tester,
+    ) async {
+      final applied = _item<AppliedItem>(
+        AssistantSeeds.analyze(now: testNow),
+      ).copyWith(undoNote: 'Needs a connection');
+      Future<void> show(AppliedItem item) =>
+          pumpInScope(tester, AppliedCard(item: item), actions: actions);
+
+      await show(applied);
+      expect(find.text('Needs a connection'), findsOneWidget);
+
+      // "Retry failed" then worked: a new receipt, the stale note kept.
+      await show(
+        applied.copyWith(
+          receipt: Receipt(
+            planId: applied.receipt.planId,
+            applied: [...applied.receipt.applied, 'retried'],
+            journalId: applied.receipt.journalId,
+            undoUntil: applied.receipt.undoUntil,
+            summary: 'Updated 13',
+          ),
+        ),
+      );
+      expect(find.text('Needs a connection'), findsNothing);
+    });
   });
 
   group('ErrorRow', () {

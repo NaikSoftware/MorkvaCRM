@@ -6,7 +6,7 @@ import '../../../../design/design.dart';
 import '../../bloc/chat_item.dart';
 import 'assistant_scope.dart';
 import 'chip_button.dart';
-import 'plan_card.dart' show TypeTag;
+import 'plan_card.dart' show CardNote, TypeTag;
 
 /// The collapsed result of an approved plan ("Set Status to Done · 12
 /// orders", "You approved 12 of 14 · undo available for 9 min") with a
@@ -33,8 +33,25 @@ class _AppliedCardState extends State<AppliedCard> {
   @override
   void didUpdateWidget(AppliedCard oldWidget) {
     super.didUpdateWidget(oldWidget);
+    final old = oldWidget.item;
+    // The bloc never clears a note: one from before a later successful
+    // retry (a new receipt) no longer applies.
+    if (item.undoNote != old.undoNote) {
+      _noteStale = false;
+    } else if (item.receipt != old.receipt) {
+      _noteStale = true;
+    }
     _schedule();
   }
+
+  bool _noteStale = false;
+
+  /// Why Undo / Retry failed did not run while the card still offers them
+  /// ("Needs a connection to undo").
+  String? get _pendingNote => switch (item.undoState) {
+    UndoState.available when !_noteStale => item.undoNote,
+    _ => null,
+  };
 
   /// Repaints every 15 s while the undo window is open, so the minutes and
   /// the expiry show without the bloc's help.
@@ -189,6 +206,11 @@ class _AppliedCardState extends State<AppliedCard> {
                 ],
               ),
             ),
+            if (_pendingNote case final note?)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+                child: CardNote(note),
+              ),
             if (notesLine != null)
               Padding(
                 padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),

@@ -6,6 +6,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../api/api.dart';
+import '../../features/assistant/bloc/assistant_session.dart';
+import '../../features/assistant/host/router_ui_port.dart';
+import '../../features/assistant/view/assistant_page.dart';
 import '../../features/auth/session_loading_page.dart';
 import '../../features/auth/sign_in_page.dart';
 import '../../features/collections/collections.dart';
@@ -155,6 +158,21 @@ GoRouter createAppRouter(
           ),
         ],
       ),
+      // Phone: Ask Morkva full screen over the shell (the wide layouts use
+      // the shell's side panel). Chips pop it before navigating.
+      GoRoute(
+        path: '/assistant',
+        parentNavigatorKey: rootKey,
+        builder: (context, state) => const _AssistantRoute(),
+        routes: [
+          GoRoute(
+            path: 'history',
+            parentNavigatorKey: rootKey,
+            builder: (context, state) =>
+                AssistantHistory(onPicked: context.pop, onBack: context.pop),
+          ),
+        ],
+      ),
       GoRoute(
         path: '/sign-in',
         builder: (context, state) => const SignInPage(),
@@ -165,6 +183,51 @@ GoRouter createAppRouter(
       ),
     ],
   );
+}
+
+/// The `/assistant` page over the session. While it is up the panel cubit
+/// says open, so the collections the chat leased stay warm.
+class _AssistantRoute extends StatefulWidget {
+  const _AssistantRoute();
+
+  @override
+  State<_AssistantRoute> createState() => _AssistantRouteState();
+}
+
+class _AssistantRouteState extends State<_AssistantRoute> {
+  late final AssistantSession _session = context.read<AssistantSession>();
+
+  @override
+  void initState() {
+    super.initState();
+    // Not while the tree builds or unmounts: the shell listens to the cubit.
+    scheduleMicrotask(_session.panel.show);
+  }
+
+  @override
+  void dispose() {
+    final panel = _session.panel;
+    scheduleMicrotask(() {
+      if (!panel.isClosed) panel.hide();
+    });
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final router = GoRouter.of(context);
+    return Scaffold(
+      body: AssistantPage(
+        bloc: _session.bloc,
+        actions: SessionAssistantActions(
+          _session.bloc,
+          RouterUiPort(() => router),
+        ),
+        onBack: () => context.canPop() ? context.pop() : context.go('/'),
+        onOpenHistory: () => context.push('/assistant/history'),
+      ),
+    );
+  }
 }
 
 /// Adapts a [Stream] into a [Listenable] so go_router can re-run its redirect
