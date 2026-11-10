@@ -43,7 +43,14 @@ body{margin:0;background:#FBF7F2}
     <div style="flex: 1 1 auto; background: #FBF7F2; padding: 14px; display: flex; flex-direction: column; gap: 6px">
       <label style="display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px; border-radius: 12px; border: 1px solid #E0D5C7; background: #FFFFFF; color: #6B5E52"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input aria-label="Search conversations" placeholder="Search conversations" style="border: 0; outline: 0; background: transparent; font: 500 14px 'Hanken Grotesk', sans-serif; flex: 1 1 auto"></label>
       <p style="margin: 10px 4px 2px; font: 700 11px 'Hanken Grotesk', sans-serif; letter-spacing: .08em; text-transform: uppercase; color: #6B5E52">Today</p>
-      <sc-for list="{{convs}}" as="c" hint-placeholder-count="5">
+      <sc-for list="{{today}}" as="c" hint-placeholder-count="3">
+        <button style="display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 56px; padding: 8px 12px; border-radius: 12px; border: 0; background: {{c.bg}}; text-align: left; font-family: 'Hanken Grotesk', sans-serif; color: #2B2018">
+          <span style="font: 600 14px 'Hanken Grotesk', sans-serif">{{c.title}}</span>
+          <span style="font-size: 12px; color: #6B5E52">{{c.meta}}</span>
+        </button>
+      </sc-for>
+      <p style="margin: 10px 4px 2px; font: 700 11px 'Hanken Grotesk', sans-serif; letter-spacing: .08em; text-transform: uppercase; color: #6B5E52">Yesterday</p>
+      <sc-for list="{{yesterday}}" as="c" hint-placeholder-count="2">
         <button style="display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 56px; padding: 8px 12px; border-radius: 12px; border: 0; background: {{c.bg}}; text-align: left; font-family: 'Hanken Grotesk', sans-serif; color: #2B2018">
           <span style="font: 600 14px 'Hanken Grotesk', sans-serif">{{c.title}}</span>
           <span style="font-size: 12px; color: #6B5E52">{{c.meta}}</span>
@@ -57,13 +64,10 @@ body{margin:0;background:#FBF7F2}
 class Component extends DCLogic {
 renderVals() {
   const c = (title, meta, cur) => ({ title, meta, bg: cur ? '#FFFFFF' : 'transparent' });
-  return { convs: [
-    c('Unpaid orders this month', '12:40 · 3 changes applied', true),
-    c('Revenue by month', '10:05 · chart'),
-    c('Suppliers collection', '09:20 · collection created'),
-    c('Low stock fabrics', 'Yesterday'),
-    c('Clean up test orders', 'Yesterday · 7 deleted')
-  ] };
+  return {
+    today: [c('Unpaid orders this month', '12:40 · 3 changes applied', true), c('Revenue by month', '10:05 · chart'), c('Suppliers collection', '09:20 · collection created')],
+    yesterday: [c('Low stock fabrics', '18:12'), c('Clean up test orders', '16:40 · 7 deleted')]
+  };
 }
 }
 </script>
