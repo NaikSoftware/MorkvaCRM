@@ -219,8 +219,9 @@ void main() {
 
       expect(call.contents, hasLength(3));
       expect(call.contents[1], same(modelTurn));
+      // The Developer API rejects role 'function' (400, seen live).
       expect(_json(call.contents[2].toJson), {
-        'role': 'function',
+        'role': 'user',
         'parts': [
           {
             'functionResponse': {
@@ -242,6 +243,22 @@ void main() {
 
   group('encodeContent', () {
     final client = GeminiLlmClient(open: (_) => const Stream.empty());
+
+    test('a stored function-role turn replays as role user', () {
+      final restored = LlmRawContent(const {
+        'role': 'function',
+        'parts': [
+          {
+            'functionResponse': {
+              'name': 'a',
+              'response': {'n': 1},
+            },
+          },
+        ],
+      });
+      final replayed = client.buildCall(_request(contents: [restored]));
+      expect(replayed.contents.single.role, 'user');
+    });
 
     test('a model turn survives persistence with its thought signature', () {
       final model = LlmModelContent(
@@ -296,7 +313,7 @@ void main() {
           ),
         ),
         {
-          'role': 'function',
+          'role': 'user',
           'parts': [
             {
               'functionResponse': {

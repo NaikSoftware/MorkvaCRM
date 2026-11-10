@@ -129,13 +129,15 @@ ThinkingConfig thinkingConfig(String model, LlmThinking thinking) {
 
 Content _toContent(LlmContent content) => switch (content) {
   LlmUserText(:final text) => Content.text(text),
-  LlmFunctionResponses(:final responses) => Content.functionResponses([
+  // The SDK's Content.functionResponses uses role 'function', which the
+  // Gemini Developer API rejects with a 400; function responses go as 'user'.
+  LlmFunctionResponses(:final responses) => Content('user', [
     for (final r in responses)
       FunctionResponse(r.name, r.response, id: r.geminiId),
   ]),
   // Restored as UnknownParts, which replay the JSON (and its thought
-  // signatures) unchanged.
-  LlmRawContent(:final json) => Content(json['role'] as String?, [
+  // signatures) unchanged. Older records may carry role 'function'.
+  LlmRawContent(:final json) => Content(_wireRole(json['role'] as String?), [
     for (final part in json['parts'] as List? ?? const [])
       UnknownPart(Map<String, Object?>.from(part as Map)),
   ]),
@@ -159,3 +161,5 @@ Stream<GenerateContentResponse> _firebaseOpener(GeminiCall call) =>
           generationConfig: call.generationConfig,
         )
         .generateContentStream(call.contents);
+
+String? _wireRole(String? role) => role == 'function' ? 'user' : role;
