@@ -332,6 +332,7 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
     if (_fromCache && state.threadId != null) {
       // Its next seq is only known from a server read.
       await _load(state.threadId!, emit);
+      if (_uid == null) return; // signed out during the re-read
       if (_fromCache || state.threadId == null) {
         if (state.threadId != null) {
           emit(
@@ -1312,6 +1313,8 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
           ],
         ),
       );
+      // _clearThread cancelled the daily-limit and left-mirror tick.
+      _scheduleTick();
       return;
     }
     if (state.threadId != threadId || _uid == null) return;

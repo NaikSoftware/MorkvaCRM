@@ -876,6 +876,57 @@ void main() {
       expect(((docs[1]['ui'] as List).first as Map)['text'], 'Second');
     });
 
+    test('a sign-out during the re-read of a cache-only thread sends '
+        'nothing to the model', () async {
+      late FlakyThreads flaky;
+      rig = AssistantRig(
+        replies: const [
+          FakeReply(text: ['One.']),
+          FakeReply(text: ['Two.']),
+        ],
+        threads: (store) => flaky = FlakyThreads(store),
+      );
+      await rig.start();
+      await rig.ask('First');
+      await rig.idle();
+      final threadId = rig.state.threadId!;
+      rig.bloc.add(const NewThreadRequested());
+      await rig.until((s) => s.threadId == null);
+
+      flaky.cachedSeqs = {0};
+      rig.bloc.add(ThreadSelected(threadId));
+      await rig.until((s) => s.threadId == threadId && s.items.isNotEmpty);
+      final gate = flaky.gate = Completer<void>();
+      rig.bloc.add(const PromptSubmitted('Second'));
+      await rig.settle();
+      rig.bloc.reset();
+      flaky.cachedSeqs = null;
+      gate.complete();
+      await rig.settle();
+
+      expect(rig.llm.requests, hasLength(1));
+      expect(await rig.turnDocs(threadId), hasLength(1));
+    });
+
+    test('a failed load keeps the daily-limit timer: the composer opens at '
+        'the reset', () async {
+      late FlakyThreads flaky;
+      rig = AssistantRig(
+        replies: const [FakeReply.fail(LlmDailyQuota())],
+        threads: (store) => flaky = FlakyThreads(store),
+      );
+      await rig.start();
+      await rig.ask('Hello');
+      await rig.until((s) => s.availability is AvailabilityQuotaExhausted);
+
+      rig.clock = nextPacificMidnight(
+        rig.clock,
+      ).add(const Duration(minutes: 1));
+      flaky.loadError = StateError('permission-denied');
+      rig.bloc.add(const ThreadSelected('t-old'));
+      await rig.until((s) => s.availability is AvailabilityEnabled);
+    });
+
     test('a new thread keeps the daily-limit timer: the composer opens at '
         'the reset', () async {
       rig = AssistantRig(replies: const [FakeReply.fail(LlmDailyQuota())]);
@@ -1089,6 +1140,12 @@ void main() {
       final s = await again.until((s) => s.items.isNotEmpty);
       expect(s.items.whereType<PlanItem>().single.status, PlanStatus.expired);
       expect(s.phase, isA<IdlePhase>());
+      // The plan's unanswered calls are left out of the replayed history.
+      final turn = again.session.agentLoop.history.single;
+      expect(
+        [for (final c in turn.contents) (c as LlmRawContent).json['role']],
+        ['user'],
+      );
     });
   });
 

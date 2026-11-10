@@ -4,6 +4,8 @@
 /// `fake_cloud_firestore`, and a [SyncStatusCubit] the test flips offline.
 library;
 
+import 'dart:async';
+
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/api/assistant/assistant_config_repository.dart';
@@ -203,6 +205,9 @@ final class FlakyThreads implements ThreadRepository {
   /// The seqs a cache-only read holds; null reads the server.
   Set<int>? cachedSeqs;
 
+  /// Holds the next reads until completed, while set.
+  Completer<void>? gate;
+
   @override
   void initialize({required String workspaceId, required String uid}) =>
       inner.initialize(workspaceId: workspaceId, uid: uid);
@@ -218,6 +223,7 @@ final class FlakyThreads implements ThreadRepository {
   Future<({List<AssistantRecord> records, bool fromCache})> loadMessages(
     String threadId,
   ) async {
+    await gate?.future;
     if (loadError case final error?) throw error;
     final loaded = await inner.loadMessages(threadId);
     final cached = cachedSeqs;
