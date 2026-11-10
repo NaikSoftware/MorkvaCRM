@@ -919,6 +919,58 @@ void main() {
         final total = points.fold<double>(0, (sum, p) => sum + (p.value ?? 0));
         expect(total, rig.seed.orderCards.length);
         expect(chart.chart!.collectionId, SeedIds.orders);
+        // Human titles from the stored spec; the model keeps its summary.
+        expect(chart.title, 'Orders by Status');
+        expect(chart.chart!.metricLabel, 'count');
+        final steps = rig.state.items.whereType<StepsItem>().single;
+        expect(steps.headline, 'Looked at Orders · grouped by Status');
+        final contents = rig.llm.requests[1].contents;
+        final response = contents
+            .whereType<LlmFunctionResponses>()
+            .last
+            .responses
+            .single
+            .response;
+        expect(response['summary'], contains('count by Status'));
+      },
+    );
+
+    blocTest<AssistantBloc, AssistantState>(
+      'a filtered table is titled by its filter, the step by its counts',
+      setUp: () async {
+        rig = AssistantRig(
+          replies: [
+            FakeReply(
+              calls: [
+                call('cards_query', {
+                  'collection': 'Orders',
+                  'where': [
+                    {'field': 'Paid', 'op': 'isFalse'},
+                  ],
+                  'present': 'table',
+                }),
+              ],
+            ),
+            const FakeReply(text: ['These are unpaid.']),
+          ],
+        );
+        await rig.start();
+      },
+      build: () => rig.bloc,
+      act: (bloc) async {
+        await rig.ask('Unpaid orders');
+        await rig.idle();
+      },
+      verify: (_) {
+        final table = rig.state.items.whereType<TableItem>().single;
+        expect(table.title, 'Orders where Paid is false');
+        final unpaid = table.table!.totalCount;
+        final steps = rig.state.items.whereType<StepsItem>().single;
+        expect(
+          steps.headline,
+          'Looked at Orders · filtered ${rig.seed.orderCards.length} → '
+          '$unpaid',
+        );
       },
     );
 

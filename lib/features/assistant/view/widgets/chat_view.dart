@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -35,6 +38,45 @@ class AssistantChatView extends StatefulWidget {
 class _AssistantChatViewState extends State<AssistantChatView> {
   final _messenger = GlobalKey<ScaffoldMessengerState>();
   final _composerKey = GlobalKey();
+  final _snackKey = GlobalKey();
+
+  /// How far the shown snackbar reaches up over the chat list: the list
+  /// pads its end by this so the latest card stays readable.
+  final _snackInset = ValueNotifier<double>(0);
+  ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? _snack;
+  bool _tracking = false;
+
+  /// How long the undo snackbar stays; Undo also stays on the applied card.
+  static const snackDuration = Duration(seconds: 6);
+
+  @override
+  void dispose() {
+    _snackInset.dispose();
+    super.dispose();
+  }
+
+  void _onTransition(
+    BuildContext context,
+    AssistantState prev,
+    AssistantState s,
+  ) {
+    if (_snack != null && _movedOn(prev, s)) {
+      _messenger.currentState?.hideCurrentSnackBar();
+    }
+    _onApplied(context, prev, s);
+  }
+
+  /// The conversation moved past the applied plan: another thread, a new
+  /// message or a new plan to review.
+  static bool _movedOn(AssistantState prev, AssistantState s) {
+    if (prev.threadId != s.threadId) return true;
+    final seen = {for (final i in prev.items) i.id};
+    return s.items.any(
+      (i) =>
+          !seen.contains(i.id) &&
+          (i is UserItem || (i is PlanItem && i.status == PlanStatus.pending)),
+    );
+  }
 
   /// A plan this state just finished applying: snackbar it. Only a plan the
   /// previous state was committing counts, so an applied card that arrives
@@ -66,21 +108,50 @@ class _AssistantChatViewState extends State<AssistantChatView> {
       final lift = composer is RenderBox && composer.hasSize
           ? composer.size.height
           : 96.0;
-      _messenger.currentState
-        ?..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(_snackText(applied.receipt)),
-            margin: EdgeInsets.fromLTRB(14, 0, 14, lift + 16),
-            action: journal == null
-                ? null
-                : SnackBarAction(
-                    label: 'Undo',
-                    onPressed: () => actions.undo(journal),
-                  ),
-          ),
-        );
+      final messenger = _messenger.currentState;
+      if (messenger == null) return;
+      messenger.hideCurrentSnackBar();
+      final snack = messenger.showSnackBar(
+        SnackBar(
+          key: _snackKey,
+          content: Text(_snackText(applied.receipt)),
+          margin: EdgeInsets.fromLTRB(14, 0, 14, lift + 16),
+          // With an action a snackbar persists by default, and under
+          // accessible navigation (web semantics on) it never times out.
+          duration: snackDuration,
+          persist: false,
+          action: journal == null
+              ? null
+              : SnackBarAction(
+                  label: 'Undo',
+                  onPressed: () => actions.undo(journal),
+                ),
+        ),
+      );
+      _snack = snack;
+      snack.closed.whenComplete(() {
+        if (!identical(_snack, snack)) return;
+        _snack = null;
+        if (mounted) _snackInset.value = 0;
+      });
+      if (!_tracking) _measureSnack();
     });
+  }
+
+  /// [_snackInset]: from the snackbar's top down to the composer's, plus a
+  /// gap. The bar grows in (and a replaced one shrinks out) over frames, so
+  /// it is measured after every frame while a snackbar is up.
+  void _measureSnack() {
+    _tracking = mounted && _snack != null;
+    if (!_tracking) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measureSnack());
+    final bar = _snackKey.currentContext?.findRenderObject();
+    final composer = _composerKey.currentContext?.findRenderObject();
+    if (bar is! RenderBox || !bar.hasSize) return;
+    if (composer is! RenderBox || !composer.hasSize) return;
+    final top = bar.localToGlobal(Offset.zero).dy;
+    final bottom = composer.localToGlobal(Offset.zero).dy;
+    _snackInset.value = math.max(0.0, bottom - top + 8);
   }
 
   @override
@@ -98,7 +169,8 @@ class _AssistantChatViewState extends State<AssistantChatView> {
           composerKey: _composerKey,
           composerFocus: widget.composerFocus,
           autofocus: widget.autofocus,
-          onTransition: _onApplied,
+          snackInset: _snackInset,
+          onTransition: _onTransition,
         ),
       ),
     );
@@ -133,6 +205,7 @@ class _Body extends StatefulWidget {
     required this.composerKey,
     required this.composerFocus,
     required this.autofocus,
+    required this.snackInset,
     required this.onTransition,
   });
 
@@ -141,6 +214,7 @@ class _Body extends StatefulWidget {
   final GlobalKey composerKey;
   final FocusNode? composerFocus;
   final bool autofocus;
+  final ValueListenable<double> snackInset;
   final void Function(BuildContext, AssistantState, AssistantState)
   onTransition;
 
@@ -200,7 +274,11 @@ class _BodyState extends State<_Body> {
                       color: AssistantColors.of(context).canvas,
                       child: EmptyChat(state: state),
                     )
-                  : ChatList(state: state),
+                  : ValueListenableBuilder(
+                      valueListenable: widget.snackInset,
+                      builder: (context, inset, _) =>
+                          ChatList(state: state, bottomInset: inset),
+                    ),
             ),
             if (!closed && !consent)
               KeyedSubtree(

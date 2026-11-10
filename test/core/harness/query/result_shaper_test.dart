@@ -20,6 +20,29 @@ void main() {
     });
   });
 
+  group('card counts for titles', () {
+    test('a plainly cased name reads as a lowercase noun', () {
+      expect(shaper.cards('Orders', 3), '3 orders');
+      expect(shaper.cards('Orders', 1), '1 order');
+      expect(shaper.cards('Order items', 2), '2 order items');
+      expect(shaper.cards('Замовлення', 2), '2 замовлення');
+    });
+
+    test('any other casing keeps the user’s name, quoted', () {
+      expect(
+        shaper.cards('AI e2e Suppliers', 2, prep: 'to'),
+        '2 cards to “AI e2e Suppliers”',
+      );
+      expect(shaper.cards('iPhones', 1), '1 card in “iPhones”');
+      expect(shaper.cards('Orders VIP', 4), '4 cards in “Orders VIP”');
+    });
+
+    test('no collection: plain cards', () {
+      expect(shaper.cards(null, 1), '1 card');
+      expect(shaper.cards(null, 5), '5 cards');
+    });
+  });
+
   group('display values', () {
     const price = NumberFieldDefinition(id: 'p', name: 'Price', unitLabel: '₴');
     const date = DateFieldDefinition(id: 'd', name: 'Day');

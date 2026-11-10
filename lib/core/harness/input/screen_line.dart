@@ -54,7 +54,7 @@ String screenLine(ScreenContext screen, List<Collection> collections) {
   final clauses = [
     for (final f in screen.filters)
       if (filterFieldOf(collection, f.fieldId) case final field?)
-        '${quoteName(field.name)} ${_describe(field, f)}',
+        '${quoteName(field.name)} ${describeFilter(field, f)}',
   ];
   line.list(' · filters: ', clauses);
   final search = screen.search?.trim();
@@ -111,13 +111,18 @@ String _pageName(ScreenPage page) => switch (page) {
   ScreenPage.other => 'another page',
 };
 
-/// How one filter reads, from the schema only.
-String _describe(FieldDefinition field, ViewFilter filter) {
+/// How one filter reads, from the schema only; text operands and option
+/// labels go through [quote] (JSON quotes for the model by default).
+String describeFilter(
+  FieldDefinition field,
+  ViewFilter filter, {
+  String Function(String) quote = quoteName,
+}) {
   final typed = field is CalculatedFieldDefinition ? field.outputField : field;
   final operand = filter.operand;
   String value() => switch (operand) {
     num() => '$operand',
-    String() => quoteName(operand),
+    String() => quote(operand),
     _ => '?',
   };
   String set() {
@@ -131,7 +136,7 @@ String _describe(FieldDefinition field, ViewFilter filter) {
       return '${ids.length} ${ids.length == 1 ? 'card' : 'cards'}';
     }
     final labels = [
-      for (final id in ids) quoteName(_label(options, id) ?? 'unknown option'),
+      for (final id in ids) quote(_label(options, id) ?? 'unknown option'),
     ];
     return '[${labels.join(', ')}]';
   }

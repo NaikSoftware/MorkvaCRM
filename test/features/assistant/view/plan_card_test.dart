@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/design/design.dart';
 import 'package:morkva_crm/features/assistant/bloc/assistant_state.dart';
@@ -179,6 +180,72 @@ void main() {
       expect(boxes, [true, true, false, false]);
     });
 
+    testWidgets('a new collection lists itself, then its fields', (
+      tester,
+    ) async {
+      PlanRow field(String id, String label, String type) => PlanRow(
+        itemId: id,
+        kind: 'addField',
+        label: label,
+        collectionId: 'c_sup',
+        detail: type,
+      );
+      final plan = PlanView(
+        planId: 'p_new',
+        title: 'Create “Suppliers” · 4 fields',
+        rows: [
+          const PlanRow(
+            itemId: 'c',
+            kind: 'createCollection',
+            label: 'Suppliers',
+            collectionId: 'c_sup',
+            targetId: 'c_sup',
+            detail: 'Collection · 4 fields',
+          ),
+          field('f1', 'Name', 'Text · title'),
+          field('f2', 'Phone', 'Text'),
+          field('f3', 'City', 'Select · Kyiv, Lviv, Odesa'),
+          field('f4', 'Fabrics sold', 'Link → Fabrics, many'),
+        ],
+      );
+      expect(plan.groups, hasLength(1));
+      await pump(tester, PlanItem.proposed(id: 'x', plan: plan));
+
+      expect(find.text('Create collection · 1'), findsNothing);
+      expect(find.text('Add field · 4'), findsNothing);
+      expect(find.text('All 5 selected'), findsOneWidget);
+      final top = [
+        for (final t in ['Suppliers', 'Name', 'Phone', 'City', 'Fabrics sold'])
+          tester.getTopLeft(find.text(t)).dy,
+      ];
+      expect(top, orderedEquals([...top]..sort()));
+      expect(find.byType(TypeTag), findsNWidgets(5));
+      expect(find.text('Select · Kyiv, Lviv, Odesa'), findsOneWidget);
+      expect(find.text('Approve 5 changes'), findsOneWidget);
+    });
+
+    test('fields of an existing collection keep their own group', () {
+      const plan = PlanView(
+        planId: 'p',
+        title: 'Changes',
+        rows: [
+          PlanRow(
+            itemId: 'c',
+            kind: 'createCollection',
+            label: 'Suppliers',
+            collectionId: 'c_sup',
+          ),
+          PlanRow(
+            itemId: 'f',
+            kind: 'addField',
+            label: 'Supplier',
+            collectionId: 'c_orders',
+          ),
+        ],
+      );
+      expect(plan.groups.map((g) => g.kind), ['createCollection', 'addField']);
+    });
+
     testWidgets('a compact plan says how many rows are not loaded', (
       tester,
     ) async {
@@ -244,34 +311,69 @@ void main() {
       expect(actions.calls, ['approve(p_delete)', 'reject(p_delete)']);
     });
 
-    testWidgets('deleting a collection needs its name typed', (tester) async {
-      const plan = PlanView(
-        planId: 'p_col',
-        title: 'Delete the Suppliers collection',
-        risk: PlanRisk.high,
-        rows: [
-          PlanRow(
-            itemId: 'i1',
-            kind: 'deleteCollection',
-            label: 'Suppliers',
-            risk: PlanRisk.high,
-          ),
-        ],
-      );
-      await pump(tester, PlanItem.proposed(id: 'x', plan: plan));
+    // As the harness titles it.
+    const collectionPlan = PlanView(
+      planId: 'p_col',
+      title: 'Delete collection “AI e2e Suppliers” · 2 cards',
+      risk: PlanRisk.high,
+      rows: [
+        PlanRow(
+          itemId: 'i1',
+          kind: 'deleteCollection',
+          label: 'AI e2e Suppliers',
+          risk: PlanRisk.high,
+          detail: '2 cards',
+        ),
+      ],
+    );
 
-      await tester.tap(find.text('Delete the Suppliers collection').last);
+    testWidgets('a collection delete confirms in short, on one row', (
+      tester,
+    ) async {
+      // The test font draws every glyph square: give the label its room.
+      await pumpInScope(
+        tester,
+        PlanCard(
+          item: PlanItem.proposed(id: 'x', plan: collectionPlan),
+        ),
+        actions: actions,
+        width: 560,
+      );
+
+      final confirm = find.text('Delete collection');
+      expect(confirm, findsOneWidget);
+      final keep = tester.getRect(find.text('Keep it'));
+      final button = tester.getRect(confirm);
+      expect(button.center.dy, moreOrLessEquals(keep.center.dy));
+      expect(button.left, greaterThan(keep.right));
+      expect(
+        tester.renderObject<RenderParagraph>(confirm).didExceedMaxLines,
+        isFalse,
+      );
+    });
+
+    testWidgets('deleting a collection needs its name typed', (tester) async {
+      await pump(tester, PlanItem.proposed(id: 'x', plan: collectionPlan));
+
+      await tester.tap(find.text('Delete collection'));
       await tester.pumpAndSettle();
-      expect(find.text('Delete the Suppliers collection?'), findsOneWidget);
+      expect(
+        find.text('Delete the AI e2e Suppliers collection?'),
+        findsOneWidget,
+      );
+      final dialogConfirm = find.descendant(
+        of: find.byType(MorkvaConfirmDialog),
+        matching: find.text('Delete collection'),
+      );
 
       // Confirm stays disabled until the name matches.
-      await tester.tap(find.text('Delete collection'));
+      await tester.tap(dialogConfirm);
       await tester.pumpAndSettle();
       expect(actions.calls, isEmpty);
 
-      await tester.enterText(find.byType(TextField), 'Suppliers');
+      await tester.enterText(find.byType(TextField), 'AI e2e Suppliers');
       await tester.pump();
-      await tester.tap(find.text('Delete collection'));
+      await tester.tap(dialogConfirm);
       await tester.pumpAndSettle();
       expect(actions.calls, ['approve(p_col)']);
     });
@@ -279,25 +381,38 @@ void main() {
     testWidgets('cancelling the typed confirm approves nothing', (
       tester,
     ) async {
+      await pump(tester, PlanItem.proposed(id: 'x', plan: collectionPlan));
+      await tester.tap(find.text('Delete collection'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(actions.calls, isEmpty);
+    });
+
+    testWidgets('cards of an oddly cased collection: "Delete N cards"', (
+      tester,
+    ) async {
       const plan = PlanView(
-        planId: 'p_col',
-        title: 'Delete the Suppliers collection',
+        planId: 'p_cards',
+        title: 'Delete 2 cards from “AI e2e Suppliers”',
         risk: PlanRisk.high,
         rows: [
           PlanRow(
             itemId: 'i1',
-            kind: 'deleteCollection',
-            label: 'Suppliers',
+            kind: 'deleteCard',
+            label: 'Nova',
+            risk: PlanRisk.high,
+          ),
+          PlanRow(
+            itemId: 'i2',
+            kind: 'deleteCard',
+            label: 'Tkanyna',
             risk: PlanRisk.high,
           ),
         ],
       );
       await pump(tester, PlanItem.proposed(id: 'x', plan: plan));
-      await tester.tap(find.text('Delete the Suppliers collection').last);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Cancel'));
-      await tester.pumpAndSettle();
-      expect(actions.calls, isEmpty);
+      expect(find.text('Delete 2 cards'), findsOneWidget);
     });
   });
 

@@ -71,6 +71,27 @@ final class ResultShaper {
   /// [text] sanitized and cut to [nameMax].
   String name(String text) => _clean(text, nameMax);
 
+  /// `3 orders`, `1 order item`: [n] cards of [collectionName] for titles.
+  /// The name reads as a lowercase noun only when every word is lowercase
+  /// past its first letter ("Orders", "Order items"); otherwise the user's
+  /// casing stays: `2 cards in “AI e2e Suppliers”` (`to`/`from` via
+  /// [prep]). No name: `2 cards`.
+  String cards(String? collectionName, int n, {String prep = 'in'}) {
+    final noun = n == 1 ? 'card' : 'cards';
+    if (collectionName == null) return '$n $noun';
+    final clean = name(collectionName);
+    final words = clean.split(' ');
+    final plain = words.every(
+      (w) => w.isNotEmpty && w.substring(1) == w.substring(1).toLowerCase(),
+    );
+    if (!plain) return '$n $noun $prep “$clean”';
+    final plural = clean.toLowerCase();
+    final singular = plural.length > 1 && plural.endsWith('s')
+        ? plural.substring(0, plural.length - 1)
+        : plural;
+    return '$n ${n == 1 ? singular : plural}';
+  }
+
   /// The card's title (its first text field, `Untitled` when blank: the
   /// label the app shows), sanitized.
   String title(Collection collection, MorkvaObject object) =>

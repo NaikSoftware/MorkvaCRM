@@ -19,9 +19,13 @@ import 'user_bubble.dart';
 /// (items and streaming text) while the reader is at the bottom; once they
 /// scroll up, "Jump to latest" appears instead.
 class ChatList extends StatefulWidget {
-  const ChatList({super.key, required this.state});
+  const ChatList({super.key, required this.state, this.bottomInset = 0});
 
   final AssistantState state;
+
+  /// Extra end padding while something (the undo snackbar) floats over the
+  /// list's bottom.
+  final double bottomInset;
 
   @override
   State<ChatList> createState() => _ChatListState();
@@ -102,8 +106,13 @@ class _ChatListState extends State<ChatList> {
             child: ListView.builder(
               controller: _scroll,
               padding: scope.phone
-                  ? const EdgeInsets.all(Spacing.md)
-                  : const EdgeInsets.fromLTRB(18, 18, 18, 8),
+                  ? EdgeInsets.fromLTRB(
+                      Spacing.md,
+                      Spacing.md,
+                      Spacing.md,
+                      Spacing.md + widget.bottomInset,
+                    )
+                  : EdgeInsets.fromLTRB(18, 18, 18, 8 + widget.bottomInset),
               itemCount: count,
               // Keys sit on the builder's top-level child, so a card's state
               // follows its item id if items ever move.

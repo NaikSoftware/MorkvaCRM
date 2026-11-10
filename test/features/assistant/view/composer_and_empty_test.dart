@@ -219,6 +219,22 @@ void main() {
       final items = suggestionGroups(const ['Clients']).expand((g) => g.items);
       expect(items, everyElement(contains('Clients')));
     });
+
+    test('the focused collection fills Ask and Analyze', () {
+      final groups = suggestionGroups(const [
+        'Замовлення',
+        'Футболки',
+        'Orders',
+      ], focused: 'Orders');
+      final byKind = {for (final g in groups) g.kind: g.items};
+      expect(byKind[SuggestionKind.ask], everyElement(contains('Orders')));
+      expect(byKind[SuggestionKind.analyze], everyElement(contains('Orders')));
+      // Without a focus, the first collections fill them.
+      expect(suggestionGroups(const ['Замовлення', 'Футболки']).first.items, [
+        'How many Замовлення were added this month?',
+        'Show the 5 newest Футболки',
+      ]);
+    });
   });
 
   group('ThreadListView', () {

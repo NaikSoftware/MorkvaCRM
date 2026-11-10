@@ -7,6 +7,7 @@ import 'package:morkva_crm/features/assistant/bloc/chat_item.dart';
 import 'package:morkva_crm/features/assistant/view/assistant_page.dart';
 import 'package:morkva_crm/features/assistant/view/assistant_panel.dart';
 import 'package:morkva_crm/features/assistant/view/thread_list_page.dart';
+import 'package:morkva_crm/features/assistant/view/widgets/chat_list.dart';
 
 import '../fakes/assistant_seeds.dart';
 import '../fakes/fake_assistant_bloc.dart';
@@ -133,6 +134,84 @@ void main() {
 
       await tester.tap(find.widgetWithText(SnackBarAction, 'Undo'));
       expect(actions.calls, ['undo(j_done)']);
+    });
+
+    group('the undo snackbar', () {
+      /// The analyze thread with its plan still committing, then applied.
+      Future<(FakeAssistantBloc, AssistantState)> raise(
+        WidgetTester tester,
+      ) async {
+        final full = AssistantSeeds.analyze(now: testNow);
+        final applied = full.items.whereType<AppliedItem>().single;
+        final bloc = FakeAssistantBloc(
+          full.copyWith(
+            items: [
+              ...full.items.takeWhile((i) => i is! AppliedItem),
+              PlanItem(
+                id: applied.id,
+                plan: applied.plan,
+                selected: const {},
+                status: PlanStatus.committing,
+              ),
+            ],
+          ),
+        );
+        await pumpPanel(tester, bloc, actions: actions);
+        await tester.pump(const Duration(seconds: 1));
+        bloc.set(full);
+        await tester.pumpAndSettle();
+        expect(find.byType(SnackBar), findsOneWidget);
+        return (bloc, full);
+      }
+
+      testWidgets('goes away by itself after 6 s', (tester) async {
+        await raise(tester);
+        // Undo stays on the applied card.
+        expect(find.widgetWithText(SnackBarAction, 'Undo'), findsOneWidget);
+        await tester.pump(const Duration(seconds: 5));
+        expect(find.byType(SnackBar), findsOneWidget);
+        await tester.pump(const Duration(seconds: 2));
+        await tester.pumpAndSettle();
+        expect(find.byType(SnackBar), findsNothing);
+        expect(find.text('Undo'), findsOneWidget);
+      });
+
+      testWidgets('never covers the latest card', (tester) async {
+        await raise(tester);
+        final last = tester.getRect(find.byType(ChatItemView).last);
+        final bar = tester.getRect(find.byType(SnackBar));
+        expect(last.bottom, lessThanOrEqualTo(bar.top));
+      });
+
+      testWidgets('hides as soon as a new plan is proposed', (tester) async {
+        final (bloc, full) = await raise(tester);
+        bloc.set(
+          full.copyWith(
+            items: [
+              ...full.items,
+              PlanItem.proposed(id: 'next', plan: AssistantSeeds.shipPlan),
+            ],
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.byType(SnackBar), findsNothing);
+        // The new plan's buttons are in the clear.
+        expect(find.text('Approve 3 changes').hitTestable(), findsOneWidget);
+      });
+
+      testWidgets('hides as soon as a message is sent', (tester) async {
+        final (bloc, full) = await raise(tester);
+        bloc.set(
+          full.copyWith(
+            items: [
+              ...full.items,
+              const UserItem(id: 'u_next', text: 'And the rest?'),
+            ],
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.byType(SnackBar), findsNothing);
+      });
     });
 
     testWidgets('a thread loaded in two steps raises no snackbar', (

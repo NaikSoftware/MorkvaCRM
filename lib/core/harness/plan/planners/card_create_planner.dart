@@ -31,7 +31,7 @@ Future<void> planCardsCreate(Map<String, Object?> args, PlanCall call) async {
   ];
   await call.leased([collection.id], () async {
     final created = stageCreates(call, {collection.id: specs});
-    call.title('Add ${call.cards(collection, created.length)}');
+    call.title('Add ${call.cards(collection, created.length, prep: 'to')}');
   });
 }
 

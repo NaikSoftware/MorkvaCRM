@@ -157,7 +157,11 @@ String _chartSemantics(ResultChart chart, String kind) {
       ? ''
       : ', peak ${chart.points[peak].label} at '
             '${groupedNumber(chart.points[peak].value!)}';
-  return '$kind chart: ${chart.metricLabel}, from $first to $last$peakText';
+  final labels = chart.points.length > 12
+      ? ''
+      : ': ${chart.points.map((p) => p.label).join(', ')}';
+  return '$kind chart: ${chart.metricLabel}, from $first to $last$peakText'
+      '$labels';
 }
 
 class _BarChart extends StatelessWidget {
@@ -300,13 +304,17 @@ class _AxisLabels extends StatelessWidget {
         for (var i = 0; i < points.length; i++) ...[
           if (i > 0) const SizedBox(width: Spacing.xs),
           Expanded(
-            child: Text(
-              points[i].label,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.clip,
-              softWrap: false,
-              style: style,
+            // A long group label ellipsizes; hover shows it whole.
+            child: Tooltip(
+              message: points[i].label,
+              child: Text(
+                points[i].label,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                softWrap: false,
+                style: style,
+              ),
             ),
           ),
         ],

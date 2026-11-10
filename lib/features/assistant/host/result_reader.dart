@@ -3,6 +3,7 @@ import '../../../core/harness/cache/derived_snapshot.dart';
 import '../../../core/harness/cache/result_store.dart';
 import '../../../core/harness/harness.dart';
 import '../../../core/harness/input/filter_compiler.dart';
+import '../../../core/harness/input/screen_line.dart' show describeFilter;
 import '../../../core/harness/query/aggregate_engine.dart';
 import '../../../core/harness/query/query_engine.dart';
 import '../../../core/harness/query/result_shaper.dart';
@@ -33,6 +34,142 @@ final class ResultReader {
   /// The spec behind [handle] while [thread] holds it.
   Map<String, Object?>? specOf(String handle, {required String thread}) =>
       _results.get(handle, thread: thread)?.spec;
+
+  /// A result card's title, from the spec behind [handle] (or [spec]):
+  /// "Orders by Status", "Orders where Paid is false", "Orders · 3 shown"
+  /// ([total] defaults to the stored result's). Null when the spec or its
+  /// collection is unknown. The model keeps the op's own summary.
+  String? titleOf({
+    String? handle,
+    Map<String, Object?>? spec,
+    int? total,
+    required String thread,
+  }) {
+    final stored = handle == null ? null : _results.get(handle, thread: thread);
+    final json = stored?.spec ?? spec;
+    if (json == null) return null;
+    try {
+      switch (json['kind']) {
+        case 'query':
+          final query = QuerySpec.fromJson(json);
+          final name = _collectionName(query.collectionId);
+          if (name == null) return null;
+          final where = _where(query);
+          if (where != null) return '$name $where';
+          final n = total ?? stored?.total;
+          // Past [tableRows] the card shows a page of them, not all.
+          if (n == null) return name;
+          return n <= tableRows ? '$name · $n shown' : '$name · $n cards';
+        case 'aggregate':
+          final aggregate = AggregateSpec.fromJson(json);
+          final query = aggregate.query;
+          final collection = queries.cache.collection(query.collectionId);
+          if (collection == null) return null;
+          final name = _shaper.name(collection.name);
+          final by = _groupName(collection, aggregate);
+          final head = by == null
+              ? '$name · ${aggregate.metrics.map((m) => _metricName(collection, m)).join(', ')}'
+              : '$name by $by';
+          final where = _where(query);
+          return where == null ? head : '$head · $where';
+      }
+    } on FormatException {
+      return null;
+    }
+    return null;
+  }
+
+  /// The steps-chip line of a read that stored [handle]: "Looked at Orders
+  /// · filtered 148 → 5 · grouped by Status · summed Total". Null when the
+  /// handle is unknown.
+  String? stepLine(String handle, {required String thread}) {
+    final stored = _results.get(handle, thread: thread);
+    if (stored == null) return null;
+    try {
+      final json = stored.spec;
+      final aggregate = json['kind'] == 'aggregate'
+          ? AggregateSpec.fromJson(json)
+          : null;
+      final query = aggregate?.query ?? QuerySpec.fromJson(json);
+      final collection = queries.cache.collection(query.collectionId);
+      if (collection == null) return null;
+      final scanned = queries.cache.current(collection.id)?.count;
+      final filtered = query.filters.isNotEmpty || query.search != null;
+      final by = aggregate == null ? null : _groupName(collection, aggregate);
+      return [
+        'Looked at ${_shaper.name(collection.name)}',
+        if (filtered)
+          scanned == null
+              ? 'filtered to ${stored.total}'
+              : 'filtered $scanned → ${stored.total}',
+        if (by != null) 'grouped by $by',
+        for (final m in aggregate?.metrics ?? const <MetricSpec>[])
+          if (m.op != AggregateOp.count) _metricVerb(collection, m),
+      ].join(' · ');
+    } on FormatException {
+      return null;
+    }
+  }
+
+  String? _collectionName(String id) => switch (queries.cache.collection(id)) {
+    final c? => _shaper.name(c.name),
+    null => null,
+  };
+
+  /// "where Paid is false, Status any of [“Packing”]", "matching “melnyk”".
+  String? _where(QuerySpec query) {
+    final collection = queries.cache.collection(query.collectionId);
+    if (collection == null) return null;
+    String quote(String text) => '“${_shaper.name(text)}”';
+    final clauses = [
+      for (final f in query.filters)
+        if (filterFieldOf(collection, f.fieldId) case final field?)
+          '${_shaper.name(field.name)} '
+              '${describeFilter(field, f, quote: quote)}',
+    ];
+    final search = query.search?.trim();
+    final parts = [
+      if (clauses.isNotEmpty) 'where ${clauses.join(', ')}',
+      if (search != null && search.isNotEmpty) 'matching ${quote(search)}',
+    ];
+    return parts.isEmpty ? null : parts.join(' ');
+  }
+
+  /// "Status", "Created (month)": the group-by field as titles name it.
+  String? _groupName(Collection collection, AggregateSpec spec) {
+    final group = spec.groupBy;
+    if (group == null) return null;
+    final field = filterFieldOf(collection, group.fieldId);
+    if (field == null) return null;
+    final presented = field is CalculatedFieldDefinition
+        ? field.outputField
+        : field;
+    final name = _shaper.name(field.name);
+    return presented is DateFieldDefinition
+        ? '$name (${group.bucket.name})'
+        : name;
+  }
+
+  String _metricField(Collection collection, MetricSpec m) => _shaper.name(
+    filterFieldOf(collection, m.fieldId ?? '')?.name ?? m.fieldId ?? '',
+  );
+
+  /// "count", "sum of Total".
+  String _metricName(Collection collection, MetricSpec m) => m.fieldId == null
+      ? m.op.name
+      : '${m.op.name} of ${_metricField(collection, m)}';
+
+  /// "summed Total", "averaged Price".
+  String _metricVerb(Collection collection, MetricSpec m) {
+    final field = _metricField(collection, m);
+    return switch (m.op) {
+      AggregateOp.sum => 'summed $field',
+      AggregateOp.average => 'averaged $field',
+      AggregateOp.min => 'lowest $field',
+      AggregateOp.max => 'highest $field',
+      AggregateOp.count => 'counted',
+    };
+  }
 
   /// The table for [handle] (or, once it is gone, [spec]); null when neither
   /// can be read any more (a deleted collection, a field gone).

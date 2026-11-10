@@ -427,14 +427,10 @@ final class PlanCall {
   /// `"Orders"` as a quoted, sanitized name for titles.
   String quoted(String name) => '“${shaper.name(name)}”';
 
-  /// `3 orders`, `1 order`: a count of [collection]'s cards for titles.
-  String cards(Collection collection, int n) {
-    final plural = shaper.name(collection.name).toLowerCase();
-    final singular = plural.length > 1 && plural.endsWith('s')
-        ? plural.substring(0, plural.length - 1)
-        : plural;
-    return '$n ${n == 1 ? singular : plural}';
-  }
+  /// `3 orders`, `1 order`: a count of [collection]'s cards for titles
+  /// ([ResultShaper.cards]).
+  String cards(Collection collection, int n, {String prep = 'in'}) =>
+      shaper.cards(collection.name, n, prep: prep);
 
   /// A value codec over a fresh [resolver].
   ValueCodec codec() => ValueCodec(resolver());

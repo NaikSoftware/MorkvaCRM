@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/agent/agent_event.dart';
@@ -298,6 +299,59 @@ void main() {
         find.bySemanticsLabel(RegExp('Bar chart: .*peak O at 48 200')),
         findsOneWidget,
       );
+    });
+
+    testWidgets('long axis labels ellipsize and keep their full text', (
+      tester,
+    ) async {
+      final semantics = tester.ensureSemantics();
+      await pumpInScope(
+        tester,
+        ResultChartCard(
+          item: ChartItem(
+            id: 'c',
+            title: 'Orders by Status',
+            chart: ResultChart(
+              metricLabel: 'count',
+              points: [
+                for (final s in [
+                  'Ordered',
+                  'To clarify',
+                  'Packing',
+                  'Shipped',
+                  'Waiting for payment',
+                  'Done',
+                ])
+                  ChartPoint(s, 3),
+              ],
+            ),
+          ),
+        ),
+        actions: actions,
+      );
+      final label = find.text('To clarify');
+      expect(tester.widget<Text>(label).overflow, TextOverflow.ellipsis);
+      expect(
+        tester.renderObject<RenderParagraph>(label).didExceedMaxLines,
+        isTrue,
+      );
+      expect(
+        find.ancestor(of: label, matching: find.byType(Tooltip)),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<Tooltip>(
+              find.ancestor(of: label, matching: find.byType(Tooltip)),
+            )
+            .message,
+        'To clarify',
+      );
+      expect(
+        find.bySemanticsLabel(RegExp('To clarify, Packing')),
+        findsOneWidget,
+      );
+      semantics.dispose();
     });
 
     testWidgets('"Show as table" is the accessible fallback', (tester) async {

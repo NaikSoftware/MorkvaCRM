@@ -99,6 +99,6 @@ Future<void> planCardsDelete(Map<String, Object?> args, PlanCall call) async {
         );
       }
     }
-    call.title('Delete ${call.cards(schema, target.ids.length)}');
+    call.title('Delete ${call.cards(schema, target.ids.length, prep: 'from')}');
   });
 }

@@ -570,15 +570,9 @@ final class PlanCommitter {
     }
   }
 
-  /// `3 orders`, `1 order`.
-  static String cards(Collection? collection, int n) {
-    if (collection == null) return '$n ${n == 1 ? 'card' : 'cards'}';
-    final plural = _shaper.name(collection.name).toLowerCase();
-    final singular = plural.length > 1 && plural.endsWith('s')
-        ? plural.substring(0, plural.length - 1)
-        : plural;
-    return '$n ${n == 1 ? singular : plural}';
-  }
+  /// `3 orders`, `1 order` ([ResultShaper.cards]).
+  static String cards(Collection? collection, int n) =>
+      _shaper.cards(collection?.name, n);
 }
 
 // ---------------------------------------------------------------------------

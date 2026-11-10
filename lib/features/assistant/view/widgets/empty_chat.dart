@@ -74,7 +74,10 @@ class EmptyChat extends StatelessWidget {
             freeTier: (state.availability as AvailabilityNeedsConsent).freeTier,
           )
         else
-          for (final group in suggestionGroups(names)) ...[
+          for (final group in suggestionGroups(
+            names,
+            focused: state.focus?.collectionName,
+          )) ...[
             _SuggestionGroup(group: group, enabled: state.availability.canSend),
             const SizedBox(height: 22),
           ],
@@ -93,8 +96,9 @@ typedef SuggestionGroup = ({
 enum SuggestionKind { ask, analyze, act }
 
 /// Ask / Analyze / Act prompts: generic templates filled with the first
-/// collections' names, or plain starters when there are none.
-List<SuggestionGroup> suggestionGroups(List<String> names) {
+/// collections' names, or plain starters when there are none. The
+/// [focused] collection (the one on screen) fills Ask and Analyze.
+List<SuggestionGroup> suggestionGroups(List<String> names, {String? focused}) {
   if (names.isEmpty) {
     return const [
       (
@@ -114,16 +118,23 @@ List<SuggestionGroup> suggestionGroups(List<String> names) {
   }
   final a = names[0];
   final b = names.length > 1 ? names[1] : names[0];
+  final f = focused == null || focused.isEmpty ? null : focused;
   return [
     (
       title: 'Ask',
       kind: SuggestionKind.ask,
-      items: ['How many $a were added this month?', 'Show the 5 newest $b'],
+      items: [
+        'How many ${f ?? a} were added this month?',
+        'Show the 5 newest ${f ?? b}',
+      ],
     ),
     (
       title: 'Analyze',
       kind: SuggestionKind.analyze,
-      items: ['$a by month this year', 'Compare $b this month with last month'],
+      items: [
+        '${f ?? a} by month this year',
+        'Compare ${f ?? b} this month with last month',
+      ],
     ),
     (
       title: 'Act',

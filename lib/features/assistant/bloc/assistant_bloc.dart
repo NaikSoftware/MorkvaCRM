@@ -374,7 +374,7 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
       case StepStarted(:final callId, :final label):
         _onStepStarted(turn, callId, label, emit);
       case StepFinished():
-        _onStepFinished(event, emit);
+        _onStepFinished(turn, event, emit);
       case ResultPresented():
         await _onResult(turn, event, emit);
       case ObjectChipShown():
@@ -488,17 +488,23 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
     }
   }
 
-  void _onStepFinished(StepFinished e, Emitter<AssistantState> emit) {
+  void _onStepFinished(
+    _Turn turn,
+    StepFinished e,
+    Emitter<AssistantState> emit,
+  ) {
+    final handle = e.handle;
+    // A read's line comes from its stored spec ("Looked at Orders · grouped
+    // by Status"); the model's summary is the fallback.
+    final summary = e.ok && handle != null
+        ? _results.stepLine(handle, thread: turn.threadId) ?? e.summary
+        : e.summary;
     for (final item in state.items.reversed) {
       if (item is! StepsItem) continue;
       final i = item.steps.indexWhere((s) => s.callId == e.callId);
       if (i < 0) continue;
       final steps = [...item.steps];
-      steps[i] = steps[i].finish(
-        ok: e.ok,
-        summary: e.summary,
-        code: e.errorCode,
-      );
+      steps[i] = steps[i].finish(ok: e.ok, summary: summary, code: e.errorCode);
       final running = steps.where((s) => s.status == StepStatus.running);
       _replace(
         StepsItem(id: item.id, steps: steps),
@@ -520,17 +526,20 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
   ) async {
     _closeText(turn, emit);
     final spec = e.spec ?? _results.specOf(e.handle, thread: turn.threadId);
+    final title =
+        _results.titleOf(handle: e.handle, spec: spec, thread: turn.threadId) ??
+        e.title;
     final ChatItem item = e.kind == PresentKind.table
         ? TableItem(
             id: turn.mint(),
-            title: e.title,
+            title: title,
             handle: e.handle,
             spec: spec,
             summary: e.summary,
           )
         : ChartItem(
             id: turn.mint(),
-            title: e.title,
+            title: title,
             kind: e.kind,
             handle: e.handle,
             spec: spec,
@@ -560,7 +569,14 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
         _replace(
           TableItem(
             id: current.id,
-            title: current.title,
+            title:
+                _results.titleOf(
+                  handle: handle,
+                  spec: spec,
+                  total: table.totalCount,
+                  thread: threadId,
+                ) ??
+                current.title,
             handle: current.handle,
             spec: current.spec,
             summary: current.summary,
@@ -580,7 +596,13 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
         _replace(
           ChartItem(
             id: current.id,
-            title: current.title,
+            title:
+                _results.titleOf(
+                  handle: handle,
+                  spec: spec,
+                  thread: threadId,
+                ) ??
+                current.title,
             kind: current.kind,
             handle: current.handle,
             spec: current.spec,

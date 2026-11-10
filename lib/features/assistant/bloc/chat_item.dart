@@ -468,11 +468,21 @@ final class PlanView extends Equatable {
   /// A destructive plan (error border, typed confirm for collections).
   bool get destructive => risk == PlanRisk.high;
 
-  /// Rows grouped by kind, in first-appearance order.
+  /// Rows grouped by kind, in first-appearance order. A plan that only
+  /// creates one collection and its fields is one group: the collection
+  /// row, then its field rows.
   List<PlanGroup> get groups {
     final byKind = <String, List<PlanRow>>{};
     for (final r in rows) {
       (byKind[r.kind] ??= []).add(r);
+    }
+    if ((byKind['createCollection'], byKind['addField'])
+        case ([final collection], final fields?)
+        when byKind.length == 2 &&
+            fields.every((f) => f.collectionId == collection.collectionId)) {
+      return [
+        PlanGroup('createCollection', [collection, ...fields]),
+      ];
     }
     return [for (final e in byKind.entries) PlanGroup(e.key, e.value)];
   }

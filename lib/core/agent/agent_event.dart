@@ -121,11 +121,16 @@ final class StepFinished extends AgentEvent {
     required this.summary,
     required this.ok,
     this.errorCode,
+    this.handle,
   });
 
   final String callId;
   final String summary;
   final bool ok;
+
+  /// The result handle a read stored, so the host can title the step from
+  /// its spec ([summary] is the model-facing line).
+  final String? handle;
 
   /// The harness error code (`unknown_field`) when [ok] is false.
   final String? errorCode;

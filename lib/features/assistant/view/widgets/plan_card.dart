@@ -246,6 +246,24 @@ class _PlanCardState extends State<PlanCard> {
   }
 }
 
+/// The confirm of a whole destructive plan: "Delete collection" for a
+/// collection, else the title up to its first " · " or quoted name ("Delete
+/// 7 orders", "Delete 2 cards", "Delete field").
+String _deleteLabel(PlanView plan) {
+  if (plan.rows.any((r) => r.kind == 'deleteCollection')) {
+    return 'Delete collection';
+  }
+  final title = plan.title.split(' · ').first;
+  final quote = title.indexOf(' “');
+  if (quote < 0) return title;
+  final head = title.substring(0, quote);
+  // "Delete 2 cards from “X”" keeps its count; "Delete field “X” from Y"
+  // its noun.
+  return head.endsWith(' from') || head.endsWith(' in')
+      ? head.substring(0, head.lastIndexOf(' '))
+      : head;
+}
+
 /// "Update card", "Add field" — a plan item kind for a mixed plan's group.
 String kindLabel(String kind) {
   final words = kind
@@ -730,9 +748,9 @@ class _Footer extends StatelessWidget {
     final approveLabel = committing
         ? 'Applying changes'
         : destructive && plan.title.startsWith('Delete')
-        ? (count == plan.itemCount
-              ? plan.title
-              : 'Delete $count of ${plan.itemCount}')
+        ? (count != plan.itemCount
+              ? 'Delete $count of ${plan.itemCount}'
+              : _deleteLabel(plan))
         : 'Approve $count ${count == 1 ? 'change' : 'changes'}';
     final rejectLabel = destructive
         ? (plan.itemCount == 1 ? 'Keep it' : 'Keep them')
@@ -776,12 +794,12 @@ class _Footer extends StatelessWidget {
               CardNote(message),
               const SizedBox(height: 6),
             ],
-            Wrap(
-              alignment: WrapAlignment.end,
-              spacing: Spacing.xs,
-              runSpacing: Spacing.xs,
+            // One row; the confirm label ellipsizes rather than wrapping
+            // under the safe choice.
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                if (!committing)
+                if (!committing) ...[
                   destructive
                       ? _PlainButton(
                           label: rejectLabel,
@@ -791,18 +809,21 @@ class _Footer extends StatelessWidget {
                           label: rejectLabel,
                           onPressed: () => actions.rejectPlan(plan.planId),
                         ),
-                if (destructive)
-                  _DangerButton(
-                    label: approveLabel,
-                    loading: committing,
-                    onPressed: count == 0 ? null : onApprove,
-                  )
-                else
-                  PrimaryButton(
-                    label: approveLabel,
-                    loading: committing,
-                    onPressed: count == 0 ? null : onApprove,
-                  ),
+                  const SizedBox(width: Spacing.xs),
+                ],
+                Flexible(
+                  child: destructive
+                      ? _DangerButton(
+                          label: approveLabel,
+                          loading: committing,
+                          onPressed: count == 0 ? null : onApprove,
+                        )
+                      : PrimaryButton(
+                          label: approveLabel,
+                          loading: committing,
+                          onPressed: count == 0 ? null : onApprove,
+                        ),
+                ),
               ],
             ),
           ],
@@ -921,6 +942,9 @@ class _DangerButton extends StatelessWidget {
                   )
                 : Text(
                     label,
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.labelLarge?.copyWith(
                       color: scheme.onError,
                     ),

@@ -638,7 +638,15 @@ final class AgentLoop {
       case HarnessOk(:final result):
         final summary = result['summary'] as String? ?? 'Done';
         t.record.addStep(summary);
-        _emit(t, StepFinished(callId: callId, summary: summary, ok: true));
+        _emit(
+          t,
+          StepFinished(
+            callId: callId,
+            summary: summary,
+            ok: true,
+            handle: result['handle'] as String?,
+          ),
+        );
       case HarnessFailure(:final error):
         _emit(
           t,
