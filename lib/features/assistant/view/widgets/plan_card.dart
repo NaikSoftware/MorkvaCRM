@@ -982,6 +982,11 @@ class _ClosedPlanCard extends StatelessWidget {
         Icons.timer_off_outlined,
         'This preview expired — nothing changed',
       ),
+      PlanStatus.interrupted => (
+        Icons.help_outline_rounded,
+        'Interrupted while applying — may have been partly applied, check '
+            'your data',
+      ),
       _ => (
         Icons.error_outline_rounded,
         '${message ?? 'Couldn’t apply the changes'} — nothing changed',

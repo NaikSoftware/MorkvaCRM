@@ -33,8 +33,9 @@ part 'assistant_event.dart';
 /// emitted from inside the approve handler while it awaits the commit.
 ///
 /// Persistence: one turn doc per user turn, checkpointed at the plan
-/// proposal (`pending`), right after the commit receipt (`committed`, with
-/// the journal mirror) and at the turn's end (`done`). Restoring a thread
+/// proposal (`pending`), when it is approved (`committing`), once the
+/// receipt is the plan calls' response (`committed`, with the journal
+/// mirror) and at the turn's end (`done`). Restoring a thread
 /// maps in-flight states to settled ones (see `chat_item_codec.dart`),
 /// re-validates undo journals through `journal.restore`, drops the plan
 /// gate's unanswered calls and replays the last [replayTurns] turns.
@@ -74,8 +75,9 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
   /// Turns of a restored thread replayed into the model.
   static const int replayTurns = 6;
 
-  /// A thread's title: the first message cut to this many characters.
-  static const int titleLength = 48;
+  /// A thread's title: the first sentence of its first message, at most
+  /// this many characters.
+  static const int titleLength = 40;
 
   final AgentLoop _loop;
   final Harness _harness;
@@ -110,6 +112,10 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
 
   // Per thread.
   int _nextSeq = 0;
+
+  /// The open thread was read from the local cache only, so it may miss
+  /// turns (and [_nextSeq] would overwrite them).
+  bool _fromCache = false;
   DateTime? _threadCreatedAt;
   final Map<int, _Doc> _docs = {};
   final Map<String, int> _seqOf = {};
@@ -117,12 +123,22 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
   /// Journals committed in this session and not undone: their undo works
   /// without a mirror (until the window closes).
   final Set<String> _liveJournals = {};
+
+  /// Journal mirrors of threads left before their undo window closed, by
+  /// (thread, seq): dropped when the window closes.
+  final Map<(String, int), DateTime> _mirrorsLeft = {};
   int _hostCalls = 0;
   Timer? _tick;
 
   /// Ends the session: back to Idle with no thread (sign-out, a workspace
   /// switch). [AssistantStarted] starts it again.
-  void reset() => add(const _SessionReset());
+  void reset() {
+    // At once: a handler still running (a commit awaiting its ack) must not
+    // write once the repositories are re-bound to the next member.
+    _uid = null;
+    _workspaceId = null;
+    add(const _SessionReset());
+  }
 
   // ---------------------------------------------------------------------------
 
@@ -221,6 +237,7 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
     }
     _clearThread();
     _liveJournals.clear();
+    _mirrorsLeft.clear();
     emit(AssistantState(focus: _focusCleared ? null : _focus));
   }
 
@@ -311,6 +328,31 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
       // The last turn's stream is still closing.
       _queuedPrompt = text;
       return;
+    }
+    if (_fromCache && state.threadId != null) {
+      // Its next seq is only known from a server read.
+      await _load(state.threadId!, emit);
+      if (_uid == null) return; // signed out during the re-read
+      if (_fromCache || state.threadId == null) {
+        if (state.threadId != null) {
+          emit(
+            state.copyWith(
+              items: [
+                ...state.items,
+                const ErrorItem(
+                  id: 'load',
+                  kind: ChatErrorKind.connection,
+                  message:
+                      'Couldn’t load this whole conversation, so the '
+                      'message wasn’t sent. Try again in a moment.',
+                  retryable: false,
+                ),
+              ],
+            ),
+          );
+        }
+        return;
+      }
     }
     _startTurn(text, emit);
   }
@@ -453,9 +495,16 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
     if (id == null) return;
     final item = _find<AssistantTextItem>(id);
     if (item == null) return;
+    final text = live?.value ?? item.text;
+    if (text.trim().isEmpty && !stopped && !cutShort) {
+      // Whitespace between calls: no empty bubble before the next card.
+      _seqOf.remove(id);
+      emit(state.copyWith(items: [...state.items.where((i) => i.id != id)]));
+      return;
+    }
     _replace(
       item.copyWith(
-        text: live?.value ?? item.text,
+        text: text,
         streaming: false,
         stopped: stopped,
         cutShort: cutShort,
@@ -808,6 +857,9 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
       emit,
       phase: ApplyingPhase(0, selected.length),
     );
+    // A reload mid-commit restores "may have been partly applied", not
+    // "Rebuild": chunks acked before it stay written.
+    _save(turn.seq, status: 'committing');
     final sink = _EventSink((event) {
       if (event is ProgressEvent && !emit.isDone) {
         emit(state.copyWith(phase: ApplyingPhase(event.done, event.total)));
@@ -846,6 +898,7 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
         emit,
         phase: const ThinkingPhase(),
       );
+      _save(turn.seq);
       // Nothing was written: the turn ends without a follow-up.
       _loop.deliverOutcome(planId, const Rejection(RejectReason.skipped));
       return;
@@ -883,10 +936,13 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
       items.insert(index + 1, applied);
     }
     emit(state.copyWith(items: items, phase: const ThinkingPhase()));
-    // The receipt and journal are saved before the model writes its reply.
-    _save(turn.seq, status: wrote ? 'committed' : null, emit: emit);
     _scheduleTick();
     _loop.deliverOutcome(planId, receipt);
+    // The loop appends the receipt as the plan calls' responses a few
+    // microtasks later. Saving after that (and before the model's reply)
+    // keeps the change in the replayed history after a reload.
+    await Future<void>.delayed(Duration.zero);
+    _save(turn.seq, status: wrote ? 'committed' : null, emit: emit);
   }
 
   Future<void> _onReject(String planId, Emitter<AssistantState> emit) async {
@@ -1091,7 +1147,10 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
             if (seq != null && _docs[seq]?.journal != null) {
               _docs[seq]!.journal = null;
               if (threadId != null) {
-                _observe(_threads.dropJournal(threadId, seq), 'Dropping undo');
+                _observe(
+                  () => _threads.dropJournal(threadId, seq),
+                  'Dropping undo',
+                );
               }
             }
             return item.copyWith(undoState: UndoState.expired);
@@ -1102,6 +1161,12 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
     if (_quotaUntil case final until? when !now.isBefore(until)) {
       _quotaUntil = null;
     }
+    _mirrorsLeft.removeWhere((key, until) {
+      if (now.isBefore(until)) return false;
+      final (thread, seq) = key;
+      _observe(() => _threads.dropJournal(thread, seq), 'Dropping undo');
+      return true;
+    });
     emit(
       state.copyWith(
         items: changed ? items : null,
@@ -1116,6 +1181,9 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
     _tick = null;
     final now = _now();
     DateTime? next = _quotaUntil;
+    for (final until in _mirrorsLeft.values) {
+      if (next == null || until.isBefore(next)) next = until;
+    }
     for (final item in state.items) {
       if (item is! AppliedItem || item.undoState != UndoState.available) {
         continue;
@@ -1160,7 +1228,11 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
   Future<void> _onDelete(String threadId, Emitter<AssistantState> emit) async {
     if (_uid == null) return;
     if (threadId != state.threadId) {
-      _observe(_threads.deleteThread(threadId), 'Deleting a conversation');
+      _mirrorsLeft.removeWhere((key, _) => key.$1 == threadId);
+      _observe(
+        () => _threads.deleteThread(threadId),
+        'Deleting a conversation',
+      );
       return;
     }
     await _requestSwitch(_Switch.fresh(delete: threadId), emit);
@@ -1168,38 +1240,69 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
 
   Future<void> _switchTo(_Switch target, Emitter<AssistantState> emit) async {
     final old = state.threadId;
-    if (old != null) _results.queries.results.dropThread(old);
+    if (old != null) {
+      _results.queries.results.dropThread(old);
+      if (old != target.delete) _leaveMirrors(old);
+    }
     if (target.delete case final id?) {
-      _observe(_threads.deleteThread(id), 'Deleting a conversation');
+      _mirrorsLeft.removeWhere((key, _) => key.$1 == id);
+      _observe(() => _threads.deleteThread(id), 'Deleting a conversation');
     }
     _clearThread();
     _loop.resetThread();
     final open = target.threadId;
     if (open == null) {
       emit(state.cleared());
+      // The daily limit and left mirrors still need their tick.
+      _scheduleTick();
       return;
     }
     await _load(open, emit);
+  }
+
+  /// Hands the journal mirrors of [threadId]'s docs to [_mirrorsLeft] (or
+  /// drops them when their window already closed), so none outlives it.
+  void _leaveMirrors(String threadId) {
+    final now = _now();
+    for (final MapEntry(key: seq, value: doc) in _docs.entries) {
+      final journal = doc.journal;
+      if (journal == null) continue;
+      final until = DateTime.tryParse('${journal['expiresAt']}');
+      if (until != null && now.isBefore(until)) {
+        _mirrorsLeft[(threadId, seq)] = until;
+      } else {
+        _observe(() => _threads.dropJournal(threadId, seq), 'Dropping undo');
+      }
+    }
   }
 
   void _clearThread() {
     _tick?.cancel();
     _tick = null;
     _nextSeq = 0;
+    _fromCache = false;
     _threadCreatedAt = null;
     _docs.clear();
     _seqOf.clear();
   }
 
   Future<void> _load(String threadId, Emitter<AssistantState> emit) async {
+    _clearThread();
+    // The open thread's own tick drops these mirrors from here on.
+    _mirrorsLeft.removeWhere((key, _) => key.$1 == threadId);
     emit(state.cleared().copyWith(threadId: threadId));
     final List<AssistantRecord> records;
     try {
-      records = await _threads.loadMessages(threadId);
+      final loaded = await _threads.loadMessages(threadId);
+      records = loaded.records;
+      _fromCache = loaded.fromCache;
     } catch (error) {
       _log('Loading a conversation failed', error);
+      if (_uid == null || state.threadId != threadId) return;
+      // Not bound to the thread: a message sent now starts a new one
+      // rather than overwriting this one's turn docs from seq 0.
       emit(
-        state.copyWith(
+        state.cleared().copyWith(
           items: [
             const ErrorItem(
               id: 'load',
@@ -1210,9 +1313,11 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
           ],
         ),
       );
+      // _clearThread cancelled the daily-limit and left-mirror tick.
+      _scheduleTick();
       return;
     }
-    if (state.threadId != threadId) return;
+    if (state.threadId != threadId || _uid == null) return;
 
     final items = <ChatItem>[];
     final turns = <HistoryTurn>[];
@@ -1285,7 +1390,7 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
     AppliedItem expired() {
       if (mirror != null && seq != null) {
         doc!.journal = null;
-        _observe(_threads.dropJournal(threadId, seq), 'Dropping undo');
+        _observe(() => _threads.dropJournal(threadId, seq), 'Dropping undo');
       }
       return item.copyWith(undoState: UndoState.expired);
     }
@@ -1391,7 +1496,7 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
     }
     if (!fit.fits) _log('Turn $seq is over the doc budget (${fit.bytes} B)');
     _observe(
-      _threads.checkpoint(
+      () => _threads.checkpoint(
         threadId,
         seq: seq,
         message: fit.record,
@@ -1492,8 +1597,11 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
     };
   }
 
-  void _observe(Future<void> write, String what) {
-    write.then<void>(
+  /// Starts [write] unless the session was reset (the repository may be
+  /// bound to the next member already), and reports a failure.
+  void _observe(Future<void> Function() write, String what) {
+    if (_uid == null) return;
+    write().then<void>(
       (_) {},
       onError: (Object error) {
         _log('$what failed', error);
@@ -1589,9 +1697,26 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
     undoSessionOnly: item.undoSessionOnly,
   );
 
+  /// [text]'s first sentence, cut at a word to [titleLength] with "…".
   static String _title(String text) {
-    final line = text.trim().replaceAll(RegExp(r'\s+'), ' ');
-    return line.length <= titleLength ? line : line.substring(0, titleLength);
+    var line = text.trim().replaceAll(RegExp(r'\s+'), ' ');
+    final end = RegExp(r'[.!?;:](?= |$)').firstMatch(line);
+    if (end != null && end.start > 0) {
+      // A question keeps its mark; other sentence ends are dropped.
+      final mark = line[end.start];
+      line = line.substring(
+        0,
+        mark == '?' || mark == '!' ? end.end : end.start,
+      );
+    }
+    if (line.length <= titleLength) return line;
+    // A word ending at the limit stays whole; the "…" takes the space.
+    final space = line.substring(0, titleLength).lastIndexOf(' ');
+    final cut = line.substring(
+      0,
+      space > titleLength ~/ 2 ? space : titleLength - 1,
+    );
+    return '${cut.replaceAll(RegExp(r'[\s,;:.\-–—]+$'), '')}…';
   }
 
   static void _log(String message, [Object? error]) =>

@@ -4,10 +4,13 @@
 /// `fake_cloud_firestore`, and a [SyncStatusCubit] the test flips offline.
 library;
 
+import 'dart:async';
+
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/api/assistant/assistant_config_repository.dart';
 import 'package:morkva_crm/api/assistant/firestore_thread_repository.dart';
+import 'package:morkva_crm/api/assistant/thread_repository.dart';
 import 'package:morkva_crm/api/auth/auth_user.dart';
 import 'package:morkva_crm/api/sync/sync_status_cubit.dart';
 import 'package:morkva_crm/core/agent/llm_client.dart';
@@ -72,13 +75,16 @@ final class AssistantRig {
     FakeDataRepository? repository,
     FakeFirebaseFirestore? firestore,
     Iterable<FakeReply> replies = const [],
+    ThreadRepository Function(ThreadRepository firestore)? threads,
   }) : seed = seed ?? SeedWorkspace(),
        firestore = firestore ?? FakeFirebaseFirestore(),
        llm = ScriptedLlm(replies) {
     repo = repository ?? this.seed.repository();
+    final store = FirestoreThreadRepository(firestore: this.firestore);
+    this.threads = threads?.call(store) ?? store;
     session = AssistantSession(
       dataRepository: repo,
-      threads: FirestoreThreadRepository(firestore: this.firestore),
+      threads: this.threads,
       config: AssistantConfigRepository(
         firestore: this.firestore,
         now: () => clock,
@@ -93,6 +99,7 @@ final class AssistantRig {
   late final FakeDataRepository repo;
   final FakeFirebaseFirestore firestore;
   final ScriptedLlm llm;
+  late final ThreadRepository threads;
   final SyncStatusCubit sync = SyncStatusCubit();
   late final AssistantSession session;
 
@@ -161,13 +168,16 @@ final class AssistantRig {
   String? statusOf(int number) =>
       (order(number)?[OrderFields.status] as SingleSelectFieldValue?)?.optionId;
 
-  /// The turn docs of [threadId], by seq.
-  Future<List<Map<String, Object?>>> turnDocs(String threadId) async {
+  /// The turn docs of [threadId] (of member [uid]), by seq.
+  Future<List<Map<String, Object?>>> turnDocs(
+    String threadId, {
+    String uid = 'u1',
+  }) async {
     final snapshot = await firestore
         .collection('workspaces')
         .doc(workspaceId)
         .collection('members')
-        .doc(user.uid)
+        .doc(uid)
         .collection('assistantThreads')
         .doc(threadId)
         .collection('messages')
@@ -180,6 +190,67 @@ final class AssistantRig {
     await session.dispose();
     await sync.close();
   }
+}
+
+/// The Firestore thread repository, with reads made to fail or to look
+/// cache-only (offline, holding only some turns).
+final class FlakyThreads implements ThreadRepository {
+  FlakyThreads(this.inner);
+
+  final ThreadRepository inner;
+
+  /// Thrown by the next reads while set.
+  Object? loadError;
+
+  /// The seqs a cache-only read holds; null reads the server.
+  Set<int>? cachedSeqs;
+
+  /// Holds the next reads until completed, while set.
+  Completer<void>? gate;
+
+  @override
+  void initialize({required String workspaceId, required String uid}) =>
+      inner.initialize(workspaceId: workspaceId, uid: uid);
+
+  @override
+  String newThreadId() => inner.newThreadId();
+
+  @override
+  Stream<List<AssistantRecord>> watchThreads({int limit = kThreadListLimit}) =>
+      inner.watchThreads(limit: limit);
+
+  @override
+  Future<({List<AssistantRecord> records, bool fromCache})> loadMessages(
+    String threadId,
+  ) async {
+    await gate?.future;
+    if (loadError case final error?) throw error;
+    final loaded = await inner.loadMessages(threadId);
+    final cached = cachedSeqs;
+    if (cached == null) return loaded;
+    return (
+      records: [
+        for (final r in loaded.records)
+          if (cached.contains(r['seq'])) r,
+      ],
+      fromCache: true,
+    );
+  }
+
+  @override
+  Future<void> checkpoint(
+    String threadId, {
+    required int seq,
+    required AssistantRecord message,
+    AssistantRecord? thread,
+  }) => inner.checkpoint(threadId, seq: seq, message: message, thread: thread);
+
+  @override
+  Future<void> dropJournal(String threadId, int seq) =>
+      inner.dropJournal(threadId, seq);
+
+  @override
+  Future<void> deleteThread(String threadId) => inner.deleteThread(threadId);
 }
 
 /// The first [count] order numbers of [seed] not yet shipped.

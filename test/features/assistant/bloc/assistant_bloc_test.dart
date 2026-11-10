@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:morkva_crm/api/auth/auth_user.dart';
 import 'package:morkva_crm/core/agent/agent_event.dart';
 import 'package:morkva_crm/core/agent/llm_client.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
@@ -9,6 +12,15 @@ import 'package:morkva_crm/features/assistant/bloc/assistant_state.dart';
 import 'package:morkva_crm/features/assistant/bloc/chat_item.dart';
 
 import 'assistant_rig.dart';
+
+/// `fields.add` of a text field to Orders: a plan committed through a
+/// collection write, which [FakeDataRepository.collectionAck] can hold.
+LlmCall addFieldCall() => call('fields_add', {
+  'collection': 'Orders',
+  'fields': [
+    {'name': 'Gift note', 'type': 'text'},
+  ],
+});
 
 void main() {
   late AssistantRig rig;
@@ -748,6 +760,265 @@ void main() {
     );
   });
 
+  group('session and thread lifecycle', () {
+    test('a commit still running at an account switch writes nothing into '
+        'the next member\'s history', () async {
+      rig = AssistantRig(
+        replies: [
+          FakeReply(calls: [addFieldCall()]),
+          const FakeReply.hold(),
+        ],
+      );
+      await rig.start();
+      await rig.ask('Add a gift note field to orders');
+      await rig.awaitingApproval();
+      final threadId = rig.state.threadId!;
+      final ack = rig.repo.collectionAck = Completer<void>();
+      rig.bloc.add(PlanApproved(rig.plan.plan.planId));
+      await rig.until((s) => s.phase is ApplyingPhase);
+      await rig.settle();
+
+      const other = AuthUser(
+        uid: 'u2',
+        email: 'taras@example.com',
+        displayName: 'Taras Bondar',
+      );
+      final signIn = rig.session.initialize(workspaceId, user: other);
+      await rig.settle();
+      expect(rig.session.workspaceId, workspaceId, reason: 're-bound to u2');
+      ack.complete();
+      await signIn;
+      await rig.settle();
+
+      final theirs = await rig.firestore
+          .collection('workspaces/$workspaceId/members/u2/assistantThreads')
+          .get();
+      expect(theirs.docs, isEmpty);
+      expect((await rig.turnDocs(threadId)).single['status'], 'committing');
+    });
+
+    test('a thread that failed to load is not kept open: the next message '
+        'starts a new thread instead of overwriting its turns', () async {
+      late FlakyThreads flaky;
+      rig = AssistantRig(
+        replies: const [
+          FakeReply(text: ['Hi.']),
+          FakeReply(text: ['Hello again.']),
+        ],
+        threads: (store) => flaky = FlakyThreads(store),
+      );
+      await rig.start();
+      await rig.ask('Hello');
+      await rig.idle();
+      final threadId = rig.state.threadId!;
+      rig.bloc.add(const NewThreadRequested());
+      await rig.until((s) => s.threadId == null);
+
+      flaky.loadError = StateError('permission-denied');
+      rig.bloc.add(ThreadSelected(threadId));
+      final failed = await rig.until(
+        (s) => s.items.whereType<ErrorItem>().isNotEmpty,
+      );
+      expect(failed.threadId, isNull);
+
+      flaky.loadError = null;
+      await rig.ask('Again');
+      final s = await rig.idle();
+      expect(s.threadId, isNot(threadId));
+      await rig.settle();
+      final docs = await rig.turnDocs(threadId);
+      expect(docs, hasLength(1));
+      expect(((docs.single['ui'] as List).first as Map)['text'], 'Hello');
+    });
+
+    test('a thread read from the cache only is re-read before the next turn '
+        'is written', () async {
+      late FlakyThreads flaky;
+      rig = AssistantRig(
+        replies: const [
+          FakeReply(text: ['One.']),
+          FakeReply(text: ['Two.']),
+          FakeReply(text: ['Three.']),
+        ],
+        threads: (store) => flaky = FlakyThreads(store),
+      );
+      await rig.start();
+      await rig.ask('First');
+      await rig.idle();
+      await rig.ask('Second');
+      await rig.until((s) => s.phase is IdlePhase && s.items.length == 4);
+      final threadId = rig.state.threadId!;
+      rig.bloc.add(const NewThreadRequested());
+      await rig.until((s) => s.threadId == null);
+
+      // Offline, with only the first turn cached.
+      flaky.cachedSeqs = {0};
+      rig.bloc.add(ThreadSelected(threadId));
+      await rig.until((s) => s.threadId == threadId && s.items.isNotEmpty);
+      rig.bloc.add(const PromptSubmitted('Third'));
+      final refused = await rig.until(
+        (s) => s.items.whereType<ErrorItem>().isNotEmpty,
+      );
+      expect(refused.items.whereType<UserItem>().map((u) => u.text), ['First']);
+      await rig.settle();
+      expect(await rig.turnDocs(threadId), hasLength(2));
+
+      flaky.cachedSeqs = null;
+      await rig.ask('Third');
+      await rig.until(
+        (s) =>
+            s.phase is IdlePhase &&
+            s.items.whereType<AssistantTextItem>().length == 3,
+      );
+      await rig.settle();
+      final docs = await rig.turnDocs(threadId);
+      expect(docs.map((d) => d['seq']), [0, 1, 2]);
+      expect(((docs[1]['ui'] as List).first as Map)['text'], 'Second');
+    });
+
+    test('a sign-out during the re-read of a cache-only thread sends '
+        'nothing to the model', () async {
+      late FlakyThreads flaky;
+      rig = AssistantRig(
+        replies: const [
+          FakeReply(text: ['One.']),
+          FakeReply(text: ['Two.']),
+        ],
+        threads: (store) => flaky = FlakyThreads(store),
+      );
+      await rig.start();
+      await rig.ask('First');
+      await rig.idle();
+      final threadId = rig.state.threadId!;
+      rig.bloc.add(const NewThreadRequested());
+      await rig.until((s) => s.threadId == null);
+
+      flaky.cachedSeqs = {0};
+      rig.bloc.add(ThreadSelected(threadId));
+      await rig.until((s) => s.threadId == threadId && s.items.isNotEmpty);
+      final gate = flaky.gate = Completer<void>();
+      rig.bloc.add(const PromptSubmitted('Second'));
+      await rig.settle();
+      rig.bloc.reset();
+      flaky.cachedSeqs = null;
+      gate.complete();
+      await rig.settle();
+
+      expect(rig.llm.requests, hasLength(1));
+      expect(await rig.turnDocs(threadId), hasLength(1));
+    });
+
+    test('a failed load keeps the daily-limit timer: the composer opens at '
+        'the reset', () async {
+      late FlakyThreads flaky;
+      rig = AssistantRig(
+        replies: const [FakeReply.fail(LlmDailyQuota())],
+        threads: (store) => flaky = FlakyThreads(store),
+      );
+      await rig.start();
+      await rig.ask('Hello');
+      await rig.until((s) => s.availability is AvailabilityQuotaExhausted);
+
+      rig.clock = nextPacificMidnight(
+        rig.clock,
+      ).add(const Duration(minutes: 1));
+      flaky.loadError = StateError('permission-denied');
+      rig.bloc.add(const ThreadSelected('t-old'));
+      await rig.until((s) => s.availability is AvailabilityEnabled);
+    });
+
+    test('a new thread keeps the daily-limit timer: the composer opens at '
+        'the reset', () async {
+      rig = AssistantRig(replies: const [FakeReply.fail(LlmDailyQuota())]);
+      await rig.start();
+      await rig.ask('Hello');
+      await rig.until((s) => s.availability is AvailabilityQuotaExhausted);
+
+      rig.clock = nextPacificMidnight(
+        rig.clock,
+      ).add(const Duration(minutes: 1));
+      rig.bloc.add(const NewThreadRequested());
+      await rig.until((s) => s.availability is AvailabilityEnabled);
+    });
+
+    test('leaving a thread inside the undo window drops its journal mirror '
+        'once the window closes', () async {
+      rig = AssistantRig(
+        replies: [
+          FakeReply(calls: [shipCall(notShipped(2))]),
+          const FakeReply(text: ['Shipped both.']),
+        ],
+      );
+      await rig.start();
+      await rig.ask('Ship two orders');
+      await rig.awaitingApproval();
+      rig.bloc.add(PlanApproved(rig.plan.plan.planId));
+      await rig.until(
+        (s) => s.phase is IdlePhase && s.items.last is AssistantTextItem,
+      );
+      await rig.settle();
+      final threadId = rig.state.threadId!;
+      final until = rig.applied.undoUntil!;
+      expect((await rig.turnDocs(threadId)).single['journal'], isA<Map>());
+
+      rig.bloc.add(const NewThreadRequested());
+      await rig.until((s) => s.threadId == null);
+      await rig.settle();
+      expect((await rig.turnDocs(threadId)).single['journal'], isA<Map>());
+
+      rig.clock = until.add(const Duration(seconds: 1));
+      rig.bloc.add(const NewThreadRequested()); // anything re-arming the tick
+      await rig.settle();
+      await rig.settle();
+      expect((await rig.turnDocs(threadId)).single['journal'], isNull);
+    });
+
+    test('whitespace-only text between calls leaves no empty bubble', () async {
+      rig = AssistantRig(
+        replies: [
+          FakeReply(text: const ['  \n'], calls: [queryCall()]),
+          const FakeReply(text: ['Here they are.']),
+        ],
+      );
+      await rig.start();
+      await rig.ask('Show packing orders');
+      final s = await rig.until(
+        (s) => s.phase is IdlePhase && s.items.last is AssistantTextItem,
+      );
+      expect(s.items.whereType<AssistantTextItem>().map((t) => t.text), [
+        'Here they are.',
+      ]);
+      await rig.settle();
+      final ui = (await rig.turnDocs(s.threadId!)).single['ui'] as List;
+      expect(ui.where((r) => (r as Map)['type'] == 'text'), hasLength(1));
+    });
+
+    test(
+      'a thread title is the first sentence, at most 40 characters',
+      () async {
+        rig = AssistantRig(
+          replies: const [
+            FakeReply(text: ['Sure.']),
+            FakeReply(text: ['Three.']),
+          ],
+        );
+        await rig.start();
+        await rig.ask(
+          'Rename every order in October to Batch, except the last one please',
+        );
+        var s = await rig.idle();
+        expect(s.threadTitle, 'Rename every order in October to Batch…');
+        expect(s.threadTitle!.length, lessThanOrEqualTo(40));
+
+        rig.bloc.add(const NewThreadRequested());
+        await rig.until((s) => s.threadId == null);
+        await rig.ask('How many orders are packing? And which are late');
+        s = await rig.idle();
+        expect(s.threadTitle, 'How many orders are packing?');
+      },
+    );
+  });
+
   group('after a reload', () {
     AssistantRig? reloaded;
 
@@ -765,7 +1036,7 @@ void main() {
     );
 
     test('a committed turn comes back applied, with a working Undo; the '
-        'gate tail is not replayed', () async {
+        'model replays the receipt as the plan call\'s response', () async {
       final targets = notShipped(2);
       rig = AssistantRig(
         replies: [
@@ -794,9 +1065,12 @@ void main() {
       expect(applied.undoState, UndoState.available);
       expect(applied.undoUntil, isNotNull);
       final turn = again.session.agentLoop.history.single;
-      expect(turn.contents.map((c) => (c as LlmRawContent).json['role']), [
-        'user',
-      ], reason: 'the model call without responses is dropped');
+      final json = [for (final c in turn.contents) (c as LlmRawContent).json];
+      expect(json.map((c) => c['role']), ['user', 'model', 'user']);
+      final parts = json.last['parts']! as List;
+      final response = (parts.single as Map)['functionResponse'] as Map;
+      expect(response['response'], containsPair('status', 'applied'));
+      expect(response['response'], containsPair('applied', 2));
 
       again.bloc.add(UndoRequested(applied.receipt.journalId!));
       await again.until(
@@ -815,6 +1089,36 @@ void main() {
         (s) => s.phase is IdlePhase && s.items.last is AssistantTextItem,
       );
       expect((next.items.last as AssistantTextItem).text, 'Fresh answer.');
+    });
+
+    test('a reload while committing restores the plan as interrupted, not '
+        'as a plan to rebuild', () async {
+      rig = AssistantRig(
+        replies: [
+          FakeReply(calls: [addFieldCall()]),
+        ],
+      );
+      await rig.start();
+      await rig.ask('Add a gift note field to orders');
+      await rig.awaitingApproval();
+      final ack = rig.repo.collectionAck = Completer<void>();
+      rig.bloc.add(PlanApproved(rig.plan.plan.planId));
+      await rig.until((s) => s.phase is ApplyingPhase);
+      await rig.settle();
+      final threadId = rig.state.threadId!;
+      expect((await rig.turnDocs(threadId)).single['status'], 'committing');
+
+      final again = reloaded = reload();
+      await again.start();
+      again.bloc.add(ThreadSelected(threadId));
+      final s = await again.until((s) => s.items.isNotEmpty);
+      expect(
+        s.items.whereType<PlanItem>().single.status,
+        PlanStatus.interrupted,
+      );
+      expect(s.phase, isA<IdlePhase>());
+      ack.complete();
+      await rig.settle();
     });
 
     test('a plan pending at the reload comes back expired', () async {
@@ -836,6 +1140,12 @@ void main() {
       final s = await again.until((s) => s.items.isNotEmpty);
       expect(s.items.whereType<PlanItem>().single.status, PlanStatus.expired);
       expect(s.phase, isA<IdlePhase>());
+      // The plan's unanswered calls are left out of the replayed history.
+      final turn = again.session.agentLoop.history.single;
+      expect(
+        [for (final c in turn.contents) (c as LlmRawContent).json['role']],
+        ['user'],
+      );
     });
   });
 
