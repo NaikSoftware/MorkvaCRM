@@ -404,6 +404,54 @@ void main() {
   });
 
   group('journal.restore', () {
+    test('delete images of every field type survive a restore: a deleted '
+        'collection and a deleted order come back after a reload', () async {
+      final fabrics = h.seed.fabricCards;
+      final order = h.card(SeedIds.orders, SeedCards.order(1004))!;
+      final gone = await h.commit(
+        await h.plan('collections.delete', {'collection': 'Fabrics'}),
+      );
+      await h.settle();
+      final deleted = await h.commit(
+        await h.plan('cards.delete', {
+          'collection': 'Orders',
+          'target': {
+            'ids': [order.id],
+          },
+        }),
+      );
+      await h.settle();
+      final mirrors = [
+        for (final r in [gone, deleted])
+          jsonDecode(jsonEncode(r['journal'])) as Map<String, Object?>,
+      ];
+      h.journal.reset();
+
+      for (final m in mirrors) {
+        final restored = await h.ok('journal.restore', {'entry': m});
+        expect(restored['dropped'], isEmpty);
+      }
+      final u1 = await h.undo(gone['journalId']! as String);
+      expect(u1['failed'], isEmpty);
+      expect(u1['reverted'], fabrics.length + 1);
+      final u2 = await h.undo(deleted['journalId']! as String);
+      expect(u2['reverted'], 1);
+      expect(await h.stored(SeedIds.fabrics), seeded(SeedIds.fabrics));
+      Map<String, FieldValue> stored(MorkvaObject o) => {
+        for (final e in o.values.entries)
+          if (seeded(SeedIds.fabrics).fieldById(e.key)
+              is! CalculatedFieldDefinition)
+            e.key: e.value,
+      };
+      for (final f in fabrics) {
+        expect(stored(h.card(SeedIds.fabrics, f.id)!), stored(f));
+      }
+      final back = h.card(SeedIds.orders, order.id)!;
+      expect(back[OrderFields.no], order[OrderFields.no]);
+      expect(back[OrderFields.created], order[OrderFields.created]);
+      expect(back[OrderFields.fabrics], order[OrderFields.fabrics]);
+    });
+
     test('round trip: persist, drop the journal, restore, undo', () async {
       final [a] = notShipped(1);
       final was = optionOf(
