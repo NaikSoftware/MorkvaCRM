@@ -1,0 +1,961 @@
+import 'package:flutter/material.dart';
+
+import '../../../../design/design.dart';
+import '../../bloc/assistant_state.dart';
+import '../../bloc/chat_item.dart';
+import 'assistant_scope.dart';
+import 'object_chip.dart';
+
+/// How long an applied plan can be undone (D9: the journal keeps inverse
+/// operations for 10 minutes).
+const kUndoWindowMinutes = 10;
+
+/// A change preview awaiting approval. Every string on it is written by the
+/// harness, never the model.
+///
+/// - 2 px `primary` border; `error` and a trash tile when destructive.
+/// - A uniform old → new value shows once in the header; rows list items.
+/// - Tri-state select-all (one per kind in a mixed plan), at most 5 rows
+///   (3 when destructive) then "Show N more" (a lazy list past 20).
+/// - "Approve N changes" follows the selection and is disabled at 0; a
+///   collection delete also asks for the collection's name.
+///
+/// Settled cards collapse to one line ("Rejected — nothing changed"); an
+/// applied plan renders nothing, its [AppliedItem] follows it.
+class PlanCard extends StatefulWidget {
+  const PlanCard({super.key, required this.item, this.progress});
+
+  final PlanItem item;
+
+  /// The apply progress while [PlanStatus.committing].
+  final ApplyingPhase? progress;
+
+  @override
+  State<PlanCard> createState() => _PlanCardState();
+}
+
+class _PlanCardState extends State<PlanCard> {
+  final Set<String> _expandedKinds = {};
+
+  PlanItem get item => widget.item;
+  PlanView get plan => item.plan;
+
+  @override
+  Widget build(BuildContext context) {
+    return switch (item.status) {
+      PlanStatus.pending || PlanStatus.committing => _open(context),
+      PlanStatus.applied => const SizedBox.shrink(),
+      _ => _ClosedPlanCard(item: item),
+    };
+  }
+
+  Widget _open(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final colors = AssistantColors.of(context);
+    final destructive = plan.destructive;
+    final accent = destructive ? scheme.error : scheme.primary;
+    final groups = plan.groups;
+    final committing = item.status == PlanStatus.committing;
+
+    return Semantics(
+      container: true,
+      label: destructive ? 'Proposed deletion' : 'Proposed changes',
+      child: Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: colors.panel,
+          borderRadius: Radii.lgAll,
+          border: Border.all(color: accent, width: 2),
+          boxShadow: destructive || scheme.brightness == Brightness.dark
+              ? null
+              : [
+                  BoxShadow(
+                    color: scheme.primary.withValues(alpha: 0.14),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _Header(plan: plan),
+            if (plan.sharedChange != null)
+              Padding(
+                padding: const EdgeInsetsDirectional.fromSTEB(52, 0, 14, 10),
+                child: DiffLine(change: plan.sharedChange!),
+              ),
+            for (final w in plan.warnings) _WarningLine(warning: w),
+            if (!destructive)
+              for (final note in plan.notes)
+                Padding(
+                  padding: const EdgeInsetsDirectional.fromSTEB(52, 0, 14, 8),
+                  child: Text(note, style: theme.textTheme.bodySmall),
+                ),
+            if (groups.length == 1)
+              ..._group(
+                context,
+                groups.single,
+                mixed: false,
+                locked: committing,
+              )
+            else
+              for (final g in groups)
+                ..._group(context, g, mixed: true, locked: committing),
+            if (!plan.isComplete)
+              _divided(
+                colors,
+                Padding(
+                  padding: const EdgeInsetsDirectional.fromSTEB(42, 12, 14, 12),
+                  child: Text(
+                    '${plan.itemCount - plan.rows.length} more not shown yet',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ),
+              ),
+            _Footer(
+              item: item,
+              progress: committing ? widget.progress : null,
+              onApprove: () => _approve(context),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _group(
+    BuildContext context,
+    PlanGroup group, {
+    required bool mixed,
+    required bool locked,
+  }) {
+    final colors = AssistantColors.of(context);
+    final rows = group.rows;
+    final limit = plan.destructive ? 3 : 5;
+    final expanded = _expandedKinds.contains(group.kind);
+    final shown = expanded || rows.length <= limit
+        ? rows
+        : rows.take(limit).toList();
+    final hidden = rows.length - shown.length;
+
+    final ids = {for (final r in rows) r.itemId};
+    final picked = ids.where(item.selected.contains).length;
+    final bool? all = picked == ids.length
+        ? true
+        : picked == 0
+        ? false
+        : null;
+    final header = mixed || rows.length > 1 || plan.itemCount > 1;
+
+    Widget rowView(PlanRow r) => _divided(
+      colors,
+      _PlanRowTile(
+        row: r,
+        selected: item.selected.contains(r.itemId),
+        destructive: plan.destructive,
+        showDiffs: plan.sharedChange == null,
+        onChanged: locked ? null : (v) => _select({r.itemId}, v),
+      ),
+    );
+
+    return [
+      if (header)
+        _divided(
+          colors,
+          _SelectAllTile(
+            value: all,
+            destructive: plan.destructive,
+            label: mixed
+                ? '${kindLabel(group.kind)} · ${rows.length}'
+                : _selectionLabel(picked, rows.length),
+            emphasis: mixed && group.risk != PlanRisk.low,
+            onChanged: locked ? null : (_) => _select(ids, all != true),
+          ),
+        ),
+      if (expanded && rows.length > 20)
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 320),
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: rows.length,
+            itemBuilder: (context, i) => rowView(rows[i]),
+          ),
+        )
+      else
+        for (final r in shown) rowView(r),
+      if (hidden > 0)
+        _divided(
+          colors,
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: Padding(
+              padding: const EdgeInsetsDirectional.only(start: 30),
+              child: TextActionButton(
+                label: 'Show $hidden more',
+                onPressed: () => setState(() => _expandedKinds.add(group.kind)),
+              ),
+            ),
+          ),
+        ),
+    ];
+  }
+
+  String _selectionLabel(int picked, int total) {
+    if (picked == total) {
+      return total == 2 ? 'Both selected' : 'All $total selected';
+    }
+    if (picked == 0) return 'None selected';
+    return '$picked of $total selected';
+  }
+
+  void _select(Set<String> ids, bool? on) {
+    final next = {...item.selected};
+    if (on ?? false) {
+      next.addAll(ids);
+    } else {
+      next.removeAll(ids);
+    }
+    AssistantScope.of(context).actions.changePlanSelection(plan.planId, next);
+  }
+
+  Future<void> _approve(BuildContext context) async {
+    final actions = AssistantScope.of(context).actions;
+    final collection = plan.rows
+        .where((r) => r.kind == 'deleteCollection')
+        .firstOrNull;
+    if (collection != null) {
+      final ok = await MorkvaConfirmDialog.show(
+        context,
+        title: 'Delete the ${collection.label} collection?',
+        message:
+            'Every card in ${collection.label} goes with it. '
+            '${_undoSentence(plan, destructive: true)}',
+        confirmLabel: 'Delete collection',
+        destructive: true,
+        confirmText: collection.label,
+      );
+      if (ok != true) return;
+    }
+    actions.approvePlan(plan.planId);
+  }
+}
+
+/// "Update card", "Add field" — a plan item kind for a mixed plan's group.
+String kindLabel(String kind) {
+  final words = kind
+      .replaceAllMapped(RegExp('([A-Z])'), (m) => ' ${m[1]!.toLowerCase()}')
+      .trim();
+  return words.isEmpty ? kind : words[0].toUpperCase() + words.substring(1);
+}
+
+String _undoSentence(PlanView plan, {required bool destructive}) =>
+    switch (plan.undo) {
+      'none' => 'This can’t be undone.',
+      'partial' =>
+        destructive
+            ? 'Some of it can be undone for $kUndoWindowMinutes minutes.'
+            : 'Some of it can be undone afterwards.',
+      _ =>
+        destructive
+            ? 'You can undo this for $kUndoWindowMinutes minutes.'
+            : 'You can undo afterwards.',
+    };
+
+Widget _divided(AssistantColors colors, Widget child) => DecoratedBox(
+  decoration: BoxDecoration(
+    border: Border(top: BorderSide(color: colors.divider)),
+  ),
+  child: child,
+);
+
+class _Header extends StatelessWidget {
+  const _Header({required this.plan});
+
+  final PlanView plan;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final colors = AssistantColors.of(context);
+    final destructive = plan.destructive;
+    final subtitle = destructive
+        ? [...plan.notes, _undoSentence(plan, destructive: true)].join(' ')
+        : 'Nothing changes until you approve. '
+              '${_undoSentence(plan, destructive: false)}';
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
+      child: Row(
+        crossAxisAlignment: destructive
+            ? CrossAxisAlignment.start
+            : CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: destructive
+                  ? scheme.errorContainer
+                  : scheme.primaryContainer,
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Icon(
+              destructive ? Icons.delete_outline_rounded : Icons.edit_outlined,
+              size: 16,
+              color: destructive
+                  ? scheme.onErrorContainer
+                  : colors.objectChipText,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  plan.title,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: destructive ? scheme.error : null,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// "Status  [Packing] → [Shipped]": the old value struck through on a warm
+/// sand tint, the new one on leaf.
+class DiffLine extends StatelessWidget {
+  const DiffLine({super.key, required this.change});
+
+  final PlanChange change;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final before = change.beforeText;
+    final after = change.afterText;
+    return Wrap(
+      spacing: Spacing.xs,
+      runSpacing: Spacing.xxs,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Text(
+          change.field,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontSize: 13,
+            color: scheme.onSurfaceVariant,
+          ),
+        ),
+        if (before != null && before.isNotEmpty) DiffPill(before, before: true),
+        if (before != null && before.isNotEmpty && after != null)
+          Icon(
+            Icons.arrow_forward_rounded,
+            size: 14,
+            color: scheme.onSurfaceVariant,
+          ),
+        if (after != null) DiffPill(after.isEmpty ? 'empty' : after),
+      ],
+    );
+  }
+}
+
+/// A value pill of a diff: [before] values are struck through on the sand
+/// tint (changed), new values sit on the leaf tint.
+class DiffPill extends StatelessWidget {
+  const DiffPill(this.text, {super.key, this.before = false});
+
+  final String text;
+  final bool before;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tints = theme.colorScheme.brightness == Brightness.dark
+        ? CollectionTints.dark
+        : CollectionTints.light;
+    // 4 = sand (a change's old value), 1 = leaf (the new value).
+    final tint = tints[before ? 4 : 1];
+    return Container(
+      height: 22,
+      constraints: const BoxConstraints(maxWidth: 220),
+      padding: const EdgeInsets.symmetric(horizontal: 9),
+      decoration: BoxDecoration(
+        color: tint.background,
+        borderRadius: BorderRadius.circular(11),
+      ),
+      child: Align(
+        widthFactor: 1,
+        child: Text(
+          text,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          semanticsLabel: before ? 'from $text' : 'to $text',
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: tint.foreground,
+            letterSpacing: 0,
+            decoration: before ? TextDecoration.lineThrough : null,
+            decorationColor: tint.foreground,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WarningLine extends StatelessWidget {
+  const _WarningLine({required this.warning});
+
+  final PlanWarning warning;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final semantic = theme.extension<MorkvaSemanticColors>()!;
+    return Container(
+      margin: const EdgeInsetsDirectional.fromSTEB(14, 0, 14, 10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: semantic.warningContainer,
+        borderRadius: Radii.smAll,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.warning_amber_rounded,
+            size: 16,
+            color: semantic.onWarningContainer,
+          ),
+          const SizedBox(width: Spacing.xs),
+          Expanded(
+            child: Text(
+              warning.message,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: semantic.onWarningContainer,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A checkbox sized to the mockups' 18 px box, tinted per card.
+class _PlanCheckbox extends StatelessWidget {
+  const _PlanCheckbox({
+    required this.value,
+    required this.destructive,
+    required this.onChanged,
+    this.tristate = false,
+  });
+
+  final bool? value;
+  final bool destructive;
+  final bool tristate;
+  final ValueChanged<bool?>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final colors = AssistantColors.of(context);
+    final fill = destructive ? scheme.error : colors.objectChipText;
+    return SizedBox.square(
+      dimension: 18,
+      child: Checkbox(
+        value: value,
+        tristate: tristate,
+        onChanged: onChanged,
+        activeColor: fill,
+        checkColor: colors.panel,
+        side: BorderSide(color: scheme.outline, width: 1.5),
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
+        splashRadius: 0,
+      ),
+    );
+  }
+}
+
+class _SelectAllTile extends StatelessWidget {
+  const _SelectAllTile({
+    required this.value,
+    required this.destructive,
+    required this.label,
+    required this.onChanged,
+    this.emphasis = false,
+  });
+
+  final bool? value;
+  final bool destructive;
+  final String label;
+  final bool emphasis;
+  final ValueChanged<bool?>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return MergeSemantics(
+      child: _TapRow(
+        onTap: onChanged == null ? null : () => onChanged!(value != true),
+        child: Row(
+          children: [
+            _PlanCheckbox(
+              value: value,
+              tristate: true,
+              destructive: destructive,
+              onChanged: onChanged == null
+                  ? null
+                  : (_) => onChanged!(value != true),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                label,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  letterSpacing: 0,
+                  color: emphasis && destructive
+                      ? scheme.error
+                      : scheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A 44 px row that toggles on tap anywhere (the mockups' `<label>` rows).
+class _TapRow extends StatelessWidget {
+  const _TapRow({required this.onTap, required this.child});
+
+  final VoidCallback? onTap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    behavior: HitTestBehavior.opaque,
+    onTap: onTap,
+    child: MouseRegion(
+      cursor: onTap == null ? MouseCursor.defer : SystemMouseCursors.click,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 44),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: child,
+        ),
+      ),
+    ),
+  );
+}
+
+class _PlanRowTile extends StatelessWidget {
+  const _PlanRowTile({
+    required this.row,
+    required this.selected,
+    required this.destructive,
+    required this.showDiffs,
+    required this.onChanged,
+  });
+
+  final PlanRow row;
+  final bool selected;
+  final bool destructive;
+
+  /// Per-row diffs; off when the header shows the one shared diff.
+  final bool showDiffs;
+  final ValueChanged<bool?>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isCard = row.kind.endsWith('Card');
+    final cut = row.label.indexOf(' · ');
+    final head = cut < 0 ? row.label : row.label.substring(0, cut);
+    final rest = cut < 0 ? '' : row.label.substring(cut + 3);
+    final chip = isCard && head.startsWith('#');
+    final textStyle = theme.textTheme.bodyMedium?.copyWith(fontSize: 13);
+    final strong = textStyle?.copyWith(
+      fontWeight: destructive ? FontWeight.w400 : FontWeight.w600,
+    );
+    final diffs = row.changes.take(3).toList();
+    final detail = row.detail;
+
+    final main = Row(
+      children: [
+        _PlanCheckbox(
+          value: selected,
+          destructive: destructive,
+          onChanged: onChanged,
+        ),
+        const SizedBox(width: 10),
+        if (chip) ...[
+          ObjectChip(
+            label: head,
+            onTap: row.targetId == null || row.collectionId == null
+                ? null
+                : () => AssistantScope.of(context).actions.openObject(
+                    collectionId: row.collectionId!,
+                    cardId: row.targetId,
+                  ),
+          ),
+          const SizedBox(width: 10),
+        ],
+        Expanded(
+          child: Text(
+            chip ? rest : row.label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: isCard
+                ? strong
+                : textStyle?.copyWith(fontWeight: FontWeight.w600),
+          ),
+        ),
+        if (detail != null && detail.isNotEmpty) ...[
+          const SizedBox(width: 10),
+          if (isCard)
+            Text(
+              detail,
+              style: textStyle?.copyWith(color: scheme.onSurfaceVariant),
+            )
+          else
+            TypeTag(detail),
+        ],
+      ],
+    );
+
+    return Semantics(
+      checked: selected,
+      label: row.label,
+      child: _TapRow(
+        onTap: onChanged == null ? null : () => onChanged!(!selected),
+        child: diffs.isEmpty || !showDiffs
+            ? main
+            : Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    main,
+                    for (final d in diffs)
+                      Padding(
+                        padding: const EdgeInsetsDirectional.only(
+                          start: 28,
+                          bottom: 6,
+                        ),
+                        child: DiffLine(change: d),
+                      ),
+                  ],
+                ),
+              ),
+      ),
+    );
+  }
+}
+
+/// A field-type tag ("Select · Kyiv, Lviv, Odesa").
+class TypeTag extends StatelessWidget {
+  const TypeTag(this.text, {super.key});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = AssistantColors.of(context);
+    return Container(
+      // Sits at a row's end: the name keeps the room, long types ellipsize.
+      constraints: const BoxConstraints(maxWidth: 200),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: colors.neutralChip,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: theme.textTheme.labelSmall?.copyWith(letterSpacing: 0),
+      ),
+    );
+  }
+}
+
+class _Footer extends StatelessWidget {
+  const _Footer({
+    required this.item,
+    required this.progress,
+    required this.onApprove,
+  });
+
+  final PlanItem item;
+  final ApplyingPhase? progress;
+  final VoidCallback onApprove;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final colors = AssistantColors.of(context);
+    final actions = AssistantScope.of(context).actions;
+    final plan = item.plan;
+    final destructive = plan.destructive;
+    final count = item.selected.length;
+    final committing = item.status == PlanStatus.committing;
+    final approveLabel = destructive && plan.title.startsWith('Delete')
+        ? (count == plan.itemCount
+              ? plan.title
+              : 'Delete $count of ${plan.itemCount}')
+        : 'Approve $count ${count == 1 ? 'change' : 'changes'}';
+    final rejectLabel = destructive
+        ? (plan.itemCount == 1 ? 'Keep it' : 'Keep them')
+        : 'Reject';
+    final p = progress;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: destructive ? colors.panel : colors.cardFooter,
+        border: Border(top: BorderSide(color: colors.divider)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (committing) ...[
+              Semantics(
+                liveRegion: true,
+                child: Text(
+                  p == null || p.total == 0
+                      ? 'Applying…'
+                      : 'Updating ${p.done} of ${p.total}…',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
+              const SizedBox(height: 6),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(2),
+                child: LinearProgressIndicator(
+                  minHeight: 4,
+                  value: p == null || p.total == 0 ? null : p.done / p.total,
+                  color: destructive ? scheme.error : scheme.primary,
+                  backgroundColor: colors.divider,
+                ),
+              ),
+              const SizedBox(height: 6),
+            ],
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: Spacing.xs,
+              runSpacing: Spacing.xs,
+              children: [
+                if (!committing)
+                  destructive
+                      ? _PlainButton(
+                          label: rejectLabel,
+                          onPressed: () => actions.rejectPlan(plan.planId),
+                        )
+                      : TextActionButton(
+                          label: rejectLabel,
+                          onPressed: () => actions.rejectPlan(plan.planId),
+                        ),
+                if (destructive)
+                  _DangerButton(
+                    label: approveLabel,
+                    loading: committing,
+                    onPressed: count == 0 ? null : onApprove,
+                  )
+                else
+                  PrimaryButton(
+                    label: approveLabel,
+                    loading: committing,
+                    onPressed: count == 0 ? null : onApprove,
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// "Keep them": a text button in `onSurface`, so the safe choice next to a
+/// red delete never reads as another warning.
+class _PlainButton extends StatelessWidget {
+  const _PlainButton({required this.label, required this.onPressed});
+
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return PressableScale(
+      onPressed: onPressed,
+      semanticLabel: label,
+      borderRadius: Radii.mdAll,
+      child: Container(
+        height: 44,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        child: Align(
+          widthFactor: 1,
+          child: Text(
+            label,
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The destructive confirm: `error` fill, `onError` label, 44 px.
+class _DangerButton extends StatelessWidget {
+  const _DangerButton({
+    required this.label,
+    required this.onPressed,
+    this.loading = false,
+  });
+
+  final String label;
+  final VoidCallback? onPressed;
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return PressableScale(
+      onPressed: loading ? null : onPressed,
+      semanticLabel: label,
+      borderRadius: Radii.mdAll,
+      child: Opacity(
+        opacity: onPressed == null && !loading ? 0.38 : 1,
+        child: Container(
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: scheme.error,
+            borderRadius: Radii.mdAll,
+          ),
+          child: Align(
+            widthFactor: 1,
+            child: loading
+                ? SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: scheme.onError,
+                    ),
+                  )
+                : Text(
+                    label,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: scheme.onError,
+                    ),
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ClosedPlanCard extends StatelessWidget {
+  const _ClosedPlanCard({required this.item});
+
+  final PlanItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final colors = AssistantColors.of(context);
+    final actions = AssistantScope.of(context).actions;
+    final message = item.message;
+    final (icon, line) = switch (item.status) {
+      PlanStatus.rejected => (
+        Icons.block_rounded,
+        'Rejected — nothing changed',
+      ),
+      PlanStatus.skipped => (Icons.redo_rounded, 'Skipped — nothing changed'),
+      PlanStatus.stale => (
+        Icons.sync_problem_rounded,
+        '${message ?? 'Changed elsewhere since the preview'} — nothing changed',
+      ),
+      PlanStatus.expired => (
+        Icons.timer_off_outlined,
+        'This preview expired — nothing changed',
+      ),
+      _ => (
+        Icons.error_outline_rounded,
+        '${message ?? 'Couldn’t apply the changes'} — nothing changed',
+      ),
+    };
+    return Semantics(
+      container: true,
+      child: Container(
+        padding: const EdgeInsetsDirectional.fromSTEB(14, 12, 8, 12),
+        decoration: BoxDecoration(
+          color: colors.panel,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: colors.border),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 26,
+              height: 26,
+              decoration: BoxDecoration(
+                color: colors.neutralChip,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 14, color: scheme.onSurfaceVariant),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.plan.title,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                  Text(line, style: theme.textTheme.bodySmall),
+                ],
+              ),
+            ),
+            if (item.status == PlanStatus.expired)
+              TextActionButton(label: 'Rebuild', onPressed: actions.retry),
+          ],
+        ),
+      ),
+    );
+  }
+}
