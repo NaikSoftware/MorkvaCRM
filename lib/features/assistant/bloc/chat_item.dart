@@ -123,7 +123,17 @@ final class StepsItem extends ChatItem {
   bool get running => steps.any((s) => s.status == StepStatus.running);
 
   /// The collapsed line ("Looked at Orders · filtered 148 → 5 · summed Total").
-  String get headline => steps.map((s) => s.text).join(' · ');
+  /// Failed steps the model recovered from are counted, not repeated, so the
+  /// line reads "… · 2 steps didn't go through" instead of listing each one.
+  String get headline {
+    final ok = steps.where((s) => s.status != StepStatus.failed).toList();
+    final failed = steps.length - ok.length;
+    if (failed == 0 || ok.isEmpty) return steps.map((s) => s.text).join(' · ');
+    final note = failed == 1
+        ? "1 step didn't go through"
+        : "$failed steps didn't go through";
+    return [...ok.map((s) => s.text), note].join(' · ');
+  }
 
   @override
   List<Object?> get props => [id, steps];

@@ -208,6 +208,24 @@ void main() {
     });
   });
 
+  test('recovered failed steps are counted in the headline, not repeated', () {
+    StepView step(String id, StepStatus status, String text) =>
+        StepView(callId: id, label: text, status: status, summary: text);
+    final steps = StepsItem(
+      id: 's',
+      steps: [
+        step('r1.1', StepStatus.failed, "didn't go through"),
+        step('r1.2', StepStatus.failed, "didn't go through"),
+        step('r2.1', StepStatus.done, 'Set Status to Made · 3 orders'),
+      ],
+    );
+
+    expect(
+      steps.headline,
+      "Set Status to Made · 3 orders · 2 steps didn't go through",
+    );
+  });
+
   test('a steps chip joins the step lines, running ones by their label', () {
     const steps = StepsItem(
       id: 's',

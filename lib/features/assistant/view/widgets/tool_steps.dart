@@ -109,7 +109,9 @@ class _ToolStepsState extends State<ToolSteps> {
     if (steps.any((s) => s.status == StepStatus.running)) {
       return StepStatus.running;
     }
-    if (steps.any((s) => s.status == StepStatus.failed)) {
+    // A failed step the model recovered from (a later step succeeded) does
+    // not make the whole run look failed; the expanded list still shows it.
+    if (steps.isNotEmpty && steps.last.status == StepStatus.failed) {
       return StepStatus.failed;
     }
     return StepStatus.done;

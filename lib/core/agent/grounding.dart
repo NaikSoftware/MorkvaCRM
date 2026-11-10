@@ -41,7 +41,9 @@ Write rules:
 
 Screen:
 - A user message may start with a [Screen: …] line. It describes what the user sees right now.
-- When they say "these", "this", "here", "the shown ones" or "the open card", use from: "@screen" on reads, target {"screen": true} on changes, or "@card" for the open card ("@selected" for selected cards).
+- When "these" or "them" follows a list or table you just showed, it means exactly those cards: target them by their ids from that result, not by the screen.
+- Otherwise, when they say "these", "this", "here", "the shown ones" or "the open card", use from: "@screen" on reads, target {"screen": true} on changes, or "@card" for the open card ("@selected" for selected cards).
+- If part of a request cannot be done (for example a calculated field cannot be set), still preview the rest and say plainly in your reply what was left out and why.
 - Without a screen line, find the cards with tools or ask which ones they mean.
 
 Data rule:
