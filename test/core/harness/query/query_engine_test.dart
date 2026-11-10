@@ -102,6 +102,25 @@ void main() {
         return d.year == 2026 && d.month == 11;
       });
       expect(idsOf(r['rows']).toSet(), expected.toSet());
+
+      // Another host day moves the window: the engine reads ctx.today.
+      final october = await h.queries.query(
+        {
+          'collection': 'Orders',
+          'where': [
+            {'field': 'Created', 'op': 'onDay', 'relative': 'this_month'},
+          ],
+          'limit': 100,
+        },
+        context(day: DateTime(2026, 10, 15)),
+        thread: thread,
+      );
+      final inOctober = where(orders(), (o) {
+        final d = (o[OrderFields.created] as DateFieldValue).value!.toUtc();
+        return d.year == 2026 && d.month == 10;
+      });
+      expect(inOctober, isNotEmpty);
+      expect(idsOf(october['rows']).toSet(), inOctober.toSet());
     });
 
     test('filters and sorts on a calculated field derive values', () async {
@@ -617,6 +636,46 @@ void main() {
           ],
         }, grants: ordersOnly),
         throwsHarness(ErrorCode.notPermitted),
+      );
+    });
+
+    test('an unreadable default sort falls back to manual order', () async {
+      final seed = SeedWorkspace();
+      seed.collections[1] = seed.orders.copyWith(
+        views: [
+          seed.orders.views.first.copyWith(
+            sort: const ViewSort(fieldId: OrderFields.clientCity),
+          ),
+          ...seed.orders.views.skip(1),
+        ],
+      );
+      final pinned = QueryHarness(seed);
+      addTearDown(pinned.dispose);
+
+      final r = await pinned.query({
+        'collection': 'Orders',
+        'limit': 100,
+      }, grants: ordersOnly);
+      expect(r['total'], 24);
+      final agg = await pinned.aggregate({
+        'collection': 'Orders',
+        'groupBy': {'field': 'Status'},
+      }, grants: ordersOnly);
+      expect(agg['total'], 24);
+      // Asked for, the same sort still fails.
+      expect(
+        () => pinned.query({
+          'collection': 'Orders',
+          'view': 'All',
+        }, grants: ordersOnly),
+        throwsHarness(ErrorCode.notPermitted, path: 'sort'),
+      );
+      expect(
+        () => pinned.query({
+          'collection': 'Orders',
+          'sort': {'field': 'Client city'},
+        }, grants: ordersOnly),
+        throwsHarness(ErrorCode.notPermitted, path: 'sort'),
       );
     });
   });

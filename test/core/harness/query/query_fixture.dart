@@ -20,13 +20,14 @@ final DateTime today = DateTime(2026, 11, 10);
 
 const String thread = 't1';
 
-HarnessContext context({ScreenContext? focus, Grants? grants}) =>
+/// [day] replaces [today] as the host's day.
+HarnessContext context({ScreenContext? focus, Grants? grants, DateTime? day}) =>
     HarnessContext(
       workspaceId: 'w1',
       actor: Actor.assistant,
       grants: grants ?? Grants.all(),
       now: DateTime(2026, 11, 10, 14, 30),
-      today: today,
+      today: day ?? today,
       focus: focus,
     );
 

@@ -5,6 +5,7 @@ import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/core/harness/harness.dart';
 import 'package:morkva_crm/core/harness/input/value_codec.dart';
 import 'package:morkva_crm/core/harness/query/aggregate_engine.dart';
+import 'package:morkva_crm/core/harness/query/query_engine.dart';
 import 'package:morkva_crm/core/harness/query/result_shaper.dart';
 
 import 'query_fixture.dart';
@@ -67,6 +68,85 @@ void main() {
     expect(r['unit'], '₴');
     expect(r['summary'], '24 Orders · count, sum Total by Status: 4 groups');
   });
+
+  test('a limit keeps populated options ahead of empty ones', () async {
+    final r = await h.aggregate({
+      'collection': 'Orders',
+      'where': [
+        {
+          'field': 'Status',
+          'op': 'anyOf',
+          'value': ['Done'],
+        },
+      ],
+      'groupBy': {'field': 'Status', 'limit': 2},
+    });
+    final done = orders().where((o) => statusOf(o) == SeedOptions.done);
+    expect(done, isNotEmpty);
+    expect(byKey(r)[SeedOptions.done]!['count'], done.length);
+    expect(groupsOf(r), hasLength(2));
+    expect(r['otherGroups'], 2);
+    expect(r['totals'], [done.length]);
+  });
+
+  test('a stored spec re-runs with titles and grant checks', () async {
+    const spec = AggregateSpec(
+      query: QuerySpec(collectionId: SeedIds.orders),
+      metrics: [(op: AggregateOp.count, fieldId: null)],
+      groupBy: (
+        fieldId: OrderFields.client,
+        bucket: DateBucket.day,
+        limit: kMaxGroups,
+      ),
+    );
+    // Nothing held yet: the re-run leases Clients for the titles.
+    final r = await h.aggregates.execute(spec, context(), thread: thread);
+    expect(byKey(r)[SeedCards.olena]!['label'], 'Olena Bondar');
+
+    final clientsOnly = Grants(
+      Capability.values,
+      collections: [SeedIds.clients],
+    );
+    expect(
+      () => h.aggregates.execute(
+        spec,
+        context(grants: clientsOnly),
+        thread: thread,
+      ),
+      throwsHarness(ErrorCode.notPermitted, path: 'handle'),
+    );
+  });
+
+  test(
+    'a multi-reference explodes into linked titles, once per card',
+    () async {
+      final r = await h.aggregate({
+        'collection': 'Orders',
+        'groupBy': {'field': 'Fabrics'},
+      });
+      List<String> fabrics(MorkvaObject o) =>
+          (o[OrderFields.fabrics] as ReferenceFieldValue).objectIds;
+      final fabricsSchema = h.collection(SeedIds.fabrics);
+      final titles = {
+        for (final f in h.seed.fabricCards) f.id: cardTitle(fabricsSchema, f),
+      };
+      final linked = groupsOf(r).where((g) => g['key'] != null).toList();
+      expect(linked, isNotEmpty);
+      for (final g in linked) {
+        final id = g['key']! as String;
+        expect(g['label'], titles[id]);
+        expect(
+          g['count'],
+          orders().where((o) => fabrics(o).toSet().contains(id)).length,
+        );
+      }
+      expect(
+        orders().any((o) => fabrics(o).toSet().length > 1),
+        isTrue,
+        reason: 'some order links several fabrics',
+      );
+    },
+  );
 
   test('metrics without groupBy fold every matched card', () async {
     final r = await h.aggregate({
@@ -410,10 +490,34 @@ void main() {
           {'field': 'Paid', 'op': 'isTrue'},
         ],
       }, context());
-      for (final v in (r['values']! as List).cast<Map>()) {
+      final values = (r['values']! as List).cast<Map>();
+      for (final v in values) {
         expect(v['label'], isIn(['New', 'Packing', 'Shipped', 'Done']));
+        expect(v['count'], greaterThan(0), reason: '${v['label']}');
       }
-      expect(r['summary'], contains('distinct Status values'));
+      expect(
+        r['summary'],
+        startsWith('${values.length} distinct Status values'),
+      );
+    });
+
+    test('options no matched card has are not values', () async {
+      final r = await h.aggregates.distinct({
+        'collection': 'Orders',
+        'field': 'Status',
+        'where': [
+          {
+            'field': 'Status',
+            'op': 'anyOf',
+            'value': ['New'],
+          },
+        ],
+      }, context());
+      final news = orders().where((o) => statusOf(o) == SeedOptions.statusNew);
+      expect(r['values'], [
+        {'value': SeedOptions.statusNew, 'label': 'New', 'count': news.length},
+      ]);
+      expect(r['summary'], startsWith('1 distinct Status values'));
     });
   });
 }

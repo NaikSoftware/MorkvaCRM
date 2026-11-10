@@ -113,8 +113,8 @@ final class AggregateSpec {
 /// Group-by works for every field kind, a calculated field grouping as the
 /// type it presents as:
 /// - single select: one group per option, in option order, empty options
-///   kept (bounded, and "Done: 0" is an answer); an unknown option counts as
-///   empty;
+///   kept (bounded, and "Done: 0" is an answer), though a limit keeps
+///   populated groups first; an unknown option counts as empty;
 /// - multi select and references: exploded, so a card counts once in each
 ///   of its groups; references group by the linked card's title in the
 ///   target's display order, empty reference groups left out (one per
@@ -194,11 +194,12 @@ final class AggregateEngine {
     }, budget: shaper.aggregateBudget);
   }
 
-  /// [spec]'s full result (no handle, no byte budget) and the run behind it.
+  /// [spec]'s full result (no handle, no byte budget) and the run behind it;
+  /// its collection must be granted, and is leased for the run.
   Future<({QueryRun run, Map<String, Object?> result})> compute(
     AggregateSpec spec,
     HarnessContext ctx,
-  ) async {
+  ) => queries.withStored(spec.query.collectionId, ctx, () async {
     final group = spec.groupBy;
     final run = await queries.run(
       spec.query,
@@ -242,7 +243,12 @@ final class AggregateEngine {
           ));
       final grouped = await _group(ctx, field, group.bucket, run.objects);
       _order(grouped, field, spec.orderBy, fold);
-      final listed = grouped.take(group.limit).toList();
+      // The limit keeps populated groups before empty options, in order.
+      final kept = {
+        ...grouped.where((g) => g.objects.isNotEmpty),
+        ...grouped.where((g) => g.objects.isEmpty),
+      }.take(group.limit).toSet();
+      final listed = grouped.where(kept.contains).toList();
       result['groups'] = [
         for (final g in listed)
           {
@@ -262,7 +268,7 @@ final class AggregateEngine {
     if (unit != null) result['unit'] = unit;
     result['summary'] = summary;
     return (run: run, result: result);
-  }
+  });
 
   /// `cards.distinct`: `{collection | from: "@screen", field, where?,
   /// search?, limit?}` → `{total, values: [{value, label, count}],
@@ -286,12 +292,14 @@ final class AggregateEngine {
     final field = filterFieldOf(run.collection, fieldId)!;
     final grouped = await _group(ctx, field, DateBucket.day, run.objects);
     final empty = grouped.where((g) => g.key == null).firstOrNull;
-    final values = grouped.where((g) => g.key != null).toList()
-      ..sort(
-        (a, b) => a.objects.length != b.objects.length
-            ? b.objects.length - a.objects.length
-            : _compare(a.order, b.order),
-      );
+    // Only values some card has (a select also groups its unused options).
+    final values =
+        grouped.where((g) => g.key != null && g.objects.isNotEmpty).toList()
+          ..sort(
+            (a, b) => a.objects.length != b.objects.length
+                ? b.objects.length - a.objects.length
+                : _compare(a.order, b.order),
+          );
     final listed = [
       for (final g in values.take(limit))
         {'value': g.key, 'label': g.label, 'count': g.objects.length},

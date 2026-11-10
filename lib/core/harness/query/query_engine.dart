@@ -220,7 +220,7 @@ final class QueryEngine {
     QuerySpec spec,
     HarnessContext ctx, {
     required String thread,
-  }) => _leased(spec.collectionId, ctx, () async {
+  }) => withStored(spec.collectionId, ctx, () async {
     final run = await this.run(spec, ctx);
     final stored = results.put(
       thread: thread,
@@ -488,11 +488,25 @@ final class QueryEngine {
     );
   }
 
+  /// Runs [body] for a stored spec over [collectionId] (a re-run): the
+  /// collection must still exist and be granted, and it is leased with the
+  /// collections its references point at, as [withScope] does.
+  Future<T> withStored<T>(
+    String collectionId,
+    HarnessContext ctx,
+    Future<T> Function() body,
+  ) async {
+    await cache.ready;
+    final collection = _collection(collectionId, ctx, 'handle');
+    return _leased(collection.id, ctx, body);
+  }
+
   /// What [args] (`where`, `sort`, `search`, `view`, or the screen's query
   /// with `from`) match, ordered, before projection. The screen's own
   /// search and an extra `search` must both match; `sort` replaces the
   /// view's or the screen's sort. Without a view the collection's first
-  /// view's sort and manual order apply (the order the user knows).
+  /// view's sort and manual order apply (the order the user knows), its
+  /// sort dropped when the caller may not read it.
   QueryBase compileBase(QueryScope scope, Map<String, Object?> args) {
     final collection = scope.collection;
     final where = _list(args['where'], 'where');
@@ -531,6 +545,12 @@ final class QueryEngine {
         view = scope.refs.view(collection, ref);
       }
       final order = view ?? collection.views.firstOrNull;
+      // An unasked default sort the caller may not read falls back to
+      // manual order instead of failing every call.
+      final fallback = switch (order?.sort) {
+        final s? when view == null && !readable(scope, s.fieldId) => null,
+        final s => s,
+      };
       spec = QuerySpec(
         collectionId: collection.id,
         filters: [
@@ -542,7 +562,7 @@ final class QueryEngine {
           if (where != null) ...scope.compiler.compile(collection, where),
         ],
         search: _joinSearch(null, search as String?),
-        sort: sort ?? order?.sort,
+        sort: sort ?? fallback,
         orderViewId: order?.id,
       );
     }
@@ -585,21 +605,26 @@ final class QueryEngine {
   /// of a collection outside the caller's grants (a lookup, aggregate or
   /// formula over one).
   void checkReadable(QueryScope scope, String fieldId, {required String path}) {
+    if (readable(scope, fieldId)) return;
+    throw HarnessException.of(
+      ErrorCode.notPermitted,
+      '"${scope.collection.fieldById(fieldId)!.name}" reads a collection '
+      'this client may not touch.',
+      path: path,
+    );
+  }
+
+  /// Whether [fieldId] reveals nothing outside the caller's grants (see
+  /// [checkReadable]); unknown and timestamp ids are readable.
+  bool readable(QueryScope scope, String fieldId) {
     final field = scope.collection.fieldById(fieldId);
-    if (field == null ||
+    return field == null ||
         !readsUngranted(
           scope.collection,
           field,
           scope.ctx.grants,
           cache.collections,
-        )) {
-      return;
-    }
-    throw HarnessException.of(
-      ErrorCode.notPermitted,
-      '"${field.name}" reads a collection this client may not touch.',
-      path: path,
-    );
+        );
   }
 
   /// The cards [spec] matches, in its order. Derivation runs only when a
