@@ -1616,7 +1616,7 @@ none of them touches the same path. Every other task creates new files only.
 | Thought signatures lost on a resumed thread | `llm` stored as one JSON string, `UnknownPart` raw restore; on `missingThoughtSignature`, retry with text-only past turns |
 | Read budget (50k/day free) from listeners | Lazy leases and no warm-up; listeners shared with the views page; configurable TTL; T14 measures cold/warm/after-TTL reads |
 | Atomic batch chunk fails on a deleted target | Drop missing ids against the cache before the chunk; on `not-found` re-verify and retry until no ids remain to drop |
-| Connection drops mid-commit (`WriteBatch.commit` resolves only on server ack) | Online gate before commit; 30 s ack watchdog; `queued` items journaled optimistically; late rejections via `SyncStatus` |
+| Connection drops mid-commit (`WriteBatch.commit` resolves only on server ack) | Online gate before commit; 30 s ack watchdog; `queued` batch items journaled optimistically, timed-out transactions `unconfirmed`; late rejections via `SyncStatus` |
 | A non-atomic collection-delete cascade | Cards first, schema last; idempotent retry; the receipt states what is left |
 | Auto-number contention on bulk creates | One counter transaction reserves a range per chunk; cards go in a WriteBatch; undo re-creates need no reservation |
 | Concurrent schema/view edit from another device lost by a whole-doc write | Schema and view items commit through `updateCollection` / `updateViews` transactions on the server doc |
@@ -1646,6 +1646,20 @@ none of them touches the same path. Every other task creates new files only.
 - **Apply order (T7):** card creates are applied **before** card updates and deletes, so an update that links a card created in the same plan sees whether that create succeeded.
 - A second `plans.commit`/`retryFailed` of a plan still committing, or `journal.undo` of an entry still undoing, fails `invalid_args` ("already committing").
 - Undo of a created card checks every writable field; a card edited since is skipped (`changed_since`) and its new collection is kept (`has_cards`).
+- **Watchdog outcomes (final review):** a plain `WriteBatch` chunk that misses the 30 s ack is
+  `queued` (Firestore keeps it in the offline queue) and journaled. Schema/view **transactions** are
+  never queued by Firestore, so a timed-out transaction is reported `unconfirmed`, not `queued`. A
+  create chunk whose auto-number reservation finished (its cards are already in the cache) is
+  `queued`; otherwise `unconfirmed`.
+- **Collection delete lists cards from the server** (`DataRepository.getServerObjects`), deleting
+  until the list is empty, before removing the schema doc; collection-create undo checks the server
+  too. Undo never treats an `ObjectCreate` as "gone" on a refused chunk.
+- **Receipt to the model** carries `status: applied | partial | none` from the outcome counts.
+- **Plan rows show every field change** (or "+N more fields" that expands); Approve writes only
+  what the card can reveal.
+- **Function responses are sent as role `user`** (the Developer API rejects role `function`).
+- Persisted plan/applied cards keep only display-safe summaries; journal mirrors are removed after
+  the undo window.
 
 ## Review notes (revision 2)
 
