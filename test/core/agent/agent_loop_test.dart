@@ -397,6 +397,56 @@ void main() {
       );
     });
 
+    test('a slip the model corrects shows plain copy, not the model-facing '
+        'message', () async {
+      llm.addAll([
+        FakeReply(calls: [call('cards_cards_create')]),
+        const FakeReply(text: ['ok']),
+      ]);
+
+      final events = await runTurn(loopFor(), 'add an order');
+
+      final response = lastResponses(llm.requests[1]).single.response;
+      expect(
+        (response['error'] as Map)['message'],
+        contains('cards_cards_create'),
+      );
+      expect(
+        events.whereType<StepStarted>().single.label,
+        isNot(contains('cards_cards_create')),
+      );
+      expect(
+        events.whereType<StepFinished>().single,
+        isA<StepFinished>()
+            .having((e) => e.ok, 'ok', isFalse)
+            .having((e) => e.summary, 'summary', AgentLoop.stepCorrected),
+      );
+    });
+
+    test('wrongly typed args reach the harness instead of failing the '
+        'turn', () async {
+      llm.addAll([
+        FakeReply(
+          calls: [
+            call('cards_query', {'collection': 7}),
+            call('ui_open', {
+              'collection': {'id': 'x'},
+              'view': 5,
+            }),
+            call('made_up', {'collection': 1.5}),
+          ],
+        ),
+        const FakeReply(text: ['ok']),
+      ]);
+
+      final events = await runTurn(loopFor(), 'q');
+
+      expect(events.whereType<TurnFailed>(), isEmpty);
+      expect(events.last, isA<TurnDone>());
+      expect(query.calls.single.args, {'collection': 7});
+      expect(lastResponses(llm.requests[1]), hasLength(3));
+    });
+
     test(
       'an undeclared tool is refused without reaching the harness',
       () async {
@@ -495,6 +545,30 @@ void main() {
       expect(responses.every((r) => r.geminiId == null), isTrue);
       expect(responses[1].response['summary'], 'Filtered 148 → 5 Orders');
       expect(responses[0].response['status'], 'applied');
+    });
+
+    test('a receipt with nothing written is not reported as applied', () async {
+      llm.addAll([
+        FakeReply(calls: [call('cards_update')]),
+        const FakeReply(text: ['Nothing changed.']),
+      ]);
+      final loop = loopFor();
+
+      final events = await runTurn(
+        loop,
+        'go',
+        outcome: (_) => const Receipt(
+          planId: 'p_1',
+          stale: [StaleItem('i1', StaleReason.changedElsewhere)],
+          failed: [FailedItem('i2', 'not_permitted', 'Not allowed')],
+          summary: 'Nothing was changed',
+        ),
+      );
+
+      final response = lastResponses(llm.requests[1]).single.response;
+      expect(response['status'], 'not_applied');
+      expect(response['applied'], 0);
+      expect(events.last, isA<TurnDone>());
     });
 
     test('a rejection resumes the model with "rejected"', () async {
@@ -749,20 +823,62 @@ void main() {
       expect(events.last, isA<TurnDone>());
     });
 
-    test('calls on the forced last round are not run', () async {
+    test('calls on the forced last round are not run; the nudge is sent '
+        'in one more text-only round', () async {
       llm.addAll([
         FakeReply(calls: [call('cards_query')]),
         FakeReply(calls: [call('cards_query')]),
+        const FakeReply(text: ['3 orders match.']),
       ]);
-
-      final events = await runTurn(
-        loopFor(settings: const AgentSettings(rpm: 1000, maxRounds: 2)),
-        'dig in',
+      final loop = loopFor(
+        settings: const AgentSettings(rpm: 1000, maxRounds: 2),
       );
 
+      final events = await runTurn(loop, 'dig in');
+
       expect(query.calls, hasLength(1));
-      expect(llm.requests, hasLength(2));
+      expect(
+        [for (final r in llm.requests) r.toolMode],
+        [LlmToolMode.auto, LlmToolMode.none, LlmToolMode.none],
+      );
+      expect(
+        (llm.requests.last.contents.last as LlmUserText).text,
+        AgentLoop.nudgeAnswer,
+      );
+      expect(textOf(events), '3 orders match.');
       expect(events.last, isA<TurnDone>());
+    });
+
+    test('a forced last round that still calls tools fails visibly, '
+        'without an unsent nudge in history', () async {
+      llm.addAll([
+        FakeReply(calls: [call('cards_query')]),
+        const FakeReply(finish: FinishKind.unexpectedToolCall),
+        const FakeReply(finish: FinishKind.unexpectedToolCall),
+      ]);
+      final loop = loopFor(
+        settings: const AgentSettings(rpm: 1000, maxRounds: 2),
+      );
+
+      final events = await runTurn(loop, 'dig in');
+
+      expect(llm.requests, hasLength(3));
+      expect(
+        events.last,
+        isA<TurnFailed>().having(
+          (e) => e.failure,
+          'failure',
+          isA<LlmUnknownFailure>(),
+        ),
+      );
+      final nudges = [
+        for (final c in loop.history.single.contents)
+          if (c case LlmUserText(
+            :final text,
+          ) when text == AgentLoop.nudgeAnswer)
+            c,
+      ];
+      expect(nudges, hasLength(1), reason: 'only the nudge that was sent');
     });
   });
 

@@ -102,6 +102,21 @@ final class AgentLoop {
   /// Read and UI calls in flight at once.
   static const int maxParallelReads = 4;
 
+  /// The step summary of a harness error the model is expected to correct.
+  static const String stepCorrected = 'needed a correction';
+
+  /// Harness errors whose message says something to the user.
+  static const Set<ErrorCode> _userFacing = {
+    ErrorCode.notPermitted,
+    ErrorCode.offline,
+    ErrorCode.conflict,
+    ErrorCode.limitExceeded,
+    ErrorCode.unsupported,
+    ErrorCode.planExpired,
+    ErrorCode.stalePreview,
+    ErrorCode.internal,
+  };
+
   static const String nudgeMalformed =
       'Your last tool call was invalid; call it again with valid arguments.';
   static const String nudgeAnswer =
@@ -265,9 +280,10 @@ final class AgentLoop {
   }
 
   Future<void> _rounds(_Turn t) async {
-    final maxRounds = _settings.maxRounds;
+    var maxRounds = _settings.maxRounds;
     for (var round = 1; round <= maxRounds; round++) {
-      final mode = round == maxRounds ? LlmToolMode.none : LlmToolMode.auto;
+      final last = round == maxRounds;
+      final mode = last ? LlmToolMode.none : LlmToolMode.auto;
       final r = await _request(t, round, mode);
       t.usage += TokenUsage(
         promptTokens: r.promptTokens,
@@ -291,6 +307,21 @@ final class AgentLoop {
         _ => null,
       };
       if (nudge != null) {
+        if (last) {
+          // A nudge on the forced last round gets one more text-only round;
+          // when that one misses too, the turn fails visibly instead of
+          // ending without an answer (and the unsent nudge stays out).
+          if (maxRounds > _settings.maxRounds) {
+            _end(
+              t,
+              TurnFailed(
+                const LlmUnknownFailure('no text answer within the step limit'),
+                nothingChanged: !t.changed,
+              ),
+            );
+          }
+          maxRounds++;
+        }
         t.record.add(LlmUserText(nudge));
         continue;
       }
@@ -652,7 +683,12 @@ final class AgentLoop {
           t,
           StepFinished(
             callId: callId,
-            summary: sanitizeName(error.message, max: 160),
+            // The full error goes to the model; the user sees plain copy
+            // for the slips the model corrects itself (unknown tool or
+            // field, bad args), and the message only where it is news.
+            summary: _userFacing.contains(error.code)
+                ? sanitizeName(error.message, max: 160)
+                : stepCorrected,
             ok: false,
             errorCode: error.code.wire,
           ),
@@ -673,15 +709,14 @@ final class AgentLoop {
       // shortcut: reads ids from the result and falls back to the args
       // (names) until ui.open (T5b) settles its result shape.
       final collectionId =
-          result['collectionId'] as String? ??
-          call.args['collection'] as String?;
+          result['collectionId'] as String? ?? _str(call.args['collection']);
       if (collectionId == null) return;
       _emit(
         t,
         ObjectChipShown(
           collectionId: collectionId,
-          cardId: result['cardId'] as String? ?? call.args['card'] as String?,
-          viewId: result['viewId'] as String? ?? call.args['view'] as String?,
+          cardId: result['cardId'] as String? ?? _str(call.args['card']),
+          viewId: result['viewId'] as String? ?? _str(call.args['view']),
           label: result['label'] as String? ?? _collectionName(collectionId),
         ),
       );
@@ -700,7 +735,7 @@ final class AgentLoop {
         title:
             result['title'] as String? ??
             summary ??
-            _collectionName(call.args['collection'] as String? ?? ''),
+            _collectionName(_str(call.args['collection']) ?? ''),
         spec: (result['spec'] as Map?)?.cast<String, Object?>(),
         summary: summary,
       ),
@@ -804,10 +839,11 @@ final class AgentLoop {
     final args = call.args;
     final collection = switch (args['from']) {
       '@screen' => _collectionName(t.screen?.collectionId ?? ''),
-      _ => _collectionName(args['collection'] as String? ?? ''),
+      _ => _collectionName(_str(args['collection']) ?? ''),
     };
     final text = switch (op) {
-      null => 'Calling ${sanitizeName(call.name)}',
+      // A made-up tool name is the model's slip, not something to show.
+      null => 'Choosing a step',
       'workspace.describe' => 'Reading the workspace',
       'collections.get' => 'Reading $collection',
       'cards.query' || 'cards.page' => 'Looking at $collection',
@@ -824,6 +860,10 @@ final class AgentLoop {
     };
     return '$text…';
   }
+
+  /// A model-sent arg as a string, or null when it is anything else (the
+  /// harness reports the wrong type; labels must not throw first).
+  static String? _str(Object? arg) => arg is String ? arg : null;
 
   /// A collection's name for labels: [ref] is an id or a name the model
   /// sent; sanitized either way.

@@ -44,7 +44,7 @@ void main() {
 
     test('tells the model counts, not ids, of what was applied', () {
       expect(Receipt.fromJson(json).toModelJson(), {
-        'status': 'applied',
+        'status': 'partial',
         'applied': 2,
         'queued': 1,
         'declinedByUser': ['i6'],
@@ -56,6 +56,19 @@ void main() {
         ],
         'summary': 'Updated 2 orders',
       });
+    });
+
+    test('says "applied" only when every approved item landed', () {
+      String status(Map<String, Object?> patch) =>
+          Receipt.fromJson({...json, ...patch}).toModelJson()['status']!
+              as String;
+
+      expect(status({'stale': [], 'failed': []}), 'applied');
+      expect(status({'applied': [], 'queued': []}), 'not_applied');
+      expect(
+        status({'applied': [], 'queued': [], 'stale': [], 'failed': []}),
+        'not_applied',
+      );
     });
 
     test('rejects a wrong shape', () {

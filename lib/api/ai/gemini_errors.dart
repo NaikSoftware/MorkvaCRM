@@ -63,10 +63,20 @@ LlmFailure _server(String message) {
       text.contains('thought signature')) {
     return const LlmMissingSignature();
   }
-  // A 400 the request itself caused: retrying sends the same request.
-  if (text.contains('invalid argument') ||
-      text.contains('invalid json payload')) {
-    return LlmUnknownFailure(message);
-  }
-  return LlmTransient(message);
+  // The stream path turns every non-200 body into a ServerException and
+  // drops its status, so only a message that reads server-side is retried;
+  // anything else is a 4xx the request caused, and resending repeats it.
+  if (_serverSide.any(text.contains)) return LlmTransient(message);
+  return LlmUnknownFailure(message);
 }
+
+const _serverSide = [
+  'unavailable',
+  'overloaded',
+  'internal error',
+  'deadline',
+  'timed out',
+  'timeout',
+  'try again',
+  'high demand',
+];

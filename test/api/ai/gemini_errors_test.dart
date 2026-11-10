@@ -95,6 +95,12 @@ void main() {
   group('connection problems are transient', () {
     for (final (name, error) in [
       ('a 5xx', ServerException('The service is currently unavailable.')),
+      (
+        'an overloaded model',
+        ServerException('The model is overloaded. Please try again later.'),
+      ),
+      ('an internal error', ServerException('Internal error encountered.')),
+      ('a deadline', ServerException('Deadline exceeded')),
       ('a dropped connection', http.ClientException('Connection closed')),
       ('a non-JSON body', const FormatException('Unexpected character')),
       ('an error body with no message', FirebaseAISdkException('Unhandled')),
@@ -115,11 +121,23 @@ void main() {
     );
   });
 
-  test('a request Gemini rejects is not retried', () {
-    expect(
-      mapGeminiError(ServerException('Request contains an invalid argument.')),
-      isA<LlmUnknownFailure>(),
-    );
+  group('a request Gemini rejects is not retried', () {
+    for (final message in [
+      'Request contains an invalid argument.',
+      // The 400 the Ask Morkva e2e hit before function responses used 'user'.
+      "Role 'function' is not supported. Please use a valid role: SYSTEM, "
+          'USER, MODEL.',
+      'Please ensure that function call turn comes immediately after a user '
+          'turn or after a function response turn.',
+      'Unable to submit request because it has an empty text parameter.',
+    ]) {
+      test(message, () {
+        expect(
+          mapGeminiError(ServerException(message)),
+          isA<LlmUnknownFailure>().having((f) => f.message, 'message', message),
+        );
+      });
+    }
   });
 
   test('an LlmFailure passes through and anything else is unknown', () {
