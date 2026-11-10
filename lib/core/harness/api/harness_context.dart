@@ -1,15 +1,11 @@
 import 'capability.dart';
 import 'envelope.dart';
+import 'screen_context.dart';
 
-/// What the user is looking at, as the host knows it. A hint for ops (for
-/// example `cards.find` searches the focus collection), never a scope limit.
-final class HarnessFocus {
-  const HarnessFocus({required this.collectionId, this.viewId, this.cardId});
+export 'screen_context.dart';
 
-  final String collectionId;
-  final String? viewId;
-  final String? cardId;
-}
+/// What the user is looking at: the turn's [ScreenContext] snapshot.
+typedef HarnessFocus = ScreenContext;
 
 /// Everything a call runs under, set by the transport, never by the request.
 ///
@@ -47,6 +43,8 @@ final class HarnessContext {
   /// Display text only (`Europe/Kyiv`); the harness has no tz database.
   final String timeZoneName;
 
+  /// The screen the user sent the message from; null when they removed the
+  /// context chip (then `@screen`, `@card` and `@selected` are refused).
   final HarnessFocus? focus;
 
   /// The turn this call belongs to, minted by `Harness.openTurn` for [actor].
