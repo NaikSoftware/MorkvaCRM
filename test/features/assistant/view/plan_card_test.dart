@@ -130,6 +130,54 @@ void main() {
       expect(find.text('Paid'), findsNWidgets(2));
     });
 
+    testWidgets('a row shows every field change it writes', (tester) async {
+      const fields = ['Name', 'Status', 'Notes', 'Owner', 'Amount'];
+      await pump(
+        tester,
+        PlanItem.proposed(
+          id: 'x',
+          plan: PlanView(
+            planId: 'p',
+            title: 'Update 1 order',
+            rows: [
+              PlanRow(
+                itemId: 'a',
+                kind: 'updateCard',
+                label: '#1 · Ann',
+                collectionId: 'c_orders',
+                targetId: 'o_a',
+                changes: [
+                  for (final f in fields)
+                    PlanChange(field: f, beforeText: 'old', afterText: 'new'),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+      for (final f in fields) {
+        expect(find.text(f), findsOneWidget, reason: f);
+      }
+    });
+
+    testWidgets('a prefixed auto-number is an object chip too', (tester) async {
+      await pump(
+        tester,
+        PlanItem.proposed(
+          id: 'x',
+          plan: PlanView(
+            planId: 'p',
+            title: 'Update 2 orders',
+            rows: [_card('a', 'ORD-0002 · Ann'), _card('b', 'Bob · Smith')],
+          ),
+        ),
+      );
+      await tester.tap(find.text('ORD-0002'));
+      expect(actions.calls, ['open(c_orders, o_a, null)']);
+      // A title with " · " but no number stays plain text.
+      expect(find.text('Bob · Smith'), findsOneWidget);
+    });
+
     testWidgets('long plans show 5 rows, then "Show N more"', (tester) async {
       final plan = PlanView(
         planId: 'p',

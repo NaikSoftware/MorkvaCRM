@@ -98,6 +98,34 @@ void main() {
       );
     });
 
+    testWidgets('the same card link opens the card again once closed', (
+      tester,
+    ) async {
+      final cubit = await pumpWorkPage(tester);
+      final link = collectionLink('deals', card: 'd4', where: _wonOrLead);
+      _go(tester, link);
+      await tester.pumpAndSettle();
+      expect(find.byType(ObjectEditor), findsOneWidget);
+      // Cleared while the card is open: closing it must not re-apply them.
+      cubit.clearTransientFilters();
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Close').last);
+      await tester.pumpAndSettle();
+      expect(find.byType(ObjectEditor), findsNothing);
+      final router = GoRouter.of(
+        tester.element(find.byType(CollectionViewsPage)),
+      );
+      final uri = router.routerDelegate.currentConfiguration.uri;
+      expect(uri.queryParameters.containsKey('card'), isFalse);
+      expect(uri.queryParameters['filter'], isNotNull);
+      expect((cubit.state as ViewsReady).transientFilters, isEmpty);
+
+      _go(tester, link);
+      await tester.pumpAndSettle();
+      expect(find.byType(ObjectEditor), findsOneWidget);
+    });
+
     testWidgets('a missing card says so', (tester) async {
       await pumpWorkPage(tester);
       _go(tester, collectionLink('deals', card: 'gone'));

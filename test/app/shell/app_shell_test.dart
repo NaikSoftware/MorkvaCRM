@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/app/shell/app_shell.dart';
 import 'package:morkva_crm/design/design.dart';
@@ -70,6 +71,65 @@ void main() {
         find.descendant(of: doodles, matching: find.text('MorkvaCRM')),
         findsNothing,
       );
+    });
+
+    testWidgets('a sheet panel keeps keyboard focus off the page', (
+      tester,
+    ) async {
+      useSurface(tester, const Size(1000, 800));
+      final page = FocusNode(debugLabel: 'page');
+      final nav = FocusNode(debugLabel: 'sidebar');
+      final inSheet = FocusNode(debugLabel: 'sheet');
+      addTearDown(page.dispose);
+      addTearDown(nav.dispose);
+      addTearDown(inSheet.dispose);
+      Widget shell({required bool open}) => MaterialApp(
+        theme: AppTheme.light,
+        home: AppShell(
+          sidebarBuilder: (_, _) => TextButton(
+            focusNode: nav,
+            onPressed: () {},
+            child: const Text('nav'),
+          ),
+          title: 'MorkvaCRM',
+          sidePanelBuilder: open
+              ? (_, _) => SizedBox(
+                  width: 300,
+                  child: TextButton(
+                    focusNode: inSheet,
+                    onPressed: () {},
+                    child: const Text('in sheet'),
+                  ),
+                )
+              : null,
+          child: TextButton(
+            focusNode: page,
+            onPressed: () {},
+            child: const Text('page'),
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(shell(open: true));
+      page.requestFocus();
+      await tester.pump();
+      expect(page.hasFocus, isFalse);
+      // Tab cycles the sheet and the sidebar, never the page behind.
+      inSheet.requestFocus();
+      for (var i = 0; i < 4; i++) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.pump();
+        expect(page.hasFocus, isFalse);
+      }
+      nav.requestFocus();
+      await tester.pump();
+      expect(nav.hasFocus, isTrue);
+
+      // Closed, the page is focusable again (the same element).
+      await tester.pumpWidget(shell(open: false));
+      page.requestFocus();
+      await tester.pump();
+      expect(page.hasFocus, isTrue);
     });
   });
 }

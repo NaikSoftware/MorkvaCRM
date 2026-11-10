@@ -615,12 +615,14 @@ class _PlanRowTile extends StatelessWidget {
     final cut = row.label.indexOf(' · ');
     final head = cut < 0 ? row.label : row.label.substring(0, cut);
     final rest = cut < 0 ? '' : row.label.substring(cut + 3);
-    final chip = isCard && head.startsWith('#');
+    // The auto-number head ("#1042", "ORD-0002") of `cardLabel`.
+    final chip = isCard && cut >= 0 && head.contains(RegExp(r'\d'));
     final textStyle = theme.textTheme.bodyMedium?.copyWith(fontSize: 13);
     final strong = textStyle?.copyWith(
       fontWeight: destructive ? FontWeight.w400 : FontWeight.w600,
     );
-    final diffs = row.changes.take(3).toList();
+    // Every change Approve writes is shown: this is the consent surface.
+    final diffs = row.changes;
     final detail = row.detail;
 
     final main = Row(

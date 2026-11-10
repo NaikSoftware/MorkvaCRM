@@ -72,6 +72,15 @@ void main() {
     expect(focus.shownCount, 5);
   });
 
+  test('a table that kept its board layout field is not grouped', () {
+    // Switching Board → Table keeps layoutFieldId, so the cubit still groups.
+    final state = ready(tableView.copyWith(layoutFieldId: 'stage'));
+    expect(state.groups, isNotNull);
+    final focus = screenFocusOf(state);
+    expect(focus.groupByFieldId, isNull);
+    expect(focus.shownIds, [for (final o in state.objects) o.id]);
+  });
+
   test('a calendar lists its cards day by day, undated last', () {
     const calendar = ViewDefinition(
       id: 'cal',

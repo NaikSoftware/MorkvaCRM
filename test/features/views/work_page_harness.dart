@@ -35,7 +35,8 @@ class _MockAuthRepository extends Mock implements AuthRepository {}
 /// Pumps the Work page for `deals` at [size] inside a minimal router (Home
 /// at `/`, the editor at `/collections/:id/edit` as a marker text). With
 /// [initialize] false the cubit stays in [ViewsLoading]. The page opens at
-/// [location] and publishes its screen into [focus] when given.
+/// [location] and publishes its screen into [focus] when given. [pageWidth]
+/// squeezes the page as a side panel beside it would.
 Future<CollectionViewsCubit> pumpWorkPage(
   WidgetTester tester, {
   FakeDataRepository? repository,
@@ -43,6 +44,7 @@ Future<CollectionViewsCubit> pumpWorkPage(
   bool initialize = true,
   String location = '/collections/deals',
   AssistantFocusNotifier? focus,
+  double? pageWidth,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -76,7 +78,17 @@ Future<CollectionViewsCubit> pumpWorkPage(
               collectionId: 'deals',
               child: BlocProvider.value(
                 value: cubit,
-                child: CollectionViewsPage(modes: defaultViewModeRegistry()),
+                child: pageWidth == null
+                    ? CollectionViewsPage(modes: defaultViewModeRegistry())
+                    : Align(
+                        alignment: Alignment.centerLeft,
+                        child: SizedBox(
+                          width: pageWidth,
+                          child: CollectionViewsPage(
+                            modes: defaultViewModeRegistry(),
+                          ),
+                        ),
+                      ),
               ),
             ),
             routes: [

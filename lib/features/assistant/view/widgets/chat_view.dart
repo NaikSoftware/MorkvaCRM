@@ -114,7 +114,7 @@ class _AssistantChatViewState extends State<AssistantChatView> {
       final snack = messenger.showSnackBar(
         SnackBar(
           key: _snackKey,
-          content: Text(_snackText(applied.receipt)),
+          content: Text(snackText(applied.plan, applied.receipt)),
           margin: EdgeInsets.fromLTRB(14, 0, 14, lift + 16),
           // With an action a snackbar persists by default, and under
           // accessible navigation (web semantics on) it never times out.
@@ -188,14 +188,35 @@ class _AssistantChatViewState extends State<AssistantChatView> {
   }
 }
 
-/// "12 orders updated": the applied count with the noun of the receipt's
-/// "Updated 12 orders"; any other summary (created, partial) reads as is.
-String _snackText(Receipt receipt) {
-  final noun = RegExp(r'^Updated \d+ (.+)$').firstMatch(receipt.summary)?[1];
-  if (noun == null || receipt.failed.isNotEmpty || receipt.stale.isNotEmpty) {
+/// "12 orders updated": the written count and the card noun of the plan's
+/// title ("Set Status to Done · 14 orders", "Add 3 orders", "Delete 2 cards
+/// from “Big Co”"), so the bar does not repeat the card's title. Anything
+/// else, or a partial failure, reads as the receipt's summary.
+@visibleForTesting
+String snackText(PlanView plan, Receipt receipt) {
+  final verb = switch (plan.title.split(' ').first) {
+    'Set' || 'Clear' || 'Update' => 'updated',
+    'Add' => 'created',
+    'Delete' => 'deleted',
+    _ => null,
+  };
+  final m = RegExp(
+    r'(\d+) (\S+)((?: (?:in|to|from) “[^”]*”)?)$',
+  ).firstMatch(plan.title);
+  if (verb == null ||
+      m == null ||
+      receipt.failed.isNotEmpty ||
+      receipt.stale.isNotEmpty) {
     return receipt.summary;
   }
-  return '${receipt.applied.length} $noun updated';
+  final n = receipt.applied.length + receipt.queued.length;
+  var noun = m[2]!;
+  // The title counts the whole plan; one written card is singular (the
+  // result shaper's rule).
+  if (n == 1 && m[1] != '1' && noun.endsWith('s')) {
+    noun = noun.substring(0, noun.length - 1);
+  }
+  return '$n $noun${m[3]} $verb';
 }
 
 class _Body extends StatefulWidget {

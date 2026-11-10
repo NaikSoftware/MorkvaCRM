@@ -24,7 +24,11 @@ AssistantFocus screenFocusOf(
     mode: view.mode,
     filters: state.effectiveFilters,
     sort: view.sort,
-    groupByFieldId: state.groups == null ? null : view.layoutFieldId,
+    // A table keeps its board's layout field (and the cubit its groups), but
+    // draws flat rows: grouped only where shownIdsOf orders by group.
+    groupByFieldId: _grouped(view.mode) && state.groups != null
+        ? view.layoutFieldId
+        : null,
     visibleFieldIds: [
       for (final id in view.fieldIds)
         if (collection.fieldById(id) != null) id,
@@ -46,7 +50,7 @@ List<String> shownIdsOf(ViewsReady state) {
   final groups = state.groups;
   final days = state.days;
   final ordered = switch (mode) {
-    ViewModeIds.board || ViewModeIds.list when groups != null => [
+    _ when _grouped(mode) && groups != null => [
       for (final g in groups) ...g.objects,
     ],
     ViewModeIds.calendar when days != null => [
@@ -57,3 +61,7 @@ List<String> shownIdsOf(ViewsReady state) {
   };
   return [for (final o in ordered) o.id];
 }
+
+/// Modes that draw their cards by group (when the layout field groups).
+bool _grouped(String mode) =>
+    mode == ViewModeIds.board || mode == ViewModeIds.list;
