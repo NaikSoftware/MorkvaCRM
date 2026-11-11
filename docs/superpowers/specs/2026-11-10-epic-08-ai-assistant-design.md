@@ -1657,6 +1657,9 @@ none of them touches the same path. Every other task creates new files only.
 - **Receipt to the model** carries `status: applied | partial | none` from the outcome counts.
 - **Plan rows show every field change** (or "+N more fields" that expands); Approve writes only
   what the card can reveal.
+- **One preview per turn, enforced:** once the user answers a preview (approve/reject), the rest
+  of the turn runs with tool mode `none`, so a rejected change can't come straight back.
+- **"These" after a list** means the cards just listed (by id); `@screen` is for what's on screen.
 - **Function responses are sent as role `user`** (the Developer API rejects role `function`).
 - Persisted plan/applied cards keep only display-safe summaries; journal mirrors are removed after
   the undo window.
