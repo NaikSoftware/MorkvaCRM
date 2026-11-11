@@ -8,7 +8,10 @@ import 'package:morkva_crm/app/app.dart';
 import 'package:morkva_crm/app/shell/app_shell_scaffold.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/design/design.dart';
+import 'package:morkva_crm/features/assistant/bloc/assistant_focus.dart';
 import 'package:morkva_crm/features/views/views.dart';
+// The app provides the notifier as a Listenable.
+import 'package:provider/provider.dart' show ChangeNotifierProvider;
 
 import '../collections/fake_data_repository.dart';
 import 'views_fixtures.dart';
@@ -31,12 +34,17 @@ class _MockAuthRepository extends Mock implements AuthRepository {}
 
 /// Pumps the Work page for `deals` at [size] inside a minimal router (Home
 /// at `/`, the editor at `/collections/:id/edit` as a marker text). With
-/// [initialize] false the cubit stays in [ViewsLoading].
+/// [initialize] false the cubit stays in [ViewsLoading]. The page opens at
+/// [location] and publishes its screen into [focus] when given. [pageWidth]
+/// squeezes the page as a side panel beside it would.
 Future<CollectionViewsCubit> pumpWorkPage(
   WidgetTester tester, {
   FakeDataRepository? repository,
   Size size = const Size(1280, 800),
   bool initialize = true,
+  String location = '/collections/deals',
+  AssistantFocusNotifier? focus,
+  double? pageWidth,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -57,7 +65,7 @@ Future<CollectionViewsCubit> pumpWorkPage(
   addTearDown(authCubit.close);
 
   final router = GoRouter(
-    initialLocation: '/collections/deals',
+    initialLocation: location,
     routes: [
       GoRoute(
         path: '/',
@@ -70,7 +78,17 @@ Future<CollectionViewsCubit> pumpWorkPage(
               collectionId: 'deals',
               child: BlocProvider.value(
                 value: cubit,
-                child: CollectionViewsPage(modes: defaultViewModeRegistry()),
+                child: pageWidth == null
+                    ? CollectionViewsPage(modes: defaultViewModeRegistry())
+                    : Align(
+                        alignment: Alignment.centerLeft,
+                        child: SizedBox(
+                          width: pageWidth,
+                          child: CollectionViewsPage(
+                            modes: defaultViewModeRegistry(),
+                          ),
+                        ),
+                      ),
               ),
             ),
             routes: [
@@ -95,6 +113,8 @@ Future<CollectionViewsCubit> pumpWorkPage(
         providers: [
           BlocProvider.value(value: sync),
           BlocProvider.value(value: authCubit),
+          if (focus != null)
+            ChangeNotifierProvider<AssistantFocusNotifier>.value(value: focus),
         ],
         child: MaterialApp.router(
           // As in the app: mouse drags scroll.

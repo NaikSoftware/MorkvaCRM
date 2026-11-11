@@ -505,8 +505,7 @@ class _BoardViewState extends State<BoardView> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         NoMatchesNotice(
-          onClear: () =>
-              context.read<CollectionViewsCubit>().setFilters(const []),
+          onClear: () => context.read<CollectionViewsCubit>().clearFilters(),
         ),
         const SizedBox(height: Spacing.xs),
         Expanded(child: columns),

@@ -1,8 +1,11 @@
 import 'dart:async';
 
+import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/api/api.dart';
+import 'package:morkva_crm/api/assistant/assistant_config_repository.dart';
+import 'package:morkva_crm/api/assistant/firestore_thread_repository.dart';
 import 'package:morkva_crm/app/app.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
 
@@ -110,6 +113,12 @@ class FakeDataRepository implements DataRepository {
   }) async => const [];
 
   @override
+  Future<List<MorkvaObject>> getServerObjects(
+    String collectionId, {
+    required Collection schema,
+  }) async => const [];
+
+  @override
   Future<MorkvaObject?> getObject(
     String collectionId,
     String objectId, {
@@ -124,6 +133,42 @@ class FakeDataRepository implements DataRepository {
 
   @override
   Future<void> deleteObject(String collectionId, String objectId) async {}
+
+  @override
+  Future<BatchResult> saveObjectsBatch(
+    List<ObjectWrite> writes, {
+    required Map<String, Collection> schemas,
+  }) async => BatchResult(written: [for (final w in writes) w.id]);
+
+  @override
+  Future<void> updateCollection(
+    String id,
+    Collection Function(Collection server) apply,
+  ) async {}
+
+  @override
+  Future<void> updateViews(
+    String collectionId,
+    List<ViewDefinition> Function(List<ViewDefinition> server) apply,
+  ) async {}
+}
+
+/// [MorkvaApp] over in-memory backends: Ask Morkva's conversations and
+/// config live in [firestore] (a fresh fake by default).
+MorkvaApp testApp({
+  required AuthRepository auth,
+  required DataRepository data,
+  SyncStatusCubit? sync,
+  FakeFirebaseFirestore? firestore,
+}) {
+  final db = firestore ?? FakeFirebaseFirestore();
+  return MorkvaApp(
+    authRepository: auth,
+    dataRepository: data,
+    syncStatusCubit: sync,
+    threadRepository: FirestoreThreadRepository(firestore: db),
+    assistantConfigRepository: AssistantConfigRepository(firestore: db),
+  );
 }
 
 void main() {
@@ -137,11 +182,7 @@ void main() {
     sync = SyncStatusCubit();
   });
 
-  Widget buildApp() => MorkvaApp(
-    authRepository: auth,
-    dataRepository: data,
-    syncStatusCubit: sync,
-  );
+  Widget buildApp() => testApp(auth: auth, data: data, sync: sync);
 
   testWidgets('unauthenticated user is redirected to the sign-in screen', (
     tester,

@@ -40,6 +40,30 @@ service cloud.firestore {
             && revIsMonotonic(resource, request.resource);
         allow delete: if isWorkspaceOwner(workspaceId);
       }
+
+      // Per-member data (Ask Morkva chat threads and their messages): only
+      // the member it belongs to. Becomes a membership check later.
+      match /members/{uid}/{document=**} {
+        allow read, write: if isWorkspaceOwner(workspaceId)
+            && request.auth.uid == uid;
+      }
+
+      // Per-workspace Ask Morkva consent.
+      match /config/assistant {
+        allow read, write: if isWorkspaceOwner(workspaceId);
+      }
+    }
+
+    // Global Ask Morkva config and per-user feature flags: written by an
+    // admin in the console, read-only to clients.
+    match /config/assistant {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    match /featureFlags/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
     }
   }
 }

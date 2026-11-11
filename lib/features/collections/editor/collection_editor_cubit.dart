@@ -2,57 +2,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../api/data/data_repository.dart';
 import '../../../core/domain/domain.dart';
+import '../../../core/domain/ids.dart';
 import '../field_editors/field_editor.dart';
-import '../util/id_generator.dart';
 import 'collection_editor_state.dart';
 
 /// Sentinel for [CollectionEditorCubit.updateFieldEnvelope]'s nullable
 /// `description`, so an explicit `null` (clear) is distinguishable from
 /// "unchanged".
 const Object _unsetDescription = Object();
-
-/// A schema-editor validation problem.
-///
-/// [blocking] problems (empty collection name, duplicate field names) must be
-/// resolved before [CollectionEditorCubit.save] will persist; non-blocking ones
-/// (a select field with no options, a reference field with no target) are
-/// surfaced inline as warnings but do not prevent saving — they are still valid
-/// documents the author may finish later.
-class EditorValidationIssue {
-  const EditorValidationIssue({
-    required this.message,
-    required this.blocking,
-    this.fieldId,
-  });
-
-  /// Human-readable description of the problem.
-  final String message;
-
-  /// Whether this problem blocks save.
-  final bool blocking;
-
-  /// The field the problem belongs to, or null for collection-level problems.
-  final String? fieldId;
-}
-
-/// The result of validating a draft: the blocking and non-blocking issues.
-class EditorValidation {
-  const EditorValidation(this.issues);
-
-  /// All issues, blocking and non-blocking.
-  final List<EditorValidationIssue> issues;
-
-  /// The blocking issues only.
-  List<EditorValidationIssue> get blocking =>
-      issues.where((i) => i.blocking).toList(growable: false);
-
-  /// The non-blocking warnings only.
-  List<EditorValidationIssue> get warnings =>
-      issues.where((i) => !i.blocking).toList(growable: false);
-
-  /// Whether any blocking issue exists (i.e. save is disallowed).
-  bool get hasBlocking => issues.any((i) => i.blocking);
-}
 
 /// Drives the single-collection schema editor over a [DataRepository].
 ///
@@ -314,11 +271,11 @@ class CollectionEditorCubit extends Cubit<CollectionEditorState> {
     }
   }
 
-  /// Validates the current draft. See [EditorValidation].
-  EditorValidation validate() {
+  /// Validates the current draft. See [validateCollectionSchema].
+  SchemaValidation validate() {
     final ready = _ready;
-    if (ready == null) return const EditorValidation([]);
-    return _validate(ready.draft);
+    if (ready == null) return const SchemaValidation([]);
+    return _validate(ready);
   }
 
   /// Persists the whole draft via [DataRepository.saveCollection].
@@ -332,7 +289,7 @@ class CollectionEditorCubit extends Cubit<CollectionEditorState> {
     final ready = _ready;
     if (ready == null) return false;
 
-    final validation = _validate(ready.draft);
+    final validation = _validate(ready);
     if (validation.hasBlocking) {
       emit(ready.copyWith(error: validation.blocking.first.message));
       return false;
@@ -370,78 +327,10 @@ class CollectionEditorCubit extends Cubit<CollectionEditorState> {
     return true;
   }
 
-  EditorValidation _validate(Collection draft) {
-    final issues = <EditorValidationIssue>[];
-
-    if (draft.name.trim().isEmpty) {
-      issues.add(
-        const EditorValidationIssue(
-          message: 'Collection name is required',
-          blocking: true,
-        ),
-      );
-    }
-
-    // Duplicate (case-insensitive, trimmed) field names block save.
-    final seen = <String, String>{};
-    for (final field in draft.fields) {
-      final key = field.name.trim().toLowerCase();
-      if (key.isEmpty) {
-        issues.add(
-          EditorValidationIssue(
-            message: 'Field name is required',
-            blocking: true,
-            fieldId: field.id,
-          ),
-        );
-        continue;
-      }
-      final firstId = seen[key];
-      if (firstId != null) {
-        issues.add(
-          EditorValidationIssue(
-            message: 'Duplicate field name "${field.name.trim()}"',
-            blocking: true,
-            fieldId: field.id,
-          ),
-        );
-      } else {
-        seen[key] = field.id;
-      }
-    }
-
-    // Non-blocking warnings.
-    for (final field in draft.fields) {
-      if (field is SingleSelectFieldDefinition && field.options.isEmpty) {
-        issues.add(
-          EditorValidationIssue(
-            message: '"${field.name}" has no options yet',
-            blocking: false,
-            fieldId: field.id,
-          ),
-        );
-      } else if (field is MultiSelectFieldDefinition && field.options.isEmpty) {
-        issues.add(
-          EditorValidationIssue(
-            message: '"${field.name}" has no options yet',
-            blocking: false,
-            fieldId: field.id,
-          ),
-        );
-      } else if (field is ReferenceFieldDefinition &&
-          field.targetCollectionId.isEmpty) {
-        issues.add(
-          EditorValidationIssue(
-            message: '"${field.name}" has no target collection yet',
-            blocking: false,
-            fieldId: field.id,
-          ),
-        );
-      }
-    }
-
-    return EditorValidation(issues);
-  }
+  /// Select fields without options and references without a target only
+  /// warn: they are valid schemas the author may finish later.
+  SchemaValidation _validate(CollectionEditorReady ready) =>
+      validateCollectionSchema(ready.draft, saved: ready.saved);
 
   // ---------------------------------------------------------------------------
   // Layout operations — thin delegates to CardLayout, emitting a new draft.

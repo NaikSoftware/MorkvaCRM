@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../tokens/radii.dart';
+import '../../tokens/spacing.dart';
 import 'morkva_text_field.dart';
 
 /// A search-styled [MorkvaTextField]: a leading search icon, a "Search" hint,
@@ -8,6 +10,9 @@ import 'morkva_text_field.dart';
 ///
 /// Owns its [TextEditingController] when one is not supplied (and disposes it),
 /// so the clear button works out of the box.
+///
+/// [dense]: a compact 44 px field with 16 px icons and a soft `outlineVariant`
+/// edge, for filtering a short list inside a panel.
 class SearchField extends StatefulWidget {
   const SearchField({
     super.key,
@@ -15,12 +20,14 @@ class SearchField extends StatefulWidget {
     this.hintText = 'Search',
     this.onChanged,
     this.onCleared,
+    this.dense = false,
   });
 
   final TextEditingController? controller;
   final String hintText;
   final ValueChanged<String>? onChanged;
   final VoidCallback? onCleared;
+  final bool dense;
 
   @override
   State<SearchField> createState() => _SearchFieldState();
@@ -74,20 +81,50 @@ class _SearchFieldState extends State<SearchField> {
   @override
   Widget build(BuildContext context) {
     final hasText = _controller.text.isNotEmpty;
+    final dense = widget.dense;
+    final iconSize = dense ? 16.0 : null;
 
-    return MorkvaTextField(
+    final field = MorkvaTextField(
       controller: _controller,
       hint: widget.hintText,
       onChanged: widget.onChanged,
       textInputAction: TextInputAction.search,
-      prefixIcon: const Icon(Icons.search),
+      prefixIcon: Icon(Icons.search, size: iconSize),
       suffixIcon: hasText
           ? IconButton(
-              icon: const Icon(Icons.close),
+              icon: Icon(Icons.close, size: iconSize),
               tooltip: 'Clear',
               onPressed: _clear,
+              constraints: dense ? _denseIcon : null,
+              padding: dense ? EdgeInsets.zero : null,
             )
           : null,
     );
+    if (!dense) return field;
+
+    final theme = Theme.of(context);
+    final soft = OutlineInputBorder(
+      borderRadius: Radii.mdAll,
+      borderSide: BorderSide(color: theme.colorScheme.outlineVariant),
+    );
+    return Theme(
+      data: theme.copyWith(
+        inputDecorationTheme: theme.inputDecorationTheme.copyWith(
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: Spacing.sm,
+            // A 24 px bodyLarge line + 20 = 44.
+            vertical: 10,
+          ),
+          prefixIconConstraints: _denseIcon,
+          suffixIconConstraints: _denseIcon,
+          border: soft,
+          enabledBorder: soft,
+        ),
+      ),
+      child: field,
+    );
   }
+
+  static const _denseIcon = BoxConstraints(minWidth: 40, minHeight: 44);
 }

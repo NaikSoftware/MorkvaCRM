@@ -157,6 +157,8 @@ class MorkvaSemanticColors extends ThemeExtension<MorkvaSemanticColors> {
     required this.onSuccess,
     required this.warning,
     required this.onWarning,
+    required this.warningContainer,
+    required this.onWarningContainer,
     required this.info,
     required this.onInfo,
     required this.primaryText,
@@ -167,6 +169,11 @@ class MorkvaSemanticColors extends ThemeExtension<MorkvaSemanticColors> {
   final Color onSuccess;
   final Color warning;
   final Color onWarning;
+
+  /// Soft amber fill for warning banners (rate limit, plan limits); pair it
+  /// with [onWarningContainer] for the banner's text and icon.
+  final Color warningContainer;
+  final Color onWarningContainer;
   final Color info;
   final Color onInfo;
 
@@ -182,6 +189,8 @@ class MorkvaSemanticColors extends ThemeExtension<MorkvaSemanticColors> {
     onSuccess: Colors.white,
     warning: MorkvaPalette.warning,
     onWarning: Color(0xFF3D2E00),
+    warningContainer: Color(0xFFFBF3DC),
+    onWarningContainer: Color(0xFF5A4410),
     info: MorkvaPalette.info,
     onInfo: Colors.white,
     primaryText: MorkvaPalette.carrotDeep,
@@ -193,6 +202,8 @@ class MorkvaSemanticColors extends ThemeExtension<MorkvaSemanticColors> {
     onSuccess: Color(0xFF06311B),
     warning: Color(0xFFE6BE54),
     onWarning: Color(0xFF3D2E00),
+    warningContainer: Color(0xFF3A2F12),
+    onWarningContainer: Color(0xFFF1DC9A),
     info: Color(0xFF6FA8C9),
     onInfo: Color(0xFF06243A),
     primaryText: MorkvaPalette.carrotBright,
@@ -205,6 +216,8 @@ class MorkvaSemanticColors extends ThemeExtension<MorkvaSemanticColors> {
     Color? onSuccess,
     Color? warning,
     Color? onWarning,
+    Color? warningContainer,
+    Color? onWarningContainer,
     Color? info,
     Color? onInfo,
     Color? primaryText,
@@ -215,6 +228,8 @@ class MorkvaSemanticColors extends ThemeExtension<MorkvaSemanticColors> {
       onSuccess: onSuccess ?? this.onSuccess,
       warning: warning ?? this.warning,
       onWarning: onWarning ?? this.onWarning,
+      warningContainer: warningContainer ?? this.warningContainer,
+      onWarningContainer: onWarningContainer ?? this.onWarningContainer,
       info: info ?? this.info,
       onInfo: onInfo ?? this.onInfo,
       primaryText: primaryText ?? this.primaryText,
@@ -233,6 +248,16 @@ class MorkvaSemanticColors extends ThemeExtension<MorkvaSemanticColors> {
       onSuccess: Color.lerp(onSuccess, other.onSuccess, t)!,
       warning: Color.lerp(warning, other.warning, t)!,
       onWarning: Color.lerp(onWarning, other.onWarning, t)!,
+      warningContainer: Color.lerp(
+        warningContainer,
+        other.warningContainer,
+        t,
+      )!,
+      onWarningContainer: Color.lerp(
+        onWarningContainer,
+        other.onWarningContainer,
+        t,
+      )!,
       info: Color.lerp(info, other.info, t)!,
       onInfo: Color.lerp(onInfo, other.onInfo, t)!,
       primaryText: Color.lerp(primaryText, other.primaryText, t)!,

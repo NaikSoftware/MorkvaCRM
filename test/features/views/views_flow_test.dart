@@ -2,14 +2,13 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/api/api.dart';
-import 'package:morkva_crm/app/app.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/features/objects/object_editor.dart';
 import 'package:morkva_crm/features/views/views.dart';
 import 'package:morkva_crm/features/views/widgets/board/board_column.dart';
 import 'package:morkva_crm/features/views/widgets/calendar/no_date_tray.dart';
 
-import '../../widget_test.dart' show FakeAuthRepository;
+import '../../widget_test.dart' show FakeAuthRepository, testApp;
 import '../collections/fake_data_repository.dart';
 
 void main() {
@@ -23,9 +22,7 @@ void main() {
       final auth = FakeAuthRepository()
         ..emit(const AuthUser(uid: 'u1', email: 'u1@example.com'));
       final repo = FakeDataRepository();
-      await tester.pumpWidget(
-        MorkvaApp(authRepository: auth, dataRepository: repo),
-      );
+      await tester.pumpWidget(testApp(auth: auth, data: repo));
       await tester.pumpAndSettle();
       await tester.tap(find.text('New collection').first);
       await tester.pumpAndSettle();

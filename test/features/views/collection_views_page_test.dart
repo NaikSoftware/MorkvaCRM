@@ -170,6 +170,31 @@ void main() {
     });
   });
 
+  group('squeezed by a side panel', () {
+    for (final width in [590.0, 750.0]) {
+      testWidgets('keeps the desktop frame at $width px', (tester) async {
+        final cubit = await pumpWorkPage(
+          tester,
+          size: const Size(1440, 900),
+          pageWidth: width,
+        );
+        await tester.pumpAndSettle();
+        for (final view in ['all', 'board']) {
+          cubit.selectView(view);
+          await tester.pumpAndSettle();
+          expect(find.byTooltip('Back'), findsNothing);
+          expect(find.byType(FloatingActionButton), findsNothing);
+          expect(find.text('New deal'), findsOneWidget);
+          expect(
+            width < 720 ? find.byTooltip('Customize') : find.text('Customize'),
+            findsOneWidget,
+          );
+          expect(tester.takeException(), isNull, reason: '$view at $width');
+        }
+      });
+    }
+  });
+
   group('phone', () {
     testWidgets('an empty one-column table fits at 390', (tester) async {
       const narrow = Collection(
@@ -195,6 +220,8 @@ void main() {
       expect(find.byType(NavigationBar), findsNothing);
       expect(find.byTooltip('Back'), findsOneWidget);
       expect(find.byTooltip('View settings'), findsOneWidget);
+      // No assistant provided: no Ask Morkva entry.
+      expect(find.byTooltip('Ask Morkva'), findsNothing);
       expect(find.byType(FloatingActionButton), findsOneWidget);
       // A round "+" floating over the body, "New <item>" on hover.
       expect(find.byTooltip('New deal'), findsOneWidget);

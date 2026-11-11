@@ -7,15 +7,16 @@ import '../../api/sync/sync_status.dart';
 import '../../api/sync/sync_status_cubit.dart';
 import '../../core/domain/domain.dart';
 import '../../design/design.dart';
+import '../../features/assistant/view/widgets/sparkle_icon.dart';
 import 'brand_wordmark.dart';
 import 'sync_status_indicator.dart';
 
 /// Where the user is, as far as the navigation is concerned.
 enum ShellPlace { allCollections, collection, settings }
 
-/// The wide-screen navigation: the brand, "Jump to…", All collections, the
-/// pinned collections and the profile row with settings. [extended] false is
-/// the slim icon rail.
+/// The wide-screen navigation: the brand, "Jump to…", the Ask Morkva toggle,
+/// All collections, the pinned collections and the profile row with
+/// settings. [extended] false is the slim icon rail.
 ///
 /// Dumb: everything comes in as data and goes out through callbacks.
 class ShellSidebar extends StatelessWidget {
@@ -33,6 +34,8 @@ class ShellSidebar extends StatelessWidget {
     required this.onReorder,
     this.collectionId,
     this.user,
+    this.onAssistant,
+    this.assistantOpen = false,
   });
 
   final bool extended;
@@ -57,6 +60,12 @@ class ShellSidebar extends StatelessWidget {
   /// Moves the pin at `oldIndex` of [pinned] to `newIndex` (the index in the
   /// list without it, as [ReorderableListView.onReorderItem] reports).
   final void Function(int oldIndex, int newIndex) onReorder;
+
+  /// Toggles the Ask Morkva panel; null hides the entry (feature off).
+  final VoidCallback? onAssistant;
+
+  /// The panel is open: the toggle is carrot-tinted (never "selected").
+  final bool assistantOpen;
 
   /// Width of the full sidebar.
   static const double width = 272;
@@ -117,6 +126,10 @@ class ShellSidebar extends StatelessWidget {
             ),
           ),
           _JumpField(onTap: onJumpTo),
+          if (onAssistant case final onAssistant?) ...[
+            const SizedBox(height: Spacing.xs),
+            _AskButton(open: assistantOpen, onTap: onAssistant),
+          ],
           const SizedBox(height: Spacing.xs),
           _NavRow(
             label: 'All collections',
@@ -209,6 +222,22 @@ class ShellSidebar extends StatelessWidget {
             onTap: onJumpTo,
             child: Icon(Icons.search_rounded, color: scheme.onSurfaceVariant),
           ),
+          if (onAssistant case final onAssistant?)
+            _RailButton(
+              tooltip: assistantShortcutLabel == null
+                  ? 'Ask Morkva'
+                  : 'Ask Morkva · $assistantShortcutLabel',
+              toggled: assistantOpen,
+              onTap: onAssistant,
+              child: SparkleIcon(
+                size: 22,
+                color: assistantOpen
+                    ? Theme.of(
+                        context,
+                      ).extension<MorkvaSemanticColors>()!.primaryText
+                    : scheme.onSurfaceVariant,
+              ),
+            ),
           _RailButton(
             tooltip: 'All collections',
             selected: _allSelected,
@@ -385,6 +414,84 @@ class _JumpField extends StatelessWidget {
   }
 }
 
+/// The Ask Morkva toggle under "Jump to…": carrot-tinted while the panel is
+/// [open], with its shortcut hint.
+class _AskButton extends StatelessWidget {
+  const _AskButton({required this.open, required this.onTap});
+
+  final bool open;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final semantic = theme.extension<MorkvaSemanticColors>()!;
+    final ink = open ? scheme.onPrimaryContainer : scheme.onSurface;
+    return Semantics(
+      container: true,
+      button: true,
+      toggled: open,
+      child: Material(
+        color: open ? scheme.primaryContainer : Colors.transparent,
+        borderRadius: Radii.mdAll,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: Radii.mdAll,
+          hoverColor: open
+              ? null
+              : scheme.surfaceContainerLowest.withValues(alpha: 0.55),
+          child: SizedBox(
+            height: 44,
+            child: Padding(
+              padding: const EdgeInsets.only(
+                left: Spacing.sm,
+                right: Spacing.xs,
+              ),
+              child: Row(
+                children: [
+                  SparkleIcon(size: 18, color: semantic.primaryText),
+                  const SizedBox(width: Spacing.xs),
+                  Expanded(
+                    child: Text(
+                      'Ask Morkva',
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: ink,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  if (assistantShortcutLabel case final shortcut?)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: open
+                              ? scheme.primary.withValues(alpha: 0.45)
+                              : scheme.outlineVariant,
+                        ),
+                      ),
+                      child: Text(
+                        shortcut,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: open ? ink : scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// One sidebar row: a [leading] tile and a label; [selected] lifts it onto a
 /// raised pill. With [dragIndex] the row shows a drag handle on hover, and
 /// [onUnpin] adds the right-click menu.
@@ -506,6 +613,7 @@ class _RailButton extends StatelessWidget {
     required this.child,
     this.selected = false,
     this.marker = false,
+    this.toggled,
     this.onSecondaryTap,
   });
 
@@ -514,6 +622,9 @@ class _RailButton extends StatelessWidget {
   final Widget child;
   final bool selected;
   final bool marker;
+
+  /// A toggle's state (Ask Morkva): on = the carrot tint.
+  final bool? toggled;
   final ValueChanged<Offset>? onSecondaryTap;
 
   @override
@@ -547,7 +658,11 @@ class _RailButton extends StatelessWidget {
               width: 52,
               height: 52,
               decoration: BoxDecoration(
-                color: selected ? scheme.surfaceContainerLowest : null,
+                color: toggled ?? false
+                    ? scheme.primaryContainer
+                    : selected
+                    ? scheme.surfaceContainerLowest
+                    : null,
                 borderRadius: radius,
                 boxShadow: selected ? MorkvaElevation.level1 : null,
               ),
@@ -562,6 +677,7 @@ class _RailButton extends StatelessWidget {
                   child: Semantics(
                     label: tooltip,
                     selected: selected || marker,
+                    toggled: toggled,
                     button: true,
                     child: Center(child: child),
                   ),
@@ -725,8 +841,13 @@ class UserAvatar extends StatelessWidget {
 
 /// The Jump to shortcut as the keyboard prints it; null on phones and
 /// tablets (Android, iOS), where a hardware keyboard is the exception.
-String? get jumpShortcutLabel => switch (defaultTargetPlatform) {
-  TargetPlatform.macOS => '⌘ K',
+String? get jumpShortcutLabel => _shortcutLabel('K');
+
+/// The Ask Morkva toggle's shortcut, like [jumpShortcutLabel].
+String? get assistantShortcutLabel => _shortcutLabel('J');
+
+String? _shortcutLabel(String key) => switch (defaultTargetPlatform) {
+  TargetPlatform.macOS => '⌘ $key',
   TargetPlatform.android || TargetPlatform.iOS => null,
-  _ => 'Ctrl K',
+  _ => 'Ctrl $key',
 };

@@ -1,16 +1,21 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/shell/app_shell.dart';
+import '../../app/shell/app_shell_scaffold.dart' show AskMorkvaAction;
 import '../../app/shell/sync_status_indicator.dart';
 import '../../core/domain/domain.dart';
 import '../../design/design.dart';
+import '../assistant/bloc/assistant_focus.dart';
 import '../auth/conflict_warning_banner.dart';
 import '../objects/object_editor.dart';
 import 'collection_views_cubit.dart';
 import 'collection_views_state.dart';
 import 'modes/view_mode.dart';
+import 'screen_focus.dart';
 import 'widgets/filter_builder.dart';
 import 'widgets/fields_editor_sheet.dart';
 import 'widgets/new_view_dialog.dart';
@@ -30,13 +35,198 @@ import 'widgets/views_skeleton.dart';
 /// panel, beside the rail.
 /// Phone: a pushed page with back, name, view settings (`tune`) and an
 /// overflow holding "Customize collection"; "+ New" is the FAB.
-class CollectionViewsPage extends StatelessWidget {
+///
+/// Deep links (`collectionLink`): the page applies the `view`, `filter` and
+/// `card` query parameters whenever they change, also while it stays on the
+/// same collection. It keeps the app's [AssistantFocusNotifier], when one is
+/// provided, up to date with what it shows (see `screenFocusOf`).
+class CollectionViewsPage extends StatefulWidget {
   const CollectionViewsPage({super.key, required this.modes});
 
   final ViewModeRegistry modes;
 
   @override
+  State<CollectionViewsPage> createState() => _CollectionViewsPageState();
+}
+
+/// Wide-frame content narrower than this (a side panel beside the page)
+/// drops the Customize label.
+const _narrowContent = 720.0;
+
+/// How long the screen must settle before the assistant's focus is updated,
+/// so a burst of changes publishes once.
+const _focusDebounce = Duration(milliseconds: 150);
+
+class _CollectionViewsPageState extends State<CollectionViewsPage> {
+  /// The last applied deep link `(view, filter, card)`.
+  (String?, String?, String?)? _link;
+
+  /// A linked card to open once the objects have loaded.
+  String? _pendingCard;
+
+  /// The card open in the editor, for the assistant's focus.
+  ({String id, String title})? _openCard;
+
+  AssistantFocusNotifier? _focus;
+  AssistantFocus? _published;
+  Timer? _publishTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _schedulePublish();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _readLink();
+  }
+
+  @override
+  void didUpdateWidget(CollectionViewsPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // go_router reuses this page for the same collection: a new location
+    // rebuilds it with new query parameters.
+    _readLink();
+  }
+
+  @override
+  void dispose() {
+    _publishTimer?.cancel();
+    final focus = _focus;
+    final published = _published;
+    if (focus != null && published != null) {
+      // After the frame: listeners may rebuild, and the tree is locked now.
+      // The next page may already have published its own focus.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (identical(focus.value, published)) focus.value = null;
+      });
+    }
+    super.dispose();
+  }
+
+  void _readLink() {
+    final params = GoRouter.maybeOf(context) == null
+        ? const <String, String>{}
+        : GoRouterState.of(context).uri.queryParameters;
+    final link = (params['view'], params['filter'], params['card']);
+    if (link == _link) return;
+    _link = link;
+    final (view, filter, card) = link;
+    context.read<CollectionViewsCubit>().openLink(viewId: view, filter: filter);
+    _pendingCard = card;
+    if (card != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _openPendingCard());
+    }
+  }
+
+  /// Opens the linked card's editor once the objects are in.
+  void _openPendingCard() {
+    final id = _pendingCard;
+    if (id == null || !mounted) return;
+    final cubit = context.read<CollectionViewsCubit>();
+    final state = cubit.state;
+    if (state is ViewsLoading) return;
+    _pendingCard = null;
+    if (state is! ViewsReady) return;
+    final object = state.objectById(id) ?? cubit.findObject(id);
+    if (object == null) {
+      _notify(context, "This link's ${itemLabelOf(state.collection)} is gone");
+      _dropParams({'card': id});
+      return;
+    }
+    _openObject(
+      context,
+      state,
+      object,
+    ).whenComplete(() => _dropParams({'card': id}));
+  }
+
+  /// Once the user leaves the linked view or clears the linked filter, takes
+  /// them out of the location, so the same chip tapped again applies them.
+  void _dropLeftLink() {
+    final (view, filter, _) = _link ?? (null, null, null);
+    final cubit = context.read<CollectionViewsCubit>();
+    // The current state, not the delivered one: that may predate the link.
+    final state = cubit.state;
+    if (state is! ViewsReady || cubit.linkPending) return;
+    final left =
+        (view != null && state.activeViewId != view) ||
+        (filter != null && state.transientFilters.isEmpty);
+    if (left) _dropParams({'view': ?view, 'filter': ?filter});
+  }
+
+  /// Takes [handled] link parameters out of the location (in place, no
+  /// history entry), so the same chip tapped again is a new link.
+  void _dropParams(Map<String, String> handled) {
+    if (!mounted) return;
+    final router = GoRouter.maybeOf(context);
+    if (router == null) return;
+    final uri = router.routerDelegate.currentConfiguration.uri;
+    final params = {...uri.queryParameters};
+    // Only while this page's linked location is still the current one.
+    if (uri.path != GoRouterState.of(context).uri.path ||
+        handled.entries.any((e) => params[e.key] != e.value)) {
+      return;
+    }
+    params.removeWhere((key, _) => handled.containsKey(key));
+    // What stays in the location stays applied: don't re-apply it.
+    _link = (params['view'], params['filter'], params['card']);
+    final location = Uri(
+      path: uri.path,
+      queryParameters: params.isEmpty ? null : params,
+    );
+    Router.neglect(context, () => router.go(location.toString()));
+  }
+
+  void _setOpenCard(({String id, String title})? card) {
+    _openCard = card;
+    _schedulePublish();
+  }
+
+  void _schedulePublish() {
+    _publishTimer?.cancel();
+    _publishTimer = Timer(_focusDebounce, _publish);
+  }
+
+  void _publish() {
+    if (!mounted) return;
+    final focus = _focus ??= _focusNotifierOf(context);
+    if (focus == null) return;
+    final state = context.read<CollectionViewsCubit>().state;
+    final next = state is ViewsReady
+        ? screenFocusOf(
+            state,
+            openCardId: _openCard?.id,
+            openCardTitle: _openCard?.title,
+          )
+        : null;
+    if (next == null) {
+      // Loading keeps the last focus; a missing or failed collection drops it.
+      if (state is! ViewsLoading && identical(focus.value, _published)) {
+        focus.value = _published = null;
+      }
+      return;
+    }
+    if (next == _published && identical(focus.value, _published)) return;
+    focus.value = _published = next;
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final modes = widget.modes;
+    return BlocListener<CollectionViewsCubit, CollectionViewsState>(
+      listener: (_, _) {
+        _schedulePublish();
+        _openPendingCard();
+        _dropLeftLink();
+      },
+      child: _consumer(modes),
+    );
+  }
+
+  Widget _consumer(ViewModeRegistry modes) {
     return BlocConsumer<CollectionViewsCubit, CollectionViewsState>(
       listenWhen: (prev, next) =>
           next is ViewsReady &&
@@ -48,7 +238,10 @@ class CollectionViewsPage extends StatelessWidget {
         _maybeNudge(context, state);
         return LayoutBuilder(
           builder: (context, constraints) {
-            final compact = constraints.maxWidth < AppShell.expandedBreakpoint;
+            // The frame follows the window, as the shell and the modes do:
+            // a side panel pushing the page keeps it a desktop page.
+            final compact =
+                MediaQuery.sizeOf(context).width < AppShell.expandedBreakpoint;
             final ready = state is ViewsReady ? state : null;
             final body = switch (state) {
               ViewsLoading() => ViewsSkeleton(compact: compact),
@@ -62,7 +255,11 @@ class CollectionViewsPage extends StatelessWidget {
             };
             return compact
                 ? _PhoneFrame(state: ready, modes: modes, body: body)
-                : _WideFrame(state: ready, body: body);
+                : _WideFrame(
+                    state: ready,
+                    body: body,
+                    narrow: constraints.maxWidth < _narrowContent,
+                  );
           },
         );
       },
@@ -73,6 +270,21 @@ class CollectionViewsPage extends StatelessWidget {
 // -----------------------------------------------------------------------------
 // Page actions. The stubs are swapped for the real sheets by later work.
 // -----------------------------------------------------------------------------
+
+/// The app's [AssistantFocusNotifier], or null where none is provided.
+AssistantFocusNotifier? _focusNotifierOf(BuildContext context) {
+  try {
+    return context.read<AssistantFocusNotifier>();
+  } on ProviderNotFoundException {
+    return null;
+  }
+}
+
+/// The page around [context] (or the page's own context).
+_CollectionViewsPageState? _pageOf(BuildContext context) => switch (context) {
+  StatefulElement(state: final _CollectionViewsPageState page) => page,
+  _ => context.findAncestorStateOfType<_CollectionViewsPageState>(),
+};
 
 /// Collections whose "Add your first `<item>`" nudge was shown this session.
 final _nudgedCollections = <String>{};
@@ -346,7 +558,11 @@ Future<void> _createObject(
 void _notifyIfHidden(BuildContext context, MorkvaObject object) {
   final now = context.read<CollectionViewsCubit>().state;
   if (now is ViewsReady &&
-      applyView(now.collection, now.activeView, [object]).isEmpty) {
+      applyView(
+        now.collection,
+        now.activeView.copyWith(filters: now.effectiveFilters),
+        [object],
+      ).isEmpty) {
     _notify(context, 'Saved — hidden by the filters');
   }
 }
@@ -357,6 +573,11 @@ Future<void> _openObject(
   MorkvaObject object,
 ) async {
   final cubit = context.read<CollectionViewsCubit>();
+  final page = _pageOf(context);
+  page?._setOpenCard((
+    id: object.id,
+    title: titleOf(state.activeView, state.collection, object),
+  ));
   final result = await showObjectEditor(
     context,
     collection: state.collection,
@@ -365,6 +586,9 @@ Future<void> _openObject(
     derive: cubit.deriveFor,
     notes: cubit.calculationNotes(),
   );
+  if (page != null && page.mounted && page._openCard?.id == object.id) {
+    page._setOpenCard(null);
+  }
   if (!context.mounted) return;
   switch (result) {
     case ObjectEditorSaved(:final object):
@@ -425,10 +649,18 @@ Future<void> _deleteView(BuildContext context, ViewDefinition view) async {
 /// Wide: the page's own header and banner over the body, in the persistent
 /// shell's main panel (the shell draws the rail).
 class _WideFrame extends StatelessWidget {
-  const _WideFrame({required this.state, required this.body});
+  const _WideFrame({
+    required this.state,
+    required this.body,
+    required this.narrow,
+  });
 
   final ViewsReady? state;
   final Widget body;
+
+  /// The page is squeezed (a side panel beside it): Customize goes
+  /// icon-only.
+  final bool narrow;
 
   @override
   Widget build(BuildContext context) {
@@ -439,7 +671,11 @@ class _WideFrame extends StatelessWidget {
       child: Column(
         children: [
           if (ready != null)
-            _WideHeader(collection: ready.collection, state: ready),
+            _WideHeader(
+              collection: ready.collection,
+              state: ready,
+              narrow: narrow,
+            ),
           const ConflictWarningBanner(),
           Expanded(child: body),
         ],
@@ -449,10 +685,15 @@ class _WideFrame extends StatelessWidget {
 }
 
 class _WideHeader extends StatelessWidget {
-  const _WideHeader({required this.collection, required this.state});
+  const _WideHeader({
+    required this.collection,
+    required this.state,
+    required this.narrow,
+  });
 
   final Collection collection;
   final ViewsReady state;
+  final bool narrow;
 
   @override
   Widget build(BuildContext context) {
@@ -482,11 +723,18 @@ class _WideHeader extends StatelessWidget {
             ),
           ),
           // Sync status lives in the sidebar's profile row (rail: avatar dot).
-          OutlinedButton.icon(
-            onPressed: () => _customize(context, collection.id),
-            icon: const Icon(Icons.tune, size: 18),
-            label: const Text('Customize'),
-          ),
+          if (narrow)
+            IconButton.outlined(
+              tooltip: 'Customize',
+              onPressed: () => _customize(context, collection.id),
+              icon: const Icon(Icons.tune, size: 18),
+            )
+          else
+            OutlinedButton.icon(
+              onPressed: () => _customize(context, collection.id),
+              icon: const Icon(Icons.tune, size: 18),
+              label: const Text('Customize'),
+            ),
           if (collection.fields.isNotEmpty) ...[
             const SizedBox(width: Spacing.sm),
             PrimaryButton(
@@ -517,6 +765,7 @@ class _PhoneFrame extends StatelessWidget {
     final theme = Theme.of(context);
     final ready = state;
     final collection = ready?.collection;
+    final onAsk = ShellTab.askOf(context);
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
@@ -554,7 +803,9 @@ class _PhoneFrame extends StatelessWidget {
                 ],
               ),
         actions: [
+          if (onAsk != null) AskMorkvaAction(onTap: onAsk),
           if (collection != null) ...[
+            if (onAsk != null) const SizedBox(width: Spacing.xs),
             const SyncStatusIndicator(),
             // Without fields the body's Customize carries the only `tune`.
             if (collection.fields.isNotEmpty)
@@ -683,6 +934,19 @@ class _WorkBody extends StatelessWidget {
               fieldsLabel: mode.fieldsLabel,
               horizontalPadding: gutter,
               referenceLabels: state.referenceLabels,
+              leading: [
+                if (state.transientFilters.isNotEmpty) ...[
+                  _AssistantFiltersChip(
+                    state: state,
+                    onClear: cubit.clearTransientFilters,
+                  ),
+                  TextActionButton(
+                    label: 'Save as view',
+                    icon: Icons.bookmark_add_outlined,
+                    onPressed: cubit.saveTransientAsView,
+                  ),
+                ],
+              ],
               settingsChip: mode.buildSettingsChip(context, data),
               onAddFilter: () =>
                   _openFilterEditor(context, anchor: anchor(), inset: gutter),
@@ -723,7 +987,7 @@ class _WorkBody extends StatelessWidget {
                     action: SecondaryButton(
                       label: 'Clear filters',
                       icon: Icons.filter_alt_off_outlined,
-                      onPressed: () => cubit.setFilters(const []),
+                      onPressed: cubit.clearFilters,
                     ),
                   )
                 : KeyedSubtree(
@@ -733,6 +997,59 @@ class _WorkBody extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The deep link's transient filters: "From assistant · Stage is Won";
+/// removing it shows the view as saved.
+class _AssistantFiltersChip extends StatelessWidget {
+  const _AssistantFiltersChip({required this.state, required this.onClear});
+
+  final ViewsReady state;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final filters = [
+      for (final f in state.transientFilters)
+        filterLabel(
+          f,
+          state.collection,
+          referenceLabels: state.referenceLabels,
+        ),
+    ].join(' · ');
+    return Tooltip(
+      message: 'Filters from Ask Morkva, not saved: $filters',
+      child: InputChip(
+        avatar: Icon(
+          Icons.auto_awesome,
+          size: 16,
+          color: scheme.onSecondaryContainer,
+        ),
+        label: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 320),
+          child: Text(
+            'From assistant · $filters',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        onDeleted: onClear,
+        deleteIcon: const Icon(Icons.close, size: 16),
+        deleteButtonTooltipMessage: 'Clear assistant filters',
+        backgroundColor: scheme.secondaryContainer,
+        side: BorderSide.none,
+        shape: const RoundedRectangleBorder(borderRadius: Radii.smAll),
+        labelStyle: theme.textTheme.labelLarge?.copyWith(
+          color: scheme.onSecondaryContainer,
+        ),
+        deleteIconColor: scheme.onSecondaryContainer,
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        materialTapTargetSize: MaterialTapTargetSize.padded,
+      ),
     );
   }
 }

@@ -1,8 +1,9 @@
 import 'dart:async';
+import 'dart:math' show min;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
-import 'package:morkva_crm/core/domain/domain.dart';
+import 'package:morkva_crm/core/domain/domain.dart' hide FieldValue;
 import 'package:rxdart/rxdart.dart';
 
 import '../firestore/firestore_refs.dart';
@@ -341,6 +342,19 @@ class FirestoreDataRepository implements DataRepository {
   }
 
   @override
+  Future<List<MorkvaObject>> getServerObjects(
+    String collectionId, {
+    required Collection schema,
+  }) async {
+    final snapshot = await _refs
+        .objectsByCollection(_wid, collectionId)
+        .get(const GetOptions(source: Source.server));
+    return snapshot.docs
+        .map((doc) => _objectFromData(doc.id, doc.data(), schema))
+        .toList();
+  }
+
+  @override
   Future<MorkvaObject?> getObject(
     String collectionId,
     String objectId, {
@@ -426,6 +440,221 @@ class FirestoreDataRepository implements DataRepository {
     _localRev.remove(objectId);
     _pendingObjects.remove(objectId);
     await _refs.object(_wid, objectId).delete();
+  }
+
+  @override
+  Future<BatchResult> saveObjectsBatch(
+    List<ObjectWrite> writes, {
+    required Map<String, Collection> schemas,
+  }) async {
+    for (final write in writes) {
+      if (write is! ObjectDelete && !schemas.containsKey(write.collectionId)) {
+        throw ArgumentError.value(
+          write.collectionId,
+          'schemas',
+          'No schema for the collection of object ${write.id}',
+        );
+      }
+    }
+    if (writes.isEmpty) return const BatchResult();
+
+    _syncStatus.reportPendingWrite();
+    final written = <String>[];
+    final failed = <String, String>{};
+    var errored = false;
+    for (var start = 0; start < writes.length; start += maxBatchWrites) {
+      final chunk = writes.sublist(
+        start,
+        min(start + maxBatchWrites, writes.length),
+      );
+      final tracked = <String>[];
+      for (final write in chunk) {
+        if (write is ObjectDelete) {
+          _localRev.remove(write.id);
+          _pendingObjects.remove(write.id);
+        } else {
+          tracked.add(write.id);
+        }
+      }
+      _pendingObjects.addAll(tracked);
+      try {
+        await _commitChunk(chunk, schemas);
+        for (final write in chunk) {
+          switch (write) {
+            case ObjectCreate():
+              _localRev[write.id] = 1;
+            case ObjectUpdate():
+              final rev = _localRev[write.id];
+              // Unless a server snapshot already adopted the new rev.
+              if (rev != null && _pendingObjects.contains(write.id)) {
+                _localRev[write.id] = rev + 1;
+              }
+            case ObjectDelete():
+          }
+          written.add(write.id);
+        }
+      } catch (error) {
+        final code = error is FirebaseException ? error.code : 'unknown';
+        for (final write in chunk) {
+          failed[write.id] = code;
+        }
+        // A vanished object is an expected stale outcome the caller handles.
+        if (code != 'not-found') {
+          errored = true;
+          _syncStatus.reportError('Failed to save objects', cause: error);
+        }
+      } finally {
+        _pendingObjects.removeAll(tracked);
+      }
+    }
+    // Batches complete only once the server committed them (see saveObject),
+    // and a rejected chunk wrote nothing, so only an error leaves it unsettled.
+    if (!errored && _pendingObjects.isEmpty) {
+      _syncStatus.reportSnapshotMeta(
+        isFromCache: false,
+        hasPendingWrites: false,
+      );
+    }
+    return BatchResult(written: written, failed: failed);
+  }
+
+  /// Commits one [chunk] of at most [maxBatchWrites] writes as a single
+  /// [WriteBatch], after reserving the auto-numbers its creates lack.
+  Future<void> _commitChunk(
+    List<ObjectWrite> chunk,
+    Map<String, Collection> schemas,
+  ) async {
+    final wid = _wid;
+    final creates = [
+      for (final write in chunk)
+        if (write is ObjectCreate)
+          (
+            write: write,
+            schema: schemas[write.collectionId]!,
+            values: _encodeValues(
+              (write.object.toJson()['values'] as Map).cast<String, dynamic>(),
+              schemas[write.collectionId]!,
+            ),
+          ),
+    ];
+    await _reserveSequences(creates);
+
+    final createValues = {for (final c in creates) c.write: c.values};
+    final now = DateTime.now().toUtc().toIso8601String();
+    final batch = _db.batch();
+    for (final write in chunk) {
+      final ref = _refs.object(wid, write.id);
+      switch (write) {
+        case ObjectCreate(:final object):
+          batch.set(ref, {
+            'collectionId': object.collectionId,
+            'rev': 1,
+            'createdAt': object.createdAt.toUtc().toIso8601String(),
+            'updatedAt': object.updatedAt.toUtc().toIso8601String(),
+            'values': createValues[write],
+          });
+        case ObjectUpdate(:final collectionId, :final values):
+          // Only the touched keys, so concurrent edits to other fields stay.
+          // FieldPath, not a dotted string, so any field id is safe.
+          batch.update(ref, {
+            for (final e in _encodeValues(
+              values,
+              schemas[collectionId]!,
+            ).entries)
+              FieldPath(['values', e.key]): e.value,
+            'rev': FieldValue.increment(1),
+            'updatedAt': now,
+          });
+        case ObjectDelete():
+          batch.delete(ref);
+      }
+    }
+    await batch.commit();
+  }
+
+  /// Gives the [creates] that lack an auto-number one, reserving the whole
+  /// range in one transaction on the workspace counters (the same counters
+  /// and [allocateSequences] semantics as [saveObject]). Runs no transaction
+  /// when every number is already present.
+  Future<void> _reserveSequences(
+    List<({ObjectCreate write, Collection schema, Map<String, dynamic> values})>
+    creates,
+  ) async {
+    bool lacksNumber(Collection schema, Map<String, dynamic> values) => schema
+        .fields
+        .whereType<AutoNumberFieldDefinition>()
+        .any((f) => values[f.id] is! num);
+    if (!creates.any((c) => lacksNumber(c.schema, c.values))) return;
+
+    final workspaceRef = _refs.workspace(_wid);
+    // Computed inside the transaction and applied after it, so a retried
+    // transaction starts over from the fresh counters.
+    final assigned = await _db.runTransaction<List<Map<String, int>>>((
+      transaction,
+    ) async {
+      final workspace = (await transaction.get(workspaceRef)).data();
+      final stored = ((workspace?['counters'] as Map?) ?? const {})
+          .cast<String, Object?>();
+      final running = <String, Map<String, Object?>>{};
+      final result = <Map<String, int>>[];
+      for (final c in creates) {
+        final cid = c.write.collectionId;
+        final counters = running.putIfAbsent(
+          cid,
+          () => {...?(stored[cid] as Map?)?.cast<String, Object?>()},
+        );
+        final allocated = allocateSequences(c.schema, c.values, counters);
+        counters.addAll(allocated.counters);
+        result.add(allocated.assigned);
+      }
+      // The whole counters map, read in this transaction, so the write is
+      // right whether a merge is deep (Firestore) or shallow (the test fake).
+      transaction.set(workspaceRef, {
+        'counters': {
+          ...stored,
+          for (final e in running.entries)
+            if (e.value.isNotEmpty) e.key: e.value,
+        },
+      }, SetOptions(merge: true));
+      return result;
+    });
+    for (var i = 0; i < creates.length; i++) {
+      creates[i].values.addAll(assigned[i]);
+    }
+  }
+
+  @override
+  Future<void> updateCollection(
+    String id,
+    Collection Function(Collection server) apply,
+  ) async {
+    final ref = _refs.collection(_wid, id);
+    await _db.runTransaction<void>((transaction) async {
+      final data = (await transaction.get(ref)).data();
+      if (data == null) throw StateError('Collection $id does not exist.');
+      final updated = apply(_collectionFromData(id, data));
+      assert(updated.id == id, 'apply must keep the collection id');
+      transaction.set(ref, updated.toJson());
+    });
+  }
+
+  @override
+  Future<void> updateViews(
+    String collectionId,
+    List<ViewDefinition> Function(List<ViewDefinition> server) apply,
+  ) async {
+    final ref = _refs.collection(_wid, collectionId);
+    await _db.runTransaction<void>((transaction) async {
+      final data = (await transaction.get(ref)).data();
+      if (data == null) {
+        throw StateError('Collection $collectionId does not exist.');
+      }
+      // Parsed like every other reader, so the views are reconciled.
+      final server = _collectionFromData(collectionId, data);
+      transaction.update(ref, {
+        'views': [for (final v in apply(server.views)) v.toJson()],
+      });
+    });
   }
 
   @override

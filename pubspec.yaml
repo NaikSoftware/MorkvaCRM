@@ -40,16 +40,28 @@ dependencies:
   go_router: ^14.6.2
   google_fonts: ^6.2.1
   rxdart: ^0.28.0
+  # flutter_bloc's providers reject a Listenable (the assistant focus notifier).
+  provider: ^6.1.5+1
 
   # Firebase — Epic 2 (Cloud Firestore & Sync).
   firebase_core: ^4.10.0
-  firebase_auth: ^6.5.2
+  # firebase_auth 6.5.5 extends FirebasePlugin (core_platform_interface 8.x) but allows 7.x, which
+  # the firebase_storage pin keeps us on, so web builds fail. Stay below it until storage moves.
+  firebase_auth: ">=6.5.2 <6.5.5"
   cloud_firestore: ^6.5.0
   google_sign_in: ^7.2.0 # mobile only — guarded import, never on web
   firebase_storage: ">=13.4.2 <13.4.3" # pairs with firebase_core 4.10; newer pulls cloud_firestore past fake_cloud_firestore
   file_picker: ^13.3.2
   url_launcher: ^6.3.3
   mime: ^2.1.0
+  firebase_ai: ">=3.13.1 <3.14.0" # 3.14 needs firebase_auth ^6.5.5 (see above)
+
+  # Epic 8 (Ask Morkva): MockClient in tests and the Gemini client seam.
+  http: ^1.6.0
+  # firebase_ai's transitive App Check 0.4.5+1 extends FirebasePlugin (core_platform_interface 8.x)
+  # but allows 7.x, like firebase_auth 6.5.5: any firebase_ai import fails to compile. Pin until
+  # the Firebase stack moves to platform_interface 8.
+  firebase_app_check: 0.4.5
 
 dev_dependencies:
   flutter_test:
@@ -59,6 +71,7 @@ dev_dependencies:
   fake_cloud_firestore: ^4.1.1
   bloc_test: ^10.0.0
   mocktail: ^1.0.4
+  fake_async: ^1.3.3
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
