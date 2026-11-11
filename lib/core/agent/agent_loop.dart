@@ -284,7 +284,7 @@ final class AgentLoop {
     var maxRounds = _settings.maxRounds;
     for (var round = 1; round <= maxRounds; round++) {
       final last = round == maxRounds;
-      final mode = last ? LlmToolMode.none : LlmToolMode.auto;
+      final mode = last || t.answerOnly ? LlmToolMode.none : LlmToolMode.auto;
       final r = await _request(t, round, mode);
       t.usage += TokenUsage(
         promptTokens: r.promptTokens,
@@ -637,7 +637,8 @@ final class AgentLoop {
     final outcome = await gate.future;
     t
       ..gate = null
-      ..gatePlanId = null;
+      ..gatePlanId = null
+      ..answerOnly = true;
     if (outcome case Receipt(
       :final applied,
       :final queued,
@@ -925,6 +926,11 @@ final class _Turn {
 
   /// A plan of this turn was (at least partly) written.
   bool changed = false;
+
+  /// Set once the user answered this turn's preview: one preview per turn,
+  /// so the rounds after it may only answer in text (a rejected change must
+  /// not come straight back as a new preview).
+  bool answerOnly = false;
 
   /// Calls whose responses are not in the history yet.
   List<LlmCall>? pendingCalls;

@@ -587,6 +587,9 @@ void main() {
         'status': 'rejected',
         'reason': 'user',
       });
+      // One preview per turn: after the user's answer the model may only
+      // reply in text, so a rejected change cannot come straight back.
+      expect(llm.requests[1].toolMode, LlmToolMode.none);
       expect(events.last, isA<TurnDone>());
     });
 
