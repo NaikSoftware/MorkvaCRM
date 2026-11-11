@@ -316,14 +316,15 @@ class _AxisLabels extends StatelessWidget {
         for (var i = 0; i < points.length; i++) ...[
           if (i > 0) const SizedBox(width: Spacing.xs),
           Expanded(
-            // A long group label wraps once, then ellipsizes; hover shows
-            // it whole.
+            // A multi-word label wraps once at a space, then ellipsizes; a
+            // single word ellipsizes on one line rather than breaking
+            // mid-word ("Ordere / d"). Hover shows it whole.
             child: Tooltip(
               message: points[i].label,
               child: Text(
                 points[i].label,
                 textAlign: TextAlign.center,
-                maxLines: 2,
+                maxLines: points[i].label.trim().contains(' ') ? 2 : 1,
                 overflow: TextOverflow.ellipsis,
                 style: style,
               ),

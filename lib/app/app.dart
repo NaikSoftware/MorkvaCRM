@@ -26,8 +26,10 @@ import '../features/assistant/bloc/assistant_session.dart';
 import 'router/app_router.dart';
 
 /// App-wide scroll behavior: no colored overscroll glow (it clashed with the
-/// warm theme and read as an artifact), and trackpad/mouse drag-to-scroll
-/// enabled so the web build feels native.
+/// warm theme and read as an artifact). Touch, stylus and trackpad gestures
+/// drag-scroll; a mouse never does (owner, 2026-11-12): on desktop and web
+/// the wheel, the trackpad and scrollbars scroll, and a mouse drag selects
+/// text or moves cards instead.
 class AppScrollBehavior extends MaterialScrollBehavior {
   const AppScrollBehavior();
 
@@ -41,7 +43,6 @@ class AppScrollBehavior extends MaterialScrollBehavior {
   @override
   Set<PointerDeviceKind> get dragDevices => {
     PointerDeviceKind.touch,
-    PointerDeviceKind.mouse,
     PointerDeviceKind.trackpad,
     PointerDeviceKind.stylus,
   };

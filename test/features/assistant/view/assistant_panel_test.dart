@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/agent/agent_event.dart'
@@ -138,6 +139,59 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Jump to latest'), findsNothing);
       expect(find.text('Approve 3 changes'), findsOneWidget);
+    });
+
+    // Live web e2e (2026-11-12): small wheel/trackpad steps up from the
+    // bottom snapped straight back, because each step re-laid out lazy items
+    // while the list still counted as "at the bottom".
+    testWidgets('small wheel steps up from the bottom are not undone', (
+      tester,
+    ) async {
+      await pumpPanel(tester, FakeAssistantBloc.main(), actions: actions);
+      await tester.pumpAndSettle();
+      final list = find.byType(ListView);
+      final position = tester
+          .state<ScrollableState>(
+            find.descendant(of: list, matching: find.byType(Scrollable)).first,
+          )
+          .position;
+      final max = position.maxScrollExtent;
+      expect(position.pixels, max);
+
+      final at = tester.getCenter(list);
+      final pointer = TestPointer(1, PointerDeviceKind.mouse);
+      for (var i = 0; i < 6; i++) {
+        await tester.sendEventToBinding(pointer.hover(at));
+        await tester.sendEventToBinding(pointer.scroll(const Offset(0, -20)));
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      await tester.pumpAndSettle();
+
+      expect(position.pixels, lessThan(position.maxScrollExtent - 100));
+    });
+
+    testWidgets('a mouse wheel step glides instead of jumping', (tester) async {
+      await pumpPanel(tester, FakeAssistantBloc.main(), actions: actions);
+      await tester.pumpAndSettle();
+      final list = find.byType(ListView);
+      final position = tester
+          .state<ScrollableState>(
+            find.descendant(of: list, matching: find.byType(Scrollable)).first,
+          )
+          .position;
+      final start = position.pixels;
+
+      final pointer = TestPointer(1, PointerDeviceKind.mouse);
+      await tester.sendEventToBinding(pointer.hover(tester.getCenter(list)));
+      await tester.sendEventToBinding(pointer.scroll(const Offset(0, -200)));
+      await tester.pump(); // the glide's first frame
+      await tester.pump(const Duration(milliseconds: 40));
+      final mid = position.pixels;
+      await tester.pumpAndSettle();
+
+      expect(mid, lessThan(start));
+      expect(mid, greaterThan(start - 200), reason: 'animated, not a jump');
+      expect(position.pixels, moreOrLessEquals(start - 200, epsilon: 1));
     });
 
     testWidgets('Esc and the close button close it', (tester) async {

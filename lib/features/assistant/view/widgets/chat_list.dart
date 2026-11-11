@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import '../../../../design/design.dart';
 import '../../bloc/assistant_state.dart';
@@ -11,6 +12,7 @@ import 'object_chip.dart';
 import 'plan_card.dart';
 import 'result_chart_card.dart';
 import 'result_table_card.dart';
+import 'smooth_wheel_scroll.dart';
 import 'thinking_row.dart';
 import 'tool_steps.dart';
 import 'user_bubble.dart';
@@ -32,10 +34,19 @@ class ChatList extends StatefulWidget {
 }
 
 class _ChatListState extends State<ChatList> {
-  final _scroll = ScrollController();
+  final _scroll = SmoothWheelScrollController();
+
+  /// Follow new content. Cleared the moment the reader scrolls up (wheel,
+  /// trackpad, touch or scrollbar), set again once they are back at the
+  /// bottom. It is driven by the reader's intent, not by "within N px of the
+  /// bottom": small wheel steps used to count as still at the bottom, and the
+  /// next lazy re-layout snapped them straight back.
+  bool _stick = true;
+
+  /// Whether the list is at its bottom edge (drives "Jump to latest").
   bool _atBottom = true;
 
-  static const _stickSlack = 48.0;
+  static const _bottomSlack = 2.0;
 
   @override
   void initState() {
@@ -53,20 +64,29 @@ class _ChatListState extends State<ChatList> {
   void _onScroll() {
     if (!_scroll.hasClients) return;
     final p = _scroll.position;
-    final atBottom = p.pixels >= p.maxScrollExtent - _stickSlack;
+    final atBottom = p.pixels >= p.maxScrollExtent - _bottomSlack;
+    if (atBottom) _stick = true;
     if (atBottom != _atBottom) setState(() => _atBottom = atBottom);
   }
 
+  /// The reader moved the list towards older messages: stop following.
+  bool _onUserScroll(UserScrollNotification n) {
+    if (n.depth == 0 && n.direction == ScrollDirection.forward) {
+      _stick = false;
+    }
+    return false;
+  }
+
   void _toBottom() {
-    if (!mounted || !_scroll.hasClients) return;
+    if (!mounted || !_scroll.hasClients || !_stick) return;
     final max = _scroll.position.maxScrollExtent;
     if (_scroll.position.pixels != max) _scroll.jumpTo(max);
   }
 
   /// Content grew (a new item, a streaming delta, a lazily built row): stay
-  /// pinned to the bottom if the reader was there.
+  /// pinned to the bottom if the reader was following.
   bool _onMetrics(ScrollMetricsNotification n) {
-    if (_atBottom) {
+    if (_stick) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _toBottom());
     }
     return false;
@@ -76,6 +96,7 @@ class _ChatListState extends State<ChatList> {
     if (!_scroll.hasClients) return;
     final reduce = MediaQuery.disableAnimationsOf(context);
     final max = _scroll.position.maxScrollExtent;
+    _stick = true;
     if (reduce) {
       _scroll.jumpTo(max);
     } else {
@@ -101,39 +122,42 @@ class _ChatListState extends State<ChatList> {
       color: colors.canvas,
       child: Stack(
         children: [
-          NotificationListener<ScrollMetricsNotification>(
-            onNotification: _onMetrics,
-            child: ListView.builder(
-              controller: _scroll,
-              padding: scope.phone
-                  ? EdgeInsets.fromLTRB(
-                      Spacing.md,
-                      Spacing.md,
-                      Spacing.md,
-                      Spacing.md + widget.bottomInset,
-                    )
-                  : EdgeInsets.fromLTRB(18, 18, 18, 8 + widget.bottomInset),
-              itemCount: count,
-              // Keys sit on the builder's top-level child, so a card's state
-              // follows its item id if items ever move.
-              findChildIndexCallback: (key) {
-                if (key is! ValueKey<String>) return null;
-                final i = items.indexWhere((it) => it.id == key.value);
-                return i < 0 ? null : i;
-              },
-              itemBuilder: (context, i) {
-                final thinkingRow = i == items.length;
-                final child = thinkingRow
-                    ? const ThinkingRow()
-                    : ChatItemView(item: items[i], state: state);
-                return Padding(
-                  key: thinkingRow
-                      ? const ValueKey(#thinking)
-                      : ValueKey(items[i].id),
-                  padding: EdgeInsets.only(top: i == 0 ? 0 : _gap(items, i)),
-                  child: child,
-                );
-              },
+          NotificationListener<UserScrollNotification>(
+            onNotification: _onUserScroll,
+            child: NotificationListener<ScrollMetricsNotification>(
+              onNotification: _onMetrics,
+              child: ListView.builder(
+                controller: _scroll,
+                padding: scope.phone
+                    ? EdgeInsets.fromLTRB(
+                        Spacing.md,
+                        Spacing.md,
+                        Spacing.md,
+                        Spacing.md + widget.bottomInset,
+                      )
+                    : EdgeInsets.fromLTRB(18, 18, 18, 8 + widget.bottomInset),
+                itemCount: count,
+                // Keys sit on the builder's top-level child, so a card's state
+                // follows its item id if items ever move.
+                findChildIndexCallback: (key) {
+                  if (key is! ValueKey<String>) return null;
+                  final i = items.indexWhere((it) => it.id == key.value);
+                  return i < 0 ? null : i;
+                },
+                itemBuilder: (context, i) {
+                  final thinkingRow = i == items.length;
+                  final child = thinkingRow
+                      ? const ThinkingRow()
+                      : ChatItemView(item: items[i], state: state);
+                  return Padding(
+                    key: thinkingRow
+                        ? const ValueKey(#thinking)
+                        : ValueKey(items[i].id),
+                    padding: EdgeInsets.only(top: i == 0 ? 0 : _gap(items, i)),
+                    child: child,
+                  );
+                },
+              ),
             ),
           ),
           if (!_atBottom)

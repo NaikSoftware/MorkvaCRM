@@ -386,6 +386,10 @@ void main() {
         tester.renderObject<RenderParagraph>(label).didExceedMaxLines,
         isFalse,
       );
+      // One word never breaks mid-word ("Ordere / d"): it ellipsizes on a
+      // single line (seen in the live web chat, 2026-11-12).
+      expect(tester.widget<Text>(find.text('Ordered')).maxLines, 1);
+      expect(tester.widget<Text>(find.text('Shipped')).maxLines, 1);
       // A tie singles out no bar, but every bar keeps its height.
       expect(find.text('3'), findsNothing);
       expect(find.bySemanticsLabel(RegExp('peak')), findsNothing);
