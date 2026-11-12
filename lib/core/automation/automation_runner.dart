@@ -691,12 +691,7 @@ final class AutomationRunner implements AutomationRunnerApi {
     final consent = await stores.grants.get(uid, a.moduleId);
     if (epoch != _epoch) return;
     run.module = module;
-    run.apply =
-        a.apply == ApplyMode.auto &&
-            a.autoBy == uid &&
-            consent?.autoApply == true
-        ? ApplyMode.auto
-        : ApplyMode.ask;
+    run.apply = _effectiveApply(a, consent);
     final manifest = module?.manifest;
     final skip = switch (module == null || manifest == null
         ? ModuleStatus.broken
@@ -1125,6 +1120,15 @@ final class AutomationRunner implements AutomationRunnerApi {
     );
   }
 
+  /// Auto only when the automation asks for it, its author is this user
+  /// and the module's consent allows it.
+  ApplyMode _effectiveApply(AutomationRecord a, GrantRecord? consent) =>
+      a.apply == ApplyMode.auto &&
+          a.autoBy == _uid &&
+          consent?.autoApply == true
+      ? ApplyMode.auto
+      : ApplyMode.ask;
+
   /// A skip row of an event that never became a queued run.
   RunRecord _skipRecord(
     AutomationRecord a,
@@ -1143,7 +1147,7 @@ final class AutomationRunner implements AutomationRunnerApi {
       depth: lineage?.depth ?? 1,
       chain: lineage?.chain ?? [a.id],
       parentRunId: parentRunId,
-    );
+    )..apply = _effectiveApply(a, _consents[a.moduleId]);
     final now = _now();
     return _base(
       run,

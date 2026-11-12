@@ -1015,6 +1015,9 @@ void main() {
       expect(b.status, RunStatus.succeeded);
       expect(b.depth, 2);
       expect(b.chain, ['a_A', 'a_B']);
+      // The skip row reads the automation's policy, not the "ask" default.
+      expect(b.apply, ApplyMode.auto);
+      expect(loop.apply, ApplyMode.auto);
       expect(rig.engine.sessions, hasLength(2));
     });
 
