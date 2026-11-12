@@ -267,6 +267,35 @@ void main() {
       );
     });
 
+    testWidgets('a refused Run again shows in the error tone', (tester) async {
+      // Web e2e 2026-11-12: Run again offline said "You are offline.
+      // Nothing was changed." in the green success banner.
+      await open(tester, object: _order());
+      rig.runner.finish(
+        liveRun('run_1', status: RunStatus.failed, reason: RunReason.offline),
+      );
+      await tester.pumpAndSettle();
+      rig.runner.failNext = const AutomationRefused(
+        'offline',
+        'You are offline. Nothing was changed.',
+      );
+      await tester.tap(find.text('Run again'));
+      await tester.pumpAndSettle();
+
+      final banner = find.byKey(const ValueKey('run-banner'));
+      expect(
+        find.descendant(
+          of: banner,
+          matching: find.textContaining('You are offline', findRichText: true),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: banner, matching: find.byIcon(Icons.error_outline)),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('a button run of this card waits: the review sheet opens '
         'above the editor', (tester) async {
       await open(tester, object: _order());

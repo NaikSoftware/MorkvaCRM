@@ -272,6 +272,7 @@ class _ObjectEditorState extends State<ObjectEditor> {
   /// The finished run the banner tells about, or a refused press.
   RunView? _run;
   String? _runMessage;
+  bool _runMessageError = true;
   final Map<String, GlobalKey> _keys = {};
   late final Set<String> _collapsed = {
     for (final s
@@ -317,11 +318,13 @@ class _ObjectEditorState extends State<ObjectEditor> {
     if (runId == null && mounted) _showRunMessage(runs.state.error);
   }
 
-  void _showRunMessage(String? message) {
+  /// A refusal (the default) shows in the error tone, never as a success.
+  void _showRunMessage(String? message, {bool error = true}) {
     if (message == null) return;
     setState(() {
       _run = null;
       _runMessage = message;
+      _runMessageError = error;
     });
   }
 
@@ -375,7 +378,9 @@ class _ObjectEditorState extends State<ObjectEditor> {
     switch (action) {
       case NoticeAction.undo:
         if (await runs.undo(run.runId)) {
-          if (mounted) _showRunMessage('${run.label} · Reverted');
+          if (mounted) {
+            _showRunMessage('${run.label} · Reverted', error: false);
+          }
         } else if (mounted) {
           _showRunMessage(runs.state.error);
         }
@@ -395,7 +400,7 @@ class _ObjectEditorState extends State<ObjectEditor> {
     if (run == null && message == null) return null;
     return _RunBanner(
       copy: run == null
-          ? (text: message!, actions: const [], error: false)
+          ? (text: message!, actions: const [], error: _runMessageError)
           : runNoticeCopy(run),
       compact: widget.compact,
       onAction: run == null ? null : (a) => _onNoticeAction(a, run),
