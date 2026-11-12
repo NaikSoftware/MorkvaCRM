@@ -785,7 +785,7 @@ ButtonView? _loudest(Iterable<ButtonView> views) {
 
 /// **More ▾**: the buttons that didn't fit (Stop under a live one), with the
 /// state of the busiest one on its face.
-class _MoreButton extends StatelessWidget {
+class _MoreButton extends StatefulWidget {
   const _MoreButton({
     required this.views,
     required this.iconOnly,
@@ -804,7 +804,18 @@ class _MoreButton extends StatelessWidget {
       loud != null && loud.busy ? liveRunLabel(loud.run!) : 'More';
 
   @override
+  State<_MoreButton> createState() => _MoreButtonState();
+}
+
+class _MoreButtonState extends State<_MoreButton> {
+  /// The rows as the menu opened. A run ending while it is open drops its
+  /// Stop row; the rows below moved up and a stale tap started another
+  /// action (web e2e 2026-11-12), so the rows stay put until it closes.
+  List<ButtonView>? _opened;
+
+  @override
   Widget build(BuildContext context) {
+    final views = widget.views;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final loud = _loudest(views);
@@ -838,20 +849,31 @@ class _MoreButton extends StatelessWidget {
     final said = loud == null
         ? 'More actions'
         : 'More actions, ${loud.label} ${_stateWord(loud)}';
+    // A row shows its automation as it stands now (it may have moved to the
+    // header); a Stop row whose run ended stays, disabled.
+    ButtonView now(ButtonView was) =>
+        views
+            .where((v) => v.entry.automation.id == was.entry.automation.id)
+            .firstOrNull ??
+        was;
     return MenuAnchor(
+      onOpen: () => _opened = views,
+      onClose: () => _opened = null,
       menuChildren: [
-        for (final v in views) ...[
+        for (final (was, v) in [
+          for (final was in _opened ?? views) (was, now(was)),
+        ]) ...[
           MenuItemButton(
             leadingIcon: _ButtonIcon(view: v, color: scheme.onSurface),
-            onPressed: () => onPressed(v),
+            onPressed: () => widget.onPressed(v),
             child: Text(
               v.busy ? '${v.label} · ${liveRunLabel(v.run!)}' : v.label,
             ),
           ),
-          if (v.busy)
+          if (was.busy)
             MenuItemButton(
               leadingIcon: const Icon(Icons.stop_circle_outlined),
-              onPressed: () => onStop(v.run!.runId),
+              onPressed: v.busy ? () => widget.onStop(v.run!.runId) : null,
               child: Text('Stop ${v.label}'),
             ),
         ],
@@ -882,8 +904,11 @@ class _MoreButton extends StatelessWidget {
                       SizedBox(width: 18, height: 18, child: state),
                       const SizedBox(width: Spacing.xs),
                     ],
-                    if (!iconOnly) ...[
-                      Text(textOf(loud), style: theme.textTheme.labelLarge),
+                    if (!widget.iconOnly) ...[
+                      Text(
+                        _MoreButton.textOf(loud),
+                        style: theme.textTheme.labelLarge,
+                      ),
                       const SizedBox(width: Spacing.xxs),
                     ],
                     Icon(

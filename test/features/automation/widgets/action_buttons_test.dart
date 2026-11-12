@@ -211,6 +211,44 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
+    // Web e2e 2026-11-12: a run ending while More was open dropped its Stop
+    // row, the rows below moved up, and a stale tap started another action.
+    testWidgets('an open More keeps its rows when a run under it ends', (
+      tester,
+    ) async {
+      await rig.setUp(automations: three);
+      addTearDown(rig.dispose);
+      rig.runner.activity = RunActivity(
+        runs: [
+          liveRun(
+            'run_1',
+            automationId: 'a_draft',
+            label: 'Draft thank-you',
+            progress: const RunProgress(done: 1, total: 3),
+          ),
+        ],
+      );
+      await pump(tester, headerWidth: 600);
+      expect(find.text('Flag low stock'), findsNothing);
+      await tester.tap(find.text('Running… 1/3'));
+      await tester.pump(const Duration(milliseconds: 300));
+      final stopAt = tester.getCenter(find.text('Stop Draft thank-you'));
+      final flagAt = tester.getCenter(find.text('Flag low stock'));
+
+      rig.runner.activity = RunActivity.idle;
+      await tester.pump();
+      await tester.pump();
+
+      // The ended run's Stop row stays, disabled: nothing starts.
+      await tester.tapAt(stopAt);
+      await tester.pump();
+      expect(rig.runner.methods, isNot(contains('pressCard')));
+
+      await tester.tapAt(flagAt);
+      await tester.pumpAndSettle();
+      expect(argsOf('pressCard'), ['a_flag', 'b_1042']);
+    });
+
     testWidgets('review under More: More says so with the amber dot', (
       tester,
     ) async {
