@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/domain/automation/automation.dart';
 import '../../../design/design.dart';
 import '../../assistant/view/widgets/dashed_border.dart';
 import '../bloc/modules_cubit.dart';
@@ -50,7 +51,24 @@ class _ImportSheetState extends State<ImportSheet> {
   );
 
   Future<void> _choose() async {
-    final file = await widget.pickFile();
+    final ({String name, String text})? file;
+    try {
+      file = await widget.pickFile();
+    } on Object {
+      // The browser refused to read the picked file (moved, or no access).
+      if (mounted) {
+        setState(
+          () => _result = const ImportPreview.problems([
+            AutomationProblem(
+              '',
+              'unreadable',
+              "Couldn't read that file. Choose it again, or paste it.",
+            ),
+          ]),
+        );
+      }
+      return;
+    }
     if (file == null || !mounted) return;
     _fileName = file.name;
     _fileText = file.text;

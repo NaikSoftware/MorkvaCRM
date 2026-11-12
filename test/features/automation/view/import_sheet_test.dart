@@ -17,6 +17,7 @@ void main() {
   Future<List<ImportPreview?>> open(
     WidgetTester tester, {
     Size size = wideWindow,
+    Future<({String name, String text})?> Function()? pickFile,
   }) async {
     setWindow(tester, size);
     final result = <ImportPreview?>[];
@@ -28,7 +29,7 @@ void main() {
               await showImportSheet(
                 context,
                 preview: rig.modules.previewImport,
-                pickFile: rig.host.pickModuleFile,
+                pickFile: pickFile ?? rig.host.pickModuleFile,
               ),
             ),
             child: const Text('open'),
@@ -94,6 +95,20 @@ void main() {
     );
     expect(find.textContaining('replaces it with v1.1.0'), findsOneWidget);
     expect(continueButton(tester).onPressed, isNotNull);
+  });
+
+  testWidgets('a file the browser cannot read says so, nothing uncaught', (
+    tester,
+  ) async {
+    await open(
+      tester,
+      pickFile: () async => throw StateError('TypeError: Failed to fetch'),
+    );
+    await tester.tap(find.text('Choose file'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.textContaining("Couldn't read that file."), findsOneWidget);
+    expect(continueButton(tester).onPressed, isNull);
   });
 
   testWidgets('phone: no drop zone, only the button', (tester) async {

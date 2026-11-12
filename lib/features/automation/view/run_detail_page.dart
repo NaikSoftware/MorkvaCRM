@@ -912,9 +912,13 @@ class _ErrorFill extends StatelessWidget {
       : DecoratedBox(
           key: const ValueKey('step-error-fill'),
           decoration: BoxDecoration(
-            color: Theme.of(
-              context,
-            ).colorScheme.errorContainer.withValues(alpha: 0.3),
+            // A wash, not the container: dark's errorContainer is a
+            // saturated red.
+            color: Theme.of(context).colorScheme.errorContainer.withValues(
+              alpha: Theme.of(context).brightness == Brightness.dark
+                  ? 0.2
+                  : 0.3,
+            ),
             borderRadius: Radii.lgAll,
           ),
           child: child,
