@@ -89,6 +89,13 @@ Map<String, Object?> encodeChatItem(ChatItem item) => {
       'undoState': item.undoState.name,
       'undoNote': ?item.undoNote,
       if (item.undoSessionOnly) 'undoSessionOnly': true,
+      if (item.startedRuns > 0) 'startedRuns': item.startedRuns,
+    },
+    // The log stays out: a test run's calls and console are session-only.
+    TestRunItem(:final result) => {
+      'type': 'testRun',
+      'title': item.title,
+      'result': {...result.toJson()}..remove('log'),
     },
     ErrorItem() => {
       'type': 'error',
@@ -225,6 +232,13 @@ ChatItem? _decode(Map<String, Object?> json) {
             : undoState,
         undoNote: json['undoNote'] as String?,
         undoSessionOnly: json['undoSessionOnly'] == true,
+        startedRuns: (json['startedRuns'] as num?)?.toInt() ?? 0,
+      );
+    case 'testRun':
+      return TestRunItem(
+        id: id,
+        title: _str(json, 'title'),
+        result: testRunResultFromJson(_map(json['result'], 'result')),
       );
     case 'error':
       return ErrorItem(

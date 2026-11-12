@@ -16,8 +16,16 @@ import '../api/assistant/thread_repository.dart';
 // barrel (it exposes only the contracts), so import them directly for the
 // production defaults.
 import '../api/auth/firestore_auth_repository.dart';
+import '../api/automation/firestore_automation_store.dart';
+import '../api/automation/firestore_docs.dart';
+import '../api/automation/firestore_grant_store.dart';
+import '../api/automation/firestore_module_store.dart';
+import '../api/automation/firestore_run_store.dart';
 import '../api/data/firestore_data_repository.dart';
 import '../api/files/firebase_attachment_store.dart';
+import '../core/automation/store_catalog.dart';
+import '../core/domain/automation/automation.dart';
+import '../core/harness/session/harness_session.dart';
 import '../design/design.dart';
 import '../features/assistant/bloc/assistant_bloc.dart';
 import '../features/assistant/bloc/assistant_focus.dart';
@@ -68,6 +76,7 @@ class MorkvaApp extends StatefulWidget {
     this.attachmentStore,
     this.threadRepository,
     this.assistantConfigRepository,
+    this.automationStores,
   });
 
   /// Auth backend; defaults to [FirestoreAuthRepository].
@@ -93,6 +102,10 @@ class MorkvaApp extends StatefulWidget {
   /// Ask Morkva's config, feature flag and consent; defaults to one over
   /// `FirebaseFirestore.instance`.
   final AssistantConfigRepository? assistantConfigRepository;
+
+  /// Modules, automations, runs and consents; defaults to the Firestore
+  /// stores over `FirebaseFirestore.instance`.
+  final AutomationStores? automationStores;
 
   @override
   State<MorkvaApp> createState() => _MorkvaAppState();
@@ -121,10 +134,41 @@ class _MorkvaAppState extends State<MorkvaApp> {
       widget.threadRepository ??
       FirestoreThreadRepository(firestore: FirebaseFirestore.instance);
 
+  /// Shared by the default stores; null when they are injected.
+  late final AutomationWorkspace? _automationWorkspace =
+      widget.automationStores == null
+      ? AutomationWorkspace(firestore: FirebaseFirestore.instance)
+      : null;
+
+  late final AutomationStores _automationStores =
+      widget.automationStores ?? _firestoreStores(_automationWorkspace!);
+
+  static AutomationStores _firestoreStores(AutomationWorkspace workspace) =>
+      AutomationStores(
+        modules: FirestoreModuleStore(workspace),
+        automations: FirestoreAutomationStore(workspace),
+        runs: FirestoreRunStore(workspace),
+        grants: FirestoreGrantStore(workspace),
+      );
+
+  /// The one harness the assistant and the automation runner share.
+  late final HarnessSession _harness = HarnessSession(
+    repository: _dataRepository,
+    // Consents belong to the signed-in member.
+    catalog: StoreAutomationCatalog(
+      _automationStores,
+      uid: () => switch (_authCubit.state) {
+        AuthAuthenticated(:final user) => user.uid,
+        _ => null,
+      },
+    ),
+    isOnline: () => _syncStatusCubit.state is! SyncOffline,
+  );
+
   /// Ask Morkva for the signed-in member: always provided, bound per
   /// workspace in [_onAuthChanged].
   late final AssistantSession _assistant = AssistantSession(
-    dataRepository: _dataRepository,
+    harnessSession: _harness,
     threads: _threads,
     config:
         widget.assistantConfigRepository ??
@@ -169,6 +213,7 @@ class _MorkvaAppState extends State<MorkvaApp> {
             await _dataRepository.dispose();
             return;
           }
+          _automationWorkspace?.initialize(workspaceId: workspaceId);
           await _assistant.initialize(workspaceId, user: user);
           _sessionReady.value = true;
 

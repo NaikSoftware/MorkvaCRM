@@ -12,14 +12,21 @@ import 'package:morkva_crm/api/assistant/assistant_config_repository.dart';
 import 'package:morkva_crm/api/assistant/firestore_thread_repository.dart';
 import 'package:morkva_crm/api/assistant/thread_repository.dart';
 import 'package:morkva_crm/api/auth/auth_user.dart';
+import 'package:morkva_crm/api/sync/sync_status.dart';
 import 'package:morkva_crm/api/sync/sync_status_cubit.dart';
 import 'package:morkva_crm/core/agent/llm_client.dart';
+import 'package:morkva_crm/core/automation/store_catalog.dart';
+import 'package:morkva_crm/core/domain/automation/automation.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
+import 'package:morkva_crm/core/harness/session/harness_session.dart';
 import 'package:morkva_crm/features/assistant/bloc/assistant_bloc.dart';
 import 'package:morkva_crm/features/assistant/bloc/assistant_session.dart';
 import 'package:morkva_crm/features/assistant/bloc/assistant_state.dart';
 import 'package:morkva_crm/features/assistant/bloc/chat_item.dart';
 
+import '../../../automation/fakes/fake_runner.dart';
+import '../../../automation/fakes/fake_stores.dart';
+import '../../../core/domain/automation/fixtures.dart';
 import '../../../core/agent/fake_llm_client.dart';
 import '../../../core/harness/fixtures/seed_workspace.dart';
 import '../../collections/fake_data_repository.dart';
@@ -82,8 +89,14 @@ final class AssistantRig {
     repo = repository ?? this.seed.repository();
     final store = FirestoreThreadRepository(firestore: this.firestore);
     this.threads = threads?.call(store) ?? store;
+    harness = HarnessSession(
+      repository: repo,
+      catalog: StoreAutomationCatalog(stores.stores, uid: () => user.uid)
+        ..hooks = runner,
+      isOnline: () => sync.state is! SyncOffline,
+    );
     session = AssistantSession(
-      dataRepository: repo,
+      harnessSession: harness,
       threads: this.threads,
       config: AssistantConfigRepository(
         firestore: this.firestore,
@@ -91,6 +104,7 @@ final class AssistantRig {
       ),
       syncStatus: sync,
       llmFactory: () => llm,
+      runsStarted: runsStarted.stream,
       now: () => clock,
     );
   }
@@ -101,6 +115,16 @@ final class AssistantRig {
   final ScriptedLlm llm;
   late final ThreadRepository threads;
   final SyncStatusCubit sync = SyncStatusCubit();
+
+  /// Modules, automations, runs and consents behind the shared harness.
+  final FakeStores stores = FakeStores();
+
+  /// The runner's hooks (`modules.testRun`, `lastChecks`).
+  final FakeRunner runner = FakeRunner();
+
+  /// What the runner would report: the root commit id of each started run.
+  final StreamController<String> runsStarted = StreamController.broadcast();
+  late final HarnessSession harness;
   late final AssistantSession session;
 
   /// The clock everything reads (the seed's "today", mid-afternoon).
@@ -149,6 +173,36 @@ final class AssistantRig {
     );
   }
 
+  /// Installs [code] under the stamp manifest with the member's consent
+  /// to it (on Orders), so the module is `ok`.
+  Future<ModuleRecord> install({
+    String code = '(() => { morkva.action("stamp", async () => "ok"); })();',
+  }) async {
+    final bundle = ModuleBundle.of(stampManifest(), code);
+    final module = ModuleRecord.fromBundle(
+      bundle,
+      source: ModuleSource.import,
+      createdBy: 'user:${user.uid}',
+      now: fixtureNow,
+    );
+    await stores.modules.save(module);
+    await stores.grants.save(
+      user.uid,
+      GrantRecord(
+        moduleId: module.id,
+        codeHash: module.bundleHash,
+        version: module.version,
+        codeBytes: module.codeBytes,
+        caps: bundle.manifest.capabilities,
+        collections: const [SeedIds.orders],
+        autoApply: false,
+        grantedAt: fixtureNow,
+        via: GrantVia.consentSheet,
+      ),
+    );
+    return module;
+  }
+
   /// Lets repository emissions and pending writes settle.
   Future<void> settle() async {
     for (var i = 0; i < 10; i++) {
@@ -188,6 +242,8 @@ final class AssistantRig {
 
   Future<void> dispose() async {
     await session.dispose();
+    await runsStarted.close();
+    await stores.dispose();
     await sync.close();
   }
 }

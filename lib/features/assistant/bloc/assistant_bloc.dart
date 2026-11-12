@@ -9,6 +9,7 @@ import '../../../api/assistant/assistant_config.dart';
 import '../../../api/assistant/assistant_config_repository.dart';
 import '../../../api/assistant/message_size_guard.dart';
 import '../../../api/assistant/thread_repository.dart';
+import '../../../api/data/data_repository.dart' show WriteKind, WriteOrigin;
 import '../../../core/agent/agent_event.dart';
 import '../../../core/agent/agent_loop.dart';
 import '../../../core/agent/history_compactor.dart';
@@ -51,6 +52,7 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
     Stream<bool>? online,
     bool initiallyOnline = true,
     void Function(AssistantConfig config)? onConfig,
+    Stream<String>? runsStarted,
     DateTime Function()? now,
   }) : _loop = agentLoop,
        _harness = harness,
@@ -70,6 +72,7 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
       },
     );
     _onlineSub = online?.distinct().listen((o) => add(_SyncChanged(o)));
+    _runsSub = runsStarted?.listen((commitId) => add(_RunStarted(commitId)));
   }
 
   /// Turns of a restored thread replayed into the model.
@@ -90,6 +93,7 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
   final DateTime Function() _now;
 
   StreamSubscription<bool>? _onlineSub;
+  StreamSubscription<String>? _runsSub;
   StreamSubscription<AssistantConfig>? _configSub;
 
   String? _workspaceId;
@@ -186,6 +190,9 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
         }),
         _UndoTick() => _sync(() => _onTick(emit)),
         _SaveFailed() => _sync(() => emit(state.copyWith(saveFailed: true))),
+        _RunStarted(:final commitId) => _sync(
+          () => _onRunStarted(commitId, emit),
+        ),
         _SessionReset() => _sync(() => _onReset(emit)),
       };
 
@@ -419,6 +426,18 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
         _onStepFinished(turn, event, emit);
       case ResultPresented():
         await _onResult(turn, event, emit);
+      case TestRunShown(:final title, :final result):
+        _closeText(turn, emit);
+        try {
+          final run = testRunResultFromJson(result);
+          _append(
+            turn,
+            TestRunItem(id: turn.mint(), title: title, result: run),
+            emit,
+          );
+        } on FormatException catch (error) {
+          _log('Test-run result not shown', error);
+        }
       case ObjectChipShown():
         _closeText(turn, emit);
         _append(
@@ -1055,7 +1074,9 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
       applied.copyWith(undoState: UndoState.undoing, clearUndoNote: true),
       emit,
     );
-    final response = await _host('journal.undo', {'journalId': journalId});
+    final response = await _host('journal.undo', {
+      'journalId': journalId,
+    }, origin: _undoOrigin);
     final current = _find<AppliedItem>(applied.id) ?? applied;
     final AppliedItem next;
     var settled = true;
@@ -1400,7 +1421,9 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
     }
     if (_liveJournals.contains(journalId)) return item;
     if (mirror == null || mirror['journalId'] != journalId) return expired();
-    final response = await _host('journal.restore', {'entry': mirror});
+    final response = await _host('journal.restore', {
+      'entry': mirror,
+    }, origin: _undoOrigin);
     if (response case HarnessOk(:final result)) {
       _liveJournals.add(journalId);
       final restoredUntil = DateTime.tryParse('${result['expiresAt']}');
@@ -1610,6 +1633,17 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
     );
   }
 
+  /// An automation run started from the writes of plan [commitId]: the
+  /// thread's applied card for it counts one more.
+  void _onRunStarted(String commitId, Emitter<AssistantState> emit) {
+    for (final item in state.items.reversed) {
+      if (item is AppliedItem && item.receipt.planId == commitId) {
+        _replace(item.copyWith(startedRuns: item.startedRuns + 1), emit);
+        return;
+      }
+    }
+  }
+
   // ---------------------------------------------------------------- helpers
 
   /// Calls host op [op] as the signed-in user: the only user-actor context
@@ -1618,6 +1652,7 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
     String op,
     Map<String, Object?> args, {
     Sink<HarnessEvent>? events,
+    WriteOrigin origin = _planOrigin,
   }) {
     if (_uid == null) {
       return Future.value(
@@ -1631,11 +1666,22 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
     }
     return _harness.call(
       HarnessRequest(op: op, args: args, callId: 'h.${++_hostCalls}'),
-      _userContext(events: events),
+      _userContext(events: events, origin: origin),
     );
   }
 
-  HarnessContext _userContext({Sink<HarnessEvent>? events}) {
+  /// What the assistant's commits (and retries) write as; the committer
+  /// keys them by the plan id.
+  static const WriteOrigin _planOrigin = WriteOrigin(
+    kind: WriteKind.plan,
+    actor: 'agent:assistant',
+  );
+  static const WriteOrigin _undoOrigin = WriteOrigin(kind: WriteKind.undo);
+
+  HarnessContext _userContext({
+    Sink<HarnessEvent>? events,
+    WriteOrigin origin = _planOrigin,
+  }) {
     final now = _now();
     return HarnessContext(
       workspaceId: _workspaceId ?? '',
@@ -1645,6 +1691,7 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
       today: now,
       timeZoneName: _loop.timeZoneName,
       events: events,
+      origin: origin,
     );
   }
 
@@ -1695,6 +1742,7 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
     undoState: undoState ?? item.undoState,
     undoNote: item.undoNote,
     undoSessionOnly: item.undoSessionOnly,
+    startedRuns: item.startedRuns,
   );
 
   /// [text]'s first sentence, cut at a word to [titleLength] with "…".
@@ -1726,6 +1774,7 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
   Future<void> close() async {
     _tick?.cancel();
     await _onlineSub?.cancel();
+    await _runsSub?.cancel();
     await _configSub?.cancel();
     if (_turn case final turn?) {
       turn.dead = true;
