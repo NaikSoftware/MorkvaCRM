@@ -89,7 +89,12 @@ final class AutomationEntry extends Equatable {
           automation: a,
           module: byId[a.moduleId],
           status: automationStatusOf(a, byId[a.moduleId]?.status),
-          apply: effectiveApplyOf(a, byId[a.moduleId]?.consent, uid: uid),
+          apply: effectiveApplyOf(
+            a,
+            byId[a.moduleId]?.consent,
+            uid: uid,
+            module: byId[a.moduleId]?.status,
+          ),
         ),
     ],
   );
@@ -231,11 +236,12 @@ final class ModulesState extends Equatable {
   ];
 
   ModulesState copyWith({
+    bool? loading,
     List<ModuleEntry>? modules,
     List<AutomationEntry>? automations,
     String? Function()? error,
   }) => ModulesState(
-    loading: false,
+    loading: loading ?? this.loading,
     modules: modules ?? this.modules,
     automations: automations ?? this.automations,
     error: error == null ? this.error : error(),
@@ -263,9 +269,14 @@ class ModulesCubit extends Cubit<ModulesState> {
           (m, a, g) => joinEntries(m, a, g, uid: uid),
         ).listen(
           (e) => emit(
-            state.copyWith(modules: e.modules, automations: e.automations),
+            state.copyWith(
+              loading: false,
+              modules: e.modules,
+              automations: e.automations,
+            ),
           ),
-          onError: (Object e) => emit(state.copyWith(error: () => '$e')),
+          onError: (Object e) =>
+              emit(state.copyWith(loading: false, error: () => '$e')),
         );
   }
 

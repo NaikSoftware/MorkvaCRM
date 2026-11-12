@@ -123,22 +123,50 @@ void main() {
     test('effective apply: Auto only by this uid with the consent on', () {
       final auto = automation(apply: ApplyMode.auto, autoBy: 'u1');
       expect(
-        effectiveApplyOf(automation(), consent(), uid: 'u1'),
+        effectiveApplyOf(
+          automation(),
+          consent(),
+          uid: 'u1',
+          module: ModuleStatus.ok,
+        ),
         EffectiveApply.ask,
       );
       expect(
-        effectiveApplyOf(auto, consent(autoApply: true), uid: 'u1'),
+        effectiveApplyOf(
+          auto,
+          consent(autoApply: true),
+          uid: 'u1',
+          module: ModuleStatus.ok,
+        ),
         EffectiveApply.auto,
       );
       expect(
-        effectiveApplyOf(auto, consent(), uid: 'u1'),
+        effectiveApplyOf(auto, consent(), uid: 'u1', module: ModuleStatus.ok),
         EffectiveApply.autoOff,
       );
       expect(
-        effectiveApplyOf(auto, consent(autoApply: true), uid: 'u2'),
+        effectiveApplyOf(
+          auto,
+          consent(autoApply: true),
+          uid: 'u2',
+          module: ModuleStatus.ok,
+        ),
         EffectiveApply.autoOff,
       );
-      expect(effectiveApplyOf(auto, null, uid: 'u1'), EffectiveApply.autoOff);
+      expect(
+        effectiveApplyOf(auto, null, uid: 'u1', module: ModuleStatus.ok),
+        EffectiveApply.autoOff,
+      );
+      // An auto-apply consent to code that was since replaced.
+      expect(
+        effectiveApplyOf(
+          auto,
+          consent(autoApply: true),
+          uid: 'u1',
+          module: ModuleStatus.needsConsent,
+        ),
+        EffectiveApply.autoOff,
+      );
     });
   });
 }

@@ -343,14 +343,19 @@ ChipCopy applyChip(EffectiveApply apply) => switch (apply) {
   ),
 };
 
-/// Auto only when stored Auto, by [uid], and [consent] still allows it.
+/// Auto only when stored Auto, by [uid], and [consent] still allows it for
+/// the module as it is ([module] `ok`: an old consent to replaced code keeps
+/// `autoApply` but no longer counts).
 EffectiveApply effectiveApplyOf(
   AutomationRecord automation,
   GrantRecord? consent, {
   required String uid,
+  required ModuleStatus? module,
 }) {
   if (automation.apply == ApplyMode.ask) return EffectiveApply.ask;
-  return automation.autoBy == uid && (consent?.autoApply ?? false)
+  return automation.autoBy == uid &&
+          module == ModuleStatus.ok &&
+          (consent?.autoApply ?? false)
       ? EffectiveApply.auto
       : EffectiveApply.autoOff;
 }

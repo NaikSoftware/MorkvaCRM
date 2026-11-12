@@ -286,6 +286,15 @@ void main() {
       await cubit.close();
     });
 
+    test('a filter set before the first runs keeps it loading', () async {
+      final cubit = build();
+      cubit.setFilter(const RunFilter(kind: RunFilterKind.failed));
+      expect(cubit.state.loading, isTrue);
+      await settle();
+      expect(cubit.state.loading, isFalse);
+      await cubit.close();
+    });
+
     test('running now: live runs, reviews left out', () async {
       final cubit = build();
       runner.activity = RunActivity(

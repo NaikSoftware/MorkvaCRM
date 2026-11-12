@@ -64,12 +64,23 @@ final class ReviewSheetState extends Equatable {
   /// The header line: "Module · Stamp shipped date (stamp-shipped-date) ·
   /// Stamp when shipped".
   String? get provenance {
-    final moduleId = record?.moduleId ?? run?.moduleId;
-    if (moduleId == null) return null;
-    final name = record?.moduleName ?? moduleId;
-    final automation = record?.automationName ?? run?.label;
-    return ['Module · $name ($moduleId)', ?automation].join(' · ');
+    final m = module;
+    if (m == null) return null;
+    return ['Module · ${m.name} (${m.id})', ?automationName].join(' · ');
   }
+
+  /// The module, for `PlanCard(provenance:)`.
+  ({String id, String name})? get module {
+    final id = record?.moduleId ?? run?.moduleId;
+    return id == null ? null : (id: id, name: record?.moduleName ?? id);
+  }
+
+  String? get automationName => record?.automationName ?? run?.label;
+
+  /// Applied with failures: the sheet keeps the AppliedCard ("Updated 190,
+  /// 10 failed · Retry failed") instead of closing.
+  bool get partlyFailed =>
+      phase == ReviewPhase.done && (record?.receipt?.failed ?? 0) > 0;
 
   RunTrigger? get trigger => record?.trigger ?? run?.trigger;
 
@@ -181,7 +192,15 @@ class ReviewSheetCubit extends Cubit<ReviewSheetState> {
     emit(state.copyWith(phase: ReviewPhase.applying, refusal: () => null));
     try {
       await _runner.approve(state.runId, itemIds: state.selection);
-      if (!isClosed) emit(state.copyWith(phase: ReviewPhase.done));
+      // The receipt decides whether the sheet closes: read it before done.
+      final record = await _stores.runs.get(state.runId);
+      if (isClosed) return;
+      emit(
+        state.copyWith(
+          phase: ReviewPhase.done,
+          record: record == null ? null : () => record,
+        ),
+      );
     } on AutomationRefused catch (e) {
       if (isClosed) return;
       emit(
@@ -201,6 +220,30 @@ class ReviewSheetCubit extends Cubit<ReviewSheetState> {
     try {
       await _runner.reject(state.runId);
       if (!isClosed) emit(state.copyWith(phase: ReviewPhase.done));
+    } on AutomationRefused catch (e) {
+      if (isClosed) return;
+      emit(
+        state.copyWith(
+          refusal: () => (code: e.code, message: e.message, runAgain: false),
+        ),
+      );
+    }
+  }
+
+  /// The AppliedCard's "Retry failed".
+  Future<void> retryFailed() =>
+      _decided(() => _runner.retryFailed(state.runId));
+
+  /// The AppliedCard's Undo.
+  Future<void> undo() => _decided(() => _runner.undo(state.runId));
+
+  Future<void> _decided(Future<void> Function() action) async {
+    try {
+      await action();
+      final record = await _stores.runs.get(state.runId);
+      if (!isClosed && record != null) {
+        emit(state.copyWith(record: () => record, refusal: () => null));
+      }
     } on AutomationRefused catch (e) {
       if (isClosed) return;
       emit(

@@ -167,6 +167,40 @@ void main() {
     await cubit.close();
   });
 
+  test('a press while that run is live focuses it, no second run', () async {
+    runner.activity = RunActivity(
+      runs: [runView('run_live', status: RunStatus.awaitingReview)],
+    );
+    final cubit = build();
+    expect(await cubit.pressCard('a_1', cardId: 'b_1042'), 'run_live');
+    expect(
+      await cubit.pressCollection('a_1', cardIds: const ['b_1']),
+      'run_live',
+    );
+    expect(runner.calls, isEmpty);
+    expect(await cubit.pressCard('a_1', cardId: 'b_7'), 'run_1');
+    expect(await cubit.pressCard('a_2', cardId: 'b_1042'), 'run_2');
+    expect(runner.methods, ['pressCard', 'pressCard']);
+    await cubit.close();
+  });
+
+  test('Stop, Undo and Run again; refusals land in state', () async {
+    final cubit = build();
+    cubit.stop('run_1');
+    expect(await cubit.undo('run_1'), isTrue);
+    expect(await cubit.runAgain('run_1'), 'run_1');
+    expect(runner.methods, ['stop', 'undo', 'runAgain']);
+    runner.failNext = const AutomationRefused(
+      'offline',
+      'Couldn\'t apply — you\'re offline',
+    );
+    expect(await cubit.pressCard('a_9', cardId: 'b_1'), isNull);
+    expect(cubit.state.error, 'Couldn\'t apply — you\'re offline');
+    cubit.clearError();
+    expect(cubit.state.error, isNull);
+    await cubit.close();
+  });
+
   group('finish routing', () {
     blocTest<AutomationRunsCubit, AutomationRunsState>(
       'a button run waiting for review opens the review sheet',

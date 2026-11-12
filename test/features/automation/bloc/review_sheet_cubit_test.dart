@@ -104,6 +104,38 @@ void main() {
     await cubit.close();
   });
 
+  test('a partly failed apply keeps the sheet: Retry failed, Undo', () async {
+    final cubit = build();
+    await settle();
+    // The runner wrote the receipt before approve resolved.
+    await stores.runs.update(
+      runRecord(
+        'run_1',
+        receipt: const RunReceipt(applied: 190, failed: 10),
+        journalId: 'j_1',
+      ),
+      fields: {'status', 'receipt', 'journalId'},
+    );
+    await cubit.approve();
+    expect(cubit.state.phase, ReviewPhase.done);
+    expect(cubit.state.partlyFailed, isTrue);
+    expect(cubit.state.module, (id: stampId, name: 'Stamp shipped date'));
+    await cubit.retryFailed();
+    await cubit.undo();
+    expect(runner.methods, ['approve', 'retryFailed', 'undo']);
+    runner.failNext = const AutomationRefused('expired', 'Undo expired');
+    await cubit.undo();
+    expect(cubit.state.refusal?.message, 'Undo expired');
+    await cubit.close();
+  });
+
+  test('a clean apply closes', () async {
+    final cubit = build();
+    await cubit.approve();
+    expect(cubit.state.partlyFailed, isFalse);
+    await cubit.close();
+  });
+
   test('reject closes; nothing waiting means no Next', () async {
     runner.activity = RunActivity(
       runs: [runView('run_1', status: RunStatus.awaitingReview)],

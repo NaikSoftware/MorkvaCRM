@@ -52,6 +52,30 @@ void main() {
     },
   );
 
+  test('stays loading until the stores answer', () async {
+    final cubit = build();
+    cubit.clearError();
+    expect(cubit.state.loading, isTrue);
+    await settle();
+    expect(cubit.state.loading, isFalse);
+    await cubit.close();
+  });
+
+  test('Auto with an auto-apply consent to replaced code: off', () async {
+    await stores.grants.save(uid, consentTo(module, autoApply: true));
+    final cubit = build();
+    await settle();
+    expect(cubit.state.automations.single.apply, EffectiveApply.auto);
+    await stores.modules.save(
+      stampModule(
+        bundle: stampBundle(code: 'v2()', version: '1.1.0'),
+      ),
+    );
+    await settle();
+    expect(cubit.state.automations.single.apply, EffectiveApply.autoOff);
+    await cubit.close();
+  });
+
   test('new code needs consent again; a revoked consent too', () async {
     final cubit = build();
     await settle();

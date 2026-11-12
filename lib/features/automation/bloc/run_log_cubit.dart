@@ -289,13 +289,14 @@ final class RunLogState extends Equatable {
       live.where((r) => r.runId == runId).firstOrNull;
 
   RunLogState copyWith({
+    bool? loading,
     RunFilter? filter,
     List<RunRow>? rows,
     Set<String>? expanded,
     List<RunView>? live,
     String? Function()? error,
   }) => RunLogState(
-    loading: false,
+    loading: loading ?? this.loading,
     filter: filter ?? this.filter,
     rows: rows ?? this.rows,
     expanded: expanded ?? this.expanded,
@@ -331,10 +332,14 @@ class RunLogCubit extends Cubit<RunLogState> {
             automations: joinEntries(m, a, g, uid: uid).automations,
             activity: activity,
           ),
-        ).listen((s) {
-          _last = s;
-          _emitRows();
-        }, onError: (Object e) => emit(state.copyWith(error: () => '$e')));
+        ).listen(
+          (s) {
+            _last = s;
+            _emitRows();
+          },
+          onError: (Object e) =>
+              emit(state.copyWith(loading: false, error: () => '$e')),
+        );
   }
 
   final AutomationRunnerApi _runner;
@@ -359,6 +364,7 @@ class RunLogCubit extends Cubit<RunLogState> {
     final ids = {for (final r in s.runs) r.id};
     emit(
       state.copyWith(
+        loading: false,
         live: [
           for (final r in s.activity.runs)
             if (r.status != RunStatus.awaitingReview) r,

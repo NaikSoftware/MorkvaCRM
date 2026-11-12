@@ -70,6 +70,7 @@ final class AutomationRunsState extends Equatable {
     this.anyEnabled = false,
     this.editorOpen = false,
     this.notice,
+    this.error,
   });
 
   final RunActivity activity;
@@ -89,6 +90,9 @@ final class AutomationRunsState extends Equatable {
 
   /// The latest finish to announce.
   final RunNotice? notice;
+
+  /// The last refused press / Stop / Undo / Run again, shown as is.
+  final String? error;
 
   /// "Running · N": queued + running.
   int get running => activity.active;
@@ -135,6 +139,7 @@ final class AutomationRunsState extends Equatable {
     bool? anyEnabled,
     bool? editorOpen,
     RunNotice? Function()? notice,
+    String? Function()? error,
   }) => AutomationRunsState(
     activity: activity ?? this.activity,
     recent: recent ?? this.recent,
@@ -142,6 +147,7 @@ final class AutomationRunsState extends Equatable {
     anyEnabled: anyEnabled ?? this.anyEnabled,
     editorOpen: editorOpen ?? this.editorOpen,
     notice: notice == null ? this.notice : notice(),
+    error: error == null ? this.error : error(),
   );
 
   @override
@@ -152,6 +158,7 @@ final class AutomationRunsState extends Equatable {
     anyEnabled,
     editorOpen,
     notice,
+    error,
   ];
 }
 
@@ -195,6 +202,68 @@ class AutomationRunsCubit extends Cubit<AutomationRunsState> {
 
   /// The notice was shown.
   void noticeShown() => emit(state.copyWith(notice: () => null));
+
+  /// A card button: while a run of this automation on [cardId] is queued,
+  /// running or waiting for review, a press focuses it instead of starting
+  /// a second one. Returns the run's id, or null when refused.
+  Future<String?> pressCard(String automationId, {required String cardId}) =>
+      _press(
+        automationId,
+        cardId,
+        () => _runner.pressCard(automationId, cardId: cardId),
+      );
+
+  /// A collection button over the view's shown cards.
+  Future<String?> pressCollection(
+    String automationId, {
+    required List<String> cardIds,
+    String? viewId,
+  }) => _press(
+    automationId,
+    null,
+    () => _runner.pressCollection(
+      automationId,
+      cardIds: cardIds,
+      viewId: viewId,
+    ),
+  );
+
+  Future<String?> _press(
+    String automationId,
+    String? cardId,
+    Future<String> Function() press,
+  ) async {
+    final live = state.activity.runOf(automationId, cardId: cardId);
+    if (live != null) return live.runId;
+    return _guard(press);
+  }
+
+  /// Stop on a button, the indicator or a running row.
+  void stop(String runId) => _runner.stop(runId);
+
+  /// The banner's / snackbar's Undo.
+  Future<bool> undo(String runId) async =>
+      await _guard(() async {
+        await _runner.undo(runId);
+        return runId;
+      }) !=
+      null;
+
+  /// The snackbar's Run again; the new run's id, or null when refused.
+  Future<String?> runAgain(String runId) =>
+      _guard(() => _runner.runAgain(runId));
+
+  void clearError() => emit(state.copyWith(error: () => null));
+
+  Future<String?> _guard(Future<String> Function() action) async {
+    emit(state.copyWith(error: () => null));
+    try {
+      return await action();
+    } on AutomationRefused catch (e) {
+      if (!isClosed) emit(state.copyWith(error: () => e.message));
+      return null;
+    }
+  }
 
   void _finished(RunView run) {
     final surface = run.isButton && run.status == RunStatus.awaitingReview

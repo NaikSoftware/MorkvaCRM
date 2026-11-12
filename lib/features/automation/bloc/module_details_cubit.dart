@@ -83,7 +83,8 @@ final class ModuleDetailsState extends Equatable {
   /// auto-apply; it is disabled until the module is allowed.
   bool get autoApplyOffered => manifest?.autoApplyEligible ?? false;
   bool get autoApplyEnabled => status == ModuleStatus.ok;
-  bool get autoApplyOn => consent?.autoApply ?? false;
+  bool get autoApplyOn =>
+      status == ModuleStatus.ok && (consent?.autoApply ?? false);
 
   /// Automations stored as Auto ("2 automations will ask first.").
   int get autoAutomations =>
@@ -240,6 +241,13 @@ class ModuleDetailsCubit extends Cubit<ModuleDetailsState> {
         status: RunStatus.failed,
         error: RunError(code: e.code, message: e.message),
       );
+    } catch (e) {
+      // Never leave the sheet spinning.
+      result = TestRunResult(
+        status: RunStatus.failed,
+        reason: RunReason.internal,
+        error: RunError(code: 'internal', message: '$e'),
+      );
     }
     if (isClosed || state.testRun?.request != request) return;
     emit(
@@ -260,8 +268,10 @@ class ModuleDetailsCubit extends Cubit<ModuleDetailsState> {
       await action();
     } on AutomationRefused catch (e) {
       error = e.message;
+    } finally {
+      // Any other throw still frees the buttons (and reaches the zone).
+      if (!isClosed) emit(state.copyWith(busy: false, error: () => error));
     }
-    if (!isClosed) emit(state.copyWith(busy: false, error: () => error));
     return error == null;
   }
 

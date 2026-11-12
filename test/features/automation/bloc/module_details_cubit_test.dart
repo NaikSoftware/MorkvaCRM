@@ -235,6 +235,31 @@ void main() {
     },
   );
 
+  test('an unexpected throw still frees the buttons', () async {
+    final cubit = await loaded();
+    runner.failNext = StateError('boom');
+    await expectLater(cubit.revoke(), throwsStateError);
+    expect(cubit.state.busy, isFalse);
+    runner.failNext = StateError('boom');
+    await cubit.testRun(
+      const TestRunRequest(moduleId: stampId, actionId: 'stamp'),
+    );
+    expect(cubit.state.testRun?.result?.status, RunStatus.failed);
+    await cubit.close();
+  });
+
+  test('an auto-apply consent to replaced code reads as off', () async {
+    await stores.grants.save(uid, consentTo(module, autoApply: true));
+    await stores.modules.save(
+      stampModule(
+        bundle: stampBundle(code: 'v2()', version: '1.1.0'),
+      ),
+    );
+    final cubit = await loaded();
+    expect(cubit.state.autoApplyOn, isFalse);
+    await cubit.close();
+  });
+
   test('engine unavailable follows the runner', () async {
     final cubit = await loaded();
     expect(cubit.state.engineUnavailable, isFalse);
