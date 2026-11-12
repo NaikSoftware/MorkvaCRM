@@ -136,8 +136,10 @@ final class SandboxFrame {
       case 'morkva-sandbox-ready':
         if (_booted || _loads > 1) return;
         _booted = true;
-        // '*': the sandbox's origin is opaque ('null').
-        iframe.contentWindow!.postMessage(
+        // '*': the sandbox's origin is opaque ('null'). Never `!` here:
+        // dart2js null-checks by reading `.toString`, which a cross-origin
+        // window refuses (SecurityError, release builds only).
+        iframe.contentWindow?.postMessage(
           _boot.jsify(),
           '*'.toJS,
           [_channel.port2].toJS,
