@@ -327,4 +327,24 @@ void main() {
     expect(data.log.first, 'changes-');
     expect(data.log, contains('collections-'));
   });
+
+  testWidgets('signing out on the Automations page closes its cubits cleanly', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1440, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    auth.emit(const AuthUser(uid: 'u1', email: 'u1@example.com'));
+    await tester.pumpWidget(buildApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Automations'));
+    await tester.pumpAndSettle();
+    expect(find.text('No modules yet'), findsOneWidget);
+
+    auth.emit(null);
+    await tester.pumpAndSettle();
+    expect(find.text('Welcome to your workspace'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }

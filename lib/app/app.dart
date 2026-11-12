@@ -198,7 +198,8 @@ class _MorkvaAppState extends State<MorkvaApp> {
   );
 
   /// The signed-in member's automation cubits (they watch the bound stores
-  /// from construction); null while signed out.
+  /// from construction); null until the first sign-in, closed after a
+  /// sign-out.
   _AutomationCubits? _cubits;
 
   /// Keeps the router's state while the automation providers come and go
@@ -281,8 +282,9 @@ class _MorkvaAppState extends State<MorkvaApp> {
           if (_initializedWorkspaceId == null) return;
           _initializedWorkspaceId = null;
           _sessionReady.value = false;
+          // Stay provided (closed) until the next sign-in replaces them: the
+          // pages under them unmount only on the redirect's frame.
           final cubits = _cubits;
-          if (mounted) setState(() => _cubits = null);
           // The runner first: no bridge call is cut with a stale uid. Both
           // unbind at once, so the cache cancels its listeners before the
           // repository goes; their cancels need not hold it up.
