@@ -496,7 +496,28 @@ class _Decided extends StatelessWidget {
             ),
           )
         else
-          Text('Done.', style: theme.textTheme.titleMedium),
+          // The result and its Undo here: the finish snackbar sits under
+          // this sheet's scrim while a next review keeps it open.
+          Row(
+            children: [
+              Expanded(
+                child: Text(switch (state.record) {
+                  RunRecord(undoneAt: _?) => 'Undone.',
+                  RunRecord(:final summary?) => summary,
+                  RunRecord(receipt: RunReceipt(:final applied))
+                      when applied > 0 =>
+                    'Applied $applied ${applied == 1 ? 'change' : 'changes'}',
+                  _ => 'Done.',
+                }, style: theme.textTheme.titleMedium),
+              ),
+              if (state.record case RunRecord(journalId: _?, undoneAt: null))
+                TextActionButton(
+                  label: 'Undo',
+                  icon: Icons.undo,
+                  onPressed: onUndo,
+                ),
+            ],
+          ),
         const SizedBox(height: Spacing.md),
         Row(
           mainAxisAlignment: MainAxisAlignment.end,

@@ -384,6 +384,8 @@ class _AutomationsPageState extends State<AutomationsPage>
           ),
         ],
       ),
+      // Not "Install a module first" while the list failed to load.
+      AutomationsTab.automations when modules.loadFailed => null,
       AutomationsTab.automations => _NewAutomationAction(
         enabled: modules.modules.isNotEmpty,
         onPressed: () => host.newAutomation(collectionId: widget.collectionId),
@@ -429,9 +431,12 @@ class _AutomationsPageState extends State<AutomationsPage>
                     ),
                   _Tabs(
                     controller: _tabs,
-                    modules: modules.modules.length,
-                    automations: modules.automations.length,
-                    reviews: runs.needsReview,
+                    // No "0" for lists that failed to load.
+                    modules: modules.loadFailed ? null : modules.modules.length,
+                    automations: modules.loadFailed
+                        ? null
+                        : modules.automations.length,
+                    reviews: runs.loadFailed ? null : runs.needsReview,
                     onSelect: _select,
                     padding: expanded ? Spacing.xxl : Spacing.md,
                   ),
@@ -529,7 +534,16 @@ class _Header extends StatelessWidget {
               ],
             ),
           ),
-          if (action != null) ...[
+          // Under 1240 the subtitle wraps beside the Modules actions: every
+          // tab reserves that slot so the subtitle (and the tabs under it)
+          // stay put when switching.
+          if (MediaQuery.sizeOf(context).width < 1240) ...[
+            const SizedBox(width: Spacing.md),
+            SizedBox(
+              width: 420,
+              child: Align(alignment: Alignment.topRight, child: action),
+            ),
+          ] else if (action != null) ...[
             const SizedBox(width: Spacing.md),
             // Not Flexible: an even flex split wrapped the subtitle on the
             // Modules / Automations tabs (not on Runs), so the tabs jumped.
@@ -591,9 +605,11 @@ class _Tabs extends StatelessWidget {
   });
 
   final TabController controller;
-  final int modules;
-  final int automations;
-  final int reviews;
+
+  /// Null: unknown (the list failed to load), no badge.
+  final int? modules;
+  final int? automations;
+  final int? reviews;
   final ValueChanged<AutomationsTab> onSelect;
   final double padding;
 
@@ -601,13 +617,13 @@ class _Tabs extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    Widget tab(String label, int count, {bool amber = false}) => SizedBox(
+    Widget tab(String label, int? count, {bool amber = false}) => SizedBox(
       height: 48,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(label),
-          if (count > 0 || !amber) ...[
+          if (count != null && (count > 0 || !amber)) ...[
             const SizedBox(width: Spacing.xs),
             CountBadge(count: count, amber: amber),
           ],
@@ -1862,6 +1878,13 @@ class RunRowTile extends StatelessWidget {
         ? theme.colorScheme.onSurfaceVariant
         : theme.colorScheme.onSurface;
     final card = run.trigger.cardLabel;
+    // The card column: the card, or the collection a collection run ran on.
+    final where =
+        card ??
+        collectionOf(
+          automationCollections(context),
+          run.trigger.collectionId,
+        )?.name;
     final title = [
       run.automationName ?? run.moduleName,
       run.actionLabel,
@@ -1874,16 +1897,24 @@ class RunRowTile extends StatelessWidget {
     final notHere = row.display == RunDisplay.reviewNotHere;
     final what = switch (run) {
       _ when run.count > 1 => 'Skipped ${run.count} times · ${row.copy.row}',
+      RunRecord(status: RunStatus.succeeded) when run.undoneAt != null => [
+        'Undone',
+        ?run.summary,
+      ].join(' · '),
       RunRecord(status: RunStatus.succeeded, :final summary?) => summary,
       _ when notHere => '${row.copy.row} — ${_clause(row.copy.detail)}',
-      // "Needs your review · Set Shipped on to 12 Nov · 1 order".
+      // "Needs your review · 1 change" (run detail has the plan title).
+      RunRecord(status: RunStatus.awaitingReview, :final log)
+          when log.plan.isNotEmpty =>
+        '${row.copy.row} · ${log.plan.length} '
+            '${log.plan.length == 1 ? 'change' : 'changes'}',
       RunRecord(status: RunStatus.awaitingReview, :final planTitle?) =>
         '${row.copy.row} · $planTitle',
       _ => row.copy.row,
     };
     final second = [
       what,
-      if (!cardColumn && card != null && !what.contains(card)) card,
+      if (!cardColumn && where != null && !what.contains(where)) where,
       if (changedAt != null &&
           run.startedAt.difference(changedAt).inMinutes >= 1)
         'Changed offline ${clock(changedAt)} · ran ${clock(run.startedAt)}',
@@ -1947,7 +1978,7 @@ class RunRowTile extends StatelessWidget {
     );
     final Widget body;
     final cardText = Text(
-      card ?? '',
+      where ?? '',
       style: theme.textTheme.bodyMedium?.copyWith(color: ink),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,

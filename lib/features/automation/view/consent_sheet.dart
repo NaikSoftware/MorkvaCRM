@@ -4,6 +4,7 @@ import '../../../core/domain/automation/automation.dart';
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
 import '../bloc/modules_cubit.dart';
+import '../widgets/radio_row.dart';
 import '../widgets/reason_copy.dart';
 import 'automations_page.dart';
 import 'code_viewer.dart';
@@ -390,19 +391,30 @@ class _ConsentSheetState extends State<ConsentSheet> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              MetaLine(
-                icon: Icons.code,
-                text:
-                    'Code changed: v${view.fromVersion} → v${manifest.version}'
-                    ' · ${kbLabel(view.fromBytes ?? 0)} → ${kbLabel(bytes)}',
-              ),
+              // The same bundle again: nothing changed to compare.
+              if (view.codeChanged)
+                MetaLine(
+                  icon: Icons.code,
+                  text:
+                      'Code changed: v${view.fromVersion} → '
+                      'v${manifest.version} · '
+                      '${kbLabel(view.fromBytes ?? 0)} → ${kbLabel(bytes)}',
+                )
+              else
+                const MetaLine(
+                  icon: Icons.check_circle_outline,
+                  text: 'This version is already installed.',
+                ),
+              // Installing writes a fresh consent, auto-apply off.
               if (view.autoApplyTurnsOff) ...[
                 const SizedBox(height: Spacing.xxs),
-                const MetaLine(
+                MetaLine(
                   icon: Icons.bolt_outlined,
-                  text:
-                      'Auto-apply turns off for the new version. Turn it on '
-                      'again in module details.',
+                  text: view.codeChanged
+                      ? 'Auto-apply turns off for the new version. Turn it '
+                            'on again in module details.'
+                      : 'Auto-apply turns off when you install it again. '
+                            'Turn it on again in module details.',
                 ),
               ],
             ],
@@ -467,7 +479,11 @@ class _ConsentSheetState extends State<ConsentSheet> {
               vertical: Spacing.xs,
             ),
             decoration: BoxDecoration(
-              color: scheme.surfaceContainer,
+              // One step above the sheet: in dark the sheet itself is
+              // surfaceContainer.
+              color: theme.brightness == Brightness.light
+                  ? scheme.surfaceContainer
+                  : scheme.surfaceContainerHigh,
               borderRadius: Radii.mdAll,
             ),
             child: Row(
@@ -512,7 +528,7 @@ class _ConsentSheetState extends State<ConsentSheet> {
       ),
       if (!_scope.all)
         Padding(
-          padding: const EdgeInsets.only(left: Spacing.xl),
+          padding: const EdgeInsets.only(left: RadioRow.inset),
           child: Wrap(
             children: [
               for (final c in widget.collections)
@@ -601,11 +617,10 @@ class _ScopeOption extends StatelessWidget {
   final String subtitle;
 
   @override
-  Widget build(BuildContext context) => RadioListTile<bool>(
+  Widget build(BuildContext context) => RadioRow(
     value: value,
-    contentPadding: EdgeInsets.zero,
-    dense: true,
-    title: Text(title, style: Theme.of(context).textTheme.titleSmall),
-    subtitle: Text(subtitle),
+    title: title,
+    hint: subtitle,
+    titleStyle: Theme.of(context).textTheme.titleSmall,
   );
 }

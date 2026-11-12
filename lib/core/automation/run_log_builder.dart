@@ -105,6 +105,10 @@ final class RunLogBuilder {
                       '${c.field}: ${c.beforeText ?? '—'} → '
                           '${c.afterText ?? '—'}',
                   ].join('; '),
+            changes: [
+              for (final c in item.changes)
+                (field: c.field, before: c.beforeText, after: c.afterText),
+            ],
           ),
       ]);
   }

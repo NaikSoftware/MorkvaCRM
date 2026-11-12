@@ -261,10 +261,12 @@ void main() {
       await rig.stores.automations.save(automation());
       rig.runner.reviewPlans['r_review'] = const {'items': []};
       await rig.stores.runs.create(
-        storedRun(
-          'r_review',
-          status: RunStatus.awaitingReview,
-        ).copyWith(planTitle: () => 'Set Shipped on · 1 order'),
+        storedRun('r_review', status: RunStatus.awaitingReview).copyWith(
+          planTitle: () => 'Set Shipped on to Nov 12, 2026 · 1 order',
+          log: const RunLog(
+            plan: [PlanLine(kind: 'updateCard', label: '#1042', change: 'x')],
+          ),
+        ),
       );
       await rig.stores.runs.create(
         storedRun(
@@ -275,10 +277,8 @@ void main() {
         ),
       );
       await pump(tester, tab: AutomationsTab.runs);
-      expect(
-        find.text('Needs your review · Set Shipped on · 1 order'),
-        findsOneWidget,
-      );
+      // The change count, as the mockup; run detail has the plan title.
+      expect(find.text('Needs your review · 1 change'), findsOneWidget);
       expect(find.text('Review'), findsOneWidget);
       await tester.tap(find.text('Review'));
       expectLastCall(rig.host.calls, 'review', ['r_review']);
@@ -338,7 +338,51 @@ void main() {
       await pump(tester, tab: AutomationsTab.runs);
       expect(find.byIcon(Icons.check_circle_outline), findsNothing);
       expect(find.byIcon(Icons.undo), findsOneWidget);
+      expect(find.text('Undone'), findsOneWidget);
     });
+
+    testWidgets('an undone run with a summary says "Undone · …"', (
+      tester,
+    ) async {
+      await seedModule();
+      await rig.stores.automations.save(automation());
+      await rig.stores.runs.create(
+        storedRun(
+          'r_undone',
+          summary: 'Set Shipped on on #1038',
+        ).copyWith(undoneAt: () => fixtureNow),
+      );
+      await pump(tester, tab: AutomationsTab.runs, size: phoneWindow);
+      expect(
+        find.textContaining('Undone · Set Shipped on on #1038'),
+        findsOneWidget,
+      );
+    });
+
+    for (final (name, size) in [
+      ('table', wideWindow),
+      ('tablet', tabletWindow),
+      ('phone', phoneWindow),
+    ]) {
+      testWidgets('$name: a collection run shows its collection', (
+        tester,
+      ) async {
+        await seedModule();
+        await rig.stores.automations.save(automation());
+        final json = storedRun(
+          'r_coll',
+          summary: 'Flagged 2 products',
+        ).toJson();
+        json['trigger'] = const RunTrigger(
+          kind: TriggerKind.button,
+          collectionId: 'c_orders',
+          cardCount: 3,
+        ).toJson();
+        await rig.stores.runs.create(RunRecord.fromJson('r_coll', json));
+        await pump(tester, tab: AutomationsTab.runs, size: size);
+        expect(find.textContaining('Orders'), findsOneWidget);
+      });
+    }
 
     testWidgets('offline: Run again is disabled with the reason', (
       tester,
@@ -437,6 +481,10 @@ void main() {
           expect(find.byType(CircularProgressIndicator), findsNothing);
           expect(find.textContaining('permission-denied'), findsNothing);
           expect(find.byType(SnackBar), findsNothing);
+          // Nothing says "none" about lists that didn't load.
+          expect(find.byType(CountBadge), findsNothing);
+          expect(find.text('Install a module first'), findsNothing);
+          expect(find.text('New automation'), findsNothing);
         });
       }
     }
@@ -459,6 +507,19 @@ void main() {
   });
 
   group('breakpoints and dark', () {
+    // At 1024 the Modules actions wrapped the subtitle and the tabs jumped
+    // 21 px on switching; every tab now keeps the same subtitle width.
+    testWidgets('tablet: the tab bar stays put across tabs', (tester) async {
+      await seedModule();
+      final ys = <double>[];
+      for (final tab in AutomationsTab.values) {
+        await pump(tester, tab: tab, size: tabletWindow);
+        await tester.pumpAndSettle();
+        ys.add(tester.getTopLeft(find.byType(TabBar)).dy);
+      }
+      expect(ys.toSet(), hasLength(1), reason: '$ys');
+    });
+
     for (final (name, size) in [
       ('tablet', tabletWindow),
       ('phone', phoneWindow),

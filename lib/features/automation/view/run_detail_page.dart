@@ -148,6 +148,7 @@ IconData? statusIcon(RunStatus status, {bool undone = false}) =>
       RunStatus.succeeded when undone => Icons.undo_rounded,
       RunStatus.succeeded => Icons.check_rounded,
       RunStatus.failed || RunStatus.timedOut => Icons.cancel_outlined,
+      RunStatus.awaitingReview => Icons.visibility_outlined,
       _ => null,
     };
 
@@ -248,6 +249,21 @@ class _Detail extends StatelessWidget {
       if (id != null) host.openRun(id);
     }
 
+    // Run detail also re-runs a finished button run (UX §7 header); the
+    // lists don't, since "Run again" there reads as "it didn't work".
+    final canRunAgain =
+        row.action == RunRowAction.runAgain ||
+        (row.action == RunRowAction.none &&
+            run.status == RunStatus.succeeded &&
+            run.trigger.kind == TriggerKind.button &&
+            (run.receipt?.unconfirmed ?? 0) == 0 &&
+            automations.any(
+              (a) =>
+                  a.automation.id == run.automationId &&
+                  a.status != AutomationStatus.needsConsent &&
+                  a.status != AutomationStatus.broken,
+            ));
+    final notHere = row.display == RunDisplay.reviewNotHere;
     final undoLabel = row.undoUntil == null
         ? 'Undo'
         : 'Undo · ${_left(row.undoUntil!.difference(now))}';
@@ -267,14 +283,20 @@ class _Detail extends StatelessWidget {
             label: 'Review',
             onPressed: () => host.review(run.id),
           ),
-        if (row.action == RunRowAction.runAgain)
+        // Tonal when it leads (a failed run); a link beside Undo.
+        if (canRunAgain && row.undo == UndoState.available)
           TextActionButton(
             label: card == null ? 'Run again' : 'Run again on $card',
             icon: Icons.refresh,
             onPressed: offline ? null : again,
+          )
+        else if (canRunAgain)
+          SecondaryButton(
+            label: card == null ? 'Run again' : 'Run again on $card',
+            icon: Icons.refresh,
+            onPressed: offline ? null : again,
           ),
-        if (row.action == RunRowAction.runAgain && offline)
-          Text('Needs a connection', style: muted),
+        if (canRunAgain && offline) Text('Needs a connection', style: muted),
         if (live != null && live!.status != RunStatus.applying)
           TextActionButton(
             label: 'Stop',
@@ -402,7 +424,7 @@ class _Detail extends StatelessWidget {
         children: [
           if (log.calls.isEmpty) Text('No calls', style: muted),
           for (final c in log.calls)
-            _CallRow(call: c, collections: collections),
+            _CallRow(call: c, collections: collections, fallback: collection),
           if (log.dropped.calls > 0)
             Text('+${log.dropped.calls} calls dropped', style: muted),
         ],
@@ -444,10 +466,19 @@ class _Detail extends StatelessWidget {
       if (log.plan.isNotEmpty)
         _Step(
           title: 'Plan',
-          summary:
-              '${log.plan.length} ${log.plan.length == 1 ? 'change' : 'changes'}',
+          summary: [
+            '${log.plan.length} ${log.plan.length == 1 ? 'change' : 'changes'}',
+            // A policy line means it asked first; applyStartedAt is the
+            // approve.
+            if (log.policy != null && run.applyStartedAt != null)
+              'approved by you at ${clock(run.applyStartedAt!)}',
+          ].join(' · '),
           children: [
-            for (final p in log.plan) PlanLineRow(line: p),
+            for (final p in log.plan)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: Spacing.xxs),
+                child: PlanLineRow(line: p),
+              ),
             if (log.policy case final policy?)
               Padding(
                 padding: const EdgeInsets.only(top: Spacing.xs),
@@ -472,12 +503,39 @@ class _Detail extends StatelessWidget {
             ),
           ],
         ),
-      _Step(
-        title: 'Outcome',
-        last: true,
-        tone: row.copy.tone,
-        children: [_Outcome(row: row, undoLabel: undoLabel, offline: offline)],
-      ),
+      if (run.status == RunStatus.succeeded)
+        _Step(
+          title: 'Outcome',
+          last: true,
+          tone: row.copy.tone,
+          summary: _appliedLine(run),
+          summaryIcon: Icon(
+            Icons.check_circle_outline,
+            size: 16,
+            color: theme.extension<MorkvaSemanticColors>()!.success,
+          ),
+          // On a phone the header has no room: Undo goes under it.
+          trailing: automationsExpanded(context)
+              ? _UndoSlot(row: row, label: undoLabel)
+              : null,
+          children: [
+            if (!automationsExpanded(context) && row.undo != UndoState.none)
+              _UndoSlot(row: row, label: undoLabel),
+            if ((run.receipt?.failed ?? 0) > 0)
+              TextActionButton(
+                label: 'Retry failed',
+                icon: Icons.refresh,
+                onPressed: offline ? null : () => runLog.retryFailed(run.id),
+              ),
+          ],
+        )
+      else
+        _Step(
+          title: 'Outcome',
+          last: true,
+          tone: row.copy.tone,
+          children: [_Outcome(row: row, offline: offline)],
+        ),
     ];
 
     return ListView(
@@ -489,10 +547,17 @@ class _Detail extends StatelessWidget {
           runSpacing: Spacing.xxs,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
+            // Another window's review: muted, like the Runs list's ring.
             HugChip(
-              label: run.undoneAt != null ? 'Undone' : statusLabel(run.status),
-              tone: row.copy.tone,
-              icon: statusIcon(run.status, undone: run.undoneAt != null),
+              label: run.undoneAt != null
+                  ? 'Undone'
+                  : notHere
+                  ? 'Review elsewhere'
+                  : statusLabel(run.status),
+              tone: notHere ? CopyTone.muted : row.copy.tone,
+              icon: notHere
+                  ? Icons.radio_button_unchecked
+                  : statusIcon(run.status, undone: run.undoneAt != null),
             ),
             Text(
               run.automationName ?? run.actionLabel,
@@ -549,29 +614,38 @@ String runLogJson(RunRecord run) {
   ).convert(doc);
 }
 
+/// "collection: c_orders · target: {ids} · set: {f_ship}" → "Orders ·
+/// Shipped on": the collection and field names among the logged keys and
+/// string args; the rest (key names, numbers) drops. Fields resolve in the
+/// call's own collection, else [fallback] (the trigger's).
+String callTargets(
+  String args,
+  List<Collection> collections,
+  Collection? fallback,
+) {
+  final tokens = [
+    for (final part in args.split(' · '))
+      if (part.indexOf(': ') case final i when i > 0)
+        for (final t in part.substring(i + 2).split(RegExp(r'[{}]|, ')))
+          if (t.trim().isNotEmpty) t.trim(),
+  ];
+  final byId = {for (final c in collections) c.id: c};
+  final own = tokens.map((t) => byId[t]).nonNulls.firstOrNull ?? fallback;
+  return {
+    for (final t in tokens) ?(byId[t]?.name ?? own?.fieldById(t)?.name),
+  }.join(' · ');
+}
+
 class _CallRow extends StatelessWidget {
-  const _CallRow({required this.call, this.collections = const []});
+  const _CallRow({
+    required this.call,
+    this.collections = const [],
+    this.fallback,
+  });
 
   final RunCall call;
-
-  /// Names the collection and field ids the logged args carry
-  /// ("collection: c_orders" → "collection: Orders").
   final List<Collection> collections;
-
-  String _named(String text) {
-    final names = {
-      for (final c in collections) ...{
-        c.id: c.name,
-        for (final f in c.fields) f.id: f.name,
-      },
-    };
-    // Longest first, so an id that prefixes another can't split it.
-    for (final id
-        in names.keys.toList()..sort((a, b) => b.length.compareTo(a.length))) {
-      text = text.replaceAll(id, names[id]!);
-    }
-    return text;
-  }
+  final Collection? fallback;
 
   @override
   Widget build(BuildContext context) {
@@ -579,6 +653,11 @@ class _CallRow extends StatelessWidget {
     final scheme = theme.colorScheme;
     final color = call.ok ? scheme.onSurface : scheme.error;
     final mono = MorkvaTypography.mono(theme.textTheme.bodySmall!);
+    final targets = callTargets(call.args, collections, fallback);
+    final text = [
+      if (targets.isNotEmpty) targets,
+      if (!(call.ok && call.result == 'Done') || targets.isEmpty) call.result,
+    ].join(' · ');
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: Spacing.xxs),
       child: Row(
@@ -590,11 +669,7 @@ class _CallRow extends StatelessWidget {
           ),
           Expanded(
             child: Text(
-              _named(
-                call.ok && call.result == 'Done'
-                    ? call.args
-                    : '${call.args} · ${call.result}',
-              ),
+              text,
               style: theme.textTheme.bodyMedium?.copyWith(color: color),
             ),
           ),
@@ -618,15 +693,59 @@ class _CallRow extends StatelessWidget {
   }
 }
 
-class _Outcome extends StatelessWidget {
-  const _Outcome({
-    required this.row,
-    required this.undoLabel,
-    required this.offline,
-  });
+/// "Applied 1 change · 12:05", "Updated 190, 10 failed · 12:05": a
+/// succeeded run's Outcome header.
+String _appliedLine(RunRecord run) {
+  final applied = run.receipt?.applied ?? 0;
+  final failed = run.receipt?.failed ?? 0;
+  final head = failed > 0
+      ? 'Updated $applied, $failed failed'
+      : applied == 0
+      ? (run.summary ?? 'No changes')
+      : 'Applied $applied ${applied == 1 ? 'change' : 'changes'}';
+  return [head, if (run.endedAt != null) clock(run.endedAt!)].join(' · ');
+}
+
+/// A succeeded run's Undo, or why there is none.
+class _UndoSlot extends StatelessWidget {
+  const _UndoSlot({required this.row, required this.label});
 
   final RunRow row;
-  final String undoLabel;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = theme.textTheme.bodyMedium?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+    final run = row.run;
+    return switch (row.undo) {
+      UndoState.available => SecondaryButton(
+        label: label,
+        icon: Icons.undo,
+        onPressed: () => context.read<RunLogCubit>().undo(run.id),
+      ),
+      UndoState.expired => Text('Undo expired', style: muted),
+      UndoState.afterReload => Text(
+        "Undo isn't available after a reload",
+        style: muted,
+      ),
+      UndoState.undone => Text(
+        'Reverted · ${clock(run.undoneAt!)}',
+        style: muted,
+      ),
+      UndoState.none => const SizedBox.shrink(),
+    };
+  }
+}
+
+/// The Outcome of a run that didn't succeed: the reason, the error and its
+/// stack, and the fix.
+class _Outcome extends StatelessWidget {
+  const _Outcome({required this.row, required this.offline});
+
+  final RunRow row;
   final bool offline;
 
   @override
@@ -640,58 +759,6 @@ class _Outcome extends StatelessWidget {
     final muted = theme.textTheme.bodyMedium?.copyWith(
       color: scheme.onSurfaceVariant,
     );
-    final receipt = run.receipt;
-
-    if (run.status == RunStatus.succeeded) {
-      final applied = receipt?.applied ?? 0;
-      final failed = receipt?.failed ?? 0;
-      final head = failed > 0
-          ? 'Updated $applied, $failed failed'
-          : applied == 0
-          ? (run.summary ?? 'No changes')
-          : 'Applied $applied ${applied == 1 ? 'change' : 'changes'}';
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  [
-                    head,
-                    if (run.endedAt != null) clock(run.endedAt!),
-                  ].join(' · '),
-                  style: theme.textTheme.bodyMedium,
-                ),
-              ),
-              switch (row.undo) {
-                UndoState.available => SecondaryButton(
-                  label: undoLabel,
-                  icon: Icons.undo,
-                  onPressed: () => runLog.undo(run.id),
-                ),
-                UndoState.expired => Text('Undo expired', style: muted),
-                UndoState.afterReload => Text(
-                  "Undo isn't available after a reload",
-                  style: muted,
-                ),
-                UndoState.undone => Text(
-                  'Reverted · ${clock(run.undoneAt!)}',
-                  style: muted,
-                ),
-                UndoState.none => const SizedBox.shrink(),
-              },
-            ],
-          ),
-          if (failed > 0)
-            TextActionButton(
-              label: 'Retry failed',
-              icon: Icons.refresh,
-              onPressed: offline ? null : () => runLog.retryFailed(run.id),
-            ),
-        ],
-      );
-    }
 
     final error = run.error;
     final advice = copy.advice;
@@ -727,6 +794,8 @@ class _Outcome extends StatelessWidget {
           spacing: Spacing.xs,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
+            if (copy.tone == CopyTone.error)
+              Icon(Icons.cancel_outlined, size: 18, color: scheme.error),
             Text(
               copy.row,
               style: theme.textTheme.titleSmall?.copyWith(
@@ -778,7 +847,13 @@ class _Outcome extends StatelessWidget {
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             if (fix != null && onFix != null)
-              TextActionButton(label: fix.label, onPressed: onFix)
+              TextActionButton(
+                label: fix.label,
+                icon: fix == RunFix.askMorkva
+                    ? Icons.auto_awesome_outlined
+                    : null,
+                onPressed: onFix,
+              )
             else if (advice != null && fix == null)
               Text(advice.text, style: muted),
             if (error != null)
@@ -809,14 +884,38 @@ class _ErrorOutline extends StatelessWidget {
   final Widget child;
 
   @override
+  Widget build(BuildContext context) {
+    if (!on) return child;
+    final scheme = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      key: const ValueKey('step-error'),
+      position: DecorationPosition.foreground,
+      decoration: BoxDecoration(
+        borderRadius: Radii.lgAll,
+        border: Border.all(color: scheme.error),
+      ),
+      child: child,
+    );
+  }
+}
+
+/// The failed Outcome's errorContainer wash, under the step's content.
+class _ErrorFill extends StatelessWidget {
+  const _ErrorFill({required this.on, required this.child});
+
+  final bool on;
+  final Widget child;
+
+  @override
   Widget build(BuildContext context) => !on
       ? child
       : DecoratedBox(
-          key: const ValueKey('step-error'),
-          position: DecorationPosition.foreground,
+          key: const ValueKey('step-error-fill'),
           decoration: BoxDecoration(
+            color: Theme.of(
+              context,
+            ).colorScheme.errorContainer.withValues(alpha: 0.3),
             borderRadius: Radii.lgAll,
-            border: Border.all(color: Theme.of(context).colorScheme.error),
           ),
           child: child,
         );
@@ -828,6 +927,8 @@ class _Step extends StatefulWidget {
     required this.title,
     required this.children,
     this.summary,
+    this.summaryIcon,
+    this.trailing,
     this.count,
     this.last = false,
     this.tone,
@@ -835,6 +936,12 @@ class _Step extends StatefulWidget {
 
   final String title;
   final String? summary;
+
+  /// A status glyph before [summary] (Outcome's ✓).
+  final Widget? summaryIcon;
+
+  /// At the header's end (Outcome's Undo).
+  final Widget? trailing;
   final int? count;
   final List<Widget> children;
   final bool last;
@@ -851,8 +958,12 @@ class _StepState extends State<_Step> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final error = widget.tone == CopyTone.error;
+    // The error chip's ink is a pale pink in dark; the dot stays red.
     final dot = widget.tone == null
         ? scheme.outline
+        : error
+        ? scheme.error
         : StatusChip.colorsOf(theme, widget.tone!).foreground;
     // The card sizes the step; the rail is positioned beside it (an
     // IntrinsicHeight row came out 1 px short of the text on web).
@@ -880,67 +991,85 @@ class _StepState extends State<_Step> {
             bottom: Spacing.xs,
           ),
           child: _ErrorOutline(
-            on: widget.tone == CopyTone.error,
+            on: error,
             child: SurfaceCard(
               padding: EdgeInsets.zero,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  InkWell(
-                    onTap: () => setState(() => _open = !_open),
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(minHeight: 48),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: Spacing.sm,
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              _open ? Icons.expand_more : Icons.chevron_right,
-                              size: 20,
-                            ),
-                            const SizedBox(width: Spacing.xs),
-                            Text(
-                              widget.title,
-                              style: theme.textTheme.titleSmall,
-                            ),
-                            if (widget.count != null) ...[
+              child: _ErrorFill(
+                on: error,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    InkWell(
+                      onTap: () => setState(() => _open = !_open),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(minHeight: 48),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: Spacing.sm,
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                _open ? Icons.expand_more : Icons.chevron_right,
+                                size: 20,
+                              ),
                               const SizedBox(width: Spacing.xs),
-                              CountBadge(count: widget.count!),
-                            ],
-                            if (widget.summary != null) ...[
-                              const SizedBox(width: Spacing.sm),
-                              Expanded(
-                                child: Text(
-                                  widget.summary!,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: scheme.onSurfaceVariant,
+                              Text(
+                                widget.title,
+                                style: theme.textTheme.titleSmall,
+                              ),
+                              if (widget.count != null) ...[
+                                const SizedBox(width: Spacing.xs),
+                                CountBadge(count: widget.count!),
+                              ],
+                              if (widget.summaryIcon != null) ...[
+                                const SizedBox(width: Spacing.sm),
+                                widget.summaryIcon!,
+                              ],
+                              if (widget.summary != null) ...[
+                                SizedBox(
+                                  width: widget.summaryIcon == null
+                                      ? Spacing.sm
+                                      : Spacing.xxs,
+                                ),
+                                Expanded(
+                                  child: Text(
+                                    widget.summary!,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: widget.summaryIcon == null
+                                        ? theme.textTheme.bodySmall?.copyWith(
+                                            color: scheme.onSurfaceVariant,
+                                          )
+                                        : theme.textTheme.bodyMedium,
                                   ),
                                 ),
-                              ),
+                              ] else if (widget.trailing != null)
+                                const Spacer(),
+                              if (widget.trailing != null) ...[
+                                const SizedBox(width: Spacing.sm),
+                                widget.trailing!,
+                              ],
                             ],
-                          ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  if (_open)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        Spacing.xl + Spacing.xs,
-                        0,
-                        Spacing.md,
-                        Spacing.md,
+                    if (_open && widget.children.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          Spacing.xl + Spacing.xs,
+                          0,
+                          Spacing.md,
+                          Spacing.md,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: widget.children,
+                        ),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: widget.children,
-                      ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

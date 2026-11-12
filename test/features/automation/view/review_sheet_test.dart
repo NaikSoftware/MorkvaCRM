@@ -115,6 +115,30 @@ void main() {
     expect(argsOf('approve')![0], 'run_2');
   });
 
+  testWidgets('a next review keeps the sheet: the result and Undo in it, '
+      'not a bare "Done."', (tester) async {
+    await rig.setUp();
+    addTearDown(rig.dispose);
+    await waiting(['run_1', 'run_2']);
+    await open(tester);
+    // What the runner leaves in the run doc once it applied.
+    await rig.stores.runs.update(
+      runRecord('run_1', journalId: 'j1').copyWith(
+        summary: () => 'Flagged 2 products',
+        receipt: () => const RunReceipt(applied: 2),
+      ),
+      fields: const {'status', 'journalId', 'summary', 'receipt'},
+    );
+    await tester.tap(find.textContaining('Approve'));
+    await tester.pumpAndSettle();
+    expect(find.text('Next review (1 left)'), findsOneWidget);
+    expect(find.text('Done.'), findsNothing);
+    expect(find.text('Flagged 2 products'), findsOneWidget);
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect(argsOf('undo'), ['run_1']);
+  });
+
   testWidgets('expired: the muted card with Run again', (tester) async {
     await rig.setUp();
     addTearDown(rig.dispose);

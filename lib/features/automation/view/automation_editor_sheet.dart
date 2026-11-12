@@ -17,6 +17,7 @@ import '../../views/widgets/view_popover.dart';
 import '../bloc/automation_editor_cubit.dart';
 import '../bloc/modules_cubit.dart';
 import '../widgets/action_buttons.dart';
+import '../widgets/radio_row.dart';
 
 /// Opens the automation editor over the app's runner, modules and
 /// collections: editing [existing], or a new automation prefilled with
@@ -398,6 +399,13 @@ class _Field extends StatelessWidget {
 TextStyle? _muted(BuildContext context) => Theme.of(context).textTheme.bodySmall
     ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant);
 
+/// The house select's caret (the card editor's selects), not M3's triangle.
+const _chevron = Icon(Icons.expand_more, size: 20);
+
+/// Select text at 14, as the card editor's.
+TextStyle? _selectStyle(BuildContext context) =>
+    Theme.of(context).textTheme.bodyMedium;
+
 TextStyle? _errorStyle(BuildContext context) => Theme.of(
   context,
 ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.error);
@@ -549,34 +557,48 @@ class _KindGrid extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) => RadioGroup<EditorKind>(
-    groupValue: kind,
-    onChanged: (k) => k == null ? null : onChanged(k),
-    child: LayoutBuilder(
-      builder: (context, constraints) {
-        final width =
-            (constraints.maxWidth - Spacing.xs * (columns - 1)) / columns;
-        return Wrap(
-          spacing: Spacing.xs,
-          runSpacing: Spacing.xs,
-          children: [
-            for (final (k, icon, title, hint) in _cards)
-              SizedBox(
-                width: width,
-                child: _RadioCard(
-                  value: k,
-                  selected: k == kind,
-                  icon: icon,
-                  title: title,
-                  hint: hint,
-                  onTap: () => onChanged(k),
-                ),
-              ),
-          ],
-        );
-      },
-    ),
-  );
+  Widget build(BuildContext context) {
+    final tiles = [
+      for (final (k, icon, title, hint) in _cards)
+        _RadioCard(
+          value: k,
+          selected: k == kind,
+          icon: icon,
+          title: title,
+          hint: hint,
+          onTap: () => onChanged(k),
+        ),
+    ];
+    final rows = (tiles.length / columns).ceil();
+    return RadioGroup<EditorKind>(
+      groupValue: kind,
+      onChanged: (k) => k == null ? null : onChanged(k),
+      // A table, so the tiles of a row share its height ("Button on a card"
+      // as tall as "Button on a collection"); the intrinsicHeight cells lay
+      // out for real, unlike IntrinsicHeight (1 px short on web).
+      child: Table(
+        defaultVerticalAlignment: TableCellVerticalAlignment.intrinsicHeight,
+        children: [
+          for (var r = 0; r < rows; r++)
+            TableRow(
+              children: [
+                for (var c = 0; c < columns; c++)
+                  Padding(
+                    padding: EdgeInsets.only(
+                      left: c == 0 ? 0 : Spacing.xs / 2,
+                      right: c == columns - 1 ? 0 : Spacing.xs / 2,
+                      bottom: r == rows - 1 ? 0 : Spacing.xs,
+                    ),
+                    child: r * columns + c < tiles.length
+                        ? tiles[r * columns + c]
+                        : const SizedBox.shrink(),
+                  ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 class _RadioCard extends StatelessWidget {
@@ -667,6 +689,8 @@ class _CollectionPicker extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         DropdownButtonFormField<String>(
+          icon: _chevron,
+          style: _selectStyle(context),
           initialValue: s.collectionId,
           key: ValueKey('in/${s.collectionId}'),
           isExpanded: true,
@@ -861,12 +885,12 @@ class _Conditions extends StatelessWidget {
               onChanged: (m) => m == null ? null : cubit.setMode(m),
               child: const Column(
                 children: [
-                  _RadioRow(
+                  RadioRow(
                     value: TriggerMode.enters,
                     title: 'Once, when the card starts matching',
                     hint: "Won't run again while it keeps matching.",
                   ),
-                  _RadioRow(
+                  RadioRow(
                     value: TriggerMode.matches,
                     title: "Every time it's updated and matches",
                   ),
@@ -1039,64 +1063,6 @@ class _DashedBorder extends CustomPainter {
   bool shouldRepaint(_DashedBorder old) => old.color != color;
 }
 
-class _RadioRow<T> extends StatelessWidget {
-  const _RadioRow({
-    required this.value,
-    required this.title,
-    this.hint,
-    this.enabled = true,
-  });
-
-  final T value;
-  final String title;
-  final String? hint;
-  final bool enabled;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final ink = enabled
-        ? theme.colorScheme.onSurface
-        : theme.colorScheme.onSurface.withValues(alpha: 0.38);
-    return InkWell(
-      onTap: enabled
-          ? () => RadioGroup.maybeOf<T>(context)?.onChanged(value)
-          : null,
-      borderRadius: Radii.smAll,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 44),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Radio<T>(value: value, enabled: enabled),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(top: Spacing.sm),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: theme.textTheme.bodyLarge?.copyWith(color: ink),
-                    ),
-                    if (hint != null)
-                      Text(
-                        hint!,
-                        style: _muted(
-                          context,
-                        )?.copyWith(color: enabled ? null : ink),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _HelpLine extends StatelessWidget {
   const _HelpLine({required this.icon, required this.text, this.lead});
 
@@ -1151,6 +1117,8 @@ class _Do extends StatelessWidget {
     final wide =
         MediaQuery.sizeOf(context).width >= AppShell.expandedBreakpoint;
     final module = DropdownButtonFormField<String>(
+      icon: _chevron,
+      style: _selectStyle(context),
       key: ValueKey('module/${s.moduleId}'),
       initialValue: s.moduleId,
       isExpanded: true,
@@ -1160,13 +1128,28 @@ class _Do extends StatelessWidget {
         for (final m in s.usableModules)
           DropdownMenuItem(
             value: m.module.id,
-            child: Text(m.module.name, overflow: TextOverflow.ellipsis),
+            child: Row(
+              children: [
+                CollectionGlyph(
+                  iconKey: m.module.manifest?.actions.firstOrNull?.icon,
+                  tintSeed: m.module.id,
+                  size: 24,
+                  iconSize: 14,
+                ),
+                const SizedBox(width: Spacing.xs),
+                Flexible(
+                  child: Text(m.module.name, overflow: TextOverflow.ellipsis),
+                ),
+              ],
+            ),
           ),
       ],
       onChanged: (id) => id == null ? null : cubit.setModule(id),
     );
     final actions = s.module?.module.manifest?.actions ?? const <ActionSpec>[];
     final action = DropdownButtonFormField<String>(
+      icon: _chevron,
+      style: _selectStyle(context),
       key: ValueKey('action/${s.moduleId}/${s.actionId}'),
       initialValue: s.actionId,
       isExpanded: true,
@@ -1180,12 +1163,24 @@ class _Do extends StatelessWidget {
           DropdownMenuItem(
             value: a.id,
             enabled: s.kind.fits(a.scope),
-            child: Text(
-              s.kind.fits(a.scope)
-                  ? a.label
-                  : '${a.label} · Runs on a '
-                        '${a.scope == ActionScope.collection ? 'collection' : 'card'}',
-              overflow: TextOverflow.ellipsis,
+            child: Row(
+              children: [
+                Icon(
+                  CollectionIcons.byKey(a.icon),
+                  size: 18,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: Spacing.xs),
+                Flexible(
+                  child: Text(
+                    s.kind.fits(a.scope)
+                        ? a.label
+                        : '${a.label} · Runs on a '
+                              '${a.scope == ActionScope.collection ? 'collection' : 'card'}',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ),
           ),
       ],
@@ -1272,6 +1267,8 @@ class _ParamState extends State<_Param> {
     Widget dropdown(List<(String, String, bool)> items) => _Labeled(
       title,
       DropdownButtonFormField<String>(
+        icon: _chevron,
+        style: _selectStyle(context),
         initialValue: items.any((i) => i.$1 == value) ? value as String : null,
         isExpanded: true,
         decoration: InputDecoration(errorText: error),
@@ -1511,19 +1508,21 @@ class _Apply extends StatelessWidget {
     final s = state;
     final available = s.autoAvailability == AutoAvailability.available;
     return RadioGroup<ApplyMode>(
-      groupValue: s.apply,
+      // A stored Auto the module no longer allows: neither radio is drawn
+      // selected (it asks first meanwhile); Save asks for a choice.
+      groupValue: available || s.apply != ApplyMode.auto ? s.apply : null,
       onChanged: (m) => m == null ? null : onChanged(m),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _RadioRow(
+          RadioRow(
             value: ApplyMode.ask,
             title: 'Ask first',
             hint: s.kind.isButton
                 ? 'You review each change in a preview.'
                 : 'Each card waits in Needs review.',
           ),
-          _RadioRow(
+          RadioRow(
             value: ApplyMode.auto,
             enabled: available,
             title: 'Apply automatically',
@@ -1533,7 +1532,7 @@ class _Apply extends StatelessWidget {
           ),
           if (!available)
             Padding(
-              padding: const EdgeInsets.only(left: 40),
+              padding: const EdgeInsets.only(left: RadioRow.inset),
               child: Row(
                 children: [
                   Icon(
@@ -1652,15 +1651,17 @@ class _AdvancedState extends State<_Advanced> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const _RadioRow(
+                const RadioRow(
                   value: false,
                   title: "Same as the module's access",
                 ),
-                const _RadioRow(value: true, title: 'Only these'),
+                const RadioRow(value: true, title: 'Only these'),
                 if (scope != null)
                   for (final c in s.scopeChoices)
                     CheckboxListTile(
-                      contentPadding: const EdgeInsets.only(left: 40),
+                      contentPadding: const EdgeInsets.only(
+                        left: RadioRow.inset,
+                      ),
                       controlAffinity: ListTileControlAffinity.leading,
                       value: scope.contains(c.id),
                       title: _CollectionLabel(collection: c),

@@ -135,6 +135,65 @@ void main() {
     expect(primary(tester, 'Allow').onPressed, isNotNull);
   });
 
+  testWidgets('re-import of the installed bundle: no "Code changed"', (
+    tester,
+  ) async {
+    final module = stampModule();
+    final previous = consentTo(module, autoApply: true);
+    await open(
+      tester,
+      view: consentViewOf(module.bundle!, previous),
+      initial: ConsentScope.of(previous),
+    );
+    expect(find.textContaining('Code changed'), findsNothing);
+    expect(find.text('This version is already installed.'), findsOneWidget);
+    // Installing still writes a fresh consent with auto-apply off.
+    expect(
+      find.textContaining('Auto-apply turns off when you install it again'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('Where: the radios line up with the "Where" label', (
+    tester,
+  ) async {
+    await open(tester, view: consentViewOf(stampBundle(), null));
+    final label = tester.getTopLeft(find.text('Where')).dx;
+    // The 20 px circle, not the radio's tap box (an M3 radio pads it to
+    // 48 px, which put the circle 14 px in).
+    for (final radio in tester.widgetList(find.byType(Radio<bool>))) {
+      final circleLeft = tester.getCenter(find.byWidget(radio)).dx - 10;
+      expect(circleLeft - label, inInclusiveRange(0, 4));
+    }
+  });
+
+  testWidgets('dark: the action row stays a step above the sheet', (
+    tester,
+  ) async {
+    await open(
+      tester,
+      view: consentViewOf(stampBundle(), null),
+      theme: AppTheme.dark,
+    );
+    final scheme = Theme.of(tester.element(find.byType(Dialog))).colorScheme;
+    final row = tester.widget<Container>(
+      find
+          .ancestor(
+            of: find.text('Stamp shipped date'),
+            matching: find.byType(Container),
+          )
+          .first,
+    );
+    expect(
+      (row.decoration! as BoxDecoration).color,
+      scheme.surfaceContainerHigh,
+    );
+    expect(
+      sheetSurface(Theme.of(tester.element(find.byType(Dialog)))),
+      isNot(scheme.surfaceContainerHigh),
+    );
+  });
+
   testWidgets('edit: only Where, Save returns the new scope', (tester) async {
     final module = stampModule();
     final result = await open(

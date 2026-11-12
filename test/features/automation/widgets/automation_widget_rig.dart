@@ -48,6 +48,7 @@ RunView liveRun(
   RunProgress? progress,
   int? queuedAhead,
   String? summary,
+  String? outcome,
   String? planId,
   RunReason? reason,
 }) => RunView(
@@ -68,6 +69,7 @@ RunView liveRun(
   progress: progress,
   queuedAhead: queuedAhead,
   summary: summary,
+  outcome: outcome,
   planId: planId,
 );
 

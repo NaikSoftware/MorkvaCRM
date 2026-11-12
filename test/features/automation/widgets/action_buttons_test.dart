@@ -357,6 +357,19 @@ void main() {
         runNoticeCopy(liveRun('r', status: RunStatus.succeeded)).text,
         'Mark shipped · No changes',
       );
+      // The host's count wins over the module's words (an ISO date).
+      expect(
+        runNoticeCopy(
+          liveRun(
+            'r',
+            status: RunStatus.succeeded,
+            summary: 'Set Shipped on to 2026-11-12 on Order #1047',
+            outcome: '1 order updated',
+            planId: 'p',
+          ),
+        ).text,
+        'Mark shipped · 1 order updated',
+      );
       expect(
         runNoticeCopy(
           liveRun('r', status: RunStatus.failed, reason: RunReason.cancelled),

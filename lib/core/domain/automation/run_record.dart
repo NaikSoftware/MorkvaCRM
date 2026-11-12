@@ -627,33 +627,57 @@ final class ConsoleLine extends Equatable {
   List<Object?> get props => [t, level, text];
 }
 
-/// One planned change, in words: "Shipped on: — → 2026-11-12".
+/// One planned change, in words: "Shipped on: — → 2026-11-12", with the
+/// field / before / after behind it ([changes]) for the value pills.
 final class PlanLine extends Equatable {
   const PlanLine({
     required this.kind,
     required this.label,
     required this.change,
+    this.changes = const [],
   });
 
   factory PlanLine.fromJson(Map<String, Object?> json) => PlanLine(
     kind: readString(json, 'kind'),
     label: readString(json, 'label'),
     change: readString(json, 'change'),
+    changes: [
+      for (final c in json['changes'] as List<Object?>? ?? const [])
+        if (c case final Map<Object?, Object?> m)
+          (
+            field: readString(m.cast<String, Object?>(), 'field'),
+            before: readStringOrNull(m.cast<String, Object?>(), 'before'),
+            after: readStringOrNull(m.cast<String, Object?>(), 'after'),
+          ),
+    ],
   );
+
+  /// The most field changes a line keeps (the [change] text has them all).
+  static const int kMaxChanges = 20;
 
   /// The plan item kind (`updateCard`, …).
   final String kind;
   final String label;
   final String change;
+  final List<({String field, String? before, String? after})> changes;
 
   Map<String, Object?> toJson() => {
     'kind': kind,
     'label': cutText(label, 80),
     'change': cutText(change, 300),
+    if (changes.isNotEmpty)
+      'changes': [
+        for (final c in changes.take(kMaxChanges))
+          {
+            'field': cutText(c.field, 80),
+            if (c.before case final b?) 'before': cutText(b, 120),
+            if (c.after case final a?) 'after': cutText(a, 120),
+          },
+      ],
   };
 
   @override
-  List<Object?> get props => [kind, label, change];
+  List<Object?> get props => [kind, label, change, changes];
 }
 
 /// A `ui.open` chip: an in-app ref only, opened on tap.

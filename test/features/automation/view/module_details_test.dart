@@ -201,6 +201,35 @@ void main() {
     },
   );
 
+  testWidgets('actions: wide puts Test run at the row end; phone stacks it', (
+    tester,
+  ) async {
+    await consent();
+    await pump(tester);
+    final chip = find.text('On a card');
+    final row = tester.getCenter(chip).dy;
+    expect(
+      (tester.getCenter(find.text('Test run')).dy - row).abs(),
+      lessThan(40),
+    );
+    expect(
+      tester.getTopLeft(find.text('Test run')).dx,
+      greaterThan(tester.getTopRight(chip).dx),
+    );
+
+    await pump(tester, size: phoneWindow);
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Test run'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(
+      tester.getTopLeft(find.text('Test run')).dy,
+      greaterThan(tester.getBottomLeft(find.text('On a card')).dy + 10),
+    );
+  });
+
   testWidgets('a module that is gone says so', (tester) async {
     await rig.stores.modules.delete(stampId);
     await pump(tester);

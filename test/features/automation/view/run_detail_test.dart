@@ -49,16 +49,16 @@ void main() {
           t: 0,
           op: 'cards.update',
           kind: 'plan',
-          args: '#1042 · planned 1 change',
+          args: 'collection: c_orders · target: {ids} · set: {f_shipped}',
           ok: true,
-          result: 'ok',
+          result: 'planned 1 change',
           ms: 6,
         ),
         RunCall(
           t: 6,
           op: 'cards.update',
           kind: 'plan',
-          args: 'Clients',
+          args: 'collection: c_clients',
           ok: false,
           result: 'not_permitted — Collection not available',
           ms: 1,
@@ -68,8 +68,9 @@ void main() {
       plan: [
         PlanLine(
           kind: 'updateCard',
-          label: '#1042',
+          label: '#1042 · Iryna Melnyk',
           change: 'Shipped on: — → 12 Nov',
+          changes: [(field: 'Shipped on', before: null, after: '12 Nov')],
         ),
       ],
       ui: [UiLink(kind: 'open', ref: 'b_1042', label: '#1042')],
@@ -94,12 +95,26 @@ void main() {
       find.textContaining('Stamping #1042', findRichText: true),
       findsOneWidget,
     );
-    expect(find.text('Shipped on: — → 12 Nov'), findsOneWidget);
+    // The plan row: the card chip, the rest, the field and its new value.
+    expect(find.text('#1042'), findsWidgets);
+    expect(find.text('Iryna Melnyk'), findsOneWidget);
+    expect(find.text('Shipped on'), findsOneWidget);
+    expect(find.text('12 Nov'), findsOneWidget);
+    expect(find.text('Shipped on: — → 12 Nov'), findsNothing);
+    // Calls: collection and field names, then what happened; no key dump.
+    expect(find.text('Orders · Shipped on · planned 1 change'), findsOneWidget);
     expect(
       find.text('Clients · not_permitted — Collection not available'),
       findsOneWidget,
     );
+    for (final t in tester.widgetList<Text>(find.byType(Text))) {
+      expect(t.data ?? '', isNot(contains('{')));
+    }
+    // The outcome sits in its step header, Undo beside it.
+    expect(find.textContaining('Applied 1 change · '), findsOneWidget);
     expect(find.text('Undo · 10 min left'), findsOneWidget);
+    // A succeeded button run can run again (a link beside Undo).
+    expect(find.text('Run again on #1042'), findsOneWidget);
 
     await tester.tap(find.text('Open #1042'));
     expectLastCall(rig.host.calls, 'openLink');
@@ -155,11 +170,50 @@ void main() {
       find.text('Asked first: the automation asks first.'),
       findsOneWidget,
     );
+    // A log written before the value pills: the line in words.
+    expect(find.text('Shipped on: — → 12 Nov'), findsOneWidget);
     // Calls name the logged ids and say what they did.
+    expect(find.text('Orders · Shipped on · planned 1 change'), findsOneWidget);
+  });
+
+  testWidgets('a reviewed run says who approved it and when', (tester) async {
+    await rig.stores.runs.create(
+      runRecord('r_ok', applyStartedAt: fixtureNow).copyWith(
+        log: const RunLog(
+          plan: [PlanLine(kind: 'updateCard', label: '#1042', change: 'x')],
+          policy: 'review: the automation asks first',
+        ),
+      ),
+    );
+    await pump(tester, 'r_ok');
     expect(
-      find.text('collection: Orders · set: {Shipped on} · planned 1 change'),
+      find.textContaining('1 change · approved by you at '),
       findsOneWidget,
     );
+  });
+
+  testWidgets('an event run that succeeded has no Run again', (tester) async {
+    await rig.stores.runs.create(
+      runRecord('r_ev', kind: TriggerKind.cardUpdated, journalId: 'j1'),
+    );
+    await pump(tester, 'r_ev');
+    expect(find.textContaining('Run again'), findsNothing);
+  });
+
+  testWidgets('another window\'s review: a muted "Review elsewhere" chip', (
+    tester,
+  ) async {
+    await rig.stores.runs.create(
+      storedRun(
+        'r_rev',
+        status: RunStatus.awaitingReview,
+        sessionId: 'other-window',
+      ),
+    );
+    await pump(tester, 'r_rev');
+    expect(find.text('Review elsewhere'), findsOneWidget);
+    expect(find.text('Needs review'), findsNothing);
+    expect(find.byIcon(Icons.radio_button_unchecked), findsOneWidget);
   });
 
   // On web the steps' intrinsic text height came out 1 px short of their
@@ -229,9 +283,20 @@ void main() {
           ?.fontFamily,
       contains('RobotoMono'),
     );
-    // The failed Outcome is an error card with its code.
+    // The failed Outcome is an error card with its code: an outline over
+    // an errorContainer wash, the ⊗ before the words.
     expect(find.byKey(const ValueKey('step-error')), findsOneWidget);
+    expect(find.byKey(const ValueKey('step-error-fill')), findsOneWidget);
     expect(find.text('module_error'), findsOneWidget);
+    expect(
+      find.widgetWithIcon(TextActionButton, Icons.auto_awesome_outlined),
+      findsOneWidget,
+    );
+    // Run again leads the header as the tonal button.
+    expect(
+      find.widgetWithText(SecondaryButton, 'Run again on #1042'),
+      findsOneWidget,
+    );
     await tester.tap(find.text('Ask Morkva to fix it'));
     expect(rig.host.calls.last.$1, 'askMorkva');
     expect(rig.host.calls.last.$2.single, contains('TypeError'));

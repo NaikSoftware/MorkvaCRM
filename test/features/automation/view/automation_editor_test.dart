@@ -183,6 +183,46 @@ void main() {
     expect(find.text('Module details'), findsOneWidget);
   });
 
+  testWidgets('a stored Auto the module no longer allows: no radio drawn '
+      'selected, and the stored value is kept', (tester) async {
+    final cubit = await pump(
+      tester,
+      build(
+        existing: automation(apply: ApplyMode.auto, autoBy: uid),
+      ),
+    );
+    final group = tester.widget<RadioGroup<ApplyMode>>(
+      find.byType(RadioGroup<ApplyMode>),
+    );
+    expect(group.groupValue, isNull);
+    expect(cubit.state.apply, ApplyMode.auto);
+    expect(
+      find.text('Turn on auto-apply for this module first.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('When: the two button tiles share one height', (tester) async {
+    await pump(tester, build());
+    Finder tile(String title) => find
+        .ancestor(of: find.text(title), matching: find.byType(Material))
+        .first;
+    expect(
+      tester.getSize(tile('Button on a card')).height,
+      tester.getSize(tile('Button on a collection')).height,
+    );
+  });
+
+  testWidgets('selects use the house chevron at 14 px', (tester) async {
+    await pump(tester, build());
+    expect(find.byIcon(Icons.arrow_drop_down), findsNothing);
+    expect(find.byIcon(Icons.expand_more), findsWidgets);
+    final module = tester.widget<DropdownButton<String>>(
+      find.byType(DropdownButton<String>).at(1),
+    );
+    expect(module.style?.fontSize, 14);
+  });
+
   testWidgets('Apply automatically once the module allows it', (tester) async {
     await pump(tester, build(autoApply: true));
     expect(

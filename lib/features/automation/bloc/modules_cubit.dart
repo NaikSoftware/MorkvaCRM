@@ -161,6 +161,12 @@ final class ConsentView extends Equatable {
 
   bool get reconsent => previous != null;
 
+  /// The bundle differs from the one consented to (a re-import of the same
+  /// file doesn't).
+  bool get codeChanged =>
+      previous != null &&
+      previous!.codeHash != bundleHashOf(bundle.manifestJson, bundle.code);
+
   /// "v1.0.0 → v1.1.0" and "2.1 KB → 2.4 KB" come from these.
   String? get fromVersion => previous?.version;
   int? get fromBytes => previous?.codeBytes;

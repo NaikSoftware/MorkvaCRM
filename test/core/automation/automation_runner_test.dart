@@ -346,6 +346,12 @@ void main() {
       expect(doc.touchedCardIds, [_order]);
       expect(doc.journalId, isNotNull);
       expect(doc.summary, 'Stamped');
+      // The finish notice's host count, beside the module's own summary.
+      await until(() => rig.finished.any((r) => r.runId == runId));
+      expect(
+        rig.finished.lastWhere((r) => r.runId == runId).outcome,
+        matches(RegExp(r'^1 [^ ]+ updated$')),
+      );
       expect(rig.item(_order), 'Stamped');
       expect(rig.fakes.runs.updates.map((u) => u.$2), [
         {'applyStartedAt'},

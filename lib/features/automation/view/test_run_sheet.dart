@@ -4,6 +4,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/domain/automation/automation.dart';
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../assistant/bloc/chat_item.dart' show PlanChange;
+import '../../assistant/view/widgets/object_chip.dart';
+import '../../assistant/view/widgets/plan_card.dart' show DiffLine;
 import '../bloc/module_details_cubit.dart';
 import '../widgets/reason_copy.dart';
 import 'automations_page.dart';
@@ -433,26 +436,52 @@ class PlanLineRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: Spacing.xxs),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            switch (line.kind) {
-              'createCard' => Icons.add_circle_outline,
-              'deleteCard' => Icons.remove_circle_outline,
-              _ => Icons.edit_outlined,
-            },
-            size: 16,
-            color: theme.colorScheme.onSurfaceVariant,
+    // "#1042 · Iryna Melnyk": the card chip, then the rest in bold.
+    final cut = line.label.indexOf(' · ');
+    final head = cut < 0 ? line.label : line.label.substring(0, cut);
+    final rest = cut < 0 ? null : line.label.substring(cut + 3);
+    final icon = Icon(
+      switch (line.kind) {
+        'createCard' => Icons.add_circle_outline,
+        'deleteCard' => Icons.remove_circle_outline,
+        _ => Icons.edit_outlined,
+      },
+      size: 16,
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+    // A log written before the pills were stored: the line in words.
+    if (line.changes.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: Spacing.xxs),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            icon,
+            const SizedBox(width: Spacing.xs),
+            Text(line.label, style: theme.textTheme.titleSmall),
+            const SizedBox(width: Spacing.sm),
+            Expanded(
+              child: Text(line.change, style: theme.textTheme.bodyMedium),
+            ),
+          ],
+        ),
+      );
+    }
+    return Wrap(
+      spacing: Spacing.sm,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        ObjectChip(label: head),
+        if (rest != null) Text(rest, style: theme.textTheme.titleSmall),
+        for (final c in line.changes)
+          DiffLine(
+            change: PlanChange(
+              field: c.field,
+              beforeText: c.before,
+              afterText: c.after,
+            ),
           ),
-          const SizedBox(width: Spacing.xs),
-          Text(line.label, style: theme.textTheme.titleSmall),
-          const SizedBox(width: Spacing.sm),
-          Expanded(child: Text(line.change, style: theme.textTheme.bodyMedium)),
-        ],
-      ),
+      ],
     );
   }
 }

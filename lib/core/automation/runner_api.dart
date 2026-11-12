@@ -188,6 +188,7 @@ final class RunView extends Equatable {
     this.queuedAhead,
     this.progress,
     this.summary,
+    this.outcome,
     this.planId,
     this.commitId,
     this.error,
@@ -212,6 +213,10 @@ final class RunView extends Equatable {
   /// `running` (module progress) or `applying` (commit progress).
   final RunProgress? progress;
   final String? summary;
+
+  /// The host's count of what it applied ("1 order updated"); null when
+  /// nothing was.
+  final String? outcome;
   final String? planId;
 
   /// [RunRecord.commitId].
@@ -237,6 +242,7 @@ final class RunView extends Equatable {
     queuedAhead,
     progress,
     summary,
+    outcome,
     planId,
     commitId,
     error,

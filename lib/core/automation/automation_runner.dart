@@ -20,7 +20,7 @@ import '../harness/automation_validation.dart';
 import '../harness/cache/derived_snapshot.dart';
 import '../harness/cache/workspace_cache.dart';
 import '../harness/plan/plan.dart';
-import '../harness/plan/plan_committer.dart' show ItemOutcome;
+import '../harness/plan/plan_committer.dart' show ItemOutcome, PlanCommitter;
 import '../harness/query/cache_workspace_reader.dart';
 import '../harness/session/harness_session.dart';
 import 'apply_policy.dart';
@@ -374,6 +374,11 @@ final class AutomationRunner implements AutomationRunnerApi {
     queuedAhead: run.status == RunStatus.queued ? _queue.ahead(run) : null,
     progress: run.progress,
     summary: run.summary,
+    outcome: switch (run.record?.receipt) {
+      RunReceipt(:final applied) when applied > 0 =>
+        '${PlanCommitter.cards(session.cache.collection(run.trigger.collectionId), applied)} updated',
+      _ => null,
+    },
     planId: run.planId,
     commitId: run.commitId,
     error: run.error,

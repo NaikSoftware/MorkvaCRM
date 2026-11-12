@@ -144,8 +144,11 @@ NoticeCopy runNoticeCopy(RunView run) {
       );
     case RunStatus.succeeded:
       final changed = run.planId != null;
+      // The host's count first ("1 order updated"): the module's own words
+      // may carry raw values (an ISO date).
       return (
-        text: '$label · ${run.summary ?? (changed ? 'Done' : 'No changes')}',
+        text:
+            '$label · ${run.outcome ?? run.summary ?? (changed ? 'Done' : 'No changes')}',
         actions: [if (changed) NoticeAction.undo, NoticeAction.viewRun],
         error: false,
       );

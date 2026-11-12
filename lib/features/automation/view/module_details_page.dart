@@ -693,71 +693,87 @@ class _Actions extends StatelessWidget {
       title: 'Actions',
       children: [
         for (final a in manifest.actions)
-          Padding(
-            padding: const EdgeInsets.all(Spacing.md),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                CollectionGlyph(
-                  iconKey: a.icon,
-                  tintSeed: state.module!.id,
-                  size: 28,
-                  iconSize: 16,
-                ),
-                const SizedBox(width: Spacing.sm),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Wrap(
-                        spacing: Spacing.xs,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          Text(a.label, style: theme.textTheme.titleSmall),
-                          HugChip(
-                            label: scopeTag(a.scope),
-                            tone: CopyTone.neutral,
-                          ),
-                        ],
-                      ),
-                      if (a.description != null)
-                        Text(a.description!, style: theme.textTheme.bodyMedium),
-                      if (inputLine(a.input) case final line
-                          when line.isNotEmpty)
-                        Text(line, style: muted),
-                      Wrap(
-                        spacing: Spacing.xs,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          Semantics(
-                            hint: state.canTestRun
-                                ? null
-                                : 'Allow this module first',
-                            child: TextActionButton(
-                              label: 'Test run',
-                              icon: Icons.play_arrow_outlined,
-                              onPressed: state.canTestRun
-                                  ? () => _test(context, a)
-                                  : null,
-                            ),
-                          ),
-                          TextActionButton(
-                            label: 'Add to a button',
-                            icon: Icons.smart_button_outlined,
-                            onPressed: () => host.newAutomation(
-                              moduleId: manifest.id,
-                              actionId: a.id,
-                            ),
-                          ),
-                          if (!state.canTestRun)
-                            Text('Allow this module first', style: muted),
-                        ],
-                      ),
-                    ],
+          LayoutBuilder(
+            builder: (context, box) {
+              final buttons = Wrap(
+                spacing: Spacing.xs,
+                alignment: WrapAlignment.end,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Semantics(
+                    hint: state.canTestRun ? null : 'Allow this module first',
+                    child: TextActionButton(
+                      label: 'Test run',
+                      icon: Icons.play_arrow_outlined,
+                      onPressed: state.canTestRun
+                          ? () => _test(context, a)
+                          : null,
+                    ),
                   ),
+                  TextActionButton(
+                    label: 'Add to a button',
+                    icon: Icons.smart_button_outlined,
+                    onPressed: () => host.newAutomation(
+                      moduleId: manifest.id,
+                      actionId: a.id,
+                    ),
+                  ),
+                  if (!state.canTestRun)
+                    Text('Allow this module first', style: muted),
+                ],
+              );
+              // Wide: the buttons at the row's end, as the mockup; narrow
+              // cards stack them under the text.
+              final wide = box.maxWidth >= 520;
+              return Padding(
+                padding: const EdgeInsets.all(Spacing.md),
+                child: Row(
+                  crossAxisAlignment: wide
+                      ? CrossAxisAlignment.center
+                      : CrossAxisAlignment.start,
+                  children: [
+                    CollectionGlyph(
+                      iconKey: a.icon,
+                      tintSeed: state.module!.id,
+                      size: 28,
+                      iconSize: 16,
+                    ),
+                    const SizedBox(width: Spacing.sm),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Wrap(
+                            spacing: Spacing.xs,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              Text(a.label, style: theme.textTheme.titleSmall),
+                              HugChip(
+                                label: scopeTag(a.scope),
+                                tone: CopyTone.neutral,
+                              ),
+                            ],
+                          ),
+                          if (a.description != null)
+                            Text(
+                              a.description!,
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                          if (inputLine(a.input) case final line
+                              when line.isNotEmpty)
+                            Text(line, style: muted),
+                          if (!wide) buttons,
+                        ],
+                      ),
+                    ),
+                    if (wide) ...[
+                      const SizedBox(width: Spacing.sm),
+                      Flexible(child: buttons),
+                    ],
+                  ],
                 ),
-              ],
-            ),
+              );
+            },
           ),
       ],
     );
