@@ -257,6 +257,22 @@ void main() {
       expectLastCall(rig.host.calls, 'openRun', ['r_failed']);
     });
 
+    testWidgets('an undone run shows the muted undo glyph, not the check', (
+      tester,
+    ) async {
+      await seedModule();
+      await rig.stores.automations.save(automation());
+      await rig.stores.runs.create(
+        storedRun(
+          'r_undone',
+          status: RunStatus.succeeded,
+        ).copyWith(undoneAt: () => fixtureNow),
+      );
+      await pump(tester, tab: AutomationsTab.runs);
+      expect(find.byIcon(Icons.check_circle_outline), findsNothing);
+      expect(find.byIcon(Icons.undo), findsOneWidget);
+    });
+
     testWidgets('offline: Run again is disabled with the reason', (
       tester,
     ) async {

@@ -1672,10 +1672,16 @@ class _GroupRow extends StatelessWidget {
 
 /// The status glyph of a run row (UX §1c).
 class RunStatusIcon extends StatelessWidget {
-  const RunStatusIcon({super.key, required this.status, this.reason});
+  const RunStatusIcon({
+    super.key,
+    required this.status,
+    this.reason,
+    this.undone = false,
+  });
 
   final RunStatus status;
   final RunReason? reason;
+  final bool undone;
 
   @override
   Widget build(BuildContext context) {
@@ -1702,6 +1708,7 @@ class RunStatusIcon extends StatelessWidget {
           border: Border.all(color: semantic.warningContainer, width: 3),
         ),
       ),
+      RunStatus.succeeded when undone => icon(Icons.undo, muted),
       RunStatus.succeeded => icon(Icons.check_circle_outline, semantic.success),
       RunStatus.failed when reason == RunReason.interrupted => icon(
         Icons.help_outline,
@@ -1852,6 +1859,7 @@ class RunRowTile extends StatelessWidget {
       reason: row.display == RunDisplay.outcomeUnknown
           ? RunReason.interrupted
           : run.reason,
+      undone: run.undoneAt != null,
     );
     final text = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
