@@ -129,16 +129,26 @@ class FakeDataRepository implements DataRepository {
   Future<void> saveObject(
     MorkvaObject object, {
     required Collection schema,
+    WriteOrigin origin = const WriteOrigin.ui(),
   }) async {}
 
   @override
-  Future<void> deleteObject(String collectionId, String objectId) async {}
+  Future<void> deleteObject(
+    String collectionId,
+    String objectId, {
+    MorkvaObject? before,
+    WriteOrigin origin = const WriteOrigin.ui(),
+  }) async {}
 
   @override
   Future<BatchResult> saveObjectsBatch(
     List<ObjectWrite> writes, {
     required Map<String, Collection> schemas,
+    WriteOrigin origin = const WriteOrigin.ui(),
   }) async => BatchResult(written: [for (final w in writes) w.id]);
+
+  @override
+  Stream<CardChange> get changes => const Stream.empty();
 
   @override
   Future<void> updateCollection(

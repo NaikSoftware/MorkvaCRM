@@ -63,9 +63,10 @@ class _GatedRepo extends FakeDataRepository {
   Future<void> saveObject(
     MorkvaObject object, {
     required Collection schema,
+    WriteOrigin origin = const WriteOrigin.ui(),
   }) async {
     await gate.future;
-    return super.saveObject(object, schema: schema);
+    return super.saveObject(object, schema: schema, origin: origin);
   }
 }
 

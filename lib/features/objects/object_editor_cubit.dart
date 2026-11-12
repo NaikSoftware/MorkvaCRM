@@ -334,7 +334,11 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
       );
     }
     try {
-      await _repository.deleteObject(sublist.collection.id, item.id);
+      await _repository.deleteObject(
+        sublist.collection.id,
+        item.id,
+        before: item,
+      );
       return true;
     } catch (_) {
       return false;
