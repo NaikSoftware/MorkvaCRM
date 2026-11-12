@@ -176,6 +176,14 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Stamp date when shipped'), findsOneWidget);
       expect(rig.runLog.state.filter.kind, RunFilterKind.all);
+
+      await pump(
+        tester,
+        tab: AutomationsTab.automations,
+        collectionId: 'c_clients',
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Stamp date when shipped'), findsNothing);
     });
   });
 
@@ -237,6 +245,23 @@ void main() {
       expect(find.text('Needs a connection'), findsOneWidget);
     });
 
+    testWidgets('the automation picker filters and clears', (tester) async {
+      await seedModule();
+      await rig.stores.automations.save(automation());
+      await pump(tester, tab: AutomationsTab.runs);
+      await tester.tap(find.text('Any automation'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Stamp date when shipped').last);
+      await tester.pumpAndSettle();
+      expect(rig.runLog.state.filter.automationId, 'a_1');
+
+      await tester.tap(find.text('Stamp date when shipped'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Any automation').last);
+      await tester.pumpAndSettle();
+      expect(rig.runLog.state.filter.automationId, isNull);
+    });
+
     testWidgets('opening the tab marks runs seen', (tester) async {
       expect(rig.runs.state.expiredSince, isNot(fixtureNow));
       await pump(tester, tab: AutomationsTab.runs);
@@ -281,6 +306,32 @@ void main() {
       final b = tester.getTopLeft(find.text('Stamp shipped date'));
       expect(a.dy, b.dy);
       expect(find.textContaining('Made by Ask Morkva'), findsOneWidget);
+    });
+
+    testWidgets('1440 with the Ask panel beside the page: one column, '
+        'no overflow', (tester) async {
+      await seedModule();
+      await rig.stores.automations.save(automation());
+      await rig.stores.runs.create(
+        storedRun('r1', status: RunStatus.failed, reason: RunReason.internal),
+      );
+      setWindow(tester, wideWindow);
+      for (final tab in AutomationsTab.values) {
+        await tester.pumpWidget(
+          rig.wrap(
+            Align(
+              alignment: Alignment.topLeft,
+              // 1440 − the 272 sidebar − the 440 Ask panel.
+              child: SizedBox(
+                width: 728,
+                child: AutomationsPage(tab: tab, now: () => fixtureNow),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+      }
     });
 
     testWidgets('phone: no page title (the shell header has it)', (

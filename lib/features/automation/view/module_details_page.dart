@@ -114,54 +114,76 @@ class _Details extends StatelessWidget {
     final runs = _RecentRuns(state: state, now: now());
 
     final header = _Header(state: state, entry: entry);
-    if (automationsWide(context)) {
-      return ListView(
-        padding: const EdgeInsets.only(bottom: Spacing.xl),
-        children: [
-          if (banner != null) ...[banner, const SizedBox(height: Spacing.md)],
-          header,
-          const SizedBox(height: Spacing.md),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 3,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [can, gap, ?actions, gap, runs],
-                ),
-              ),
-              const SizedBox(width: Spacing.lg),
-              Expanded(
-                flex: 2,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [about, gap, auto, gap, automations, gap, code],
-                ),
-              ),
-            ],
-          ),
-        ],
-      );
-    }
+    return LayoutBuilder(
+      builder: (context, box) => box.maxWidth >= kTwoColumnWidth
+          ? _twoColumns(
+              banner,
+              header,
+              [can, ?actions, runs],
+              [about, auto, automations, code],
+            )
+          : ListView(
+              padding: const EdgeInsets.only(bottom: Spacing.xl),
+              children: [
+                if (banner != null) ...[
+                  banner,
+                  const SizedBox(height: Spacing.md),
+                ],
+                header,
+                const SizedBox(height: Spacing.md),
+                about,
+                gap,
+                can,
+                gap,
+                auto,
+                if (actions != null) ...[gap, actions],
+                gap,
+                automations,
+                gap,
+                code,
+                gap,
+                runs,
+              ],
+            ),
+    );
+  }
+
+  Widget _twoColumns(
+    Widget? banner,
+    Widget header,
+    List<Widget> left,
+    List<Widget> right,
+  ) {
+    const gap = SizedBox(height: Spacing.lg);
+    List<Widget> spaced(List<Widget> ws) => [
+      for (final (i, w) in ws.indexed) ...[if (i > 0) gap, w],
+    ];
     return ListView(
       padding: const EdgeInsets.only(bottom: Spacing.xl),
       children: [
         if (banner != null) ...[banner, const SizedBox(height: Spacing.md)],
         header,
         const SizedBox(height: Spacing.md),
-        about,
-        gap,
-        can,
-        gap,
-        auto,
-        if (actions != null) ...[gap, actions],
-        gap,
-        automations,
-        gap,
-        code,
-        gap,
-        runs,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 3,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: spaced(left),
+              ),
+            ),
+            const SizedBox(width: Spacing.lg),
+            Expanded(
+              flex: 2,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: spaced(right),
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -437,7 +459,7 @@ class _WhatItCanDo extends StatelessWidget {
     final consent = state.consent;
     final allowed = consent != null && state.status == ModuleStatus.ok;
     final where = consent == null
-        ? 'Will ask for: where you allow'
+        ? null
         : scopeLine(consent.collections, collections);
     return AutomationSection(
       title: 'What it can do',
@@ -469,6 +491,19 @@ class _WhatItCanDo extends StatelessWidget {
         ),
       ),
       children: [
+        if (consent == null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              Spacing.md,
+              Spacing.sm,
+              Spacing.md,
+              0,
+            ),
+            child: Text(
+              'Will ask for:',
+              style: Theme.of(context).textTheme.labelMedium,
+            ),
+          ),
         for (final cap in entry.caps) CapabilityRow(cap: cap, extra: where),
       ],
     );

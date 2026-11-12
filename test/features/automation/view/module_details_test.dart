@@ -187,6 +187,31 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('a page narrowed by the Ask panel stacks its sections', (
+    tester,
+  ) async {
+    await consent();
+    setWindow(tester, wideWindow);
+    rig.detailsOf(stampId);
+    await tester.pumpWidget(
+      rig.wrap(
+        Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(
+            width: 728,
+            child: ModuleDetailsPage(now: () => fixtureNow),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(
+      tester.getTopLeft(find.text('About')).dy,
+      lessThan(tester.getTopLeft(find.text('What it can do')).dy),
+    );
+  });
+
   testWidgets('All runs opens the Runs tab filtered to the module', (
     tester,
   ) async {

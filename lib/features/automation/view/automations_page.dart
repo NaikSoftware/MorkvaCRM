@@ -79,9 +79,10 @@ abstract interface class AutomationsHost {
   Future<bool> saveFile(String name, String text);
 }
 
-/// The window is wide enough for two columns of cards (full sidebar).
-bool automationsWide(BuildContext context) =>
-    MediaQuery.sizeOf(context).width >= AppShell.extendedRailBreakpoint;
+/// The page's own width for two columns (module cards, module details):
+/// the full sidebar's 1040 content, not the rail's or a page narrowed by the
+/// Ask panel. Measured with a LayoutBuilder, not the window.
+const double kTwoColumnWidth = 880;
 
 /// Not a phone.
 bool automationsExpanded(BuildContext context) =>
@@ -177,7 +178,7 @@ String permissionSummary(ModuleEntry entry, List<Collection> all) {
   ].join(' · ');
   final consent = entry.consent;
   return consent == null
-      ? '$titles · Will ask for: where you allow'
+      ? 'Will ask for: $titles'
       : '$titles · ${scopeLine(consent.collections, all)}';
 }
 
@@ -350,6 +351,7 @@ class _AutomationsPageState extends State<AutomationsPage>
 
     final Widget? action = switch (widget.tab) {
       AutomationsTab.modules => Wrap(
+        alignment: WrapAlignment.end,
         spacing: Spacing.xs,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
@@ -511,7 +513,12 @@ class _Header extends StatelessWidget {
               ],
             ),
           ),
-          if (action != null) ...[const SizedBox(width: Spacing.md), action!],
+          if (action != null) ...[
+            const SizedBox(width: Spacing.md),
+            Flexible(
+              child: Align(alignment: Alignment.topRight, child: action),
+            ),
+          ],
         ],
       ),
     );
@@ -891,38 +898,43 @@ class _ModulesTab extends StatelessWidget {
         ),
     ];
     final pad = automationsExpanded(context) ? Spacing.xxl : Spacing.md;
-    if (!automationsWide(context)) {
-      return ListView.separated(
-        padding: EdgeInsets.fromLTRB(pad, Spacing.md, pad, Spacing.xl),
-        itemCount: cards.length,
-        separatorBuilder: (_, _) => const SizedBox(height: Spacing.md),
-        itemBuilder: (_, i) => cards[i],
-      );
-    }
-    return ListView(
-      padding: EdgeInsets.fromLTRB(pad, Spacing.md, pad, Spacing.xl),
-      children: [
-        for (var i = 0; i < cards.length; i += 2)
-          Padding(
-            padding: const EdgeInsets.only(bottom: Spacing.md),
-            child: IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(child: cards[i]),
-                  const SizedBox(width: Spacing.md),
-                  Expanded(
-                    child: i + 1 < cards.length
-                        ? cards[i + 1]
-                        : const SizedBox.shrink(),
-                  ),
-                ],
-              ),
-            ),
-          ),
-      ],
+    return LayoutBuilder(
+      builder: (context, box) => box.maxWidth - 2 * pad < kTwoColumnWidth
+          ? _oneColumn(cards, pad)
+          : _twoColumns(cards, pad),
     );
   }
+
+  Widget _oneColumn(List<Widget> cards, double pad) => ListView.separated(
+    padding: EdgeInsets.fromLTRB(pad, Spacing.md, pad, Spacing.xl),
+    itemCount: cards.length,
+    separatorBuilder: (_, _) => const SizedBox(height: Spacing.md),
+    itemBuilder: (_, i) => cards[i],
+  );
+
+  Widget _twoColumns(List<Widget> cards, double pad) => ListView(
+    padding: EdgeInsets.fromLTRB(pad, Spacing.md, pad, Spacing.xl),
+    children: [
+      for (var i = 0; i < cards.length; i += 2)
+        Padding(
+          padding: const EdgeInsets.only(bottom: Spacing.md),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: cards[i]),
+                const SizedBox(width: Spacing.md),
+                Expanded(
+                  child: i + 1 < cards.length
+                      ? cards[i + 1]
+                      : const SizedBox.shrink(),
+                ),
+              ],
+            ),
+          ),
+        ),
+    ],
+  );
 }
 
 /// The module's glyph: its first action's icon, tinted by module id.
@@ -1191,7 +1203,12 @@ class AutomationRowTile extends StatelessWidget {
   final bool compact;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, box) =>
+        _build(context, inline: !compact && box.maxWidth >= 600),
+  );
+
+  Widget _build(BuildContext context, {required bool inline}) {
     final theme = Theme.of(context);
     final host = context.read<AutomationsHost>();
     final modules = context.read<ModulesCubit>();
@@ -1251,7 +1268,7 @@ class AutomationRowTile extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-        if (compact || !automationsExpanded(context)) ...[
+        if (!inline) ...[
           const SizedBox(height: Spacing.xxs),
           Wrap(
             spacing: Spacing.xs,
@@ -1266,10 +1283,7 @@ class AutomationRowTile extends StatelessWidget {
         AutomationTile(automation: a),
         const SizedBox(width: Spacing.sm),
         Expanded(child: text),
-        if (!compact && automationsExpanded(context)) ...[
-          const SizedBox(width: Spacing.sm),
-          ...chips,
-        ],
+        if (inline) ...[const SizedBox(width: Spacing.sm), ...chips],
         const SizedBox(width: Spacing.sm),
         Semantics(
           label: '${a.name} enabled',
@@ -1443,18 +1457,19 @@ class _RunsTab extends StatelessWidget {
             onTap: () => go(RunFilterKind.failed),
           ),
           const SizedBox(width: Spacing.xs),
-          PopupMenuButton<String?>(
+          // '' = any: a null value reads as a cancelled menu.
+          PopupMenuButton<String>(
             tooltip: 'Filter by automation',
             onSelected: (id) => runLog.setFilter(
               RunFilter(
                 kind: filter.kind,
-                automationId: id,
+                automationId: id.isEmpty ? null : id,
                 moduleId: filter.moduleId,
                 cardId: filter.cardId,
               ),
             ),
             itemBuilder: (_) => [
-              const PopupMenuItem(value: null, child: Text('Any automation')),
+              const PopupMenuItem(value: '', child: Text('Any automation')),
               for (final a in automations)
                 PopupMenuItem(
                   value: a.automation.id,
@@ -1717,7 +1732,10 @@ class RunRowTile extends StatelessWidget {
   final bool compact;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      LayoutBuilder(builder: (context, box) => _build(context, box.maxWidth));
+
+  Widget _build(BuildContext context, double width) {
     final theme = Theme.of(context);
     final host = context.read<AutomationsHost>();
     final runLog = context.read<RunLogCubit>();
@@ -1800,7 +1818,7 @@ class RunRowTile extends StatelessWidget {
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
     );
-    if (automationsExpanded(context) && compact) {
+    if (compact && width >= 420) {
       body = Row(
         children: [
           status,
@@ -1821,7 +1839,7 @@ class RunRowTile extends StatelessWidget {
           if (action != null) ...[const SizedBox(width: Spacing.sm), action],
         ],
       );
-    } else if (automationsExpanded(context)) {
+    } else if (!compact && width >= 680) {
       body = Row(
         children: [
           status,

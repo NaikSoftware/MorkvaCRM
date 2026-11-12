@@ -37,7 +37,11 @@ Future<T?> showAutomationSheet<T>(
     isScrollControlled: true,
     useSafeArea: true,
     showDragHandle: true,
-    builder: builder,
+    // Keeps the paste field and test-run inputs above the keyboard.
+    builder: (context) => Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: builder(context),
+    ),
   );
 }
 
