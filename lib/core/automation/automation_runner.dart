@@ -51,6 +51,7 @@ const Set<RunReason> kCoalescedReasons = {
   RunReason.crashed,
   RunReason.reviewBacklog,
   RunReason.loopSuspected,
+  RunReason.uninstalled,
 };
 
 /// The message of a refused approve after the module or consent changed.
@@ -934,16 +935,17 @@ final class AutomationRunner implements AutomationRunnerApi {
           status: RunStatus.awaitingReview,
         );
         _create(record, epoch);
+        // Uninstalled, revoked or changed while it ran: the watches that
+        // reject reviews have already fired, and this one could never be
+        // approved. (Rejected after the create: `rejected` is no create
+        // status.)
+        if (_staleReason(run, module, consent) case final reason?) {
+          return _rejectRun(run, reason);
+        }
         run.expiry = Timer(kReviewTtl, () {
           if (epoch == _epoch) unawaited(_expire(run, null));
         });
         _announce(run);
-        // Uninstalled, revoked or changed while it ran: the watches that
-        // reject reviews have already fired, and this one could never be
-        // approved. (Rejected only now: `rejected` is no create status.)
-        if (_staleReason(run, module, consent) case final reason?) {
-          unawaited(_rejectRun(run, reason));
-        }
     }
   }
 
@@ -1664,7 +1666,8 @@ final class AutomationRunner implements AutomationRunnerApi {
     try {
       await stores.runs
           .update(record, fields: const {'applyStartedAt'})
-          .timeout(ackWait);
+          // Longer than a save's wait: here a timeout refuses the approve.
+          .timeout(ackWait * 5);
     } on TimeoutException {
       // Still queued: take it back (in order after it) and stay in review.
       record = run.record = record.copyWith(applyStartedAt: () => null);
@@ -1810,10 +1813,11 @@ final class AutomationRunner implements AutomationRunnerApi {
       now: _now(),
       createdAt: existing?.createdAt,
     );
-    await Future.wait([
-      _write(() => stores.modules.save(module)),
-      _write(() => stores.grants.save(uid, _consentTo(bundle, collections))),
-    ]);
+    // In turn: a module save refused early leaves no consent behind.
+    await _write(() => stores.modules.save(module));
+    await _write(
+      () => stores.grants.save(uid, _consentTo(bundle, collections)),
+    );
   }
 
   @override

@@ -661,6 +661,7 @@ void main() {
         expect(doc.status, RunStatus.rejected);
         expect(doc.reason, RunReason.needsConsent);
         expect(rig.runner.activity.needsReview, 0);
+        expect(rig.finished.map((r) => r.status), [RunStatus.rejected]);
       },
     );
 
