@@ -249,6 +249,36 @@ void main() {
       expect(argsOf('pressCard'), ['a_flag', 'b_1042']);
     });
 
+    testWidgets('More reopened after a run ended shows the rows as they are', (
+      tester,
+    ) async {
+      await rig.setUp(automations: three);
+      addTearDown(rig.dispose);
+      rig.runner.activity = RunActivity(
+        runs: [
+          liveRun(
+            'run_1',
+            automationId: 'a_draft',
+            label: 'Draft thank-you',
+            progress: const RunProgress(done: 1, total: 3),
+          ),
+        ],
+      );
+      await pump(tester, headerWidth: 600);
+      await tester.tap(find.text('Running… 1/3'));
+      await tester.pump(const Duration(milliseconds: 300));
+      rig.runner.activity = RunActivity.idle;
+      await tester.pump();
+      await tester.pump();
+      expect(find.text('Stop Draft thank-you'), findsOneWidget);
+
+      await tester.tap(find.text('More'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('More'));
+      await tester.pumpAndSettle();
+      expect(find.text('Stop Draft thank-you'), findsNothing);
+    });
+
     testWidgets('review under More: More says so with the amber dot', (
       tester,
     ) async {
@@ -518,6 +548,14 @@ void main() {
         ).text,
         "Couldn't apply Mark shipped on Order #1042 — you're offline",
       );
+      // Timed out: Run again only when runnable, after View run (the
+      // snackbar shows only the first action).
+      final timedOut = liveRun('r', status: RunStatus.timedOut);
+      expect(runNoticeCopy(timedOut).actions, [NoticeAction.viewRun]);
+      expect(runNoticeCopy(timedOut, runnable: true).actions, [
+        NoticeAction.viewRun,
+        NoticeAction.runAgain,
+      ]);
     });
   });
 }

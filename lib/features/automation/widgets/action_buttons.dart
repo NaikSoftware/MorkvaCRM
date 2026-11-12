@@ -866,7 +866,9 @@ class _MoreButtonState extends State<_MoreButton> {
             .firstOrNull ??
         was;
     return MenuAnchor(
-      onOpen: () => _opened = views,
+      // Rebuilt on open: a menu closed while frozen would reopen stale.
+      onOpen: () => setState(() => _opened = widget.views),
+      // No setState: a close may come mid-build; the next open rebuilds.
       onClose: () => _opened = null,
       menuChildren: [
         for (final (was, v) in [
