@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -20,60 +22,75 @@ class SettingsPage extends StatelessWidget {
     final sky = (theme.brightness == Brightness.light
         ? CollectionTints.light
         : CollectionTints.dark)[2];
-    return Padding(
-      padding: const EdgeInsets.all(Spacing.lg),
-      child: Align(
-        alignment: Alignment.topLeft,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 720),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const _SectionLabel('Workspace'),
-              ListTileCard(
-                title: 'Automations',
-                subtitle: 'Modules, buttons and runs',
-                leading: _Tile(
-                  icon: Icons.bolt_rounded,
-                  background: scheme.primaryContainer,
-                  foreground: scheme.onPrimaryContainer,
-                ),
-                trailing: const Row(
-                  mainAxisSize: MainAxisSize.min,
+    // Scrolls when short (large text, landscape); Sign out sits at the
+    // bottom otherwise.
+    return LayoutBuilder(
+      builder: (context, box) => SingleChildScrollView(
+        padding: const EdgeInsets.all(Spacing.lg),
+        child: Align(
+          alignment: Alignment.topLeft,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: 720,
+              minHeight: math.max(0, box.maxHeight - 2 * Spacing.lg),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    RunIndicatorPill(),
-                    Icon(Icons.chevron_right_rounded),
+                    const _SectionLabel('Workspace'),
+                    ListTileCard(
+                      title: 'Automations',
+                      subtitle: 'Modules, buttons and runs',
+                      leading: _Tile(
+                        icon: Icons.bolt_rounded,
+                        background: scheme.primaryContainer,
+                        foreground: scheme.onPrimaryContainer,
+                      ),
+                      trailing: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          RunIndicatorPill(),
+                          Icon(Icons.chevron_right_rounded),
+                        ],
+                      ),
+                      onTap: () => context.go('/automations'),
+                    ),
+                    const SizedBox(height: Spacing.lg),
+                    const _SectionLabel('Import from other apps'),
+                    ListTileCard(
+                      title: 'Trello',
+                      subtitle:
+                          'Boards become collections — lists, cards, labels, '
+                          'checklists and comments',
+                      leading: _Tile(
+                        icon: Icons.view_kanban_outlined,
+                        background: sky.background,
+                        foreground: sky.foreground,
+                      ),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () async {
+                        final to = await showTrelloImportSheet(context);
+                        if (to != null && context.mounted) context.go(to);
+                      },
+                    ),
                   ],
                 ),
-                onTap: () => context.go('/automations'),
-              ),
-              const SizedBox(height: Spacing.lg),
-              const _SectionLabel('Import from other apps'),
-              ListTileCard(
-                title: 'Trello',
-                subtitle:
-                    'Boards become collections — lists, cards, labels, '
-                    'checklists and comments',
-                leading: _Tile(
-                  icon: Icons.view_kanban_outlined,
-                  background: sky.background,
-                  foreground: sky.foreground,
+                Padding(
+                  padding: const EdgeInsets.only(top: Spacing.lg),
+                  child: Center(
+                    child: SecondaryButton(
+                      label: 'Sign out',
+                      icon: Icons.logout_rounded,
+                      onPressed: () => context.read<AuthCubit>().signOut(),
+                    ),
+                  ),
                 ),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () async {
-                  final to = await showTrelloImportSheet(context);
-                  if (to != null && context.mounted) context.go(to);
-                },
-              ),
-              const Spacer(),
-              Center(
-                child: SecondaryButton(
-                  label: 'Sign out',
-                  icon: Icons.logout_rounded,
-                  onPressed: () => context.read<AuthCubit>().signOut(),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
