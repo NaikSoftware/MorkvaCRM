@@ -240,6 +240,19 @@ void main() {
       );
     });
 
+    test('a start stored at local midnight keeps its calendar day', () {
+      final tiny = TrelloBoard.parse(
+        '{"id":"b1","name":"Tiny","lists":[],"cards":['
+        '{"id":"c1","name":"Kyiv","start":"2026-11-12T22:00:00.000Z"},'
+        '{"id":"c2","name":"New York","start":"2026-11-13T05:00:00.000Z"}]}',
+      );
+      final boardCol = map(from: tiny).single;
+      expect(
+        boardCol.objects.map((o) => value(boardCol, o, 'Start')),
+        everyElement(DateTime.utc(2026, 11, 13)),
+      );
+    });
+
     test('a custom field never takes an absent built-in name', () {
       final tiny = TrelloBoard.parse(
         '{"id":"b1","name":"Tiny","lists":[{"id":"l1","name":"A","pos":1}],'

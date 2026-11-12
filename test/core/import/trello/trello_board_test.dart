@@ -66,6 +66,28 @@ void main() {
       expect(board.customFields, isEmpty);
     });
 
+    test('keeps the first of entries that repeat an id', () {
+      final board = TrelloBoard.parse(
+        '{"id":"b1","name":"Tiny","lists":[{"id":"l1","name":"A"},'
+        '{"id":"l1","name":"B"}],"cards":[{"id":"c1","name":"x"},'
+        '{"id":"c1","name":"y"}]}',
+      );
+      expect(board.lists.map((l) => l.name), ['A']);
+      expect(board.cards.map((c) => c.name), ['x']);
+    });
+
+    test('drops dates a Firestore Timestamp cannot hold', () {
+      final board = TrelloBoard.parse(
+        '{"id":"b1","name":"Tiny","lists":[],"cards":[{"id":"c1",'
+        '"due":"+010000-01-01T00:00:00Z","start":"0000-06-01T00:00:00Z",'
+        '"dateLastActivity":"9999-12-31T23:59:59Z"}]}',
+      );
+      final card = board.cards.single;
+      expect(card.due, isNull);
+      expect(card.start, isNull);
+      expect(card.dateLastActivity, DateTime.utc(9999, 12, 31, 23, 59, 59));
+    });
+
     for (final (why, text) in [
       ('invalid JSON', '{"id":'),
       ('not an object', '[1, 2]'),

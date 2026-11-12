@@ -625,7 +625,14 @@ DateTime? _idTime(String id) {
       : DateTime.fromMillisecondsSinceEpoch(seconds * 1000, isUtc: true);
 }
 
-DateTime _day(DateTime d) => DateTime.utc(d.year, d.month, d.day);
+/// The calendar day of a date-only Trello value. Trello appears to store it
+/// at the creator's local midnight (22:00Z the day before at UTC+2), so it is
+/// rounded to the nearest UTC midnight: right for UTC−11 to UTC+12, and for
+/// a value stored at UTC midnight.
+DateTime _day(DateTime d) {
+  final n = d.add(const Duration(hours: 12));
+  return DateTime.utc(n.year, n.month, n.day);
+}
 
 /// Trello label colours (light, base, dark) in Atlassian's palette.
 const _palette = {
@@ -656,6 +663,6 @@ String? _hex(String? color) {
 
 /// "purple_dark" → "Purple dark".
 String _colorName(String color) {
-  final words = color.split('_').join(' ');
-  return words[0].toUpperCase() + words.substring(1);
+  final words = color.split('_').where((w) => w.isNotEmpty).join(' ');
+  return words.isEmpty ? 'Label' : words[0].toUpperCase() + words.substring(1);
 }

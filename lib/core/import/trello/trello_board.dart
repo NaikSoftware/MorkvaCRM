@@ -12,7 +12,8 @@ class TrelloFormatException implements Exception {
 }
 
 /// The parts of a Trello board export the importer uses, read tolerantly:
-/// entries without an id are skipped and malformed values read as empty.
+/// entries without an id or with a repeated one are skipped and malformed
+/// values read as empty.
 class TrelloBoard {
   const TrelloBoard({
     required this.id,
@@ -367,9 +368,15 @@ class TrelloComment {
 Iterable<Map<String, dynamic>> _maps(Object? raw) =>
     raw is List ? raw.whereType<Map<String, dynamic>>() : const [];
 
-/// The JSON objects in [raw] that carry an id; the others are skipped.
-Iterable<Map<String, dynamic>> _withId(Object? raw) =>
-    _maps(raw).where((m) => _str(m['id']) != null);
+/// The JSON objects in [raw] that carry an id, the first per id; the others
+/// are skipped (a repeated card id would mint one object id for two cards).
+List<Map<String, dynamic>> _withId(Object? raw) {
+  final seen = <String>{};
+  return [
+    for (final m in _maps(raw))
+      if (_str(m['id']) case final id? when seen.add(id)) m,
+  ];
+}
 
 String? _str(Object? raw) => raw is String && raw.isNotEmpty ? raw : null;
 
@@ -383,8 +390,12 @@ num? _num(Object? raw) {
   return n != null && n.isFinite ? n : null;
 }
 
-DateTime? _date(Object? raw) =>
-    raw is String ? DateTime.tryParse(raw)?.toUtc() : null;
+/// A UTC instant, or null when unreadable or outside the years 1–9999 a
+/// Firestore Timestamp can hold (it throws and fails the whole write).
+DateTime? _date(Object? raw) {
+  final d = raw is String ? DateTime.tryParse(raw)?.toUtc() : null;
+  return d != null && d.year >= 1 && d.year <= 9999 ? d : null;
+}
 
 String _personName(Map<String, dynamic> json) =>
     _str(_trimmed(json['fullName'])) ?? _str(json['username']) ?? '';
