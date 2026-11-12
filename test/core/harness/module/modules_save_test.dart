@@ -152,7 +152,7 @@ void main() {
       expect(write.beforeText, 'Orders');
       expect(write.afterText, 'Orders, Clients');
       final delete = byField[kCapabilityCopy['data:delete']!.title]!;
-      expect(delete.beforeText, isNull, reason: 'a new permission');
+      expect(delete.beforeText, 'Not allowed', reason: 'a new permission');
       expect(delete.afterText, 'Orders, Clients');
       // The hash pins the manifest too, so the code row changes with it.
       expect(byField['Code']!.beforeText, isNot(byField['Code']!.afterText));
@@ -163,6 +163,38 @@ void main() {
         'details.',
       );
       expect(item.consent.autoApply, isFalse);
+    },
+  );
+
+  test(
+    'a permission added in the same scope stands out from kept ones',
+    () async {
+      await m.install();
+      await m.p.ok(
+        'modules.save',
+        save(
+          manifest: manifestWith((j) {
+            j['version'] = '1.1.0';
+            j['permissions'] = {
+              'capabilities': ['data:read', 'data:write', 'data:delete'],
+            };
+          }),
+        ),
+      );
+      final item = (await m.p.sealPlan()).items.single as SaveModuleItem;
+      final byField = {for (final c in item.changes) c.field: c};
+      String title(String wire) => kCapabilityCopy[wire]!.title;
+
+      for (final kept in ['data:read', 'data:write']) {
+        expect(byField[title(kept)]!.beforeText, isNull);
+        expect(byField[title(kept)]!.afterText, 'Orders');
+      }
+      final added = byField[title('data:delete')]!;
+      expect(added.beforeText, 'Not allowed');
+      expect(added.afterText, 'Orders');
+      final removed = byField[title('schema:read')]!;
+      expect(removed.beforeText, 'Orders');
+      expect(removed.afterText, 'Not allowed');
     },
   );
 

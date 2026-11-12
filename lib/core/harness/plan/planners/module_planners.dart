@@ -109,6 +109,15 @@ Future<void> planModulesSave(
   final newScope = scope(collections);
   final oldScope = before == null ? null : scope(before.collections);
   String? was(String? old, String now) => old == now ? null : old;
+  // On an update a capability gained or lost reads `Not allowed`, so a new
+  // permission never looks like a kept one.
+  String? capBefore(String wire) => before == null
+      ? null
+      : !before.caps.contains(wire)
+      ? _notAllowed
+      : manifest.capabilities.contains(wire)
+      ? was(oldScope, newScope)
+      : oldScope;
   final actions = _actionsText(manifest);
   final codeText = _codeText(module);
   call.add(
@@ -130,12 +139,10 @@ Future<void> planModulesSave(
               (before?.caps.contains(wire) ?? false))
             FieldChange(
               field: copy.title,
-              beforeText: before != null && before.caps.contains(wire)
-                  ? (manifest.capabilities.contains(wire)
-                        ? was(oldScope, newScope)
-                        : oldScope)
-                  : null,
-              afterText: manifest.capabilities.contains(wire) ? newScope : null,
+              beforeText: capBefore(wire),
+              afterText: manifest.capabilities.contains(wire)
+                  ? newScope
+                  : _notAllowed,
             ),
         FieldChange(
           field: 'Collections',
@@ -235,11 +242,29 @@ Future<void> planAutomationsSave(
         candidates: [for (final a in manifest.actions) a.id],
       ));
 
-  final apply = args['apply'] == 'auto' ? ApplyMode.auto : ApplyMode.ask;
-  if (apply == ApplyMode.auto && !(consent?.autoApply ?? false)) {
+  // Without a consent the grants would not bound the collections at all.
+  if (consent == null) {
+    throw HarnessException.of(
+      ErrorCode.notPermitted,
+      '"${call.name(manifest.name)}" needs the user\'s consent first.',
+      path: 'moduleId',
+      hint:
+          'Save the module with modules.save in this turn, or ask the user '
+          'to review its permissions in module details.',
+    );
+  }
+
+  // Left out on an update, the stored mode stays (still gated below).
+  final apply = switch (args['apply']) {
+    'auto' => ApplyMode.auto,
+    'ask' => ApplyMode.ask,
+    _ => existing?.apply ?? ApplyMode.ask,
+  };
+  if (apply == ApplyMode.auto && !autoApplyAllowed(module, consent)) {
     throw invalidArgs(
-      'Auto-apply needs the module\'s auto-apply switch, which only the '
-      'user turns on in module details.',
+      'Auto-apply needs the module\'s auto-apply switch for this version, '
+      'which only the user turns on in module details, and a module that '
+      'cannot delete cards or change collections or views.',
       path: 'apply',
       hint: 'Save it with "apply": "ask".',
     );
@@ -247,6 +272,16 @@ Future<void> planAutomationsSave(
 
   final rawTrigger = mapArg(args['trigger'], 'trigger');
   final kind = TriggerKind.fromWire(rawTrigger['kind'])!;
+  if (kind != TriggerKind.cardUpdated) {
+    for (final key in const ['mode', 'fields']) {
+      if (rawTrigger[key] != null) {
+        throw invalidArgs(
+          '"$key" only goes with a card.updated trigger.',
+          path: 'trigger.$key',
+        );
+      }
+    }
+  }
   final collection = call.collection(
     rawTrigger['collection']! as String,
     path: 'trigger.collection',
@@ -388,6 +423,12 @@ Future<void> planAutomationsSave(
             ),
           if (params.isNotEmpty)
             FieldChange(field: 'Params', afterText: _paramsText(params, call)),
+          if (existing != null && existing.apply != apply)
+            FieldChange(
+              field: 'Apply',
+              beforeText: _applyText(existing.apply),
+              afterText: _applyText(apply),
+            ),
           if (apply == ApplyMode.auto)
             const FieldChange(field: 'Applies changes without asking'),
         ],
@@ -456,6 +497,13 @@ List<AutomationProblem> _manifestProblems(Map<String, Object?> json) {
 ErrorCode _code(String code) =>
     ErrorCode.fromWire(code) ??
     (code == 'too_large' ? ErrorCode.limitExceeded : ErrorCode.invalidArgs);
+
+const String _notAllowed = 'Not allowed';
+
+String _applyText(ApplyMode mode) => switch (mode) {
+  ApplyMode.ask => 'Ask first',
+  ApplyMode.auto => 'Auto',
+};
 
 bool _sameSet(List<String> a, List<String> b) =>
     a.toSet().containsAll(b) && b.toSet().containsAll(a);
@@ -609,6 +657,7 @@ ButtonSpec _button(Map<String, Object?>? args, ActionSpec action) {
         ? label
         : label.substring(0, ButtonSpec.kMaxLabel),
     icon: icon,
+    // The descriptor's enum already limits it to kButtonTintIds.
     tint: args?['tint'] as String?,
   );
 }

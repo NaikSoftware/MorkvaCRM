@@ -372,19 +372,24 @@ Future<_Json> _testRun(
     throw HarnessException(HarnessError.fromDetails(problems));
   }
 
-  if (ctx.turnId case final turn?) {
-    final key = '${ctx.actor.wire} $turn';
-    final n = perTurn[key] ?? 0;
-    if (n >= kMaxTestRunsPerTurn) {
-      throw HarnessException.of(
-        ErrorCode.limitExceeded,
-        'At most $kMaxTestRunsPerTurn test runs per turn.',
-        hint: 'Report what you found and let the user decide.',
-      );
-    }
-    if (perTurn.length > 100) perTurn.clear();
-    perTurn[key] = n + 1;
+  final turn =
+      ctx.turnId ??
+      (throw HarnessException.of(
+        ErrorCode.notPermitted,
+        'modules.testRun needs a turn; open one with Harness.openTurn.',
+        path: 'turnId',
+      ));
+  final key = '${ctx.actor.wire} $turn';
+  final n = perTurn[key] ?? 0;
+  if (n >= kMaxTestRunsPerTurn) {
+    throw HarnessException.of(
+      ErrorCode.limitExceeded,
+      'At most $kMaxTestRunsPerTurn test runs per turn.',
+      hint: 'Report what you found and let the user decide.',
+    );
   }
+  if (perTurn.length > 100) perTurn.clear();
+  perTurn[key] = n + 1;
   final result = await hooks.testRun(
     TestRunRequest(
       moduleId: module.id,
@@ -662,7 +667,7 @@ final _automationsSave = OperationDescriptor(
       'button': JsonSchema.object({
         'label': JsonSchema.string(),
         'icon': JsonSchema.enumOf(kActionIconIds),
-        'tint': JsonSchema.string(),
+        'tint': JsonSchema.enumOf(kButtonTintIds),
       }),
       'apply': JsonSchema.enumOf(const [
         'ask',

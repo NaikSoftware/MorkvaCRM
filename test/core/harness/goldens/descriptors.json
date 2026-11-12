@@ -373,7 +373,17 @@
                 ]
               },
               "tint": {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "carrot",
+                  "leaf",
+                  "sky",
+                  "plum",
+                  "sand",
+                  "rose",
+                  "slate",
+                  "teal"
+                ]
               }
             },
             "additionalProperties": false

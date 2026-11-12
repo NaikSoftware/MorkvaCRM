@@ -42,6 +42,24 @@ Grants moduleGrants(
   );
 }
 
+/// Manifest capabilities that rule Auto out for every automation of a module.
+const Set<String> kNoAutoCaps = {
+  'data:delete',
+  'schema:write',
+  'schema:delete',
+  'views:write',
+};
+
+/// Whether [module]'s automations may be saved as Auto (Apply policy): the
+/// [consent] turned auto-apply on for exactly this bundle and the manifest
+/// asks for none of [kNoAutoCaps]. Shared by the planner and the editor; the
+/// runner's ApplyPolicy still re-checks every plan.
+bool autoApplyAllowed(ModuleRecord module, GrantRecord? consent) =>
+    consent != null &&
+    consent.autoApply &&
+    consent.codeHash == module.bundleHash &&
+    !(module.manifest?.capabilities.any(kNoAutoCaps.contains) ?? true);
+
 /// Every problem that keeps [automation] from being saved, empty when it may
 /// be: its module and action exist, the trigger collection exists and lies
 /// inside the effective collections, the action takes that trigger, the

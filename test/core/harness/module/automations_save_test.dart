@@ -146,6 +146,94 @@ void main() {
     },
   );
 
+  test('apply auto is refused for a module that can delete cards', () async {
+    await m.install(
+      autoApply: true,
+      manifest: manifestWith(
+        (j) => j['permissions'] = {
+          'capabilities': ['schema:read', 'data:read', 'data:delete'],
+        },
+      ),
+    );
+    final e = await m.p.error('automations.save', save(apply: 'auto'));
+    expect(e.code, ErrorCode.invalidArgs);
+    expect(e.path, 'apply');
+  });
+
+  test('apply auto is refused when the consent is for an older bundle', () {
+    final module = ModuleRecord.fromBundle(
+      ModuleBundle.of(stampManifest(), moduleCode),
+      source: ModuleSource.import,
+      createdBy: 'user:u1',
+      now: now,
+    );
+    GrantRecord consent(String hash) => GrantRecord(
+      moduleId: module.id,
+      codeHash: hash,
+      version: module.version,
+      codeBytes: module.codeBytes,
+      caps: module.manifest!.capabilities,
+      collections: const [SeedIds.orders],
+      autoApply: true,
+      grantedAt: now,
+      via: GrantVia.consentSheet,
+    );
+    expect(autoApplyAllowed(module, consent(module.bundleHash)), isTrue);
+    expect(autoApplyAllowed(module, consent('sha256:old')), isFalse);
+    expect(autoApplyAllowed(module, null), isFalse);
+  });
+
+  test('an update without apply keeps auto; ask shows the change', () async {
+    await m.install(autoApply: true);
+    final stored = (await planned(save(apply: 'auto'))).recordFor('u1', now);
+    await m.fakes.automations.save(stored);
+    m.p.newTurn();
+    final same = await m.p.error('automations.save', save(id: stored.id));
+    expect(same.code, ErrorCode.noChange, reason: 'auto is kept');
+
+    final ask = await planned(save(id: stored.id, apply: 'ask'));
+    expect(ask.apply, ApplyMode.ask);
+    final row = ask.changes.singleWhere((c) => c.field == 'Apply');
+    expect(row.beforeText, 'Auto');
+    expect(row.afterText, 'Ask first');
+  });
+
+  test('a module without the user\'s consent cannot get automations', () async {
+    await m.install(consented: false);
+    final e = await m.p.error('automations.save', save());
+    expect(e.code, ErrorCode.notPermitted);
+    expect(e.path, 'moduleId');
+  });
+
+  test('mode and fields only go with card.updated', () async {
+    await m.install();
+    final e = await m.p.error(
+      'automations.save',
+      save(
+        trigger: {
+          'kind': 'card.created',
+          'collection': 'Orders',
+          'fields': ['Status'],
+        },
+      ),
+    );
+    expect(e.code, ErrorCode.invalidArgs);
+    expect(e.path, 'trigger.fields');
+  });
+
+  test('a button tint must be one of the tints', () async {
+    await m.install();
+    final e = await m.p.error(
+      'automations.save',
+      save(
+        trigger: {'kind': 'button', 'collection': 'Orders'},
+        button: {'tint': 'neon'},
+      ),
+    );
+    expect(e.code, ErrorCode.invalidArgs);
+    expect('${e.toJson()}', contains('tint'));
+  });
+
   test('the trigger collection must be inside the consent', () async {
     await m.install();
     final e = await m.p.error(

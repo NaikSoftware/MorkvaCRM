@@ -230,6 +230,49 @@ void main() {
     });
   });
 
+  test('rows outside the caller\'s collections stay hidden', () async {
+    await m.install();
+    await m.fakes.automations.save(automation());
+    await m.fakes.runs.create(run('run_1'));
+    final everywhere = Grants(kAssistantCaps);
+    final clientsOnly = Grants(kAssistantCaps, collections: [SeedIds.clients]);
+
+    // Control: unrestricted grants see the Orders rows.
+    expect(
+      (await m.p.ok(
+        'automations.list',
+        const {},
+        grants: everywhere,
+      ))['automations'],
+      hasLength(1),
+    );
+    expect(
+      (await m.p.ok('runs.list', const {}, grants: everywhere))['runs'],
+      hasLength(1),
+    );
+
+    expect(
+      (await m.p.ok(
+        'automations.list',
+        const {},
+        grants: clientsOnly,
+      ))['automations'],
+      isEmpty,
+    );
+    expect(
+      (await m.p.ok('runs.list', const {}, grants: clientsOnly))['runs'],
+      isEmpty,
+    );
+    final get = await m.p.error('runs.get', {
+      'id': 'run_1',
+    }, grants: clientsOnly);
+    expect(get.code, ErrorCode.unknownObject);
+    final delete = await m.p.error('automations.delete', {
+      'id': 'au_1',
+    }, grants: clientsOnly);
+    expect(delete.code, ErrorCode.unknownObject);
+  });
+
   group('modules.testRun', () {
     Map<String, Object?> args({Object? card = '#1001'}) => {
       'moduleId': 'stamp-shipped-date',
@@ -327,6 +370,14 @@ void main() {
       final e = await m.p.error('modules.testRun', args(card: null));
       expect(e.code, ErrorCode.invalidArgs);
       expect(e.path, 'collection');
+    });
+
+    test('needs a turn', () async {
+      await m.install();
+      m.withHooks();
+      final r = await m.p.call('modules.testRun', args(), noTurn: true);
+      expect((r as HarnessFailure).error.code, ErrorCode.notPermitted);
+      expect(m.runner.calls, isEmpty);
     });
 
     test('at most 5 per turn', () async {
