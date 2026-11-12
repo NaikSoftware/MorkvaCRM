@@ -66,4 +66,13 @@ abstract final class MorkvaTypography {
   static TextStyle tabular(TextStyle style) => style.copyWith(
         fontFeatures: const [FontFeature.tabularFigures()],
       );
+
+  /// Returns [style] in a monospace face (code, logs, pasted JSON).
+  // shortcut: CanvasKit/skwasm may not resolve the generic 'monospace'
+  // family; if the T18 web e2e shows proportional code, switch to
+  // GoogleFonts.robotoMono (widget tests then need runtime fetching off).
+  static TextStyle mono(TextStyle style) => style.copyWith(
+        fontFamily: 'monospace',
+        fontFamilyFallback: const ['Roboto Mono', 'Courier New'],
+      );
 }
