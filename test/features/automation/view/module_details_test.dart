@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/automation/automation.dart';
+import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/design/design.dart';
 import 'package:morkva_crm/features/automation/view/automations_page.dart';
 import 'package:morkva_crm/features/automation/view/module_details_page.dart';
 
+import '../../collections/fake_data_repository.dart';
 import 'automation_view_harness.dart';
 
 void main() {
@@ -145,6 +147,13 @@ void main() {
     await tester.tap(find.text('Uninstall'));
     await tester.pumpAndSettle();
     expect(find.text('Uninstall "Stamp shipped date"?'), findsOneWidget);
+    expect(
+      find.text(
+        'Its pending reviews are dropped and its permissions are removed. '
+        'The run history stays.',
+      ),
+      findsOneWidget,
+    );
     await tester.tap(find.text('Uninstall').last);
     await tester.pumpAndSettle();
     expect(rig.runner.methods, contains('uninstall'));
@@ -160,6 +169,33 @@ void main() {
     expectLastCall(rig.host.calls, 'newAutomation', [stampId, 'stamp', null]);
     expect(find.text('No automations use it yet.'), findsOneWidget);
   });
+
+  testWidgets(
+    'Test run offers only the consented collections and their cards',
+    (tester) async {
+      await consent();
+      rig.data = FakeDataRepository([orders, clients])
+        ..seedObjects('c_orders', [
+          MorkvaObject.create(
+            id: 'b_1042',
+            collection: orders,
+            values: const {'f_title': TextFieldValue('#1042 · Acme')},
+            createdAt: fixtureNow,
+            updatedAt: fixtureNow,
+          ),
+        ]);
+      await pump(tester);
+      await tester.ensureVisible(find.text('Test run'));
+      await tester.tap(find.text('Test run'));
+      await tester.pumpAndSettle();
+      final dropdown = tester.widget<DropdownButton<String>>(
+        // The first is Collection; the action's params follow.
+        find.byType(DropdownButton<String>).first,
+      );
+      expect([for (final i in dropdown.items!) i.value], ['c_orders']);
+      expect(find.text('#1042 · Acme'), findsOneWidget);
+    },
+  );
 
   testWidgets('a module that is gone says so', (tester) async {
     await rig.stores.modules.delete(stampId);

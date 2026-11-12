@@ -109,15 +109,27 @@ void main() {
     expectLastCall(rig.runner.calls, 'undo', ['r_ok']);
   });
 
-  testWidgets('the countdown ends in "Undo isn\'t available after a reload"'
-      ' once the journal lets go', (tester) async {
+  testWidgets('the countdown ends in "Undo expired" once the deadline '
+      'passes and the journal lets go', (tester) async {
     rig.runner.undoable.add('r_ok');
     await rig.stores.runs.create(applied());
     await pump(tester, 'r_ok');
     expect(find.textContaining('min left'), findsOneWidget);
     rig.runner.undoable.clear();
-    now = fixtureNow.add(const Duration(minutes: 11));
+    now = rig.now = fixtureNow.add(const Duration(minutes: 11));
     await tester.pump(const Duration(seconds: 1));
+    await tester.pump();
+    expect(find.text('Undo expired'), findsOneWidget);
+  });
+
+  testWidgets('a journal gone before the deadline reads "Undo isn\'t '
+      'available after a reload"', (tester) async {
+    rig.runner.undoable.add('r_ok');
+    await rig.stores.runs.create(applied());
+    await pump(tester, 'r_ok');
+    rig.runner.undoable.clear();
+    rig.runLog.refresh();
+    await tester.pump();
     await tester.pump();
     expect(find.text("Undo isn't available after a reload"), findsOneWidget);
   });

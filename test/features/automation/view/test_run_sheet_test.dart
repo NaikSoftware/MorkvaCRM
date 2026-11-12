@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/automation/automation.dart';
+import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/design/design.dart';
 import 'package:morkva_crm/features/automation/view/test_run_sheet.dart';
 
@@ -17,7 +18,11 @@ void main() {
   });
   tearDown(() => rig.dispose());
 
-  Future<void> open(WidgetTester tester, {Size size = wideWindow}) async {
+  Future<void> open(
+    WidgetTester tester, {
+    Size size = wideWindow,
+    Future<List<TestCard>> Function(Collection)? loadCards,
+  }) async {
     setWindow(tester, size);
     final cubit = rig.detailsOf(stampId);
     await tester.pumpWidget(
@@ -29,10 +34,12 @@ void main() {
               cubit: cubit,
               action: module.manifest!.actions.single,
               collections: [orders],
-              loadCards: (_) async => const [
-                (id: 'b_1042', label: '#1042 · Acme'),
-                (id: 'b_1043', label: '#1043 · Bolt'),
-              ],
+              loadCards:
+                  loadCards ??
+                  (_) async => const [
+                    (id: 'b_1042', label: '#1042 · Acme'),
+                    (id: 'b_1043', label: '#1043 · Bolt'),
+                  ],
             ),
             child: const Text('open'),
           ),
@@ -135,6 +142,12 @@ void main() {
       ),
     );
     expect(find.text('Failed: TypeError: x'), findsOneWidget);
+  });
+
+  testWidgets('a card load that fails says so', (tester) async {
+    await open(tester, loadCards: (_) async => throw StateError('offline'));
+    expect(find.text("Couldn't load cards"), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('phone: a bottom sheet', (tester) async {

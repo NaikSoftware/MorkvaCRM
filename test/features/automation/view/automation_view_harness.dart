@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:morkva_crm/api/data/data_repository.dart';
 import 'package:morkva_crm/api/sync/sync_status.dart';
 import 'package:morkva_crm/api/sync/sync_status_cubit.dart';
 import 'package:morkva_crm/core/domain/automation/automation.dart';
@@ -106,12 +107,18 @@ final class AutomationRig {
   /// The sync status the pages see.
   bool offline = false;
 
+  /// The run log's clock (undo deadlines).
+  DateTime now = fixtureNow;
+
+  /// The test-run card picker's data, when a test provides it.
+  DataRepository? data;
+
   late final modules = ModulesCubit(runner, stores.stores, uid: uid);
   late final runLog = RunLogCubit(
     runner,
     stores.stores,
     uid: uid,
-    now: () => fixtureNow,
+    now: () => now,
   );
   late final runs = AutomationRunsCubit(
     runner,
@@ -141,7 +148,11 @@ final class AutomationRig {
       () => sync.state,
     ).thenReturn(offline ? const SyncOffline() : const SyncSynced());
     return MultiRepositoryProvider(
-      providers: [RepositoryProvider<AutomationsHost>.value(value: host)],
+      providers: [
+        RepositoryProvider<AutomationsHost>.value(value: host),
+        if (data != null)
+          RepositoryProvider<DataRepository>.value(value: data!),
+      ],
       child: MultiBlocProvider(
         providers: [
           BlocProvider<ModulesCubit>.value(value: modules),
@@ -182,6 +193,7 @@ RunRecord storedRun(
   DateTime? startedAt,
   String? journalId,
   RunError? error,
+  DateTime? changedAt,
 }) => runRecord(
   id,
   status: status,
@@ -190,6 +202,7 @@ RunRecord storedRun(
   startedAt: startedAt,
   journalId: journalId,
   error: error,
+  changedAt: changedAt,
 ).copyWith(summary: () => summary);
 
 /// Expects [calls]' last entry to be [method] with [args].

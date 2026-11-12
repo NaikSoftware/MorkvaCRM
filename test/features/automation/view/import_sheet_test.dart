@@ -49,7 +49,7 @@ void main() {
     tester,
   ) async {
     await open(tester);
-    expect(find.text('Drop a .morkva.json file here'), findsOneWidget);
+    expect(find.text('Choose a .morkva.json file'), findsOneWidget);
     await tester.tap(find.text('Paste'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), '{"nope": 1}');
@@ -98,7 +98,7 @@ void main() {
 
   testWidgets('phone: no drop zone, only the button', (tester) async {
     await open(tester, size: phoneWindow);
-    expect(find.text('Drop a .morkva.json file here'), findsNothing);
+    expect(find.text('Choose a .morkva.json file'), findsNothing);
     expect(find.text('Choose file'), findsOneWidget);
   });
 }

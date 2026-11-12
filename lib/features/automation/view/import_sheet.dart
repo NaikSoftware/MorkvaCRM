@@ -81,7 +81,8 @@ class _ImportSheetState extends State<ImportSheet> {
                 ),
                 const SizedBox(height: Spacing.xs),
                 Text(
-                  _fileName ?? 'Drop a .morkva.json file here',
+                  // No drop target yet: dropping a file on Flutter web opens it in the tab.
+                  _fileName ?? 'Choose a .morkva.json file',
                   style: theme.textTheme.bodyMedium,
                 ),
                 const SizedBox(height: Spacing.sm),

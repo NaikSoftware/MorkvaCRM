@@ -245,6 +245,29 @@ void main() {
       expect(find.text('Needs a connection'), findsOneWidget);
     });
 
+    testWidgets('a late offline change keeps the reason', (tester) async {
+      await seedModule();
+      await rig.stores.automations.save(automation());
+      final ran = fixtureNow.subtract(const Duration(minutes: 2));
+      final changed = fixtureNow.subtract(const Duration(minutes: 30));
+      await rig.stores.runs.create(
+        storedRun(
+          'r_failed',
+          status: RunStatus.failed,
+          reason: RunReason.moduleError,
+          startedAt: ran,
+          changedAt: changed,
+        ),
+      );
+      await pump(tester, tab: AutomationsTab.runs);
+      expect(
+        find.text(
+          'Module failed · Changed offline ${clock(changed)} · ran ${clock(ran)}',
+        ),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('the automation picker filters and clears', (tester) async {
       await seedModule();
       await rig.stores.automations.save(automation());
@@ -267,6 +290,22 @@ void main() {
       await pump(tester, tab: AutomationsTab.runs);
       expect(rig.runs.state.expiredSince, fixtureNow);
     });
+  });
+
+  test('whenLine: one "starts matching" condition leads with its field', () {
+    expect(
+      whenLine(
+        const EventTrigger(
+          kind: TriggerKind.cardUpdated,
+          collectionId: 'c_orders',
+          where: [
+            {'field': 'f_title', 'op': 'equals', 'value': 'Shipped'},
+          ],
+        ),
+        orders,
+      ),
+      'When a card is updated · Title starts matching "is Shipped"',
+    );
   });
 
   group('breakpoints and dark', () {
@@ -311,6 +350,18 @@ void main() {
     testWidgets('1440 with the Ask panel beside the page: one column, '
         'no overflow', (tester) async {
       await seedModule();
+      await rig.stores.modules.save(
+        ModuleRecord.fromBundle(
+          ModuleBundle.of({
+            ...stampManifest(),
+            'id': 'flag-low-stock',
+            'name': 'Flag low stock',
+          }, 'x'),
+          source: ModuleSource.assistant,
+          createdBy: 'agent:assistant',
+          now: fixtureNow,
+        ),
+      );
       await rig.stores.automations.save(automation());
       await rig.stores.runs.create(
         storedRun('r1', status: RunStatus.failed, reason: RunReason.internal),
@@ -331,6 +382,12 @@ void main() {
         );
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
+        if (tab == AutomationsTab.modules) {
+          final a = tester.getTopLeft(find.text('Flag low stock'));
+          final b = tester.getTopLeft(find.text('Stamp shipped date'));
+          expect(a.dx, b.dx);
+          expect(a.dy, isNot(b.dy));
+        }
       }
     });
 

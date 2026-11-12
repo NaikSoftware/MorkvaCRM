@@ -62,6 +62,7 @@ class _TestRunSheetState extends State<TestRunSheet> {
   String? _cardId;
   String _query = '';
   List<TestCard> _cards = const [];
+  bool _loadFailed = false;
   late final Map<String, Object?> _params = {
     for (final MapEntry(:key, :value)
         in (widget.action.input?.properties ?? const {}).entries)
@@ -83,8 +84,19 @@ class _TestRunSheetState extends State<TestRunSheet> {
   Future<void> _load() async {
     final collection = _collection;
     if (!_onCard || collection == null) return;
-    final cards = await widget.loadCards(collection);
-    if (mounted && _collection == collection) setState(() => _cards = cards);
+    try {
+      final cards = await widget.loadCards(collection);
+      if (mounted && _collection == collection) {
+        setState(() {
+          _cards = cards;
+          _loadFailed = false;
+        });
+      }
+    } catch (_) {
+      if (mounted && _collection == collection) {
+        setState(() => _loadFailed = true);
+      }
+    }
   }
 
   bool get _ready =>
@@ -164,6 +176,16 @@ class _TestRunSheetState extends State<TestRunSheet> {
                 onChanged: (q) => setState(() => _query = q),
                 onCleared: () => setState(() => _query = ''),
               ),
+              if (_loadFailed)
+                Padding(
+                  padding: const EdgeInsets.only(top: Spacing.xs),
+                  child: Text(
+                    "Couldn't load cards",
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.error,
+                    ),
+                  ),
+                ),
               RadioGroup<String>(
                 groupValue: _cardId,
                 onChanged: (id) => setState(() => _cardId = id),

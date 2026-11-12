@@ -11,6 +11,7 @@ import '../../../core/domain/automation/automation.dart';
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
 import '../../collections/collections.dart';
+import '../../views/widgets/option_pill.dart';
 import '../../views/widgets/view_labels.dart';
 import '../bloc/automation_editor_cubit.dart' show filterOf;
 import '../bloc/automation_runs_cubit.dart';
@@ -205,12 +206,20 @@ String whenLine(TriggerSpec trigger, Collection? collection) {
       final watched = fields == null || fields.isEmpty
           ? null
           : 'when ${[for (final id in fields) collection?.fieldById(id)?.name ?? id].join(' or ')} changes';
+      // One condition reads 'Status starts matching "is Shipped"'.
+      final field = where.length == 1
+          ? collection?.fieldById('${where.single['field']}')?.name
+          : null;
       return [
         head,
         if (conditions.isNotEmpty)
-          kind == TriggerKind.cardUpdated && mode == TriggerMode.enters
-              ? 'starts matching "$conditions"'
-              : conditions,
+          switch (kind == TriggerKind.cardUpdated &&
+              mode == TriggerMode.enters) {
+            false => conditions,
+            true when field != null && conditions.startsWith('$field ') =>
+              '$field starts matching "${conditions.substring(field.length + 1)}"',
+            true => 'starts matching "$conditions"',
+          },
         ?watched,
       ].join(' · ');
   }
@@ -993,10 +1002,7 @@ class _ModuleCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: Spacing.xs),
-                    HugChip(
-                      label: 'v${module.version}',
-                      tone: CopyTone.neutral,
-                    ),
+                    OptionPill(label: 'v${module.version}'),
                     const Spacer(),
                     HugChip.of(moduleChip(entry.status)),
                   ],
@@ -1751,14 +1757,17 @@ class RunRowTile extends StatelessWidget {
       run.automationName ?? run.moduleName,
       run.actionLabel,
     ].join(' · ');
-    final second = switch (run) {
-      _ when run.count > 1 => 'Skipped ${run.count} times · ${row.copy.row}',
-      RunRecord(status: RunStatus.succeeded, :final summary?) => summary,
-      RunRecord(trigger: RunTrigger(:final changedAt?))
-          when run.startedAt.difference(changedAt).inMinutes >= 1 =>
+    final changedAt = run.trigger.changedAt;
+    final second = [
+      switch (run) {
+        _ when run.count > 1 => 'Skipped ${run.count} times · ${row.copy.row}',
+        RunRecord(status: RunStatus.succeeded, :final summary?) => summary,
+        _ => row.copy.row,
+      },
+      if (changedAt != null &&
+          run.startedAt.difference(changedAt).inMinutes >= 1)
         'Changed offline ${clock(changedAt)} · ran ${clock(run.startedAt)}',
-      _ => row.copy.row,
-    };
+    ].join(' · ');
     final action = switch (row.action) {
       RunRowAction.none => null,
       RunRowAction.review => SecondaryButton(

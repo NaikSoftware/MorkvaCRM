@@ -5,6 +5,7 @@ import '../../../api/data/data_repository.dart';
 import '../../../core/domain/automation/automation.dart';
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../views/widgets/option_pill.dart';
 import '../bloc/module_details_cubit.dart';
 import '../bloc/modules_cubit.dart';
 import '../bloc/run_log_cubit.dart';
@@ -300,9 +301,12 @@ class _Header extends StatelessWidget {
           context,
           title: 'Uninstall "$name"?',
           message:
-              'Its ${n == 1 ? 'automation' : '$n automations'} and their '
-              'buttons are deleted, its pending reviews are dropped and its '
-              'permissions are removed. The run history stays.',
+              '${switch (n) {
+                0 => 'Its',
+                1 => 'Its automation and its button are deleted, its',
+                _ => 'Its $n automations and their buttons are deleted, its',
+              }} pending reviews are dropped and its permissions are removed. '
+              'The run history stays.',
           confirmLabel: 'Uninstall',
           destructive: true,
         );
@@ -340,7 +344,7 @@ class _Header extends StatelessWidget {
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Text(module.name, style: theme.textTheme.headlineSmall),
-                  HugChip(label: 'v${module.version}', tone: CopyTone.neutral),
+                  OptionPill(label: 'v${module.version}'),
                   HugChip.of(moduleChip(entry.status)),
                 ],
               ),
@@ -650,6 +654,8 @@ class _Actions extends StatelessWidget {
         for (final c in collections)
           if (allowed == null || allowed.contains(c.id)) c,
       ],
+      // shortcut: loads the whole collection for the picker; upgrade to a
+      // search-backed query once collections run to thousands of cards.
       loadCards: (collection) async {
         final objects = await context.read<DataRepository>().getObjects(
           collection.id,
