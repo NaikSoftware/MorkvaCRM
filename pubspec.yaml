@@ -40,6 +40,9 @@ dependencies:
   go_router: ^14.6.2
   google_fonts: ^6.2.1
   rxdart: ^0.28.0
+  # Epic 9: module bundle hashes (core) and the web sandbox host (package:web).
+  crypto: ^3.0.7
+  web: ^1.1.1
   # flutter_bloc's providers reject a Listenable (the assistant focus notifier).
   provider: ^6.1.5+1
 
