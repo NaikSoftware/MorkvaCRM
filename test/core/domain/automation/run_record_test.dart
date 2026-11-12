@@ -85,6 +85,10 @@ RunLog bigLog(int n) => RunLog(
 
 int _bytes(String s) => utf8.encode(s).length;
 
+int _docBytes(Map<String, Object?> doc) => _bytes(
+  jsonEncode(doc, toEncodable: (o) => (o as DateTime).toIso8601String()),
+);
+
 void main() {
   test('a run round-trips, log included', () {
     final r = run(log: bigLog(3));
@@ -226,10 +230,7 @@ void main() {
           touchedCardIds: [for (var i = 0; i < 50; i++) 'b_${'z' * 3000}_$i'],
         )
         .toJson();
-    final size = _bytes(
-      jsonEncode(huge, toEncodable: (o) => (o as DateTime).toIso8601String()),
-    );
-    expect(size, lessThanOrEqualTo(kRunDocMaxBytes));
+    expect(_docBytes(huge), lessThanOrEqualTo(kRunDocMaxBytes));
     expect(_bytes(huge['log']! as String), lessThan(kRunLogMaxBytes));
     // The trigger snapshot and params survive while the log can shrink.
     expect((huge['trigger']! as Map)['before'], isNotNull);
@@ -250,5 +251,23 @@ void main() {
     expect(decodeRunLog(heavier['log']).calls, isEmpty);
     expect((heavier['trigger']! as Map)['before'], isNull);
     expect(heavier['params'], isNotNull);
+    expect(_docBytes(heavier), lessThanOrEqualTo(kRunDocMaxBytes));
+
+    // Still over without the snapshot: params go last.
+    final heaviest =
+        run(
+              log: bigLog(200),
+              before: {for (var i = 0; i < 10; i++) 'f_$i': 'y' * 1500},
+              params: {'p': 'x' * 3500},
+            )
+            .copyWith(
+              touchedCardIds: [
+                for (var i = 0; i < 50; i++) 'b_${'z' * 4000}_$i',
+              ],
+            )
+            .toJson();
+    expect((heaviest['trigger']! as Map)['before'], isNull);
+    expect(heaviest['params'], isNull);
+    expect(_docBytes(heaviest), lessThanOrEqualTo(kRunDocMaxBytes));
   });
 }

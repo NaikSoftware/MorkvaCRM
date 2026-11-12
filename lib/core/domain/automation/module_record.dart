@@ -95,6 +95,10 @@ final class ModuleRecord extends Equatable {
   /// The parser's problems when [manifest] is null.
   late final List<AutomationProblem> manifestProblems = _problems();
 
+  /// [bundleHashOf] this record's own manifest + code (never [codeHash]),
+  /// cached because status chips ask on every emit.
+  late final String bundleHash = bundleHashOf(manifestJson, code);
+
   int get codeBytes => utf8.encode(code).length;
 
   ModuleBundle? get bundle => manifest == null
@@ -171,7 +175,7 @@ ModuleStatus moduleStatusOf(ModuleRecord module, GrantRecord? consent) {
     return ModuleStatus.broken;
   }
   if (consent == null ||
-      consent.codeHash != bundleHashOf(module.manifestJson, module.code) ||
+      consent.codeHash != module.bundleHash ||
       !manifest.capabilities.every(consent.caps.contains)) {
     return ModuleStatus.needsConsent;
   }

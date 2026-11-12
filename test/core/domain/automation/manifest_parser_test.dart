@@ -294,6 +294,20 @@ void main() {
         ),
         ['actions[0].input.properties.x.minimum invalid'],
       );
+      // Past 2^53 the VM and the web encode differently (the hash would split).
+      expect(
+        problemsOf(
+          input({
+            'x': {'type': 'number', 'minimum': -1e21, 'maximum': 1e300},
+            'y': {'type': 'integer', 'default': 9007199254740994},
+          }),
+        ),
+        [
+          'actions[0].input.properties.x.minimum invalid',
+          'actions[0].input.properties.x.maximum invalid',
+          'actions[0].input.properties.y.default invalid',
+        ],
+      );
       expect(
         problemsOf(
           input({

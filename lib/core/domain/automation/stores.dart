@@ -47,8 +47,10 @@ abstract interface class RunStore {
   /// `{'count', 'endedAt'}` for a coalesced row.
   Future<void> update(RunRecord run, {required Set<String> fields});
 
-  /// Deletes runs past the newest [keep], dropping `succeeded` and `skipped`
-  /// rows before `failed` and `awaiting_review` ones. Returns how many went.
+  /// Trims the runs down to [keep]: drops the oldest `succeeded` and
+  /// `skipped` rows first, then the oldest of the rest (`failed`,
+  /// `timed_out`, `rejected`, `expired`, `awaiting_review`), never an
+  /// `applying` row (a commit is still writing it). Returns how many went.
   Future<int> prune({int keep = kWindow});
 
   static const int kWindow = 200;

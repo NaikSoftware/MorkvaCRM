@@ -398,6 +398,10 @@ InputProperty? _property(Object? json, String at, _Problems p) {
       p.add('$at.$key', 'invalid', 'Only number inputs take a $key number.');
       return null;
     }
+    if (!_safeNumber(v)) {
+      p.add('$at.$key', 'invalid', 'Keep it within ±2^53.');
+      return null;
+    }
     return v;
   }
 
@@ -430,7 +434,9 @@ InputProperty? _property(Object? json, String at, _Problems p) {
         defaultValue is! num ||
         ((minimum == null || defaultValue >= minimum) &&
             (maximum == null || defaultValue <= maximum));
-    if (!ok || !inRange) {
+    if (defaultValue is num && !_safeNumber(defaultValue)) {
+      p.add('$at.default', 'invalid', 'Keep it within ±2^53.');
+    } else if (!ok || !inRange) {
       p.add('$at.default', 'invalid', 'Doesn\'t match the input\'s type.');
     }
   }
@@ -502,6 +508,10 @@ void _notReserved(String? text, String path, _Problems p) {
 
 /// [v] as an int when it is a whole number (a VM-decoded `2.0` and a web
 /// number both count), else null.
+/// Within ±2^53 (NaN and infinities fail): past it the VM's `toInt` saturates
+/// while the web keeps the double, so a bundle would hash differently.
+bool _safeNumber(num v) => v >= -9007199254740992 && v <= 9007199254740992;
+
 int? _integral(Object? v) =>
     v is num && v.isFinite && v == v.truncateToDouble() ? v.toInt() : null;
 

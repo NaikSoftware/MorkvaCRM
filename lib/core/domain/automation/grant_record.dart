@@ -32,11 +32,19 @@ final class GrantRecord extends Equatable {
     required this.via,
   });
 
-  /// Parses with the module capability allowlist (never `Grants.fromJson`):
-  /// `'*'`, an unknown wire or any malformed key throws [FormatException],
-  /// which the store treats as no consent.
-  factory GrantRecord.fromJson(Map<String, Object?> json) {
+  /// Parses the doc [id] with the module capability allowlist (never
+  /// `Grants.fromJson`): `'*'`, an unknown wire, a body `moduleId` other than
+  /// [id], a missing `collections` key or any malformed key throws
+  /// [FormatException], which the store treats as no consent.
+  factory GrantRecord.fromJson(String id, Map<String, Object?> json) {
     if (json['schema'] != 1) throw const FormatException('Unknown schema');
+    if (readString(json, 'moduleId') != id) {
+      throw const FormatException('moduleId differs from the doc id');
+    }
+    // Null means all collections, so a missing key must not read as null.
+    if (!json.containsKey('collections')) {
+      throw const FormatException('Missing collections');
+    }
     final caps = readStrings(json, 'caps');
     for (final cap in caps) {
       if (!kCapabilityCopy.containsKey(cap)) {
@@ -49,7 +57,7 @@ final class GrantRecord extends Equatable {
       throw const FormatException('A plan never grants auto-apply');
     }
     return GrantRecord(
-      moduleId: readString(json, 'moduleId'),
+      moduleId: id,
       codeHash: readString(json, 'codeHash'),
       version: readString(json, 'version'),
       codeBytes: readInt(json, 'codeBytes'),

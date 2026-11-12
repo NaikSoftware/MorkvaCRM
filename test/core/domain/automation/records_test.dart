@@ -149,10 +149,10 @@ void main() {
   group('consent record', () {
     test('round-trips', () {
       final c = consent(autoApply: true);
-      expect(GrantRecord.fromJson(c.toJson()), c);
+      expect(GrantRecord.fromJson(c.moduleId, c.toJson()), c);
       final all = c.copyWith(collections: () => null, autoApply: false);
       expect(all.toJson()['collections'], isNull);
-      expect(GrantRecord.fromJson(all.toJson()), all);
+      expect(GrantRecord.fromJson(all.moduleId, all.toJson()), all);
     });
 
     test('a malformed consent never parses (the store reads it as none)', () {
@@ -171,9 +171,11 @@ void main() {
         {...json, 'schema': 2},
         {...json, 'autoApply': true, 'via': 'assistant_plan'},
         {...json}..remove('codeHash'),
+        {...json}..remove('collections'),
+        {...json, 'moduleId': 'other-module'},
       ]) {
         expect(
-          () => GrantRecord.fromJson(bad),
+          () => GrantRecord.fromJson('stamp-shipped-date', bad),
           throwsFormatException,
           reason: '$bad',
         );

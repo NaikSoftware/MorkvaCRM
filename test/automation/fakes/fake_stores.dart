@@ -117,9 +117,6 @@ final class FakeRunStore implements RunStore {
 
   void putRaw(String id, Map<String, Object?> json) => _docs.put(id, json);
 
-  List<RunRecord> get _newestFirst =>
-      _docs.all..sort((a, b) => b.startedAt.compareTo(a.startedAt));
-
   @override
   Stream<List<RunRecord>> watchRecent() => _docs.watch().map(
     (runs) => ([...runs]..sort((a, b) => b.startedAt.compareTo(a.startedAt)))
@@ -149,16 +146,19 @@ final class FakeRunStore implements RunStore {
 
   @override
   Future<int> prune({int keep = RunStore.kWindow}) async {
-    var dropped = 0;
-    for (final run in _newestFirst.skip(keep)) {
-      if (run.status == RunStatus.failed ||
-          run.status == RunStatus.awaitingReview) {
-        continue;
-      }
+    final oldestFirst = _docs.all
+      ..sort((a, b) => a.startedAt.compareTo(b.startedAt));
+    if (oldestFirst.length <= keep) return 0;
+    bool cheap(RunRecord r) =>
+        r.status == RunStatus.succeeded || r.status == RunStatus.skipped;
+    final doomed = [
+      ...oldestFirst.where(cheap),
+      ...oldestFirst.where((r) => !cheap(r) && r.status != RunStatus.applying),
+    ].take(oldestFirst.length - keep).toList();
+    for (final run in doomed) {
       _docs.remove(run.id);
-      dropped++;
     }
-    return dropped;
+    return doomed.length;
   }
 
   Future<void> dispose() => _docs.dispose();
@@ -167,10 +167,8 @@ final class FakeRunStore implements RunStore {
 final class FakeGrantStore implements GrantStore {
   final _byUid = <String, _Docs<GrantRecord>>{};
 
-  _Docs<GrantRecord> _of(String uid) => _byUid.putIfAbsent(
-    uid,
-    () => _Docs((_, json) => GrantRecord.fromJson(json)),
-  );
+  _Docs<GrantRecord> _of(String uid) =>
+      _byUid.putIfAbsent(uid, () => _Docs(GrantRecord.fromJson));
 
   void putRaw(String uid, String moduleId, Map<String, Object?> json) =>
       _of(uid).put(moduleId, json);
