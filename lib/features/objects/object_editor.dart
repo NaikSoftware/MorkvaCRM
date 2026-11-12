@@ -2,13 +2,21 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../api/data/data_repository.dart';
 import '../../api/files/attachment_store.dart';
 import '../../app/shell/app_shell.dart';
+import '../../core/automation/runner_api.dart';
 import '../../core/domain/domain.dart';
 import '../../design/design.dart';
+import '../automation/bloc/automation_runs_cubit.dart';
+import '../automation/bloc/modules_cubit.dart';
+import '../automation/view/review_sheet.dart';
+import '../automation/widgets/action_buttons.dart';
+import '../automation/widgets/reason_copy.dart' show CopyTone;
+import '../automation/widgets/status_chip.dart';
 import '../views/widgets/view_labels.dart';
 import 'object_editor_cubit.dart';
 import 'value_editors/field_value_editor.dart';
@@ -41,6 +49,9 @@ const double kObjectEditorDialogMaxWidth = 720;
 /// [prefill]) when it is null. Wide screens get a centered dialog that grows
 /// with the form up to the viewport; phones a full-screen page. [prefillNote] ("Filled from the Lead
 /// column") is the helper under each prefilled field besides the title.
+///
+/// A card saved by "Save and run" and then closed still reports
+/// [ObjectEditorSaved].
 Future<ObjectEditorResult?> showObjectEditor(
   BuildContext context, {
   required Collection collection,
@@ -50,43 +61,61 @@ Future<ObjectEditorResult?> showObjectEditor(
   String? titleFieldId,
   Map<String, FieldValue> Function(MorkvaObject draft)? derive,
   Map<String, String> notes = const {},
-}) {
+}) async {
   final repository = context.read<DataRepository>();
   final attachments = _attachmentStoreOf(context);
+  final carry = automationCarrier(context);
   final wide = MediaQuery.sizeOf(context).width >= AppShell.expandedBreakpoint;
-  Widget host(BuildContext _) => BlocProvider(
-    create: (_) {
-      final cubit = ObjectEditorCubit(
-        repository,
-        collection,
-        object: object,
-        prefill: prefill,
-        titleFieldId: titleFieldId,
-        attachments: attachments,
-        derive: derive,
-        notes: notes,
-      );
-      unawaited(cubit.initialize());
-      return cubit;
-    },
-    child: _EditorHost(
-      compact: !wide,
-      prefillNote: prefillNote,
-      prefilledIds: {
-        for (final id in prefill.keys)
-          if (id != titleFieldId) id,
+  ObjectEditorCubit? created;
+  Widget host(BuildContext _) => carry(
+    BlocProvider(
+      create: (_) {
+        final cubit = created = ObjectEditorCubit(
+          repository,
+          collection,
+          object: object,
+          prefill: prefill,
+          titleFieldId: titleFieldId,
+          attachments: attachments,
+          derive: derive,
+          notes: notes,
+        );
+        unawaited(cubit.initialize());
+        return cubit;
       },
+      child: _EditorHost(
+        compact: !wide,
+        prefillNote: prefillNote,
+        prefilledIds: {
+          for (final id in prefill.keys)
+            if (id != titleFieldId) id,
+        },
+      ),
     ),
   );
 
+  final ObjectEditorResult? result;
   if (!wide) {
-    return Navigator.of(context).push(
+    result = await Navigator.of(context).push(
       MaterialPageRoute<ObjectEditorResult>(
         fullscreenDialog: true,
         builder: host,
       ),
     );
+  } else {
+    result = await _showDialog(context, host);
   }
+  final last = created?.state;
+  if (result == null && last?.savedObject != null) {
+    return ObjectEditorSaved(last!.stored ?? last.savedObject!);
+  }
+  return result;
+}
+
+Future<ObjectEditorResult?> _showDialog(
+  BuildContext context,
+  WidgetBuilder host,
+) {
   final reduceMotion = MediaQuery.disableAnimationsOf(context);
   return showGeneralDialog<ObjectEditorResult>(
     context: context,
@@ -230,7 +259,19 @@ class ObjectEditor extends StatefulWidget {
 }
 
 class _ObjectEditorState extends State<ObjectEditor> {
+  /// Open editors, innermost last (an item's editor over its parent's): the
+  /// innermost one shows run notices, and the runs cubit hears "editor open"
+  /// while any is up.
+  static final _open = <_ObjectEditorState>[];
+
   final _scroll = ScrollController();
+  late final AutomationRunsCubit? _runs = maybeRead<AutomationRunsCubit>(
+    context,
+  );
+
+  /// The finished run the banner tells about, or a refused press.
+  RunView? _run;
+  String? _runMessage;
   final Map<String, GlobalKey> _keys = {};
   late final Set<String> _collapsed = {
     for (final s
@@ -244,12 +285,126 @@ class _ObjectEditorState extends State<ObjectEditor> {
       _keys.putIfAbsent(fieldId, () => GlobalKey(debugLabel: fieldId));
 
   @override
+  void initState() {
+    super.initState();
+    if (_open.isEmpty) _runs?.editorOpened();
+    _open.add(this);
+  }
+
+  @override
   void dispose() {
+    _open.remove(this);
+    if (_open.isEmpty && !(_runs?.isClosed ?? true)) _runs?.editorClosed();
     _scroll.dispose();
     super.dispose();
   }
 
   void _close() => Navigator.of(context).maybePop();
+
+  /// "Save and run": saves without closing, then runs on the saved card.
+  /// A failed save shows its usual error and nothing runs.
+  Future<void> _saveAndRun(AutomationEntry entry) async {
+    final cubit = context.read<ObjectEditorCubit>();
+    final runs = _runs;
+    if (runs == null) return;
+    if (!await cubit.save(stayOpen: true)) {
+      if (mounted) _revealFirstError(cubit.state);
+      return;
+    }
+    final cardId = cubit.state.stored?.id;
+    if (cardId == null) return;
+    final runId = await runs.pressCard(entry.automation.id, cardId: cardId);
+    if (runId == null && mounted) _showRunMessage(runs.state.error);
+  }
+
+  void _showRunMessage(String? message) {
+    if (message == null) return;
+    setState(() {
+      _run = null;
+      _runMessage = message;
+    });
+  }
+
+  /// Leaves the editor for [path]: at once when nothing is unsaved, else
+  /// through "Discard changes?" (and stays on the card).
+  void _leaveTo(String path) {
+    final state = context.read<ObjectEditorCubit>().state;
+    if (state.hasUnsavedChanges || state.isSaving) {
+      _close();
+      return;
+    }
+    final router = GoRouter.maybeOf(context);
+    Navigator.of(context).pop();
+    router?.go(path);
+  }
+
+  late final _hooks = CardActionHooks(
+    onSaveAndRun: _saveAndRun,
+    onNavigate: _leaveTo,
+    onMessage: _showRunMessage,
+  );
+
+  /// A run finished while this editor is the innermost one: the banner,
+  /// or (a button run of this card, the editor on top) the review sheet.
+  void _onNotice(BuildContext context, AutomationRunsState runs) {
+    final notice = runs.notice;
+    final cubit = _runs;
+    if (notice == null || cubit == null || _open.lastOrNull != this) return;
+    if (notice.surface == NoticeSurface.snackbar) return;
+    cubit.noticeShown();
+    final run = notice.run;
+    final mine =
+        run.trigger.cardId != null &&
+        run.trigger.cardId ==
+            context.read<ObjectEditorCubit>().state.stored?.id;
+    if (notice.surface == NoticeSurface.reviewSheet &&
+        mine &&
+        (ModalRoute.of(context)?.isCurrent ?? false)) {
+      showReviewSheet(context, runId: run.runId, overEditor: true);
+      return;
+    }
+    setState(() {
+      _run = run;
+      _runMessage = null;
+    });
+  }
+
+  Future<void> _onNoticeAction(NoticeAction action, RunView run) async {
+    final runs = _runs;
+    if (runs == null) return;
+    switch (action) {
+      case NoticeAction.undo:
+        if (await runs.undo(run.runId)) {
+          if (mounted) _showRunMessage('${run.label} · Reverted');
+        } else if (mounted) {
+          _showRunMessage(runs.state.error);
+        }
+      case NoticeAction.viewRun:
+        _leaveTo(AutomationPaths.run(run.runId));
+      case NoticeAction.review:
+        await showReviewSheet(context, runId: run.runId, overEditor: true);
+      case NoticeAction.runAgain:
+        final id = await runs.runAgain(run.runId);
+        if (id == null && mounted) _showRunMessage(runs.state.error);
+    }
+  }
+
+  Widget? _runBanner() {
+    final run = _run;
+    final message = _runMessage;
+    if (run == null && message == null) return null;
+    return _RunBanner(
+      copy: run == null
+          ? (text: message!, actions: const [], error: false)
+          : runNoticeCopy(run),
+      compact: widget.compact,
+      onAction: run == null ? null : (a) => _onNoticeAction(a, run),
+      onDismiss: () => setState(() {
+        _run = null;
+        _runMessage = null;
+      }),
+    );
+  }
 
   /// Close/Cancel: disabled while a save is in flight.
   VoidCallback? _closeFor(ObjectEditorState state) =>
@@ -309,6 +464,19 @@ class _ObjectEditorState extends State<ObjectEditor> {
 
   @override
   Widget build(BuildContext context) {
+    final runs = _runs;
+    final form = _form(context);
+    if (runs == null) return form;
+    return BlocListener<AutomationRunsCubit, AutomationRunsState>(
+      bloc: runs,
+      listenWhen: (prev, next) =>
+          next.notice != null && prev.notice != next.notice,
+      listener: _onNotice,
+      child: form,
+    );
+  }
+
+  Widget _form(BuildContext context) {
     final cubit = context.read<ObjectEditorCubit>();
     return BlocBuilder<ObjectEditorCubit, ObjectEditorState>(
       builder: (context, state) {
@@ -369,7 +537,7 @@ class _ObjectEditorState extends State<ObjectEditor> {
           mainAxisSize: widget.compact ? MainAxisSize.max : MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _Banners(state: state, gutter: gutter),
+            _Banners(state: state, gutter: gutter, run: _runBanner()),
             Flexible(
               fit: widget.compact ? FlexFit.tight : FlexFit.loose,
               child: form,
@@ -404,7 +572,20 @@ class _ObjectEditorState extends State<ObjectEditor> {
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.titleLarge,
               ),
+              bottom: _runs == null
+                  ? null
+                  : CardRunProgress(
+                      collectionId: state.collection.id,
+                      cardId: state.stored?.id,
+                    ),
               actions: [
+                CardActions(
+                  compact: true,
+                  collectionId: state.collection.id,
+                  cardId: state.stored?.id,
+                  dirty: state.hasUnsavedChanges,
+                  hooks: _hooks,
+                ),
                 Padding(
                   padding: const EdgeInsets.only(right: Spacing.xs),
                   child: PrimaryButton(
@@ -433,7 +614,17 @@ class _ObjectEditorState extends State<ObjectEditor> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _Header(state: state, onClose: _closeFor(state)),
+            _Header(
+              state: state,
+              onClose: _closeFor(state),
+              actions: (width) => CardActions(
+                collectionId: state.collection.id,
+                cardId: state.stored?.id,
+                dirty: state.hasUnsavedChanges,
+                hooks: _hooks,
+                headerWidth: width,
+              ),
+            ),
             Flexible(child: body),
             _Footer(
               saveLabel: saveLabel,
@@ -454,15 +645,20 @@ class _ObjectEditorState extends State<ObjectEditor> {
 // -----------------------------------------------------------------------------
 
 class _Header extends StatelessWidget {
-  const _Header({required this.state, required this.onClose});
+  const _Header({
+    required this.state,
+    required this.onClose,
+    required this.actions,
+  });
 
   final ObjectEditorState state;
   final VoidCallback? onClose;
 
+  /// The card's action buttons for a header [width] wide.
+  final Widget Function(double width) actions;
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     final collection = state.collection;
     final stored = state.stored;
     final item = itemLabelOf(collection);
@@ -471,6 +667,20 @@ class _Header extends StatelessWidget {
         : '${item[0].toUpperCase()}${item.substring(1)}'
               ' · created ${_shortDate(stored.createdAt)}'
               ' · edited ${_ago(stored.updatedAt)}';
+    return LayoutBuilder(
+      builder: (context, constraints) =>
+          _bar(context, meta: meta, buttons: actions(constraints.maxWidth)),
+    );
+  }
+
+  Widget _bar(
+    BuildContext context, {
+    required String meta,
+    required Widget buttons,
+  }) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final collection = state.collection;
     return Container(
       padding: const EdgeInsets.fromLTRB(
         Spacing.lg,
@@ -513,6 +723,7 @@ class _Header extends StatelessWidget {
               ],
             ),
           ),
+          buttons,
           IconActionButton(
             icon: Icons.close,
             tooltip: 'Close',
@@ -602,10 +813,14 @@ class _DeleteButton extends StatelessWidget {
 
 /// Errors to fix, a failed save, conflicts and a remote delete.
 class _Banners extends StatelessWidget {
-  const _Banners({required this.state, required this.gutter});
+  const _Banners({required this.state, required this.gutter, this.run});
 
   final ObjectEditorState state;
   final double gutter;
+
+  /// A finished automation run (never a shell snackbar under the editor's
+  /// scrim).
+  final Widget? run;
 
   @override
   Widget build(BuildContext context) {
@@ -622,6 +837,7 @@ class _Banners extends StatelessWidget {
     ];
     final item = itemLabelOf(state.collection);
     final banners = [
+      ?run,
       if (count > 0)
         _Banner(
           icon: Icons.error_outline,
@@ -671,6 +887,134 @@ class _Banners extends StatelessWidget {
   static String _names(List<String> names) => names.length == 1
       ? names.single
       : '${names.take(names.length - 1).join(', ')} and ${names.last}';
+}
+
+/// "Mark shipped · 1 order updated · Undo · View run" (UX §4).
+class _RunBanner extends StatelessWidget {
+  const _RunBanner({
+    required this.copy,
+    required this.compact,
+    required this.onAction,
+    required this.onDismiss,
+  });
+
+  final NoticeCopy copy;
+  final bool compact;
+  final ValueChanged<NoticeAction>? onAction;
+  final VoidCallback onDismiss;
+
+  static const _labels = {
+    NoticeAction.undo: 'Undo',
+    NoticeAction.viewRun: 'View run',
+    NoticeAction.review: 'Review',
+    NoticeAction.runAgain: 'Run again',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final review = copy.actions.contains(NoticeAction.review);
+    final colors = StatusChip.colorsOf(
+      theme,
+      copy.error
+          ? CopyTone.error
+          : review
+          ? CopyTone.warning
+          : CopyTone.success,
+    );
+    final (head, tail) = switch (copy.text.indexOf(' · ')) {
+      -1 => (copy.text, ''),
+      final i => (copy.text.substring(0, i), copy.text.substring(i)),
+    };
+    final text = Text.rich(
+      TextSpan(
+        text: head,
+        style: const TextStyle(fontWeight: FontWeight.w600),
+        children: [
+          TextSpan(
+            text: tail,
+            style: const TextStyle(fontWeight: FontWeight.w400),
+          ),
+        ],
+      ),
+      style: theme.textTheme.bodyMedium?.copyWith(color: colors.foreground),
+    );
+    final buttons = [
+      for (final a in copy.actions)
+        TextButton.icon(
+          style: TextButton.styleFrom(
+            foregroundColor: colors.foreground,
+            minimumSize: const Size(44, 44),
+          ),
+          onPressed: onAction == null ? null : () => onAction!(a),
+          icon: a == NoticeAction.undo
+              ? const Icon(Icons.undo_rounded, size: 18)
+              : null,
+          label: Text(_labels[a]!),
+        ),
+      if (copy.actions.isEmpty)
+        IconButton(
+          tooltip: 'Dismiss',
+          color: colors.foreground,
+          icon: const Icon(Icons.close, size: 18),
+          onPressed: onDismiss,
+        ),
+    ];
+    final icon = Icon(
+      copy.error
+          ? Icons.error_outline
+          : review
+          ? Icons.rate_review_outlined
+          : Icons.check_circle_outline,
+      size: 20,
+      color: colors.foreground,
+    );
+    return Semantics(
+      liveRegion: true,
+      container: true,
+      child: Container(
+        key: const ValueKey('run-banner'),
+        padding: const EdgeInsets.fromLTRB(
+          Spacing.sm + Spacing.xxs / 2,
+          Spacing.xxs,
+          Spacing.xxs,
+          Spacing.xxs,
+        ),
+        decoration: BoxDecoration(
+          color: colors.background,
+          borderRadius: Radii.mdAll,
+        ),
+        child: compact
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: Spacing.xs),
+                    child: Row(
+                      children: [
+                        icon,
+                        const SizedBox(width: Spacing.xs),
+                        Expanded(child: text),
+                      ],
+                    ),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: buttons,
+                  ),
+                ],
+              )
+            : Row(
+                children: [
+                  icon,
+                  const SizedBox(width: Spacing.xs),
+                  Expanded(child: text),
+                  ...buttons,
+                ],
+              ),
+      ),
+    );
+  }
 }
 
 class _Banner extends StatelessWidget {
