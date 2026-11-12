@@ -551,6 +551,37 @@ void main() {
       },
     );
 
+    test('a model that keeps calling tools after the outcome ends the turn '
+        'quietly', () async {
+      // Web e2e 2026-11-12: after "Install module" the model kept calling
+      // automations_save in the answer-only rounds and the turn failed with
+      // "Something went wrong" although the install was applied.
+      llm.addAll([
+        FakeReply(
+          calls: [
+            call('fields_add', {'collection': 'Orders'}),
+          ],
+        ),
+        const FakeReply(finish: FinishKind.unexpectedToolCall),
+        FakeReply(
+          calls: [
+            call('cards_update', {'collection': 'Orders'}),
+          ],
+        ),
+      ]);
+      final loop = loopFor();
+
+      final events = await runTurn(loop, 'add it', outcome: (_) => receipt);
+
+      expect(llm.requests, hasLength(3));
+      expect([
+        for (final r in llm.requests.skip(1)) r.toolMode,
+      ], everyElement(LlmToolMode.none));
+      expect(events.whereType<TurnFailed>(), isEmpty);
+      expect(events.last, isA<TurnDone>());
+      expect(update.calls, isEmpty, reason: 'no call runs after the outcome');
+    });
+
     test('responses follow call order when the model sent no ids', () async {
       llm.addAll([
         FakeReply(

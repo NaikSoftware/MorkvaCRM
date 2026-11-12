@@ -312,6 +312,13 @@ final class AgentLoop {
         _ => null,
       };
       if (nudge != null) {
+        // After an outcome its card is the answer: a model that still wants
+        // tools after one nudge (e.g. to bind a just-installed module) ends
+        // the turn instead of failing it.
+        if (t.answerOnly && nudge == nudgeAnswer) {
+          if (t.nudgedAfterOutcome) break;
+          t.nudgedAfterOutcome = true;
+        }
         if (last) {
           // A nudge on the forced last round gets one more text-only round;
           // when that one misses too, the turn fails visibly instead of
@@ -1033,6 +1040,7 @@ final class _Turn {
   /// so the rounds after it may only answer in text (a rejected change must
   /// not come straight back as a new preview).
   bool answerOnly = false;
+  bool nudgedAfterOutcome = false;
 
   /// Calls whose responses are not in the history yet.
   List<LlmCall>? pendingCalls;
