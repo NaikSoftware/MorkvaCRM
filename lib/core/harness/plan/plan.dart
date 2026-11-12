@@ -17,6 +17,7 @@
 /// Every string in a plan is written by the harness, user text sanitized.
 library;
 
+import '../../domain/automation/automation.dart';
 import '../../domain/domain.dart';
 import '../api/capability.dart';
 
@@ -138,12 +139,20 @@ enum PlanItemKind {
   deleteField(Capability.schemaDelete),
   createView(Capability.viewsWrite),
   updateView(Capability.viewsWrite),
-  deleteView(Capability.viewsWrite);
+  deleteView(Capability.viewsWrite),
+  saveModule(Capability.modulesWrite, scoped: false),
+  saveAutomation(Capability.automationsWrite, scoped: false),
+  deleteAutomation(Capability.automationsWrite, scoped: false);
 
-  const PlanItemKind(this.capability);
+  const PlanItemKind(this.capability, {this.scoped = true});
 
   /// What the creator needed to plan it (re-checked at commit).
   final Capability capability;
+
+  /// Whether the item writes into its collection, so the creator's
+  /// collection grants apply. Module and automation items are workspace
+  /// docs: the commit checks only their capability.
+  final bool scoped;
 }
 
 /// One reviewable, separately selectable change. Items commit in plan
@@ -615,6 +624,150 @@ final class DeleteViewItem extends PlanItem {
     'index': index,
   };
 }
+
+/// A module install or update (`modules.save`) with the consent its approval
+/// records. Not journaled: undo leaves it alone.
+///
+/// [toDisplayJson] (what the model sees) carries `codeBytes` and `codeHash`,
+/// never the code; [toJson] (the UI) carries `code` for "View code".
+final class SaveModuleItem extends PlanItem {
+  const SaveModuleItem({
+    required super.itemId,
+    required super.callId,
+    required super.label,
+    required super.risk,
+    required this.module,
+    required this.consent,
+    this.beforeCodeHash,
+    super.detail,
+    super.changes,
+  }) : super(collectionId: '');
+
+  /// The record to write (dated at plan time; the committer stamps its own).
+  final ModuleRecord module;
+
+  /// The consent approval records: the manifest's caps, the collections the
+  /// plan named, `autoApply: false`, `via: assistant_plan`.
+  final GrantRecord consent;
+
+  /// The installed bundle's hash when planned (null for a new module): the
+  /// committer's stale check.
+  final String? beforeCodeHash;
+
+  @override
+  String? get targetId => module.id;
+
+  @override
+  PlanItemKind get kind => PlanItemKind.saveModule;
+
+  @override
+  Map<String, Object?> toDisplayJson() => {
+    ...super.toDisplayJson(),
+    'codeBytes': module.codeBytes,
+    'codeHash': module.bundleHash,
+  };
+
+  @override
+  Map<String, Object?> dataJson() => {
+    'moduleId': module.id,
+    'manifest': module.manifestJson,
+    'code': module.code,
+    'version': module.version,
+    'caps': consent.caps,
+    'collections': consent.collections,
+    'beforeCodeHash': ?beforeCodeHash,
+  };
+}
+
+/// An automation created or replaced (`automations.save`). [draft] is the
+/// record as planned, stored `apply: ask`; [apply] is the mode to write, and
+/// [recordFor] stamps the approving user as `autoBy` of an auto one.
+final class SaveAutomationItem extends PlanItem {
+  const SaveAutomationItem({
+    required super.itemId,
+    required super.callId,
+    required super.collectionId,
+    required super.label,
+    required super.risk,
+    required this.draft,
+    required this.apply,
+    this.before,
+    super.detail,
+    super.changes,
+    super.dependsOn,
+  });
+
+  final AutomationRecord draft;
+  final ApplyMode apply;
+
+  /// The live automation when planned (an update): the committer's stale
+  /// check compares its `updatedAt`.
+  final AutomationRecord? before;
+
+  @override
+  String? get targetId => draft.id;
+
+  @override
+  PlanItemKind get kind => PlanItemKind.saveAutomation;
+
+  /// The record to write, approved by [uid] at [now].
+  AutomationRecord recordFor(String uid, DateTime now) =>
+      AutomationRecord.fromJson(draft.id, {
+        ...draft.toJson(),
+        'apply': apply.name,
+        'autoBy': apply == ApplyMode.auto ? uid : null,
+        'createdAt': before?.createdAt ?? now,
+        'updatedAt': now,
+      });
+
+  @override
+  Map<String, Object?> toDisplayJson() => {
+    ...super.toDisplayJson(),
+    'apply': apply.name,
+  };
+
+  @override
+  Map<String, Object?> dataJson() => {
+    'automation': plainJson(draft.toJson()),
+    'apply': apply.name,
+    if (before case final b?)
+      'beforeUpdatedAt': b.updatedAt.toUtc().toIso8601String(),
+  };
+}
+
+/// An automation removed (`automations.delete`).
+final class DeleteAutomationItem extends PlanItem {
+  const DeleteAutomationItem({
+    required super.itemId,
+    required super.callId,
+    required super.collectionId,
+    required super.label,
+    required super.risk,
+    required this.before,
+    super.detail,
+    super.changes,
+  });
+
+  final AutomationRecord before;
+
+  @override
+  String? get targetId => before.id;
+
+  @override
+  PlanItemKind get kind => PlanItemKind.deleteAutomation;
+
+  @override
+  Map<String, Object?> dataJson() => {'before': plainJson(before.toJson())};
+}
+
+/// [value] with every [DateTime] as an ISO string, so record JSON can leave
+/// the harness (op results are plain JSON).
+Object? plainJson(Object? value) => switch (value) {
+  DateTime() => value.toUtc().toIso8601String(),
+  Map() => {for (final e in value.entries) '${e.key}': plainJson(e.value)},
+  List() => [for (final v in value) plainJson(v)],
+  _ => value,
+};
 
 /// A harness-written warning (`breaks_references`, `required_empty`, …).
 final class PlanWarning {

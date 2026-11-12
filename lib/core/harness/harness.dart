@@ -15,6 +15,7 @@ export 'api/envelope.dart';
 export 'api/harness.dart';
 export 'api/harness_context.dart';
 export 'api/operation.dart';
+export 'automation_catalog.dart';
 export 'ops/registry.dart';
 export 'schema/arg_shapes.dart';
 export 'schema/field_specs.dart';

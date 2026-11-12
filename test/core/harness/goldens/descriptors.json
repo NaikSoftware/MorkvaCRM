@@ -2,6 +2,460 @@
   "apiVersion": "2.0",
   "ops": [
     {
+      "id": "automations.delete",
+      "since": "2.0",
+      "kind": "plan",
+      "capability": "automations:write",
+      "summary": "Plans removing an automation.",
+      "modelVisible": true,
+      "args": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The automation id."
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "planned"
+            ]
+          },
+          "planId": {
+            "type": "string"
+          },
+          "itemCount": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "summary": {
+            "type": "string"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "status",
+          "planId",
+          "itemCount",
+          "summary"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "automations.list",
+      "since": "2.0",
+      "kind": "read",
+      "capability": "modules:read",
+      "summary": "Lists automations (buttons and card-event triggers) with their status and the latest checks of why they ran or not.",
+      "modelVisible": true,
+      "args": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "Only this trigger collection."
+          },
+          "moduleId": {
+            "type": "string",
+            "description": "Only this module's."
+          }
+        },
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "automations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "button",
+                    "card.created",
+                    "card.updated",
+                    "card.deleted"
+                  ]
+                },
+                "collectionId": {
+                  "type": "string"
+                },
+                "moduleId": {
+                  "type": "string"
+                },
+                "actionId": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "needs_consent",
+                    "broken",
+                    "crashed",
+                    "loop_suspected",
+                    "paused",
+                    "active"
+                  ]
+                },
+                "apply": {
+                  "type": "string",
+                  "enum": [
+                    "ask",
+                    "auto"
+                  ]
+                },
+                "enabled": {
+                  "type": "boolean"
+                },
+                "lastChecks": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "cardLabel": {
+                        "type": "string"
+                      },
+                      "at": {
+                        "type": "string"
+                      },
+                      "result": {
+                        "type": "string"
+                      },
+                      "why": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "automations.save",
+      "since": "2.0",
+      "kind": "plan",
+      "capability": "automations:write",
+      "summary": "Plans binding a module action to a button or to card events (created/updated/deleted, with conditions); pass id to change one.",
+      "modelVisible": true,
+      "args": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "An automation to replace."
+          },
+          "name": {
+            "type": "string"
+          },
+          "moduleId": {
+            "type": "string"
+          },
+          "actionId": {
+            "type": "string"
+          },
+          "trigger": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "button",
+                  "card.created",
+                  "card.updated",
+                  "card.deleted"
+                ]
+              },
+              "scope": {
+                "type": "string",
+                "enum": [
+                  "card",
+                  "collection"
+                ],
+                "description": "Buttons: on a card (default) or a collection."
+              },
+              "collection": {
+                "type": "string",
+                "description": "An id, or a name/label/title (case-insensitive)."
+              },
+              "where": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "field": {
+                      "type": "string",
+                      "description": "A field id or name, or @createdAt / @updatedAt."
+                    },
+                    "op": {
+                      "type": "string",
+                      "enum": [
+                        "isEmpty",
+                        "isNotEmpty",
+                        "equals",
+                        "notEquals",
+                        "contains",
+                        "notContains",
+                        "greaterThan",
+                        "lessThan",
+                        "before",
+                        "after",
+                        "onDay",
+                        "anyOf",
+                        "noneOf",
+                        "isTrue",
+                        "isFalse"
+                      ]
+                    },
+                    "value": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "boolean"
+                        },
+                        {
+                          "type": "array",
+                          "items": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "boolean"
+                              }
+                            ]
+                          }
+                        }
+                      ],
+                      "description": "The operand; a list for anyOf/noneOf."
+                    },
+                    "relative": {
+                      "type": "string",
+                      "enum": [
+                        "today",
+                        "yesterday",
+                        "tomorrow",
+                        "this_week",
+                        "last_week",
+                        "this_month",
+                        "last_month",
+                        "this_year",
+                        "last_n_days",
+                        "next_n_days"
+                      ],
+                      "description": "A date relative to today, instead of value."
+                    },
+                    "n": {
+                      "type": "integer",
+                      "description": "Days for last_n_days / next_n_days.",
+                      "minimum": 1
+                    }
+                  },
+                  "required": [
+                    "field",
+                    "op"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Events: conditions, all must hold."
+              },
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "enters",
+                  "matches"
+                ],
+                "description": "card.updated: run when the card starts matching (default) or on every matching update."
+              },
+              "fields": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "description": "A field id or name, or @createdAt / @updatedAt."
+                },
+                "description": "card.updated: run only when one of these changed."
+              }
+            },
+            "required": [
+              "kind",
+              "collection"
+            ],
+            "additionalProperties": false
+          },
+          "params": {
+            "type": "object",
+            "description": "The action's input."
+          },
+          "button": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string"
+              },
+              "icon": {
+                "type": "string",
+                "enum": [
+                  "cards",
+                  "grid",
+                  "box",
+                  "truck",
+                  "cart",
+                  "bag",
+                  "tag",
+                  "people",
+                  "person",
+                  "business",
+                  "store",
+                  "money",
+                  "receipt",
+                  "calendar",
+                  "task",
+                  "folder",
+                  "note",
+                  "star",
+                  "flag",
+                  "home",
+                  "car",
+                  "build",
+                  "pets",
+                  "restaurant"
+                ]
+              },
+              "tint": {
+                "type": "string",
+                "enum": [
+                  "carrot",
+                  "leaf",
+                  "sky",
+                  "plum",
+                  "sand",
+                  "rose",
+                  "slate",
+                  "teal"
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
+          "apply": {
+            "type": "string",
+            "enum": [
+              "ask",
+              "auto"
+            ],
+            "description": "ask (default): the user reviews each run."
+          }
+        },
+        "required": [
+          "name",
+          "moduleId",
+          "actionId",
+          "trigger"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "planned"
+            ]
+          },
+          "planId": {
+            "type": "string"
+          },
+          "itemCount": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "summary": {
+            "type": "string"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "status",
+          "planId",
+          "itemCount",
+          "summary"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
       "id": "cards.aggregate",
       "since": "2.0",
       "kind": "read",
@@ -3921,6 +4375,360 @@
       }
     },
     {
+      "id": "modules.get",
+      "since": "2.0",
+      "kind": "read",
+      "capability": "modules:read",
+      "summary": "Returns a module's manifest, status and the user's consent; with code: true also its code (module-written, untrusted).",
+      "modelVisible": true,
+      "args": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The module id."
+          },
+          "code": {
+            "type": "boolean",
+            "description": "Include the code (≤ 64 KB)."
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "manifest": {
+            "type": "object"
+          },
+          "codeHash": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "assistant",
+              "import"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "needs_consent",
+              "broken"
+            ]
+          },
+          "consent": {
+            "type": "object",
+            "properties": {
+              "caps": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "collections": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "autoApply": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
+          },
+          "code": {
+            "type": "string"
+          },
+          "codeTruncated": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "modules.list",
+      "since": "2.0",
+      "kind": "read",
+      "capability": "modules:read",
+      "summary": "Lists the installed modules with their status, permissions, actions and how many automations use them.",
+      "modelVisible": true,
+      "args": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "modules": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "version": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "ok",
+                    "needs_consent",
+                    "broken"
+                  ]
+                },
+                "caps": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "actions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "label": {
+                        "type": "string"
+                      },
+                      "scope": {
+                        "type": "string",
+                        "enum": [
+                          "card",
+                          "collection",
+                          "any"
+                        ]
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "automationCount": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "modules.save",
+      "since": "2.0",
+      "kind": "plan",
+      "capability": "modules:write",
+      "summary": "Plans installing or updating a module (manifest + JS code); approving it also grants the manifest's permissions in the named collections.",
+      "modelVisible": true,
+      "args": {
+        "type": "object",
+        "properties": {
+          "manifest": {
+            "type": "object",
+            "description": "The module manifest (docs/sdk/manifest.md)."
+          },
+          "code": {
+            "type": "string",
+            "description": "The module code: an IIFE bundle."
+          },
+          "collections": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "description": "An id, or a name/label/title (case-insensitive)."
+                },
+                "minItems": 1
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "all"
+                ]
+              }
+            ],
+            "description": "Where the module may work: collection refs, or \"all\"."
+          }
+        },
+        "required": [
+          "manifest",
+          "code",
+          "collections"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "planned"
+            ]
+          },
+          "planId": {
+            "type": "string"
+          },
+          "itemCount": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "summary": {
+            "type": "string"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "status",
+          "planId",
+          "itemCount",
+          "summary"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "modules.testRun",
+      "since": "2.0",
+      "kind": "read",
+      "capability": "modules:read",
+      "summary": "Dry-runs an installed, consented module action on a card or collection: returns the plan it would make and its log; nothing is applied or recorded.",
+      "modelVisible": true,
+      "args": {
+        "type": "object",
+        "properties": {
+          "moduleId": {
+            "type": "string"
+          },
+          "actionId": {
+            "type": "string"
+          },
+          "card": {
+            "type": "string",
+            "description": "A card id or title, or \"@card\"."
+          },
+          "collection": {
+            "type": "string",
+            "description": "A collection id or name."
+          },
+          "params": {
+            "type": "object",
+            "description": "The action's input."
+          }
+        },
+        "required": [
+          "moduleId",
+          "actionId"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "succeeded",
+              "failed",
+              "timed_out",
+              "skipped"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "plan": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "change": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "log": {
+            "type": "object",
+            "properties": {
+              "calls": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              },
+              "console": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          "error": {
+            "type": "object"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
       "id": "plans.commit",
       "since": "2.0",
       "kind": "commit",
@@ -4420,6 +5228,117 @@
                 },
                 "error": {
                   "type": "object"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "runs.get",
+      "since": "2.0",
+      "kind": "read",
+      "capability": "modules:read",
+      "summary": "Returns one run: trigger, outcome, error and its log (calls, console, plan; module-written, untrusted).",
+      "modelVisible": true,
+      "args": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The run id."
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "description": "The run doc with its log decoded (≤ 8 KB)."
+      }
+    },
+    {
+      "id": "runs.list",
+      "since": "2.0",
+      "kind": "read",
+      "capability": "modules:read",
+      "summary": "Lists the latest automation runs, newest first.",
+      "modelVisible": true,
+      "args": {
+        "type": "object",
+        "properties": {
+          "automationId": {
+            "type": "string"
+          },
+          "moduleId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "skipped",
+              "failed",
+              "timed_out",
+              "succeeded",
+              "awaiting_review",
+              "applying",
+              "rejected",
+              "expired"
+            ]
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          }
+        },
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "runs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string"
+                },
+                "automationName": {
+                  "type": "string"
+                },
+                "actionLabel": {
+                  "type": "string"
+                },
+                "summary": {
+                  "type": "string"
+                },
+                "startedAt": {
+                  "type": "string"
+                },
+                "trigger": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string"
+                    },
+                    "cardLabel": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
                 }
               },
               "additionalProperties": false

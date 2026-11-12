@@ -125,8 +125,20 @@ final class EventTrigger extends TriggerSpec {
   List<Object?> get props => [kind, collectionId, where, mode, fields];
 }
 
+/// The button tint ids, in `CollectionTints` order (index = palette slot).
+const List<String> kButtonTintIds = [
+  'carrot',
+  'leaf',
+  'sky',
+  'plum',
+  'sand',
+  'rose',
+  'slate',
+  'teal',
+];
+
 /// A button's look: label (≤ 24), a collection icon id, a collection tint id
-/// and its order among the collection's buttons.
+/// ([kButtonTintIds]) and its order among the collection's buttons.
 final class ButtonSpec extends Equatable {
   const ButtonSpec({required this.label, this.icon, this.tint, this.order = 0});
 
