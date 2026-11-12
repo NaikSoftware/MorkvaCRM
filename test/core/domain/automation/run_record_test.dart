@@ -258,7 +258,7 @@ void main() {
         run(
               log: bigLog(200),
               before: {for (var i = 0; i < 10; i++) 'f_$i': 'y' * 1500},
-              params: {'p': 'x' * 3500},
+              params: {'p': 'x' * 3900},
             )
             .copyWith(
               touchedCardIds: [

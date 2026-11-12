@@ -146,15 +146,11 @@ final class FakeRunStore implements RunStore {
 
   @override
   Future<int> prune({int keep = RunStore.kWindow}) async {
-    final oldestFirst = _docs.all
-      ..sort((a, b) => a.startedAt.compareTo(b.startedAt));
-    if (oldestFirst.length <= keep) return 0;
-    bool cheap(RunRecord r) =>
-        r.status == RunStatus.succeeded || r.status == RunStatus.skipped;
-    final doomed = [
-      ...oldestFirst.where(cheap),
-      ...oldestFirst.where((r) => !cheap(r) && r.status != RunStatus.applying),
-    ].take(oldestFirst.length - keep).toList();
+    final doomed =
+        (_docs.all..sort((a, b) => b.startedAt.compareTo(a.startedAt)))
+            .skip(keep)
+            .where((r) => r.status != RunStatus.applying)
+            .toList();
     for (final run in doomed) {
       _docs.remove(run.id);
     }
