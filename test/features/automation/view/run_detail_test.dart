@@ -229,8 +229,9 @@ void main() {
           ?.fontFamily,
       contains('RobotoMono'),
     );
-    // The failed Outcome is an error card.
+    // The failed Outcome is an error card with its code.
     expect(find.byKey(const ValueKey('step-error')), findsOneWidget);
+    expect(find.text('module_error'), findsOneWidget);
     await tester.tap(find.text('Ask Morkva to fix it'));
     expect(rig.host.calls.last.$1, 'askMorkva');
     expect(rig.host.calls.last.$2.single, contains('TypeError'));

@@ -559,11 +559,16 @@ class _CallRow extends StatelessWidget {
   final List<Collection> collections;
 
   String _named(String text) {
-    for (final c in collections) {
-      text = text.replaceAll(c.id, c.name);
-      for (final f in c.fields) {
-        text = text.replaceAll(f.id, f.name);
-      }
+    final names = {
+      for (final c in collections) ...{
+        c.id: c.name,
+        for (final f in c.fields) f.id: f.name,
+      },
+    };
+    // Longest first, so an id that prefixes another can't split it.
+    for (final id
+        in names.keys.toList()..sort((a, b) => b.length.compareTo(a.length))) {
+      text = text.replaceAll(id, names[id]!);
     }
     return text;
   }
@@ -718,11 +723,35 @@ class _Outcome extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          copy.row,
-          style: theme.textTheme.titleSmall?.copyWith(
-            color: copy.tone == CopyTone.error ? scheme.error : null,
-          ),
+        Wrap(
+          spacing: Spacing.xs,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text(
+              copy.row,
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: copy.tone == CopyTone.error ? scheme.error : null,
+              ),
+            ),
+            // The error code beside the words ("Module failed module_error").
+            if (error != null && copy.tone == CopyTone.error)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Spacing.xs,
+                  vertical: 2,
+                ),
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainerHigh,
+                  borderRadius: Radii.smAll,
+                ),
+                child: Text(
+                  error.code,
+                  style: MorkvaTypography.mono(
+                    theme.textTheme.bodySmall!,
+                  ).copyWith(color: scheme.onSurfaceVariant),
+                ),
+              ),
+          ],
         ),
         if (error != null && copy.tone == CopyTone.error) ...[
           const SizedBox(height: Spacing.xs),

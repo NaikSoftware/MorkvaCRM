@@ -180,6 +180,11 @@ void main() {
       expect(from.toggle('c_orders').chosen, isFalse);
       expect(const ConsentScope.all().collections, isNull);
       expect(ConsentScope.of(consentTo(module, collections: null)).all, isTrue);
+      // Importing an installed id is a re-consent (D11): it starts from what
+      // the current consent allows.
+      expect(ConsentScope.forImport(replacing: consentTo(module)).collections, [
+        'c_orders',
+      ]);
     });
   });
 

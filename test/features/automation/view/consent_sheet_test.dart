@@ -119,6 +119,11 @@ void main() {
     );
     expect(find.text('New'), findsOneWidget);
     expect(find.text('Removed'), findsOneWidget);
+    // The capability it gives up is listed last.
+    expect(
+      tester.getTopLeft(find.text('Removed')).dy,
+      greaterThan(tester.getTopLeft(find.text('New')).dy),
+    );
     expect(
       find.textContaining('Code changed: v1.0.0 → v1.1.0'),
       findsOneWidget,

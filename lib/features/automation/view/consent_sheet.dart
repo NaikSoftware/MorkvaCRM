@@ -8,6 +8,13 @@ import '../widgets/reason_copy.dart';
 import 'automations_page.dart';
 import 'code_viewer.dart';
 
+/// A dialog sheet's fill: white in light (DESIGN.md), one step up from the
+/// canvas in dark. Not M3's `surfaceContainerHigh` default: the change
+/// summary box and the action row's tint are that colour and vanished.
+Color sheetSurface(ThemeData theme) => theme.brightness == Brightness.light
+    ? theme.colorScheme.surfaceContainerLowest
+    : theme.colorScheme.surfaceContainer;
+
 /// Consent, import and test-run sheets: a centered dialog 560 wide
 /// (`Radii.lg`) on wide layouts, a full-height bottom sheet with a drag
 /// handle on phones.
@@ -19,10 +26,7 @@ Future<T?> showAutomationSheet<T>(
     return showDialog<T>(
       context: context,
       builder: (context) => Dialog(
-        // The white sheet surface (DESIGN.md), not M3's surfaceContainerHigh
-        // default: the change summary box and the action row's tint are
-        // surfaceContainerHigh and vanished into it.
-        backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
+        backgroundColor: sheetSurface(Theme.of(context)),
         shape: const RoundedRectangleBorder(borderRadius: Radii.lgAll),
         insetPadding: const EdgeInsets.all(Spacing.lg),
         clipBehavior: Clip.antiAlias,
@@ -410,7 +414,11 @@ class _ConsentSheetState extends State<ConsentSheet> {
         Text('It can:', style: label),
         const SizedBox(height: Spacing.xs),
         box([
-          for (final c in view.caps)
+          // What it will be able to do first; what it gives up last.
+          for (final c in [
+            ...view.caps.where((c) => c.change != CapChange.removed),
+            ...view.caps.where((c) => c.change == CapChange.removed),
+          ])
             CapabilityRow(
               cap: c.cap,
               removed: c.change == CapChange.removed,

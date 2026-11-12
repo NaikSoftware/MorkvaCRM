@@ -103,7 +103,7 @@ RunCopy runCopy(
       );
     case RunStatus.awaitingReview:
       return RunCopy(
-        row: 'Needs review',
+        row: 'Needs your review',
         detail: 'The changes wait for you in a preview.',
         tone: tone,
       );

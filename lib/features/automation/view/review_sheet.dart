@@ -14,6 +14,7 @@ import '../../views/view_link.dart';
 import '../bloc/automation_runs_cubit.dart';
 import '../bloc/review_sheet_cubit.dart';
 import '../widgets/action_buttons.dart';
+import 'consent_sheet.dart' show sheetSurface;
 
 /// Opens the review of [runId] (UX §6): a 560 dialog on wide screens, a
 /// full-height bottom sheet on phones. Over the card editor ([overEditor])
@@ -50,7 +51,7 @@ Future<void> showReviewSheet(
         // colour without a shadow melted into the form behind it: step up
         // to the white card surface and lift it.
         backgroundColor: overEditor
-            ? Theme.of(context).colorScheme.surfaceContainerLowest
+            ? sheetSurface(Theme.of(context))
             : Theme.of(context).colorScheme.surface,
         elevation: overEditor ? 12 : null,
         shadowColor: overEditor ? const Color(0x66000000) : null,

@@ -239,10 +239,17 @@ void main() {
 
   group('Runs tab', () {
     testWidgets('running now: Stop on a running row', (tester) async {
+      await seedModule();
+      await rig.stores.automations.save(automation());
       rig.runner.activity = RunActivity(runs: [runView('r_live')]);
       await pump(tester, tab: AutomationsTab.runs);
       await tester.pump();
       expect(find.text('Running now'), findsOneWidget);
+      // Titled like the rows below: automation · action.
+      expect(
+        find.text('Stamp date when shipped · Mark shipped'),
+        findsOneWidget,
+      );
       await tester.tap(find.text('Stop'));
       expectLastCall(rig.runner.calls, 'stop', ['r_live']);
     });
@@ -254,7 +261,10 @@ void main() {
       await rig.stores.automations.save(automation());
       rig.runner.reviewPlans['r_review'] = const {'items': []};
       await rig.stores.runs.create(
-        storedRun('r_review', status: RunStatus.awaitingReview),
+        storedRun(
+          'r_review',
+          status: RunStatus.awaitingReview,
+        ).copyWith(planTitle: () => 'Set Shipped on · 1 order'),
       );
       await rig.stores.runs.create(
         storedRun(
@@ -265,6 +275,10 @@ void main() {
         ),
       );
       await pump(tester, tab: AutomationsTab.runs);
+      expect(
+        find.text('Needs your review · Set Shipped on · 1 order'),
+        findsOneWidget,
+      );
       expect(find.text('Review'), findsOneWidget);
       await tester.tap(find.text('Review'));
       expectLastCall(rig.host.calls, 'review', ['r_review']);
@@ -279,8 +293,8 @@ void main() {
       expectLastCall(rig.host.calls, 'openRun', ['r_failed']);
     });
 
-    testWidgets('phone rows: the card in the second line; another window '
-        "'s review says why, with a muted ring", (tester) async {
+    testWidgets("phone rows: the card in the second line; another window's "
+        'review says why, with a muted ring', (tester) async {
       await seedModule();
       await rig.stores.automations.save(automation());
       await rig.stores.runs.create(

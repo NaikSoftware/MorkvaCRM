@@ -214,6 +214,12 @@ void main() {
     final can = tester.getTopLeft(find.text('What it can do'));
     expect((about.dy - can.dy).abs(), lessThan(32));
     expect(about.dx, greaterThan(can.dx));
+    // Section titles sit centred in their 44 px header row, with or without
+    // trailing buttons (a lone title sat at the top, an empty band below).
+    expect(
+      tester.getCenter(find.text('About')).dy,
+      moreOrLessEquals(tester.getCenter(find.text('What it can do')).dy),
+    );
 
     await pump(tester, size: phoneWindow);
     await tester.pumpAndSettle();

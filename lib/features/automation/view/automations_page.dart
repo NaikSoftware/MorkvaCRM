@@ -825,12 +825,18 @@ class AutomationSection extends StatelessWidget {
     required this.children,
     this.trailing,
     this.footer,
+    this.divided = true,
   });
 
   final String title;
   final Widget? trailing;
   final List<Widget> children;
   final Widget? footer;
+
+  /// A rule between the header and the first child: off for prose sections
+  /// (About, Apply changes automatically, Code), whose body reads as the
+  /// title's continuation.
+  final bool divided;
 
   @override
   Widget build(BuildContext context) {
@@ -842,11 +848,11 @@ class AutomationSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(
+            padding: EdgeInsets.fromLTRB(
               Spacing.md,
               Spacing.sm,
               Spacing.md,
-              Spacing.sm,
+              divided ? Spacing.sm : 0,
             ),
             child: ConstrainedBox(
               constraints: const BoxConstraints(minHeight: 44),
@@ -871,7 +877,10 @@ class AutomationSection extends StatelessWidget {
               ),
             ),
           ),
-          for (final child in children) ...[divider, child],
+          for (final (i, child) in children.indexed) ...[
+            if (divided || i > 0) divider,
+            child,
+          ],
           if (footer != null) ...[divider, footer!],
         ],
       ),
@@ -1867,6 +1876,9 @@ class RunRowTile extends StatelessWidget {
       _ when run.count > 1 => 'Skipped ${run.count} times · ${row.copy.row}',
       RunRecord(status: RunStatus.succeeded, :final summary?) => summary,
       _ when notHere => '${row.copy.row} — ${_clause(row.copy.detail)}',
+      // "Needs your review · Set Shipped on to 12 Nov · 1 order".
+      RunRecord(status: RunStatus.awaitingReview, :final planTitle?) =>
+        '${row.copy.row} · $planTitle',
       _ => row.copy.row,
     };
     final second = [

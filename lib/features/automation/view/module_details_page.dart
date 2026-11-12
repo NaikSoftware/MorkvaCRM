@@ -393,6 +393,7 @@ class _About extends StatelessWidget {
     final theme = Theme.of(context);
     final author = module.manifest?.author;
     return AutomationSection(
+      divided: false,
       title: 'About',
       children: [
         Padding(
@@ -572,6 +573,7 @@ class _AutoApply extends StatelessWidget {
     );
     if (!state.autoApplyOffered) {
       return AutomationSection(
+        divided: false,
         title: 'Apply changes automatically',
         children: [
           Padding(
@@ -587,6 +589,7 @@ class _AutoApply extends StatelessWidget {
     }
     final enabled = state.autoApplyEnabled && !state.busy;
     return AutomationSection(
+      divided: false,
       title: 'Apply changes automatically',
       trailing: Semantics(
         label: 'Apply changes automatically',
@@ -812,6 +815,7 @@ class _Code extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return AutomationSection(
+      divided: false,
       title: 'Code',
       trailing: SecondaryButton(
         label: 'View code',
