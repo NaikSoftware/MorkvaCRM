@@ -39,29 +39,18 @@ final class FirestoreRunStore implements RunStore {
     return _runs.doc(run.id).update({for (final f in fields) f: json[f]});
   }
 
-  /// Drops as many runs as lie past the newest [keep] (read with
-  /// `startAfterDocument`, as there is no `offset`), choosing the oldest
-  /// `succeeded`/`skipped`/… rows first and `failed`/`awaiting_review` ones
-  /// only after those; an `applying` run is never dropped.
+  /// Deletes every run past the newest [keep] (read with
+  /// `startAfterDocument`, as there is no `offset`) except `applying` ones.
   @override
   Future<int> prune({int keep = RunStore.kWindow}) async {
     assert(keep > 0, 'Firestore limits must be positive');
     final window = (await _newestFirst.limit(keep).get()).docs;
     if (window.length < keep) return 0;
-    final past =
-        (await _newestFirst.startAfterDocument(window.last).get()).docs;
-    if (past.isEmpty) return 0;
-
-    final oldestFirst = [
-      for (final d in [...window, ...past].reversed)
-        if (d.data()['status'] != RunStatus.applying.wire) d,
-    ];
-    bool keptLonger(QueryDocumentSnapshot<Map<String, dynamic>> d) =>
-        _keptLonger.contains(d.data()['status']);
     final doomed = [
-      ...oldestFirst.where((d) => !keptLonger(d)),
-      ...oldestFirst.where(keptLonger),
-    ].take(past.length).map((d) => d.reference).toList();
+      for (final d
+          in (await _newestFirst.startAfterDocument(window.last).get()).docs)
+        if (d.data()['status'] != RunStatus.applying.wire) d.reference,
+    ];
 
     for (var start = 0; start < doomed.length; start += maxBatchWrites) {
       final batch = _workspace.db.batch();
@@ -72,9 +61,4 @@ final class FirestoreRunStore implements RunStore {
     }
     return doomed.length;
   }
-
-  static final _keptLonger = {
-    RunStatus.failed.wire,
-    RunStatus.awaitingReview.wire,
-  };
 }

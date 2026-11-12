@@ -318,40 +318,42 @@ void main() {
         expect(await ids(), hasLength(5));
       });
 
-      test('drops the oldest succeeded and skipped rows first', () async {
-        // Oldest first: failed, awaiting_review, applying, then 5 plain rows.
+      test('deletes every row past the window except applying', () async {
+        // Oldest first: failed, awaiting_review, applying, skipped, then
+        // succeeded rows; all but applying lie past the newest 4.
         await seed(
           8,
           (i) => switch (i) {
             0 => RunStatus.failed,
             1 => RunStatus.awaitingReview,
             2 => RunStatus.applying,
-            4 => RunStatus.skipped,
+            3 => RunStatus.skipped,
             _ => RunStatus.succeeded,
           },
         );
 
-        expect(await store.prune(keep: 5), 3);
+        expect(await store.prune(keep: 4), 3);
 
-        expect(await ids(), {'run_0', 'run_1', 'run_2', 'run_6', 'run_7'});
+        expect(await ids(), {'run_2', 'run_4', 'run_5', 'run_6', 'run_7'});
       });
 
       test(
-        'then the oldest failed and awaiting rows, never applying',
+        'never deletes the newest keep rows, whatever old rows hold',
         () async {
+          // Old failed/awaiting rows must not crowd out new succeeded runs.
           await seed(
             6,
             (i) => switch (i) {
               0 => RunStatus.applying,
               1 => RunStatus.failed,
-              5 => RunStatus.succeeded,
-              _ => RunStatus.awaitingReview,
+              2 => RunStatus.awaitingReview,
+              _ => RunStatus.succeeded,
             },
           );
 
-          expect(await store.prune(keep: 3), 3);
+          expect(await store.prune(keep: 3), 2);
 
-          expect(await ids(), {'run_0', 'run_3', 'run_4'});
+          expect(await ids(), {'run_0', 'run_3', 'run_4', 'run_5'});
         },
       );
 
@@ -364,8 +366,9 @@ void main() {
 
         final left = await ids();
         expect(left, hasLength(RunStore.kWindow));
-        expect(left, containsAll(['run_0', 'run_4']));
-        expect(left, isNot(contains('run_3')));
+        expect(left, isNot(contains('run_0')));
+        expect(left, isNot(contains('run_2')));
+        expect(left, contains('run_3'));
       });
     });
   });
