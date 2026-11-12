@@ -18,6 +18,14 @@ void main() {
     expect(ids.attachmentId(), startsWith('a_'));
   });
 
+  test('run and write ids are prefixed and unique', () {
+    final ids = IdGenerator(random: Random(7));
+    expect(ids.runId(), matches(RegExp(r'^run_[0-9a-z]+_[0-9a-z]+$')));
+    expect(ids.writeId(), matches(RegExp(r'^w_[0-9a-z]+_[0-9a-z]+$')));
+    final minted = {for (var i = 0; i < 1000; i++) ids.writeId()};
+    expect(minted, hasLength(1000));
+  });
+
   test('the old feature path re-exports the same class', () {
     final IdGenerator ids = old_path.IdGenerator();
     expect(ids.fieldId(), startsWith('f_'));
