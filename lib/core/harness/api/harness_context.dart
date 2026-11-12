@@ -1,3 +1,4 @@
+import '../../../api/data/data_repository.dart' show WriteOrigin;
 import 'capability.dart';
 import 'envelope.dart';
 import 'screen_context.dart';
@@ -23,6 +24,7 @@ final class HarnessContext {
     this.focus,
     this.turnId,
     this.events,
+    this.origin,
   }) : today = DateTime(today.year, today.month, today.day);
 
   /// The workspace the call reads and plans against (from `WorkspaceResolver`).
@@ -54,6 +56,10 @@ final class HarnessContext {
   /// Where progress events go; null when the caller does not listen.
   final Sink<HarnessEvent>? events;
 
+  /// Who the card writes of a commit or undo are attributed to (the
+  /// trigger seam, D5); null = a UI write.
+  final WriteOrigin? origin;
+
   /// Sends [event] to [events], if anyone listens.
   void emit(HarnessEvent event) => events?.add(event);
 
@@ -68,5 +74,6 @@ final class HarnessContext {
     focus: focus,
     turnId: turnId,
     events: events,
+    origin: origin,
   );
 }
