@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:morkva_crm/core/agent/agent_event.dart';
+import 'package:morkva_crm/core/domain/automation/automation.dart';
 import 'package:morkva_crm/core/harness/api/capability.dart' show Actor;
 
 /// One entry of the chat, rendered from structured parts only (no markdown).
@@ -300,6 +301,42 @@ final class ObjectChipItem extends ChatItem {
 
   @override
   List<Object?> get props => [id, collectionId, cardId, viewId, label];
+}
+
+/// A `modules.testRun` result, read-only: the dry run the assistant reads.
+final class TestRunItem extends ChatItem {
+  const TestRunItem({
+    required String id,
+    required this.title,
+    required this.result,
+  }) : super(id);
+
+  final String title;
+  final TestRunResult result;
+
+  @override
+  List<Object?> get props => [id, title, result];
+}
+
+/// The `modules.testRun` result [json] as a [TestRunResult]; throws
+/// [FormatException] when it is not one.
+TestRunResult testRunResultFromJson(Map<String, Object?> json) {
+  final status = RunStatus.values.where((s) => s.wire == json['status']);
+  if (status.isEmpty) throw const FormatException('Unknown test-run status');
+  return TestRunResult(
+    status: status.first,
+    reason: RunReason.fromWire(json['reason']),
+    summary: json['summary'] as String?,
+    plan: [
+      for (final p in _list(json, 'plan')) PlanLine.fromJson(_map(p, 'plan[]')),
+    ],
+    log: json['log'] == null
+        ? RunLog.empty
+        : RunLog.fromJson(_map(json['log'], 'log')),
+    error: json['error'] == null
+        ? null
+        : RunError.fromJson(_map(json['error'], 'error')),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -740,6 +777,7 @@ final class AppliedItem extends ChatItem {
     this.undoState = UndoState.available,
     this.undoNote,
     this.undoSessionOnly = false,
+    this.startedRuns = 0,
   }) : super(id);
 
   /// The plan as previewed (title, rows for schema changes).
@@ -758,12 +796,16 @@ final class AppliedItem extends ChatItem {
   /// you close Morkva".
   final bool undoSessionOnly;
 
+  /// Automation runs this commit started ("Started 3 automation runs").
+  final int startedRuns;
+
   AppliedItem copyWith({
     Receipt? receipt,
     UndoState? undoState,
     String? undoNote,
     bool clearUndoNote = false,
     bool? undoSessionOnly,
+    int? startedRuns,
   }) => AppliedItem(
     id: id,
     plan: plan,
@@ -772,6 +814,7 @@ final class AppliedItem extends ChatItem {
     undoState: undoState ?? this.undoState,
     undoNote: clearUndoNote ? null : undoNote ?? this.undoNote,
     undoSessionOnly: undoSessionOnly ?? this.undoSessionOnly,
+    startedRuns: startedRuns ?? this.startedRuns,
   );
 
   @override
@@ -783,6 +826,7 @@ final class AppliedItem extends ChatItem {
     undoState,
     undoNote,
     undoSessionOnly,
+    startedRuns,
   ];
 }
 

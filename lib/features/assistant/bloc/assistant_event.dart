@@ -166,6 +166,13 @@ final class _SaveFailed extends AssistantEvent {
   const _SaveFailed();
 }
 
+/// An automation run started from a commit's writes (its root `commitId`).
+final class _RunStarted extends AssistantEvent {
+  const _RunStarted(this.commitId);
+
+  final String commitId;
+}
+
 /// Sign-out (or a workspace switch): back to Idle with no thread.
 final class _SessionReset extends AssistantEvent {
   const _SessionReset();

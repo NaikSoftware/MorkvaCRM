@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 
 import '../domain/collection.dart';
@@ -534,8 +535,10 @@ final class AgentLoop {
       }
       final result = readResults[i];
       if (result == null) continue;
-      responses[i] = _responseJson(result);
-      _finishStep(t, ids[i], result);
+      responses[i] = moduleTextOps.contains(op.id)
+          ? moduleDataResponse(op.id, calls[i].args, result)
+          : _responseJson(result);
+      _finishStep(t, ids[i], result, op: op.id);
       if (result is HarnessOk) _present(t, ids[i], op, calls[i], result);
     }
 
@@ -684,14 +687,22 @@ final class AgentLoop {
     t.ctx,
   );
 
-  void _finishStep(_Turn t, String callId, HarnessResponse result) {
+  void _finishStep(
+    _Turn t,
+    String callId,
+    HarnessResponse result, {
+    String? op,
+  }) {
     switch (result) {
       case HarnessFailure(:final error) when error.code == ErrorCode.noChange:
         // Information, never shown as a failure.
         t.record.addStep(stepNoChange);
         _emit(t, StepFinished(callId: callId, summary: stepNoChange, ok: true));
       case HarnessOk(:final result):
-        final summary = result['summary'] as String? ?? 'Done';
+        // A module-written summary never becomes a step line.
+        final summary = moduleTextOps.contains(op)
+            ? _moduleStepLine(op!, result)
+            : result['summary'] as String? ?? 'Done';
         t.record.addStep(summary);
         _emit(
           t,
@@ -729,6 +740,17 @@ final class AgentLoop {
     HarnessOk ok,
   ) {
     final result = ok.result;
+    if (op.id == 'modules.testRun') {
+      _emit(
+        t,
+        TestRunShown(
+          title:
+              'Test run · ${sanitizeName('${call.args['moduleId']}', max: 40)}',
+          result: result,
+        ),
+      );
+      return;
+    }
     if (op.kind == OpKind.ui) {
       // shortcut: reads ids from the result and falls back to the args
       // (names) until ui.open (T5b) settles its result shape.
@@ -775,6 +797,56 @@ final class AgentLoop {
     message: 'There is no tool "${sanitizeName(call.name)}".',
     candidates: [for (final tool in t.tools!.tools) tool.name],
   );
+
+  /// Read ops whose results carry module-written text (code, logs,
+  /// errors, summaries, manifest names): the model gets them inside the
+  /// workspace-data block, tagged with where they came from.
+  static const Set<String> moduleTextOps = {
+    'modules.list',
+    'modules.get',
+    'modules.testRun',
+    'runs.list',
+    'runs.get',
+  };
+
+  /// [result] of module op [op] as the model sees it: a host-authored
+  /// summary, the `source` (`module:<id>` when the call names one module)
+  /// and the result as JSON inside the data block. `<` is escaped, so text
+  /// in it can never close the block; the JSON decodes unchanged.
+  static Map<String, Object?> moduleDataResponse(
+    String op,
+    Map<String, Object?> args,
+    HarnessResponse result,
+  ) {
+    if (result is! HarnessOk) return _responseJson(result);
+    final json = result.result;
+    final moduleId = switch (op) {
+      'modules.get' => json['id'],
+      'modules.testRun' => args['moduleId'],
+      'runs.get' => json['moduleId'],
+      _ => null,
+    };
+    final data = jsonEncode(json).replaceAll('<', r'\u003c');
+    return {
+      'summary': _moduleStepLine(op, json),
+      'source': moduleId is String ? 'module:$moduleId' : 'modules',
+      'data': '$kWorkspaceDataOpen$data$kWorkspaceDataClose',
+    };
+  }
+
+  static String _moduleStepLine(String op, Map<String, Object?> result) =>
+      switch (op) {
+        'modules.list' => 'Read the modules',
+        'modules.get' => 'Read the module',
+        'modules.testRun' => switch (result['status']) {
+          'succeeded' => 'Test run finished',
+          'skipped' => 'Test run skipped',
+          'timed_out' => 'Test run timed out',
+          _ => 'Test run failed',
+        },
+        'runs.list' => 'Read the runs',
+        _ => 'Read the run',
+      };
 
   static Map<String, Object?> _responseJson(HarnessResponse r) => switch (r) {
     HarnessOk(:final result) => result,
@@ -876,6 +948,14 @@ final class AgentLoop {
       'cards.aggregate' => 'Calculating over $collection',
       'cards.distinct' => 'Listing values in $collection',
       'ui.open' => 'Opening $collection',
+      'modules.list' || 'modules.get' => 'Reading modules',
+      'modules.save' => 'Writing module',
+      'modules.testRun' =>
+        'Testing ${sanitizeName('${args['moduleId'] ?? ''}', max: 40)}',
+      'automations.list' => 'Reading automations',
+      'automations.save' => 'Setting up automation',
+      'automations.delete' => 'Removing automation',
+      'runs.list' || 'runs.get' => 'Reading runs',
       final id when t.tools!.opFor(call.name)?.kind == OpKind.plan =>
         collection.isEmpty
             ? 'Preparing changes ($id)'

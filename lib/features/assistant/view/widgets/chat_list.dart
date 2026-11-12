@@ -15,6 +15,7 @@ import 'result_chart_card.dart';
 import 'result_table_card.dart';
 import 'smooth_wheel_scroll.dart';
 import 'thinking_row.dart';
+import 'test_run_card.dart';
 import 'tool_steps.dart';
 import 'user_bubble.dart';
 
@@ -266,6 +267,7 @@ class ChatItemView extends StatelessWidget {
         },
       ),
       AppliedItem() => AppliedCard(item: item),
+      TestRunItem() => TestRunCard(item: item),
       ErrorItem() => ErrorRow(item: item),
     };
   }

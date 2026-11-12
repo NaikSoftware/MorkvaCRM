@@ -9,6 +9,8 @@ import 'package:morkva_crm/api/assistant/firestore_thread_repository.dart';
 import 'package:morkva_crm/app/app.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
 
+import 'automation/fakes/fake_stores.dart';
+
 /// In-memory [AuthRepository] whose auth state is driven by the test via
 /// [emit]. Replays the latest value on subscribe, matching the real Firebase
 /// stream contract the [AuthCubit] relies on.
@@ -178,6 +180,7 @@ MorkvaApp testApp({
     syncStatusCubit: sync,
     threadRepository: FirestoreThreadRepository(firestore: db),
     assistantConfigRepository: AssistantConfigRepository(firestore: db),
+    automationStores: FakeStores().stores,
   );
 }
 

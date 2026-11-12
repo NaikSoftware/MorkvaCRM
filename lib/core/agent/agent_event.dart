@@ -173,6 +173,15 @@ final class ObjectChipShown extends AgentEvent {
   final String label;
 }
 
+/// `modules.testRun` finished: the chat shows [result] (the op's JSON) as a
+/// read-only Test run card. [title] is host-authored ("Test run · Stamp").
+final class TestRunShown extends AgentEvent {
+  const TestRunShown({required this.title, required this.result});
+
+  final String title;
+  final Map<String, Object?> result;
+}
+
 /// A merged plan is ready and the turn is suspended until the host calls
 /// `deliverOutcome(plan.planId, …)`.
 final class PlanProposed extends AgentEvent {
