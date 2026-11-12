@@ -23,6 +23,19 @@ service cloud.firestore {
           || incoming.data.get('rev', 0) >= existing.data.get('rev', 0);
     }
 
+    // The 8 capability wires a module may be granted (kCapabilityCopy).
+    function moduleWires() {
+      return ['schema:read', 'data:read', 'data:write', 'data:delete',
+              'schema:write', 'schema:delete', 'views:write', 'ui:navigate'];
+    }
+
+    // A run doc's size caps (the client encoder applies them first).
+    function runShapeOk(d) {
+      return d.log is string && d.log.size() <= 65536
+          && (!('error' in d) || d.error == null
+              || (d.error.message.size() <= 1024 && d.error.get('stack', '').size() <= 4096));
+    }
+
     match /workspaces/{workspaceId} {
       allow read, write: if isWorkspaceOwner(workspaceId);
 
@@ -41,11 +54,80 @@ service cloud.firestore {
         allow delete: if isWorkspaceOwner(workspaceId);
       }
 
+      // Automation modules (manifest + code).
+      match /modules/{moduleId} {
+        allow read, delete: if isWorkspaceOwner(workspaceId);
+        allow create, update: if isWorkspaceOwner(workspaceId)
+            && request.resource.data.keys().hasAll(['manifest', 'code', 'codeHash', 'source', 'version'])
+            && request.resource.data.code is string
+            && request.resource.data.code.size() <= 262144
+            && request.resource.data.codeHash is string
+            && request.resource.data.source in ['assistant', 'import']
+            && request.resource.data.manifest.keys().hasOnly(['id', 'name', 'version', 'description',
+                 'author', 'apiVersion', 'timeoutMs', 'permissions', 'actions'])
+            && request.resource.data.manifest.apiVersion == 2
+            && request.resource.data.manifest.id == moduleId
+            && request.resource.data.manifest.permissions.capabilities.hasOnly(moduleWires())
+            && request.resource.data.manifest.actions.size() <= 20;
+      }
+
+      // Buttons and triggers bound to a module action.
+      match /automations/{automationId} {
+        allow read, delete: if isWorkspaceOwner(workspaceId);
+        allow create, update: if isWorkspaceOwner(workspaceId)
+            && request.resource.data.keys().hasAll(['moduleId', 'actionId', 'trigger', 'enabled', 'apply'])
+            && request.resource.data.trigger.kind in
+               ['button', 'card.created', 'card.updated', 'card.deleted']
+            && request.resource.data.apply in ['ask', 'auto']
+            && (request.resource.data.apply == 'ask'
+                || request.resource.data.get('autoBy', '') == request.auth.uid);
+      }
+
+      // Run log: write-once except the transitions of the lifecycle table.
+      match /runs/{runId} {
+        allow read, delete: if isWorkspaceOwner(workspaceId);
+        allow create: if isWorkspaceOwner(workspaceId)
+            && request.resource.data.status in
+               ['skipped', 'failed', 'timed_out', 'succeeded', 'awaiting_review', 'applying']
+            && runShapeOk(request.resource.data);
+        allow update: if isWorkspaceOwner(workspaceId)
+            && runShapeOk(request.resource.data)
+            && (
+              (resource.data.status == 'awaiting_review'
+                && request.resource.data.status == 'awaiting_review'
+                && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['applyStartedAt']))
+              || (resource.data.status in ['awaiting_review', 'applying']
+                && request.resource.data.status in ['succeeded', 'failed', 'rejected', 'expired']
+                && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+                     ['status', 'reason', 'endedAt', 'durationMs', 'receipt', 'journalId',
+                      'touchedCardIds', 'summary', 'error', 'log']))
+              || (resource.data.status == 'skipped' && request.resource.data.status == 'skipped'
+                && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['count', 'endedAt']))
+              || (resource.data.status == 'succeeded' && request.resource.data.status == 'succeeded'
+                && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+                     ['undoneAt', 'receipt', 'summary', 'journalId', 'touchedCardIds']))
+            );
+      }
+
       // Per-member data (Ask Morkva chat threads and their messages): only
-      // the member it belongs to. Becomes a membership check later.
-      match /members/{uid}/{document=**} {
+      // the member it belongs to. Becomes a membership check later. Consents
+      // (`grants`) get their own rule below.
+      match /members/{uid}/{sub}/{rest=**} {
         allow read, write: if isWorkspaceOwner(workspaceId)
-            && request.auth.uid == uid;
+            && request.auth.uid == uid
+            && sub != 'grants';
+      }
+
+      // A member's consent for one module, pinned to its code hash.
+      match /members/{uid}/grants/{moduleId} {
+        allow read, delete: if isWorkspaceOwner(workspaceId) && request.auth.uid == uid;
+        allow create, update: if isWorkspaceOwner(workspaceId) && request.auth.uid == uid
+            && request.resource.data.caps.hasOnly(moduleWires())
+            && request.resource.data.via in ['consent_sheet', 'assistant_plan']
+            && (request.resource.data.via != 'assistant_plan'
+                || request.resource.data.autoApply == false)
+            && (request.resource.data.autoApply == false
+                || (resource != null && resource.data.codeHash == request.resource.data.codeHash));
       }
 
       // Per-workspace Ask Morkva consent.
