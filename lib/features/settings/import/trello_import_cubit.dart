@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 import 'dart:math' show min;
 
 import 'package:equatable/equatable.dart';
@@ -248,18 +249,34 @@ class TrelloImportCubit extends Cubit<TrelloImportState> {
 
   static const _origin = WriteOrigin(kind: WriteKind.template);
 
+  static const _paused =
+      " Check your connection, then retry — cards already written won't be "
+      "added twice. Closing keeps what's already imported.";
+
+  /// [TrelloImportState.failure] when a write never acked (the paused
+  /// banner's body, after "Import paused.").
+  static const stalledMessage =
+      "Morkva couldn't reach the server for 30 seconds.$_paused";
+
+  /// [TrelloImportState.failure] when a write was refused.
+  static const refusedMessage = "Morkva couldn't save some cards.$_paused";
+
+  /// Past the choose step the plan is fixed: edits are no-ops.
+  bool get _locked => state.step.index >= TrelloImportStep.importing.index;
+
   void setOffline(bool offline) => _emit(state.copyWith(offline: offline));
 
   // --- Step 1.
 
   void addFiles(List<({String name, String text})> files) {
+    if (_locked) return;
     for (final f in files) {
       _add(f.name, f.text);
     }
   }
 
   /// Adds a pasted export; true when a board was added (the field clears).
-  bool addPasted(String text) => _add('Pasted text', text);
+  bool addPasted(String text) => !_locked && _add('Pasted text', text);
 
   bool _add(String name, String text) {
     final TrelloBoard board;
@@ -297,6 +314,7 @@ class TrelloImportCubit extends Cubit<TrelloImportState> {
   );
 
   void removeBoard(String boardId) {
+    if (_locked) return;
     // A newer export of the same board may be added next.
     _summaryCache.removeWhere((key, _) => key.$1 == boardId);
     _emit(
@@ -333,7 +351,7 @@ class TrelloImportCubit extends Cubit<TrelloImportState> {
 
   void select(String boardId, {bool? board, bool? checklists, bool? comments}) {
     final choice = state.choices[boardId];
-    if (choice == null) return;
+    if (choice == null || _locked) return;
     _emit(
       state.copyWith(
         choices: {
@@ -348,8 +366,10 @@ class TrelloImportCubit extends Cubit<TrelloImportState> {
     );
   }
 
-  void setIncludeArchived(bool value) =>
-      _emit(_summarized(state.copyWith(includeArchived: value)));
+  void setIncludeArchived(bool value) {
+    if (_locked) return;
+    _emit(_summarized(state.copyWith(includeArchived: value)));
+  }
 
   TrelloImportState _summarized(TrelloImportState s) => s.copyWith(
     summaries: {
@@ -433,8 +453,6 @@ class TrelloImportCubit extends Cubit<TrelloImportState> {
       final ok = await _guard(
         collection.id,
         () => _repo.saveCollection(collection),
-        "Couldn't create “${collection.name}”. Check your connection and "
-        'retry.',
       );
       if (!ok) return;
       _saved.add(collection.id);
@@ -454,7 +472,7 @@ class TrelloImportCubit extends Cubit<TrelloImportState> {
           final server = await _repo.getServerObjects(id, schema: c.collection);
           final there = {for (final o in server) o.id};
           pending.removeWhere((o) => there.contains(o.id));
-        }, "Couldn't check what was already imported. Retry to continue.");
+        });
         if (!ok) return;
         _unsure.remove(id);
         _setRow(id, ImportRowStatus.running);
@@ -470,18 +488,16 @@ class TrelloImportCubit extends Cubit<TrelloImportState> {
             schemas: {id: c.collection},
             origin: _origin,
           ),
-          "Couldn't save the cards of “${c.collection.name}”. Retry to "
-          'continue.',
         );
         if (!ok) return;
         final written = result.written.toSet();
         pending.removeWhere((o) => written.contains(o.id));
         if (result.failed.isNotEmpty) {
-          _pause(
-            id,
-            "Some cards of “${c.collection.name}” couldn't be saved. "
-            'Retry to continue.',
+          developer.log(
+            'Trello import: ${result.failed.length} cards refused',
+            name: 'import',
           );
+          _pause(id, refusedMessage);
           return;
         }
         _unsure.remove(id);
@@ -494,18 +510,20 @@ class TrelloImportCubit extends Cubit<TrelloImportState> {
 
   /// Runs [write] under the watchdog; on a timeout or error pauses [id]'s
   /// row and returns false. Also false once the cubit closed.
-  Future<bool> _guard(
-    String id,
-    Future<void> Function() write,
-    String errorMessage,
-  ) async {
+  Future<bool> _guard(String id, Future<void> Function() write) async {
     try {
       await write().timeout(sliceTimeout);
     } on TimeoutException {
-      _pause(id, 'Import stalled — check your connection', stalled: true);
+      _pause(id, stalledMessage, stalled: true);
       return false;
-    } catch (_) {
-      _pause(id, errorMessage);
+    } catch (e, st) {
+      developer.log(
+        'Trello import write failed',
+        name: 'import',
+        error: e,
+        stackTrace: st,
+      );
+      _pause(id, refusedMessage);
       return false;
     }
     return !isClosed;

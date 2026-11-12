@@ -218,6 +218,7 @@ void main() {
       expect(all.name, 'All');
       expect(all.mode, ViewModeIds.table);
       expect(all.fieldIds.first, field(c, 'Name').id);
+      expect(all.manualOrder, isEmpty, reason: 'doc-size guard');
       expect(c.layout.fieldIds.toList(), c.fields.map((f) => f.id).toList());
     });
 

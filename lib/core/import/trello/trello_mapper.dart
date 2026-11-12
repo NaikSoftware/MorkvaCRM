@@ -385,7 +385,8 @@ List<ImportedCollection> mapTrelloBoard(
         id: ids.viewId(),
         name: 'All',
         fieldIds: [for (final f in fields) f.id],
-        manualOrder: order,
+        // No manualOrder: a second copy of every card id would double the
+        // collection doc's size for big boards.
       ),
     ],
   );

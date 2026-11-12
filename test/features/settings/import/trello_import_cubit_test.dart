@@ -273,10 +273,20 @@ void main() {
         expect(c.state.isWriting, isTrue);
         expect(c.state.rows.first.status, ImportRowStatus.running);
 
+        // The plan is fixed while writing.
+        final before = c.state;
+        c
+          ..select(_boardId, board: false)
+          ..setIncludeArchived(true)
+          ..removeBoard(_boardId)
+          ..addFiles([(name: 'x.json', text: _sample)]);
+        expect(c.addPasted(_sample), isFalse);
+        expect(c.state, before);
+
         async.elapse(const Duration(seconds: 5));
         expect(c.state.isWriting, isFalse);
         expect(c.state.stalled, isTrue);
-        expect(c.state.failure, 'Import stalled — check your connection');
+        expect(c.state.failure, TrelloImportCubit.stalledMessage);
         expect(c.state.rows.first.status, ImportRowStatus.paused);
         expect(c.state.rows.first.written, 0);
 
@@ -315,6 +325,7 @@ void main() {
         expect(c.state.stalled, isFalse);
         expect(c.state.failure, isNotNull);
         expect(c.state.failure, isNot(contains('permission-denied')));
+        expect(c.state.failure, TrelloImportCubit.refusedMessage);
         expect(c.state.rows.first.status, ImportRowStatus.paused);
         expect(c.state.rows.skip(1).map((r) => r.status), [
           ImportRowStatus.pending,
