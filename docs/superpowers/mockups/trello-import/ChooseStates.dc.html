@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Import from Trello — choose, offline and unticked board</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&amp;family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+.tb{height:44px;padding:0 12px;border-radius:12px;border:0;background:transparent;color:#8A4708;display:inline-flex;align-items:center;gap:8px;font:600 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;white-space:nowrap}
+.pb{height:44px;padding:0 24px;border-radius:12px;border:0;background:#E8821E;color:#3A1E00;display:inline-flex;align-items:center;gap:8px;font:600 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;white-space:nowrap}
+.ib{width:44px;height:44px;border-radius:22px;border:0;background:transparent;color:#6B5E52;display:inline-flex;align-items:center;justify-content:center;flex:0 0 44px}
+.sub{font-size:12px;line-height:1.45;color:#6B5E52}
+.dh{margin:0;font:600 14px/1.3 'Hanken Grotesk',sans-serif}
+.opt{display:flex;align-items:flex-start;gap:12px;min-height:44px;padding:12px;font-size:14px;cursor:pointer;border-top:1px solid #F4EDE3;box-sizing:border-box}
+.kid{padding-left:42px}
+.chk{appearance:none;-webkit-appearance:none;width:18px;height:18px;margin:1px 0 0;flex:0 0 18px;border:2px solid #6B5E52;border-radius:4px;background:#FFFFFF}
+.on{border-color:#E8821E;background:#E8821E}
+.chip{display:inline-flex;align-items:center;height:24px;padding:0 8px;box-sizing:border-box;border-radius:12px;background:#F4EDE3;color:#4A3D32;font:600 12px 'Hanken Grotesk',sans-serif;white-space:nowrap}
+.cnt{font-variant-numeric:tabular-nums}
+.grp{border-radius:12px;box-shadow:inset 0 0 0 1px #E8DECD;overflow:hidden}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; position: relative; overflow: hidden; font-family: 'Hanken Grotesk', sans-serif; color: #2B2018">
+  <dc-import name="Main" hint-size="1440px,900px"></dc-import>
+  <div style="position: absolute; inset: 0; background: rgba(43,32,24,.32); display: flex; align-items: center; justify-content: center">
+    <div role="dialog" aria-modal="true" aria-labelledby="dlg-t" style="width: 560px; height: 810px; box-sizing: border-box; background: #FFFFFF; border-radius: 16px; box-shadow: 0 4px 10px rgba(0,0,0,.14), 0 16px 28px rgba(82,58,34,.10); display: flex; flex-direction: column; overflow: hidden">
+
+      <div style="display: flex; align-items: center; gap: 16px; padding: 20px 12px 12px 24px">
+        <span style="width: 44px; height: 44px; flex: 0 0 44px; border-radius: 13px; background: #FFE0C2; color: #4E2A00; display: inline-flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3.5" width="18" height="17" rx="3"/><path d="M8 7.5v8M12 7.5v4.5M16 7.5v6"/></svg></span>
+        <div style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px; min-width: 0">
+          <h2 id="dlg-t" style="margin: 0; font: 600 20px/1.25 'Bricolage Grotesque', sans-serif; letter-spacing: -0.3px">Import from Trello</h2>
+          <p style="margin: 0; font-size: 14px; color: #6B5E52">Step 2 of 2 · Choose what to import</p>
+        </div>
+        <button class="ib" aria-label="Close"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+
+      <div style="flex: 1 1 auto; min-height: 0; overflow: hidden; padding: 4px 24px 16px; display: flex; flex-direction: column; gap: 12px">
+
+        <!-- Automations: neutral AutomationBanner, first thing in the step -->
+        <div role="note" aria-label="Automations" style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 16px; border-radius: 12px; background: #F4EDE3; font-size: 14px; line-height: 1.45">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6B5E52" stroke-width="2.1" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 20px; margin-top: 1px"><path d="M13.5 2.5L4.5 13.5H11l-1.5 8 9-11H12z"/></svg>
+          <span><b>Automations can't come along.</b> <span style="color: #4A3D32">Trello leaves Butler rules and buttons out of board exports — set them up again in Automations once your boards are in.</span></span>
+        </div>
+
+        <!-- Archived switch -->
+        <div style="display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 0 0 0 4px">
+          <span style="flex: 1 1 auto; display: flex; flex-direction: column"><span style="font-weight: 600; font-size: 14px">Include archived cards and lists</span><span class="sub cnt">9 archived cards. They get an Archived checkbox and stay off the board view.</span></span>
+          <button role="switch" aria-checked="false" aria-label="Include archived cards and lists" style="width: 52px; height: 44px; border: 0; padding: 0; background: transparent; display: inline-flex; align-items: center; flex: 0 0 52px"><span style="position: relative; width: 52px; height: 32px; box-sizing: border-box; border-radius: 16px; background: #E8DECD; border: 2px solid #6B5E52; display: block"><span style="position: absolute; top: 6px; left: 6px; width: 16px; height: 16px; border-radius: 8px; background: #6B5E52"></span></span></button>
+        </div>
+
+        <!-- Collections -->
+        <section aria-labelledby="h-col" style="display: flex; flex-direction: column; gap: 8px">
+          <div><p id="h-col" class="dh">Collections</p><p class="sub" style="margin: 2px 0 0">Each board becomes a collection with a board view grouped by list. Checklist items and comments show as lists on each card.</p></div>
+
+          <div class="grp" role="group" aria-label="Sales pipeline">
+            <label class="opt" style="border-top: 0">
+              <span style="position: relative; display: inline-flex"><input type="checkbox" class="chk on" checked="checked" aria-label="Sales pipeline"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3A1E00" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position: absolute; left: 2px; top: 3px; pointer-events: none"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+              <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 6px">
+                <span style="display: flex; flex-direction: column"><span style="font-weight: 600">Sales pipeline</span><span class="sub cnt">128 cards · 6 lists</span></span>
+                <span style="display: flex; flex-wrap: wrap; gap: 6px"><span class="chip">Name</span><span class="chip">List</span><span class="chip">Labels</span><span class="chip">Description</span><span class="chip">Due</span><span class="chip">Due done</span><span class="chip">Members</span><span class="chip">Deal size</span><span class="chip">Source</span><span class="chip">Attachments</span><span class="chip">Trello link</span></span>
+              </span>
+            </label>
+            <label class="opt kid">
+              <span style="position: relative; display: inline-flex"><input type="checkbox" class="chk on" checked="checked" aria-label="Sales pipeline checklist items"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3A1E00" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position: absolute; left: 2px; top: 3px; pointer-events: none"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+              <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column"><span style="font-weight: 600">Checklist items</span><span class="sub cnt">46 items</span></span>
+            </label>
+            <label class="opt kid">
+              <span style="position: relative; display: inline-flex"><input type="checkbox" class="chk" aria-label="Sales pipeline comments"></span>
+              <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column"><span style="font-weight: 600">Comments</span><span class="sub cnt">212 comments</span><span class="sub" style="display: flex; gap: 6px; align-items: flex-start; margin-top: 2px; color: #5A4410"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 14px; margin-top: 2px"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.8v.2"/></svg>Trello exports keep only the newest 1,000 activities, so older comments may be missing.</span></span>
+            </label>
+          </div>
+
+          <div class="grp" role="group" aria-label="Hiring">
+            <label class="opt" style="border-top: 0">
+              <span style="position: relative; display: inline-flex"><input type="checkbox" class="chk" aria-label="Hiring"></span>
+              <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 6px">
+                <span style="display: flex; flex-direction: column"><span style="font-weight: 600">Hiring</span><span class="sub cnt">37 cards · 4 lists</span></span>
+                <span style="display: flex; flex-wrap: wrap; gap: 6px"><span class="chip">Name</span><span class="chip">List</span><span class="chip">Labels</span><span class="chip">Description</span><span class="chip">Start</span><span class="chip">Trello link</span></span>
+              </span>
+            </label>
+            <label class="opt kid" style="cursor: default">
+              <span style="position: relative; display: inline-flex; opacity: .38"><input type="checkbox" class="chk" disabled="disabled" aria-label="Hiring comments"></span>
+              <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; color: #8A7D70"><span style="font-weight: 600">Comments</span><span class="sub cnt">18 comments · needs the board</span></span>
+            </label>
+          </div>
+        </section>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px; padding: 16px 24px 20px; border-top: 1px solid #F4EDE3">
+        <span role="status" style="flex: 1 1 auto; display: flex; align-items: center; gap: 6px; font-size: 13px; color: #6B5E52"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 16px"><path d="M3 3l18 18M8.5 16.5a5 5 0 0 1 7 0M5 13a10 10 0 0 1 5-2.7M14 10.3A10 10 0 0 1 19 13M2 9.5a15 15 0 0 1 4.5-2.8M12 6a15 15 0 0 1 10 3.5"/></svg>You're offline — connect to import</span>
+        <button class="tb">Back</button>
+        <button class="pb" disabled="disabled" style="opacity: .38">Import 2 collections</button>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

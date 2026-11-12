@@ -51,6 +51,33 @@ Home):
    - The sheet is **not dismissible** by scrim tap or drag (`showAutomationSheet(dismissible: false)`);
      its own Close is disabled while writing, so the cubit can't be disposed mid-write.
 
+### UI decisions after design critic round 1 (mockups: Claude Design canvas
+https://claude.ai/artifact/VtcEYDWkDHVfygGtoAtwEL, local copies `docs/superpowers/mockups/trello-import/`)
+
+- Settings: a 720 max-width column, section labels "Workspace" (Automations) and "Import from other
+  apps" (Trello: "Boards become collections — lists, cards, labels, checklists and comments"); the
+  EmptyState placeholder goes. Phone Settings is the same column at full width.
+- Sheet: `showAutomationSheet(dismissible: false)` → dialog `barrierDismissible: false`; phone
+  `isDismissible: false, enableDrag: false, showDragHandle: false`; body in `PopScope(canPop: !writing)`.
+  `SheetHeader` gains an optional `onClose` (Close X); there is no footer Cancel. Default carrot tile.
+- Step 1: copy covers Trello opening the JSON in a tab ("save the page as a .json file (Ctrl+S), or
+  copy all of it and use Paste"). Files/Paste `SegmentedButton` 44 px tall. Files: multi-file picker.
+  Paste: mono field + "Add board" — parses, appends a row, clears the field. Empty list: "No boards
+  yet" box; footer hint "Add at least one board", Continue disabled. Parse error: inline error row
+  (`Semantics(liveRegion)`), dismissible. The same board again: inline note "Already added", not a
+  second row.
+- Step 2 order: neutral automations note first ("Automations can't come along. …"), then the
+  archived switch, then Collections. Each board is a bordered group: the board row is the head
+  (checkbox, name max 2 lines, "N cards · N lists", field chips = the real mapped fields), children
+  indented and titled just "Checklist items" / "Comments". Unticking a board disables its children
+  ("· needs the board"). Footer: `PrimaryButton('Import N collections')`; the hint slot is only for
+  reasons: "Choose at least one collection", "You're offline — connect to import". Counts follow the
+  archived toggle.
+- Importing: rows "x of N" per collection; pending = `Icons.schedule`; running = spinner; done = check.
+  Stalled/error (desktop mirrors PhoneStalled inside the dialog): warning banner + Close + Retry.
+- Done: one row per collection with `CollectionGlyph(tintSeed: id)` (icons `cards`/`task`/`note`), Open;
+  a note row linking to Automations; Done button.
+
 ## Mapping (pure Dart, `lib/core/import/trello/`)
 
 Board collection fields — a field is created only when at least one imported card has a value for it
