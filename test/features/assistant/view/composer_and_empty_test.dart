@@ -19,6 +19,31 @@ void main() {
     Future<void> pump(WidgetTester tester, AssistantState state) =>
         pumpInScope(tester, Composer(state: state), actions: actions);
 
+    testWidgets('takes a draft on open and while open, caret at its end', (
+      tester,
+    ) async {
+      final draft = ValueNotifier<String?>('Write a module that ');
+      addTearDown(draft.dispose);
+      await pumpInScope(
+        tester,
+        Composer(state: AssistantSeeds.empty()),
+        actions: actions,
+        draft: draft,
+      );
+      await tester.pump();
+      TextEditingController field() =>
+          tester.widget<TextField>(find.byType(TextField)).controller!;
+      expect(field().text, 'Write a module that ');
+      expect(field().selection.baseOffset, 'Write a module that '.length);
+      expect(draft.value, isNull);
+      expect(tester.testTextInput.hasAnyClients, isTrue);
+
+      draft.value = 'Fix the module "Stamp": boom';
+      await tester.pump();
+      expect(field().text, 'Fix the module "Stamp": boom');
+      expect(draft.value, isNull);
+    });
+
     testWidgets('Send is disabled until there is text, then sends and clears', (
       tester,
     ) async {

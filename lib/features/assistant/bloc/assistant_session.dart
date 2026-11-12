@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../api/ai/gemini_llm_client.dart';
@@ -88,6 +89,10 @@ class AssistantSession {
   /// What the views page and the card editor publish.
   final AssistantFocusNotifier focus = AssistantFocusNotifier();
 
+  /// Text an "Ask Morkva" button hands the composer; it takes it and clears
+  /// this.
+  final ValueNotifier<String?> draft = ValueNotifier(null);
+
   /// Open or closed; while open, every leased collection stays warm.
   late final AssistantPanelCubit panel = AssistantPanelCubit(
     onChanged: (open) => cache.panelOpen = open,
@@ -139,6 +144,7 @@ class AssistantSession {
     await bloc.close();
     await panel.close();
     focus.dispose();
+    draft.dispose();
   }
 
   /// The greeting's name: the first word of [displayName].

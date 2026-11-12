@@ -91,6 +91,7 @@ Future<void> pumpInScope(
   DateTime Function()? now,
   bool phone = false,
   double width = 404,
+  ValueNotifier<String?>? draft,
 }) async {
   final clock = now ?? () => testNow;
   await tester.pumpWidget(
@@ -102,6 +103,7 @@ Future<void> pumpInScope(
           actions: actions,
           now: clock,
           phone: phone,
+          draft: draft,
           child: PlanCardScope(
             actions: actions,
             now: clock,

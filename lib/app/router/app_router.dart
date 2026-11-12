@@ -293,6 +293,7 @@ class _AssistantRouteState extends State<_AssistantRoute> {
     return Scaffold(
       body: AssistantPage(
         bloc: _session.bloc,
+        draft: _session.draft,
         actions: _actions,
         // Phone: runs stay in sight while chatting.
         indicator: const RunIndicatorButton(),

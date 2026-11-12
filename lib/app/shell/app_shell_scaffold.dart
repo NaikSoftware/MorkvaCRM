@@ -143,8 +143,9 @@ class _ShellViewState extends State<_ShellView> {
   /// The automation pages' way into the app.
   late final _automationsHost = _ShellAutomationsHost(this);
 
-  /// Opens Ask Morkva; null while it is flagged off.
-  VoidCallback? _openAssistant;
+  /// Opens Ask Morkva with the composer prefilled; null while it is flagged
+  /// off.
+  void Function(String draft)? _openAssistant;
 
   SessionAssistantActions _actionsFor(
     AssistantSession assistant, {
@@ -283,9 +284,10 @@ class _ShellViewState extends State<_ShellView> {
         : null;
     _openAssistant = assistant == null
         ? null
-        : wide
-        ? assistant.panel.show
-        : () => router.push('/assistant');
+        : (draft) {
+            assistant.draft.value = draft;
+            wide ? assistant.panel.show() : router.push('/assistant');
+          };
     final inAutomations = place == ShellPlace.automations;
     final avatar = Tooltip(
       message: 'Account and settings',
@@ -336,6 +338,7 @@ class _ShellViewState extends State<_ShellView> {
                   key: _panelKey,
                   composerFocus: _composerFocus,
                   bloc: assistant.bloc,
+                  draft: assistant.draft,
                   actions: _actionsFor(assistant, sheet: overlay),
                   overlay: overlay,
                   onClose: assistant.panel.hide,
@@ -487,14 +490,8 @@ final class _ShellAutomationsHost implements AutomationsHost {
   void review(String runId) =>
       unawaited(showReviewSheet(_context, runId: runId));
 
-  // shortcut: opens Ask Morkva without the prefill (the composer has no
-  // prefill seam yet); add one to the composer when people ask.
   @override
-  void Function(String prefill)? get askMorkva =>
-      switch (_shell._openAssistant) {
-        final open? => (_) => open(),
-        null => null,
-      };
+  void Function(String prefill)? get askMorkva => _shell._openAssistant;
 
   @override
   Future<({String name, String text})?> pickModuleFile() async {

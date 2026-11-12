@@ -185,6 +185,13 @@ void main() {
     await tester.tap(find.text('Automations'));
     await tester.pumpAndSettle();
     expect(find.text('Ask Morkva to write one'), findsOneWidget);
+
+    await tester.tap(find.text('Ask Morkva to write one'));
+    await tester.pumpAndSettle();
+    // The panel opens with the text waiting for its composer (this rig
+    // shows the consent disclosure, so nothing takes it yet).
+    expect(session(tester).panel.isOpen, isTrue);
+    expect(session(tester).draft.value, 'Write a module that ');
   });
 
   testWidgets('phone: the header sparkle opens /assistant and its history', (

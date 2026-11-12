@@ -20,12 +20,16 @@ class AssistantPage extends StatelessWidget {
     required this.onBack,
     this.onOpenHistory,
     this.indicator,
+    this.draft,
     this.autofocus = false,
     this.now = DateTime.now,
   });
 
   final StateStreamable<AssistantState> bloc;
   final AssistantActions actions;
+
+  /// See [AssistantScope.draft].
+  final ValueNotifier<String?>? draft;
   final VoidCallback onBack;
 
   /// Opens `/assistant/history`; the button hides when null.
@@ -40,6 +44,7 @@ class AssistantPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return AssistantScope(
       actions: actions,
+      draft: draft,
       now: now,
       phone: true,
       child: Builder(
