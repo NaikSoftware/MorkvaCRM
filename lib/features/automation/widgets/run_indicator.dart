@@ -47,7 +47,8 @@ final class IndicatorView {
   /// The short pill words (the 272 px sidebar row).
   String? get pill => switch (primary) {
     IndicatorState.running => 'Running · $running',
-    IndicatorState.needsReview => '$needsReview need review',
+    IndicatorState.needsReview =>
+      needsReview == 1 ? '1 needs review' : '$needsReview need review',
     IndicatorState.attention =>
       failed > 0 ? '$failed failed' : "$didntRun didn't run",
     _ => null,
