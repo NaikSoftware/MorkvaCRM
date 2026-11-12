@@ -322,7 +322,7 @@ class FirestoreDataRepository implements DataRepository {
                 subject.add(const []);
                 return;
               }
-              _processSnapshotMeta(snapshot);
+              processSnapshotMeta(snapshot);
               var changed = !emitted;
               for (final change in snapshot.docChanges) {
                 final id = change.doc.id;
@@ -958,9 +958,13 @@ class FirestoreDataRepository implements DataRepository {
   /// Folds an object snapshot's per-doc revisions and metadata into the sync
   /// status, detecting last-write-wins conflicts (see spec §"Conflict
   /// algorithm").
-  void _processSnapshotMeta(QuerySnapshot<Map<String, dynamic>> snapshot) {
+  @visibleForTesting
+  void processSnapshotMeta(QuerySnapshot<Map<String, dynamic>> snapshot) {
     final metadata = snapshot.metadata;
-    final isServer = !metadata.hasPendingWrites;
+    // A cache snapshot (app start, offline) holds possibly stale revs: taking
+    // them as the baseline made the first server snapshot after edits made
+    // elsewhere look like a conflict.
+    final isServer = !metadata.isFromCache && !metadata.hasPendingWrites;
     final conflicts = <String>{};
 
     for (final doc in snapshot.docs) {
