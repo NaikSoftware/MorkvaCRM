@@ -1,0 +1,42 @@
+{
+  "id": "low-stock-flag",
+  "name": "Flag low stock",
+  "version": "1.0.0",
+  "description": "Ticks a checkbox on every product whose stock is below a threshold. Bind it to a collection button.",
+  "author": "SDK example",
+  "apiVersion": 2,
+  "permissions": {
+    "capabilities": ["schema:read", "data:read", "data:write"]
+  },
+  "actions": [
+    {
+      "id": "flagLow",
+      "label": "Flag low stock",
+      "scope": "collection",
+      "icon": "flag",
+      "input": {
+        "type": "object",
+        "required": ["stockField", "flagField", "below"],
+        "properties": {
+          "stockField": {
+            "type": "string",
+            "title": "Stock field",
+            "format": "field"
+          },
+          "flagField": {
+            "type": "string",
+            "title": "Checkbox to tick",
+            "format": "field"
+          },
+          "below": {
+            "type": "number",
+            "title": "Below",
+            "description": "Flag products with less than this in stock.",
+            "minimum": 0,
+            "default": 20
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "morkva": 1,
+  "manifest": {
+    "id": "low-stock-flag",
+    "name": "Flag low stock",
+    "version": "1.0.0",
+    "description": "Ticks a checkbox on every product whose stock is below a threshold. Bind it to a collection button.",
+    "author": "SDK example",
+    "apiVersion": 2,
+    "permissions": {
+      "capabilities": [
+        "schema:read",
+        "data:read",
+        "data:write"
+      ]
+    },
+    "actions": [
+      {
+        "id": "flagLow",
+        "label": "Flag low stock",
+        "scope": "collection",
+        "icon": "flag",
+        "input": {
+          "type": "object",
+          "required": [
+            "stockField",
+            "flagField",
+            "below"
+          ],
+          "properties": {
+            "stockField": {
+              "type": "string",
+              "title": "Stock field",
+              "format": "field"
+            },
+            "flagField": {
+              "type": "string",
+              "title": "Checkbox to tick",
+              "format": "field"
+            },
+            "below": {
+              "type": "number",
+              "title": "Below",
+              "description": "Flag products with less than this in stock.",
+              "minimum": 0,
+              "default": 20
+            }
+          }
+        }
+      }
+    ]
+  },
+  "code": "// Flag low stock: one query for the low-stock cards that are not flagged\n// yet, then one update that ticks the checkbox on all of them.\nmorkva.action('flagLow', async (input, ctx) => {\n  // A test run wraps the button trigger as {kind: 'test', as}. It passes\n  // no card ids, so it checks the whole collection.\n  const trigger = ctx.trigger.kind === 'test' ? ctx.trigger.as : ctx.trigger;\n  if (trigger.kind !== 'button' || trigger.scope !== 'collection') {\n    return 'Run it from a collection button';\n  }\n  const collection = trigger.collectionId;\n  const shown = new Set(trigger.cardIds);\n\n  const low = [];\n  /** @type {CardsQueryResult | CardsPageResult} */\n  let page = await morkva.call('cards.query', {\n    collection,\n    where: [\n      { field: input.stockField, op: 'lessThan', value: input.below },\n      { field: input.flagField, op: 'isFalse' },\n    ],\n    limit: 100,\n  });\n  for (;;) {\n    for (const row of page.rows) {\n      // A button run sees only the cards shown in the view it was pressed on.\n      if (shown.size === 0 || shown.has(row.id)) low.push(row.id);\n    }\n    morkva.progress({ done: low.length, total: page.total, label: 'Checking stock' });\n    if (!page.nextCursor) break;\n    page = await morkva.call('cards.page', {\n      handle: page.handle,\n      cursor: page.nextCursor,\n    });\n  }\n  if (low.length === 0) return 'No products to flag';\n\n  await morkva.call('cards.update', {\n    collection,\n    target: { ids: low },\n    set: { [input.flagField]: true },\n  });\n  return `Flagged ${low.length} product${low.length === 1 ? '' : 's'}`;\n});\n"
+}

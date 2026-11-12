@@ -1,0 +1,33 @@
+{
+  "id": "stamp-shipped-date",
+  "name": "Stamp shipped date",
+  "version": "1.0.0",
+  "description": "Fills a date field with today's date when it is still empty. Bind it to a card button, or to \"card updated\" when Status enters Shipped.",
+  "author": "SDK example",
+  "apiVersion": 2,
+  "timeoutMs": 10000,
+  "permissions": {
+    "capabilities": ["schema:read", "data:read", "data:write"]
+  },
+  "actions": [
+    {
+      "id": "stamp",
+      "label": "Stamp today",
+      "description": "Sets the chosen date field to today unless it already has a date.",
+      "scope": "card",
+      "icon": "calendar",
+      "input": {
+        "type": "object",
+        "required": ["dateField"],
+        "properties": {
+          "dateField": {
+            "type": "string",
+            "title": "Date field",
+            "description": "The date field to fill.",
+            "format": "field"
+          }
+        }
+      }
+    }
+  ]
+}
