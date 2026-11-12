@@ -13,6 +13,8 @@ import '../schema/json_schema.dart';
 ///   plan ops)
 /// - `view_ops.dart` → `registerViewOps`
 /// - `host_ops.dart` → `registerHostOps` (commit ops)
+/// - `module_ops.dart` → `registerModuleOps` (`modules.*`, `automations.*`,
+///   `runs.*`)
 ///
 /// The host composes them; each takes the registry plus whatever services
 /// its ops need.
