@@ -126,7 +126,7 @@ void main() {
 
   group('fake stores', () {
     test('watch replays the current docs and every change', () async {
-      final fakes = FakeAutomationStores();
+      final fakes = FakeStores();
       final a = automation();
       await fakes.automations.save(a);
       expect(await fakes.automations.watch().first, [a]);
@@ -143,7 +143,7 @@ void main() {
     });
 
     test('a malformed consent reads as none', () async {
-      final fakes = FakeAutomationStores();
+      final fakes = FakeStores();
       await fakes.grants.save('u1', consent());
       expect(await fakes.grants.get('u1', 'stamp-shipped-date'), consent());
       expect(await fakes.grants.get('u2', 'stamp-shipped-date'), isNull);

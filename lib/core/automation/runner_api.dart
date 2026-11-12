@@ -8,7 +8,17 @@ import '../domain/automation/automation.dart';
 ///
 /// Every `runId` here is one of this session's runs ([RunActivity.runs]) or
 /// a run doc's id; calls on an unknown or finished run are no-ops.
+///
+/// Failures: a run's own outcome is reported on its [RunView] (and
+/// [finished]), never thrown. A user action the runner refuses (approve
+/// after the permissions changed, a review replaced in another window,
+/// offline, undo past the journal window, a consent or module write that
+/// failed) throws [AutomationRefused] with a sentence to show.
 abstract interface class AutomationRunnerApi implements RunnerHooks {
+  /// This tab's (web) or app start's session id: run docs of another
+  /// session are shown "Review not available here" / "Outcome unknown".
+  String get sessionId;
+
   /// This session's live runs and device state, now.
   RunActivity get activity;
 
@@ -104,6 +114,19 @@ abstract interface class AutomationRunnerApi implements RunnerHooks {
 
   /// Clears a `loop_suspected` / `crashed` pause.
   Future<void> resume(String automationId);
+}
+
+/// A user action the runner refused; [message] is shown as is.
+final class AutomationRefused implements Exception {
+  const AutomationRefused(this.code, this.message);
+
+  /// A run reason / harness error wire (`offline`, `not_permitted`,
+  /// `conflict`, …).
+  final String code;
+  final String message;
+
+  @override
+  String toString() => 'AutomationRefused($code: $message)';
 }
 
 /// This session's live runs and the device-wide state for the indicator.

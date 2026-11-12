@@ -9,6 +9,9 @@ import 'package:morkva_crm/core/domain/automation/automation.dart';
 final class FakeRunner implements AutomationRunnerApi {
   final calls = <(String, List<Object?>)>[];
 
+  @override
+  String sessionId = 't_test';
+
   /// What [validate] returns (and [saveAutomation] throws when non-empty).
   List<AutomationProblem> problems = const [];
 

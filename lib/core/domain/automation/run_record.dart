@@ -494,7 +494,7 @@ final class RunRecord extends Equatable {
       doc['log'] = encodeRunLog(log, maxBytes: budget);
       final over = _bytes(doc) - kRunDocMaxBytes;
       if (over <= 0) break;
-      budget -= over;
+      budget = utf8.encode(doc['log']! as String).length - over;
     }
     if (_bytes(doc) > kRunDocMaxBytes) {
       (doc['trigger']! as Map<String, Object?>)['before'] = null;

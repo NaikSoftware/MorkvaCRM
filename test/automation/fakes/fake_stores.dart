@@ -4,7 +4,7 @@ import 'package:rxdart/rxdart.dart';
 /// In-memory automation stores. Docs are kept as `toJson()` maps and read
 /// back through `fromJson`, so the record codecs run as they do over
 /// Firestore; a doc that does not decode is left out (see `putRaw`).
-final class FakeAutomationStores {
+final class FakeStores {
   final modules = FakeModuleStore();
   final automations = FakeAutomationStore();
   final runs = FakeRunStore();
