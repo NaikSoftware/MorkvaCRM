@@ -341,7 +341,10 @@ class _AutomationsPageState extends State<AutomationsPage>
       context,
       view: view,
       collections: collections,
-      initial: ConsentScope.forImport(fromCollection: widget.collectionId),
+      initial: ConsentScope.forImport(
+        fromCollection: widget.collectionId,
+        replacing: preview.replacing?.consent,
+      ),
       mode: ConsentMode.install,
       source: 'Imported',
     );
@@ -528,8 +531,11 @@ class _Header extends StatelessWidget {
           ),
           if (action != null) ...[
             const SizedBox(width: Spacing.md),
-            Flexible(
-              child: Align(alignment: Alignment.topRight, child: action),
+            // Not Flexible: an even flex split wrapped the subtitle on the
+            // Modules / Automations tabs (not on Runs), so the tabs jumped.
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: action,
             ),
           ],
         ],
@@ -556,7 +562,7 @@ class _NewAutomationAction extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Flexible: the header gives the action ~512 px (less on a phone).
+        // Flexible: the header gives the action ≤ 480 px (less on a phone).
         Flexible(
           child: Text(
             'Install a module first',
@@ -640,27 +646,33 @@ class _Tabs extends StatelessWidget {
   }
 }
 
-/// A [StatusChip] that hugs its label: the chip's pill fills any bounded
-/// width (inside a Wrap or Column) otherwise.
+/// A [StatusChip] in a Wrap or Column (the chip hugs its label itself).
 class HugChip extends StatelessWidget {
   const HugChip({
     super.key,
     required this.label,
     required this.tone,
+    this.icon,
     this.onTap,
   });
 
   HugChip.of(ChipCopy copy, {Key? key, VoidCallback? onTap})
-    : this(key: key, label: copy.label, tone: copy.tone, onTap: onTap);
+    : this(
+        key: key,
+        label: copy.label,
+        tone: copy.tone,
+        icon: copy.icon,
+        onTap: onTap,
+      );
 
   final String label;
   final CopyTone tone;
+  final IconData? icon;
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => IntrinsicWidth(
-    child: StatusChip(label: label, tone: tone, onTap: onTap),
-  );
+  Widget build(BuildContext context) =>
+      StatusChip(label: label, tone: tone, icon: icon, onTap: onTap);
 }
 
 /// A count pill: neutral, or solid amber (`warning` / `onWarning`) for
@@ -838,16 +850,24 @@ class AutomationSection extends StatelessWidget {
             ),
             child: ConstrainedBox(
               constraints: const BoxConstraints(minHeight: 44),
-              // A Wrap, so a wide trailing (Revoke + Change access) drops
-              // under the title on a phone instead of overflowing.
-              child: Wrap(
-                alignment: WrapAlignment.spaceBetween,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                runSpacing: Spacing.xs,
-                children: [
-                  Text(title, style: theme.textTheme.titleMedium),
-                  ?trailing,
-                ],
+              // Centred in the 44 px row: a title alone sat at its top and
+              // left an empty band under it.
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: SizedBox(
+                  width: double.infinity,
+                  // A Wrap, so a wide trailing (Revoke + Change access) drops
+                  // under the title on a phone instead of overflowing.
+                  child: Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    runSpacing: Spacing.xs,
+                    children: [
+                      Text(title, style: theme.textTheme.titleMedium),
+                      ?trailing,
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -1031,17 +1051,23 @@ class _ModuleCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Flexible(
-                      child: Text(
-                        module.name,
-                        style: theme.textTheme.titleMedium,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              module.name,
+                              style: theme.textTheme.titleMedium,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: Spacing.xs),
+                          OptionPill(label: 'v${module.version}'),
+                        ],
                       ),
                     ),
                     const SizedBox(width: Spacing.xs),
-                    OptionPill(label: 'v${module.version}'),
-                    const Spacer(),
                     HugChip.of(moduleChip(entry.status)),
                   ],
                 ),
@@ -1740,6 +1766,18 @@ class LiveRunTile extends StatelessWidget {
     final theme = Theme.of(context);
     final p = run.progress;
     final where = run.trigger.cardLabel ?? '';
+    // "Stamp when shipped · Stamp", as the run rows below read.
+    final name = context
+        .read<ModulesCubit>()
+        .state
+        .automations
+        .where((a) => a.automation.id == run.automationId)
+        .firstOrNull
+        ?.automation
+        .name;
+    final title = name == null || name == run.label
+        ? run.label
+        : '$name · ${run.label}';
     final second = switch (run.status) {
       RunStatus.queued =>
         'Queued${run.queuedAhead == null ? '' : ' · ${run.queuedAhead} ahead'}',
@@ -1756,7 +1794,12 @@ class LiveRunTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(run.label, style: theme.textTheme.titleSmall),
+                Text(
+                  title,
+                  style: theme.textTheme.titleSmall,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 Text(
                   [
                     second,
@@ -1815,12 +1858,20 @@ class RunRowTile extends StatelessWidget {
       run.actionLabel,
     ].join(' · ');
     final changedAt = run.trigger.changedAt;
+    // The table layout has a card column; the narrow one puts the card in
+    // the second line instead ("Expired · #1039").
+    final table = !compact && width >= 680;
+    final cardColumn = table || (compact && width >= 420);
+    final notHere = row.display == RunDisplay.reviewNotHere;
+    final what = switch (run) {
+      _ when run.count > 1 => 'Skipped ${run.count} times · ${row.copy.row}',
+      RunRecord(status: RunStatus.succeeded, :final summary?) => summary,
+      _ when notHere => '${row.copy.row} — ${_clause(row.copy.detail)}',
+      _ => row.copy.row,
+    };
     final second = [
-      switch (run) {
-        _ when run.count > 1 => 'Skipped ${run.count} times · ${row.copy.row}',
-        RunRecord(status: RunStatus.succeeded, :final summary?) => summary,
-        _ => row.copy.row,
-      },
+      what,
+      if (!cardColumn && card != null && !what.contains(card)) card,
       if (changedAt != null &&
           run.startedAt.difference(changedAt).inMinutes >= 1)
         'Changed offline ${clock(changedAt)} · ran ${clock(run.startedAt)}',
@@ -1832,7 +1883,9 @@ class RunRowTile extends StatelessWidget {
         onPressed: () => host.review(run.id),
       ),
       RunRowAction.runAgain => _RunAgain(
-        label: card == null || row.display == RunDisplay.reviewNotHere
+        // The table shows the card a column away; "Run again on Order
+        // #1047" truncated in its 200 px slot.
+        label: card == null || notHere || table
             ? 'Run again'
             : 'Run again on $card',
         offline: offline,
@@ -1852,15 +1905,17 @@ class RunRowTile extends StatelessWidget {
     final muted = theme.textTheme.bodySmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
-    final status = RunStatusIcon(
-      status: row.display == RunDisplay.outcomeUnknown
-          ? RunStatus.failed
-          : run.status,
-      reason: row.display == RunDisplay.outcomeUnknown
-          ? RunReason.interrupted
-          : run.reason,
-      undone: run.undoneAt != null,
-    );
+    final status = notHere
+        ? const _ReviewNotHereIcon()
+        : RunStatusIcon(
+            status: row.display == RunDisplay.outcomeUnknown
+                ? RunStatus.failed
+                : run.status,
+            reason: row.display == RunDisplay.outcomeUnknown
+                ? RunReason.interrupted
+                : run.reason,
+            undone: run.undoneAt != null,
+          );
     final text = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1906,7 +1961,7 @@ class RunRowTile extends StatelessWidget {
           if (action != null) ...[const SizedBox(width: Spacing.sm), action],
         ],
       );
-    } else if (!compact && width >= 680) {
+    } else if (table) {
       body = Row(
         children: [
           status,
@@ -1967,6 +2022,38 @@ class RunRowTile extends StatelessWidget {
       ),
     );
   }
+}
+
+/// "It was opened in another window." → "it was opened in another window".
+String _clause(String sentence) {
+  final s = sentence.endsWith('.')
+      ? sentence.substring(0, sentence.length - 1)
+      : sentence;
+  return s.isEmpty ? s : s[0].toLowerCase() + s.substring(1);
+}
+
+/// A review another window holds: a muted ring, not the amber dot of a
+/// review this tab can open.
+class _ReviewNotHereIcon extends StatelessWidget {
+  const _ReviewNotHereIcon();
+
+  @override
+  Widget build(BuildContext context) => SizedBox.square(
+    dimension: 24,
+    child: Center(
+      child: Container(
+        width: 12,
+        height: 12,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            width: 1.5,
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 /// "Run again", or disabled offline with the visible reason.

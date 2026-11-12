@@ -60,6 +60,13 @@ void main() {
       initial: ConsentScope.forImport(),
     );
     expect(find.text('Allow "Stamp shipped date"?'), findsOneWidget);
+    // The white sheet surface, so its tinted boxes show.
+    expect(
+      tester.widget<Dialog>(find.byType(Dialog)).backgroundColor,
+      Theme.of(
+        tester.element(find.byType(Dialog)),
+      ).colorScheme.surfaceContainerLowest,
+    );
     expect(find.textContaining('v1.0.0 · Imported'), findsOneWidget);
     expect(find.text('Read cards'), findsOneWidget);
     expect(find.text('Create and change cards'), findsOneWidget);

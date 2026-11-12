@@ -851,6 +851,8 @@ class PhoneActionsButton extends StatelessWidget {
     }
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    // `info`, as every other running spinner (sidebar pill, rail, run rows).
+    final info = theme.extension<MorkvaSemanticColors>()!.info;
     final p = live.progress;
     final value = p == null || p.total <= 0 ? null : p.done / p.total;
     return Tooltip(
@@ -863,7 +865,7 @@ class PhoneActionsButton extends StatelessWidget {
           height: 44,
           padding: const EdgeInsets.symmetric(horizontal: Spacing.xxs),
           decoration: BoxDecoration(
-            color: scheme.surfaceContainerHigh,
+            color: info.withValues(alpha: 0.12),
             borderRadius: Radii.fullAll,
           ),
           child: Row(
@@ -882,7 +884,7 @@ class PhoneActionsButton extends StatelessWidget {
                         key: const ValueKey('run-ring'),
                         value: value,
                         strokeWidth: 2.5,
-                        color: scheme.primary,
+                        color: info,
                         backgroundColor: scheme.outlineVariant,
                       ),
                     ),
@@ -947,6 +949,7 @@ class CardRunProgress extends StatelessWidget implements PreferredSizeWidget {
           child: LinearProgressIndicator(
             value: p == null || p.total <= 0 ? null : p.done / p.total,
             minHeight: 2,
+            color: Theme.of(context).extension<MorkvaSemanticColors>()!.info,
           ),
         );
       },

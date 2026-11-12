@@ -134,6 +134,10 @@ void main() {
   ) async {
     await consent();
     await pump(tester);
+    final more = tester.getSize(
+      find.byWidgetPredicate((w) => w is PopupMenuButton).first,
+    );
+    expect(more.shortestSide, greaterThanOrEqualTo(44));
     await tester.tap(find.byTooltip('More'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Export'));

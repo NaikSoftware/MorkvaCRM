@@ -152,6 +152,15 @@ void main() {
     final barriers = tester.widgetList<ModalBarrier>(find.byType(ModalBarrier));
     // No second scrim: the editor's already darkens the page.
     expect(barriers.last.color?.a ?? 0, 0);
+    // …so the dialog itself stands out: the white card surface, lifted.
+    final dialog = tester.widget<Dialog>(find.byType(Dialog));
+    expect(
+      dialog.backgroundColor,
+      Theme.of(
+        tester.element(find.byType(Dialog)),
+      ).colorScheme.surfaceContainerLowest,
+    );
+    expect(dialog.shadowColor?.a ?? 0, greaterThan(0));
   });
 
   testWidgets('dismissed: decide later, "Saved for review"', (tester) async {

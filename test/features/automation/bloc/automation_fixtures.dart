@@ -81,8 +81,10 @@ RunRecord runRecord(
   String moduleId = stampId,
   RunError? error,
   DateTime? changedAt,
+  Map<String, Object?>? params,
 }) => RunRecord(
   id: id,
+  params: params,
   status: status,
   reason: reason,
   moduleId: moduleId,

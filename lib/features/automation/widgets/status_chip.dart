@@ -11,14 +11,24 @@ class StatusChip extends StatelessWidget {
     super.key,
     required this.label,
     required this.tone,
+    this.icon,
     this.onTap,
   });
 
   StatusChip.of(ChipCopy copy, {Key? key, VoidCallback? onTap})
-    : this(key: key, label: copy.label, tone: copy.tone, onTap: onTap);
+    : this(
+        key: key,
+        label: copy.label,
+        tone: copy.tone,
+        icon: copy.icon,
+        onTap: onTap,
+      );
 
   final String label;
   final CopyTone tone;
+
+  /// A 14 px glyph before the label (Installed ✓, Needs consent ⚠).
+  final IconData? icon;
   final VoidCallback? onTap;
 
   /// The chip's fill and ink for [tone].
@@ -60,19 +70,36 @@ class StatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = colorsOf(theme, tone);
+    // Hugs its label without IntrinsicWidth: on web the intrinsic text
+    // width can come out short and ellipsize "Installed" to "Install…".
     final pill = Container(
       height: 24,
-      padding: const EdgeInsets.symmetric(horizontal: Spacing.xs),
+      padding: EdgeInsetsDirectional.only(
+        start: icon == null ? Spacing.xs : 6,
+        end: Spacing.xs,
+      ),
       decoration: BoxDecoration(
         color: colors.background,
         borderRadius: Radii.fullAll,
       ),
-      alignment: Alignment.center,
-      child: Text(
-        label,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: theme.textTheme.labelMedium?.copyWith(color: colors.foreground),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 14, color: colors.foreground),
+            const SizedBox(width: Spacing.xxs),
+          ],
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: colors.foreground,
+              ),
+            ),
+          ),
+        ],
       ),
     );
     final tap = onTap;

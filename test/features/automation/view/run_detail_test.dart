@@ -109,6 +109,59 @@ void main() {
     expectLastCall(rig.runner.calls, 'undo', ['r_ok']);
   });
 
+  testWidgets('inputs by their titles; the policy line in words', (
+    tester,
+  ) async {
+    await rig.stores.runs.create(
+      runRecord(
+        'r_ok',
+        params: const {'dateField': 'f_x', 'overwrite': true},
+      ).copyWith(
+        log: const RunLog(
+          plan: [
+            PlanLine(
+              kind: 'updateCard',
+              label: '#1042',
+              change: 'Shipped on: — → 12 Nov',
+            ),
+          ],
+          policy: 'review: the automation asks first',
+          calls: [
+            RunCall(
+              t: 0,
+              op: 'cards.update',
+              kind: 'plan',
+              args: 'collection: c_orders · set: {f_shipped}',
+              ok: true,
+              result: 'planned 1 change',
+              ms: 6,
+            ),
+          ],
+        ),
+      ),
+    );
+    await pump(tester, 'r_ok');
+    expect(
+      find.textContaining('Date field: ', findRichText: true),
+      findsOneWidget,
+    );
+    expect(find.textContaining('dateField', findRichText: true), findsNothing);
+    // An input the manifest doesn't title keeps its key.
+    expect(
+      find.textContaining('overwrite: ', findRichText: true),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Asked first: the automation asks first.'),
+      findsOneWidget,
+    );
+    // Calls name the logged ids and say what they did.
+    expect(
+      find.text('collection: Orders · set: {Shipped on} · planned 1 change'),
+      findsOneWidget,
+    );
+  });
+
   // On web the steps' intrinsic text height came out 1 px short of their
   // laid-out height (the Console step overflowed); the timeline may not
   // size its steps from intrinsics.
@@ -163,10 +216,21 @@ void main() {
     );
     await pump(tester, 'r_bad');
     expect(find.text('Failed'), findsOneWidget);
-    expect(
-      find.text('at stamp (morkva-module/stamp-shipped-date.js:12:7)'),
-      findsOneWidget,
+    expect(find.byIcon(Icons.cancel_outlined), findsWidgets);
+    final stack = find.text(
+      'at stamp (morkva-module/stamp-shipped-date.js:12:7)',
     );
+    expect(stack, findsOneWidget);
+    // A real monospace face: CanvasKit has no generic 'monospace' family.
+    expect(
+      tester
+          .widget<SelectableText>(find.byType(SelectableText).first)
+          .style
+          ?.fontFamily,
+      contains('RobotoMono'),
+    );
+    // The failed Outcome is an error card.
+    expect(find.byKey(const ValueKey('step-error')), findsOneWidget);
     await tester.tap(find.text('Ask Morkva to fix it'));
     expect(rig.host.calls.last.$1, 'askMorkva');
     expect(rig.host.calls.last.$2.single, contains('TypeError'));

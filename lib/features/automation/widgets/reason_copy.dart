@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart' show IconData, Icons;
+
 import '../../../core/domain/automation/automation.dart';
 
 /// How a chip, row or banner is coloured (the widget picks the tokens).
@@ -302,14 +304,33 @@ const RunCopy kReviewNotHereCopy = RunCopy(
   advice: (text: 'Run again', fix: RunFix.runAgain),
 );
 
+/// The run log's policy line as the run detail Plan step shows it:
+/// "review: auto-apply is off for this module" → "Asked first: auto-apply
+/// is off for this module." (UX §7).
+String askedFirstLine(String policy) => policy.startsWith('review: ')
+    ? 'Asked first: ${policy.substring('review: '.length)}.'
+    : policy;
+
 /// A status chip: its words and tone.
-typedef ChipCopy = ({String label, CopyTone tone});
+typedef ChipCopy = ({String label, CopyTone tone, IconData? icon});
 
 /// The module chip (UX §1a).
 ChipCopy moduleChip(ModuleStatus status) => switch (status) {
-  ModuleStatus.ok => (label: 'Installed', tone: CopyTone.success),
-  ModuleStatus.needsConsent => (label: 'Needs consent', tone: CopyTone.warning),
-  ModuleStatus.broken => (label: 'Broken', tone: CopyTone.error),
+  ModuleStatus.ok => (
+    label: 'Installed',
+    tone: CopyTone.success,
+    icon: Icons.check_rounded,
+  ),
+  ModuleStatus.needsConsent => (
+    label: 'Needs consent',
+    tone: CopyTone.warning,
+    icon: Icons.warning_amber_rounded,
+  ),
+  ModuleStatus.broken => (
+    label: 'Broken',
+    tone: CopyTone.error,
+    icon: Icons.error_outline,
+  ),
 };
 
 /// The automation chip (UX §1b); null while active (no chip).
@@ -317,17 +338,28 @@ ChipCopy? automationChip(AutomationStatus status) => switch (status) {
   AutomationStatus.needsConsent => (
     label: 'Needs consent',
     tone: CopyTone.warning,
+    icon: Icons.warning_amber_rounded,
   ),
-  AutomationStatus.broken => (label: 'Broken', tone: CopyTone.error),
+  AutomationStatus.broken => (
+    label: 'Broken',
+    tone: CopyTone.error,
+    icon: Icons.error_outline,
+  ),
   AutomationStatus.crashed => (
     label: 'Stopped after a crash',
     tone: CopyTone.warning,
+    icon: Icons.warning_amber_rounded,
   ),
   AutomationStatus.loopSuspected => (
     label: 'Loop suspected',
     tone: CopyTone.warning,
+    icon: Icons.warning_amber_rounded,
   ),
-  AutomationStatus.paused => (label: 'Paused', tone: CopyTone.neutral),
+  AutomationStatus.paused => (
+    label: 'Paused',
+    tone: CopyTone.neutral,
+    icon: Icons.pause_rounded,
+  ),
   AutomationStatus.active => null,
 };
 
@@ -335,11 +367,20 @@ ChipCopy? automationChip(AutomationStatus status) => switch (status) {
 enum EffectiveApply { ask, auto, autoOff }
 
 ChipCopy applyChip(EffectiveApply apply) => switch (apply) {
-  EffectiveApply.ask => (label: 'Ask first', tone: CopyTone.neutral),
-  EffectiveApply.auto => (label: 'Auto', tone: CopyTone.success),
+  EffectiveApply.ask => (
+    label: 'Ask first',
+    tone: CopyTone.neutral,
+    icon: Icons.visibility_outlined,
+  ),
+  EffectiveApply.auto => (
+    label: 'Auto',
+    tone: CopyTone.success,
+    icon: Icons.bolt_rounded,
+  ),
   EffectiveApply.autoOff => (
     label: 'Auto · off for this module',
     tone: CopyTone.warning,
+    icon: Icons.bolt_rounded,
   ),
 };
 

@@ -108,9 +108,14 @@ final class ConsentScope extends Equatable {
   const ConsentScope.only(this.only) : all = false;
 
   /// An import preselects nothing: "Only these" with the collection the
-  /// user came from checked, if any.
-  factory ConsentScope.forImport({String? fromCollection}) =>
-      ConsentScope.only({?fromCollection});
+  /// user came from checked, if any. An update of an installed module
+  /// ([replacing] its consent) starts from what that consent allows.
+  factory ConsentScope.forImport({
+    String? fromCollection,
+    GrantRecord? replacing,
+  }) => replacing != null
+      ? ConsentScope.of(replacing)
+      : ConsentScope.only({?fromCollection});
 
   /// What an existing consent allows (Change access, re-consent).
   factory ConsentScope.of(GrantRecord consent) => switch (consent.collections) {

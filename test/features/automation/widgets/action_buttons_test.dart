@@ -3,6 +3,7 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/automation/runner_api.dart';
 import 'package:morkva_crm/core/domain/automation/automation.dart';
+import 'package:morkva_crm/design/design.dart';
 import 'package:morkva_crm/features/automation/widgets/action_buttons.dart';
 
 import 'automation_widget_rig.dart';
@@ -292,6 +293,12 @@ void main() {
       await pump(tester, compact: true, size: const Size(390, 844));
       expect(find.byKey(const ValueKey('run-ring')), findsOneWidget);
       expect(find.text('1/3'), findsOneWidget);
+      // `info`, like the sidebar's running spinner — not the brand orange.
+      final ring = tester.widget<CircularProgressIndicator>(
+        find.byKey(const ValueKey('run-ring')),
+      );
+      final theme = Theme.of(tester.element(find.text('1/3')));
+      expect(ring.color, theme.extension<MorkvaSemanticColors>()!.info);
     });
 
     testWidgets('the Actions sheet: Save and run on a dirty form', (

@@ -142,6 +142,15 @@ String statusLabel(RunStatus status) => switch (status) {
   RunStatus.expired => 'Expired',
 };
 
+/// The header badge's glyph (succeeded ✓, failed ⊗, undone ↶).
+IconData? statusIcon(RunStatus status, {bool undone = false}) =>
+    switch (status) {
+      RunStatus.succeeded when undone => Icons.undo_rounded,
+      RunStatus.succeeded => Icons.check_rounded,
+      RunStatus.failed || RunStatus.timedOut => Icons.cancel_outlined,
+      _ => null,
+    };
+
 class _LiveDetail extends StatelessWidget {
   const _LiveDetail({required this.run});
 
@@ -205,11 +214,23 @@ class _Detail extends StatelessWidget {
     final runLog = context.read<RunLogCubit>();
     final host = context.read<AutomationsHost>();
     final collections = automationCollections(context);
-    final automations = context.watch<ModulesCubit>().state.automations;
+    final modules = context.watch<ModulesCubit>().state;
+    final automations = modules.automations;
     final offline = automationsOffline(context);
     final run = row.run;
     final collection = collectionOf(collections, run.trigger.collectionId);
     final card = run.trigger.cardLabel;
+    // The action's input titles ("Date field"), when the module is known.
+    final inputs = modules.modules
+        .where((m) => m.module.id == run.moduleId)
+        .firstOrNull
+        ?.module
+        .manifest
+        ?.actions
+        .where((a) => a.id == run.actionId)
+        .firstOrNull
+        ?.input
+        ?.properties;
     final muted = theme.textTheme.bodyMedium?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
@@ -276,6 +297,8 @@ class _Detail extends StatelessWidget {
         PopupMenuButton<void>(
           tooltip: 'More',
           icon: const Icon(Icons.more_horiz),
+          // 44 px, like every other target here (the default is 40).
+          style: IconButton.styleFrom(minimumSize: const Size.square(44)),
           itemBuilder: (_) => [
             PopupMenuItem(
               onTap: () {
@@ -356,7 +379,10 @@ class _Detail extends StatelessWidget {
               Text.rich(
                 TextSpan(
                   children: [
-                    TextSpan(text: '$key: ', style: muted),
+                    TextSpan(
+                      text: '${inputs?[key]?.title ?? key}: ',
+                      style: muted,
+                    ),
                     TextSpan(
                       text: switch (value) {
                         final String id
@@ -375,7 +401,8 @@ class _Detail extends StatelessWidget {
         count: log.calls.length,
         children: [
           if (log.calls.isEmpty) Text('No calls', style: muted),
-          for (final c in log.calls) _CallRow(call: c),
+          for (final c in log.calls)
+            _CallRow(call: c, collections: collections),
           if (log.dropped.calls > 0)
             Text('+${log.dropped.calls} calls dropped', style: muted),
         ],
@@ -386,6 +413,7 @@ class _Detail extends StatelessWidget {
           count: log.console.length,
           children: [
             Container(
+              width: double.infinity,
               padding: const EdgeInsets.all(Spacing.sm),
               decoration: BoxDecoration(
                 color: theme.colorScheme.surfaceContainerHigh,
@@ -423,7 +451,7 @@ class _Detail extends StatelessWidget {
             if (log.policy case final policy?)
               Padding(
                 padding: const EdgeInsets.only(top: Spacing.xs),
-                child: Text(policy, style: muted),
+                child: Text(askedFirstLine(policy), style: muted),
               ),
           ],
         ),
@@ -464,6 +492,7 @@ class _Detail extends StatelessWidget {
             HugChip(
               label: run.undoneAt != null ? 'Undone' : statusLabel(run.status),
               tone: row.copy.tone,
+              icon: statusIcon(run.status, undone: run.undoneAt != null),
             ),
             Text(
               run.automationName ?? run.actionLabel,
@@ -521,9 +550,23 @@ String runLogJson(RunRecord run) {
 }
 
 class _CallRow extends StatelessWidget {
-  const _CallRow({required this.call});
+  const _CallRow({required this.call, this.collections = const []});
 
   final RunCall call;
+
+  /// Names the collection and field ids the logged args carry
+  /// ("collection: c_orders" → "collection: Orders").
+  final List<Collection> collections;
+
+  String _named(String text) {
+    for (final c in collections) {
+      text = text.replaceAll(c.id, c.name);
+      for (final f in c.fields) {
+        text = text.replaceAll(f.id, f.name);
+      }
+    }
+    return text;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -542,7 +585,11 @@ class _CallRow extends StatelessWidget {
           ),
           Expanded(
             child: Text(
-              call.ok ? call.args : '${call.args} · ${call.result}',
+              _named(
+                call.ok && call.result == 'Done'
+                    ? call.args
+                    : '${call.args} · ${call.result}',
+              ),
               style: theme.textTheme.bodyMedium?.copyWith(color: color),
             ),
           ),
@@ -725,6 +772,27 @@ class _Outcome extends StatelessWidget {
   }
 }
 
+/// The failed Outcome step's error outline (the error card of UX §7).
+class _ErrorOutline extends StatelessWidget {
+  const _ErrorOutline({required this.on, required this.child});
+
+  final bool on;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => !on
+      ? child
+      : DecoratedBox(
+          key: const ValueKey('step-error'),
+          position: DecorationPosition.foreground,
+          decoration: BoxDecoration(
+            borderRadius: Radii.lgAll,
+            border: Border.all(color: Theme.of(context).colorScheme.error),
+          ),
+          child: child,
+        );
+}
+
 /// A collapsible timeline step: a dot on the rule, then a section card.
 class _Step extends StatefulWidget {
   const _Step({
@@ -782,63 +850,69 @@ class _StepState extends State<_Step> {
             left: 24 + Spacing.sm,
             bottom: Spacing.xs,
           ),
-          child: SurfaceCard(
-            padding: EdgeInsets.zero,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                InkWell(
-                  onTap: () => setState(() => _open = !_open),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(minHeight: 48),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: Spacing.sm,
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            _open ? Icons.expand_more : Icons.chevron_right,
-                            size: 20,
-                          ),
-                          const SizedBox(width: Spacing.xs),
-                          Text(widget.title, style: theme.textTheme.titleSmall),
-                          if (widget.count != null) ...[
+          child: _ErrorOutline(
+            on: widget.tone == CopyTone.error,
+            child: SurfaceCard(
+              padding: EdgeInsets.zero,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  InkWell(
+                    onTap: () => setState(() => _open = !_open),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(minHeight: 48),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: Spacing.sm,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _open ? Icons.expand_more : Icons.chevron_right,
+                              size: 20,
+                            ),
                             const SizedBox(width: Spacing.xs),
-                            CountBadge(count: widget.count!),
-                          ],
-                          if (widget.summary != null) ...[
-                            const SizedBox(width: Spacing.sm),
-                            Expanded(
-                              child: Text(
-                                widget.summary!,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: scheme.onSurfaceVariant,
+                            Text(
+                              widget.title,
+                              style: theme.textTheme.titleSmall,
+                            ),
+                            if (widget.count != null) ...[
+                              const SizedBox(width: Spacing.xs),
+                              CountBadge(count: widget.count!),
+                            ],
+                            if (widget.summary != null) ...[
+                              const SizedBox(width: Spacing.sm),
+                              Expanded(
+                                child: Text(
+                                  widget.summary!,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                  ),
                                 ),
                               ),
-                            ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-                if (_open)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      Spacing.xl + Spacing.xs,
-                      0,
-                      Spacing.md,
-                      Spacing.md,
+                  if (_open)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        Spacing.xl + Spacing.xs,
+                        0,
+                        Spacing.md,
+                        Spacing.md,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: widget.children,
+                      ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: widget.children,
-                    ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

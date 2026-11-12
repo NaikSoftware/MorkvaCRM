@@ -46,7 +46,14 @@ Future<void> showReviewSheet(
       barrierColor: scrim,
       barrierLabel: 'Decide later',
       builder: (context) => Dialog(
-        backgroundColor: Theme.of(context).colorScheme.surface,
+        // Over the editor there is no second scrim, so the same surface
+        // colour without a shadow melted into the form behind it: step up
+        // to the white card surface and lift it.
+        backgroundColor: overEditor
+            ? Theme.of(context).colorScheme.surfaceContainerLowest
+            : Theme.of(context).colorScheme.surface,
+        elevation: overEditor ? 12 : null,
+        shadowColor: overEditor ? const Color(0x66000000) : null,
         insetPadding: const EdgeInsets.all(Spacing.xl),
         shape: const RoundedRectangleBorder(borderRadius: Radii.lgAll),
         clipBehavior: Clip.antiAlias,

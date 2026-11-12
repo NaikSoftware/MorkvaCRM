@@ -366,6 +366,8 @@ class _Header extends StatelessWidget {
         PopupMenuButton<_Menu>(
           tooltip: 'More',
           icon: const Icon(Icons.more_horiz),
+          // 44 px, like every other target here (the default is 40).
+          style: IconButton.styleFrom(minimumSize: const Size.square(44)),
           onSelected: (item) => _menu(context, item),
           itemBuilder: (_) => [
             if (module.manifest != null)
@@ -820,12 +822,24 @@ class _Code extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.all(Spacing.md),
-          child: Text(
-            'module.js · ${kbLabel(module.codeBytes)} · '
-            '${shortHash(module.bundleHash)}',
-            style: MorkvaTypography.mono(
-              theme.textTheme.bodySmall!,
-            ).copyWith(color: theme.colorScheme.onSurfaceVariant),
+          child: Row(
+            children: [
+              Icon(
+                Icons.insert_drive_file_outlined,
+                size: 16,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: Spacing.xs),
+              Flexible(
+                child: Text(
+                  'module.js · ${kbLabel(module.codeBytes)} · '
+                  '${shortHash(module.bundleHash)}',
+                  style: MorkvaTypography.mono(
+                    theme.textTheme.bodySmall!,
+                  ).copyWith(color: theme.colorScheme.onSurfaceVariant),
+                ),
+              ),
+            ],
           ),
         ),
       ],

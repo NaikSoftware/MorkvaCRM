@@ -19,6 +19,10 @@ Future<T?> showAutomationSheet<T>(
     return showDialog<T>(
       context: context,
       builder: (context) => Dialog(
+        // The white sheet surface (DESIGN.md), not M3's surfaceContainerHigh
+        // default: the change summary box and the action row's tint are
+        // surfaceContainerHigh and vanished into it.
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
         shape: const RoundedRectangleBorder(borderRadius: Radii.lgAll),
         insetPadding: const EdgeInsets.all(Spacing.lg),
         clipBehavior: Clip.antiAlias,

@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart' show Icons;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/automation/automation.dart';
 import 'package:morkva_crm/features/automation/widgets/reason_copy.dart';
@@ -96,12 +97,22 @@ void main() {
     });
   });
 
+  test('the plan policy line reads as words', () {
+    expect(
+      askedFirstLine('review: auto-apply is off for this module'),
+      'Asked first: auto-apply is off for this module.',
+    );
+    expect(askedFirstLine('auto'), 'auto');
+  });
+
   group('chips', () {
     test('module, automation and apply chips', () {
       expect(moduleChip(ModuleStatus.ok), (
         label: 'Installed',
         tone: CopyTone.success,
+        icon: Icons.check_rounded,
       ));
+      expect(applyChip(EffectiveApply.ask).icon, Icons.visibility_outlined);
       expect(moduleChip(ModuleStatus.needsConsent).tone, CopyTone.warning);
       expect(moduleChip(ModuleStatus.broken).tone, CopyTone.error);
       for (final status in AutomationStatus.values) {

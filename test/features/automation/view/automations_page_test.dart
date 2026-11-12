@@ -100,6 +100,27 @@ void main() {
       final install = rig.runner.calls.singleWhere((c) => c.$1 == 'install');
       expect(install.$2[1], ['c_orders']);
     });
+
+    testWidgets('re-import of an installed module keeps its collections', (
+      tester,
+    ) async {
+      await seedModule();
+      rig.host.file = (name: 'x.morkva.json', text: stampBundle().encode());
+      await pump(tester);
+      await tester.tap(find.text('Import module').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Choose file'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+
+      final allow = find.widgetWithText(PrimaryButton, 'Allow and install');
+      expect(tester.widget<PrimaryButton>(allow).onPressed, isNotNull);
+      await tester.tap(allow);
+      await tester.pumpAndSettle();
+      final install = rig.runner.calls.singleWhere((c) => c.$1 == 'install');
+      expect(install.$2[1], ['c_orders']);
+    });
   });
 
   group('Automations tab', () {
@@ -249,12 +270,44 @@ void main() {
       expectLastCall(rig.host.calls, 'review', ['r_review']);
 
       expect(find.text('2 min ago'), findsOneWidget);
-      await tester.tap(find.text('Run again on #1042'));
+      // The table has a card column: the action needn't repeat the card.
+      await tester.tap(find.text('Run again'));
       await tester.pump();
       expect(rig.runner.methods, contains('runAgain'));
 
       await tester.tap(find.text('Module failed'));
       expectLastCall(rig.host.calls, 'openRun', ['r_failed']);
+    });
+
+    testWidgets('phone rows: the card in the second line; another window '
+        "'s review says why, with a muted ring", (tester) async {
+      await seedModule();
+      await rig.stores.automations.save(automation());
+      await rig.stores.runs.create(
+        storedRun(
+          'r_other',
+          status: RunStatus.awaitingReview,
+          sessionId: 't_other_window',
+        ),
+      );
+      await rig.stores.runs.create(
+        storedRun(
+          'r_failed',
+          status: RunStatus.failed,
+          reason: RunReason.moduleError,
+          startedAt: fixtureNow.subtract(const Duration(minutes: 2)),
+        ),
+      );
+      await pump(tester, tab: AutomationsTab.runs, size: phoneWindow);
+      expect(find.text('Module failed · #1042'), findsOneWidget);
+      expect(find.text('Run again on #1042'), findsOneWidget);
+      expect(
+        find.text(
+          'Review not available here — it was opened in another window, '
+          'or before Morkva restarted · #1042',
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('an undone run shows the muted undo glyph, not the check', (
