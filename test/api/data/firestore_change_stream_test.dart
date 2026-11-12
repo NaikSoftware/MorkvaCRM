@@ -310,6 +310,16 @@ void main() {
       expect(await drained(), isEmpty);
     });
 
+    test('a batch from an older epoch emits nothing', () async {
+      final write = repository.saveObjectsBatch([
+        ObjectCreate(note('n1')),
+      ], schemas: schemas);
+      await repository.dispose();
+      await repository.initialize(workspaceId);
+      expect((await write).failed, isEmpty);
+      expect(await drained(), isEmpty);
+    });
+
     test('every chunk of one call shares a minted commit id', () async {
       final writes = [
         for (var i = 0; i <= maxBatchWrites; i++) ObjectCreate(note('n$i')),

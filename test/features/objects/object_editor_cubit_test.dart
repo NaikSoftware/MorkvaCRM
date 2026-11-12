@@ -446,6 +446,7 @@ void main() {
       expect(await c.deleteChild(sublist, item), isTrue);
       await pumpEventQueue();
 
+      expect(repo.deleteBefores.single, same(item));
       final change = changes.single;
       expect(change.before, same(item));
       expect(change.after, isNull);

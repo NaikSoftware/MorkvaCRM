@@ -154,9 +154,12 @@ class FakeDataRepository implements DataRepository {
         ),
       );
 
-  void _emitObjects(String collectionId) => _subjectFor(
-    collectionId,
-  ).add(List.unmodifiable(_objects[collectionId] ?? const []));
+  void _emitObjects(String collectionId) {
+    final subject = _subjectFor(collectionId);
+    // A write after dispose is dropped, like the real repository's.
+    if (subject.isClosed) return;
+    subject.add(List.unmodifiable(_objects[collectionId] ?? const []));
+  }
 
   void _throwIfWriteFails() {
     final error = objectWriteError;
@@ -255,7 +258,7 @@ class FakeDataRepository implements DataRepository {
     MorkvaObject? before,
     MorkvaObject? after,
     WriteOrigin origin,
-  ) => _changes.add(
+  ) => _addChange(
     CardChange(
       collectionId: collectionId,
       cardId: cardId,
@@ -265,6 +268,11 @@ class FakeDataRepository implements DataRepository {
       origin: origin,
     ),
   );
+
+  // The real repository drops writes after dispose (epoch guard); so does this.
+  void _addChange(CardChange change) {
+    if (!_changes.isClosed) _changes.add(change);
+  }
 
   WriteOrigin _committed(WriteOrigin origin) =>
       origin.commitId == null ? origin.withCommitId(_ids.writeId()) : origin;
@@ -338,6 +346,7 @@ class FakeDataRepository implements DataRepository {
     WriteOrigin origin = const WriteOrigin.ui(),
   }) async {
     _throwIfWriteFails();
+    deleteBefores.add(before);
     final stood =
         before ??
         _objects[collectionId]?.where((o) => o.id == objectId).firstOrNull;
@@ -350,6 +359,9 @@ class FakeDataRepository implements DataRepository {
     }
   }
 
+  /// The `before` each [deleteObject] call was given, for assertions.
+  final deleteBefores = <MorkvaObject?>[];
+
   /// Count of [saveObjectsBatch] calls, for assertions.
   int batchCalls = 0;
 
@@ -358,8 +370,9 @@ class FakeDataRepository implements DataRepository {
   /// of the chunk is written (batches are atomic).
   String? Function(List<ObjectWrite> chunk)? batchWriteError;
 
-  /// When true, [saveObjectsBatch] applies its first chunk (and emits) but
-  /// never completes — like a batch waiting for a server ack while offline.
+  /// When true, [saveObjectsBatch] applies its first chunk (watchers see it)
+  /// but never completes and emits no [changes] — like a batch waiting for a
+  /// server ack while offline.
   bool batchNeverCompletes = false;
 
   /// When true, [saveObjectsBatch] never completes and writes nothing for a
@@ -454,8 +467,9 @@ class FakeDataRepository implements DataRepository {
         );
       }
       touched.forEach(_emitObjects);
-      changes.forEach(_changes.add);
+      // Like the real repository: a chunk emits only once its commit resolved.
       if (batchNeverCompletes) await Completer<void>().future;
+      changes.forEach(_addChange);
     }
     return BatchResult(written: written, failed: failed);
   }

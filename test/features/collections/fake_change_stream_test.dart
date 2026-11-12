@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -61,6 +62,7 @@ void main() {
       await pumpEventQueue();
 
       final [a, b] = changes;
+      expect(repo.deleteBefores, [same(given), null, null]);
       expect(a.before, same(given));
       expect(b.before, same(d2));
       expect([a.after, b.after], [null, null]);
@@ -113,6 +115,25 @@ void main() {
       expect(updated.after!['amount'], const NumberFieldValue(9));
       expect(updated.after!.updatedAt, stored('d1').updatedAt);
       expect(changes.map((c) => c.origin), everyElement(same(plan)));
+    });
+
+    test('an unacked batch emits nothing', () async {
+      repo.batchNeverCompletes = true;
+      unawaited(
+        repo.saveObjectsBatch(
+          [ObjectCreate(deal('d9', 9))],
+          schemas: {'deals': deals},
+        ),
+      );
+      await pumpEventQueue();
+      expect(changes, isEmpty);
+    });
+
+    test('writes after dispose are dropped', () async {
+      await repo.dispose();
+      await repo.saveObject(deal('d9', 9), schema: deals);
+      await repo.deleteObject('deals', 'd1');
+      expect(changes, isEmpty);
     });
 
     test('a failed batch chunk emits nothing', () async {
@@ -170,6 +191,7 @@ void main() {
       await pumpEventQueue();
 
       final [deleted, restored] = changes;
+      expect(repo.deleteBefores.single!.id, 'd1');
       expect(deleted.before!.id, 'd1');
       expect(deleted.after, isNull);
       expect(deleted.origin.kind, WriteKind.ui);
