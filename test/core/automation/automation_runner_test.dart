@@ -364,6 +364,22 @@ void main() {
       expect(rig.runner.canUndo(runId), isFalse);
     });
 
+    test(
+      'the duration is how long the module ran, not the review wait',
+      () async {
+        final runId = await rig.runner.pressCard('a_1', cardId: _order);
+        final waiting = await awaitingReview(runId);
+        expect(waiting.durationMs, isNotNull);
+        expect(waiting.durationMs, lessThan(60 * 1000));
+
+        rig.clock = DateTime.now().add(const Duration(hours: 1));
+        await rig.runner.approve(runId);
+        final doc = await settled(runId);
+        expect(doc.status, RunStatus.succeeded);
+        expect(doc.durationMs, waiting.durationMs);
+      },
+    );
+
     test('a review past its 8 h expires: approve is refused', () async {
       final runId = await rig.runner.pressCard('a_1', cardId: _order);
       await awaitingReview(runId);

@@ -941,6 +941,8 @@ final class AutomationRunner implements AutomationRunnerApi {
         run.status = RunStatus.awaitingReview;
         final record = run.record = base.copyWith(
           status: RunStatus.awaitingReview,
+          // How long the module ran; the review wait doesn't count.
+          durationMs: () => _now().difference(run.startedAt).inMilliseconds,
         );
         _create(record, epoch);
         // Uninstalled, revoked or changed while it ran: the watches that
@@ -1059,7 +1061,11 @@ final class AutomationRunner implements AutomationRunnerApi {
       status: status,
       reason: () => reason,
       endedAt: () => now,
-      durationMs: () => now.difference(run.startedAt).inMilliseconds,
+      durationMs: () =>
+          previous?.status == RunStatus.awaitingReview &&
+              previous?.durationMs != null
+          ? previous!.durationMs
+          : now.difference(run.startedAt).inMilliseconds,
       receipt: () => receipt ?? previous?.receipt,
       journalId: () => journalId ?? previous?.journalId,
       touchedCardIds: touched.isEmpty ? null : touched,
