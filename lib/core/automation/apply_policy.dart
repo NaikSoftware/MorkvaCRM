@@ -3,6 +3,9 @@ import '../harness/api/capability.dart' show Grants;
 import '../harness/automation_validation.dart' show moduleGrants;
 import '../harness/plan/plan.dart';
 
+/// The review reason of an automation set to Ask first.
+const kAskFirstPolicy = 'review: the automation asks first';
+
 /// What [ApplyPolicy.decide] chose for a sealed plan.
 sealed class ApplyDecision {
   const ApplyDecision();
@@ -45,7 +48,7 @@ final class ApplyPolicy {
     required bool Function(int items) takeBudget,
   }) {
     if (automation.apply != ApplyMode.auto) {
-      return const ApplyReview('review: the automation asks first');
+      return const ApplyReview(kAskFirstPolicy);
     }
     if (automation.autoBy != uid) {
       return const ApplyReview('review: auto-apply was set by another member');

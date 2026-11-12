@@ -205,10 +205,8 @@ void main() {
       find.textContaining('overwrite: ', findRichText: true),
       findsOneWidget,
     );
-    expect(
-      find.text('Asked first: the automation asks first.'),
-      findsOneWidget,
-    );
+    // The default Ask-first policy isn't repeated under the plan.
+    expect(find.textContaining('Asked first'), findsNothing);
     // A log written before the value pills: the line in words.
     expect(find.text('Shipped on: — → 12 Nov'), findsOneWidget);
     // Calls name the logged ids and say what they did.

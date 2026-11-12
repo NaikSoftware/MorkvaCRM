@@ -17,6 +17,7 @@ import '../bloc/automation_editor_cubit.dart' show filterOf;
 import '../bloc/automation_runs_cubit.dart';
 import '../bloc/modules_cubit.dart';
 import '../bloc/run_log_cubit.dart';
+import '../widgets/action_buttons.dart' show buttonTintOf;
 import '../widgets/reason_copy.dart';
 import '../widgets/status_chip.dart';
 import 'consent_sheet.dart';
@@ -1323,13 +1324,12 @@ class AutomationTile extends StatelessWidget {
         ),
       );
     }
-    final tints = theme.brightness == Brightness.light
-        ? CollectionTints.light
-        : CollectionTints.dark;
-    final slot = kButtonTintIds.indexOf(button.tint ?? '');
-    final tint = slot < 0
-        ? CollectionTints.of(automation.id, theme.brightness)
-        : tints[slot % tints.length];
+    // The same tint the button itself is drawn with.
+    final tint = buttonTintOf(
+      button.tint,
+      automation.trigger.collectionId,
+      theme.brightness,
+    );
     return Container(
       width: size,
       height: size,
@@ -1410,7 +1410,9 @@ class AutomationRowTile extends StatelessWidget {
       children: [
         Text(
           a.name,
-          style: theme.textTheme.titleSmall,
+          style: compact
+              ? theme.textTheme.titleSmall
+              : theme.textTheme.titleMedium,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),

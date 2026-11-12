@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../core/automation/apply_policy.dart';
 import '../../../core/automation/runner_api.dart';
 import '../../../core/domain/automation/automation.dart';
 import '../../../core/domain/domain.dart';
@@ -483,7 +484,8 @@ class _Detail extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: Spacing.xxs),
                 child: PlanLineRow(line: p),
               ),
-            if (log.policy case final policy?)
+            // The default "asks first" policy repeats the header's approval.
+            if (log.policy case final policy? when policy != kAskFirstPolicy)
               Padding(
                 padding: const EdgeInsets.only(top: Spacing.xs),
                 child: Text(askedFirstLine(policy), style: muted),
@@ -1040,7 +1042,7 @@ class _StepState extends State<_Step> {
                               const SizedBox(width: Spacing.xs),
                               Text(
                                 widget.title,
-                                style: theme.textTheme.titleSmall,
+                                style: theme.textTheme.titleMedium,
                               ),
                               if (widget.count != null) ...[
                                 const SizedBox(width: Spacing.xs),
@@ -1062,7 +1064,7 @@ class _StepState extends State<_Step> {
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: widget.summaryIcon == null
-                                        ? theme.textTheme.bodySmall?.copyWith(
+                                        ? theme.textTheme.bodyMedium?.copyWith(
                                             color: scheme.onSurfaceVariant,
                                           )
                                         : theme.textTheme.bodyMedium,
