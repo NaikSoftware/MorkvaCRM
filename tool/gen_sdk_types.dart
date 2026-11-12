@@ -717,7 +717,8 @@ List<List<String>> get _limits => [
     'Log lines',
     '$kMaxLogLinesPerRun per run, $kMaxLogLineChars chars each, 50 '
         'arguments',
-    'Longer lines are cut; extra lines are dropped and counted.',
+    'Longer lines are cut; lines past the cap are dropped and counted (but '
+        'still count as messages, below).',
   ],
   [
     'Progress',
@@ -726,15 +727,18 @@ List<List<String>> get _limits => [
   ],
   [
     'Timers',
-    '$kMaxPendingTimers pending, delay at most ${kSdkMaxDelayMs ~/ 1000} s '
-        'and the run\'s time left',
-    '`setTimeout` throws `RangeError`. Timers die with the run.',
+    '$kMaxPendingTimers pending',
+    'The next `setTimeout` throws `RangeError`. Delays are clamped to '
+        '${kSdkMaxDelayMs ~/ 1000} s and the run\'s time left; timers die '
+        'with the run.',
   ],
   [
     'Messages to the app',
     '$kMaxFramesPerSecond per second, ${kMaxFrameChars ~/ (1024 * 1024)} MB '
         'each, JSON depth $kMaxFrameDepth',
-    'The sandbox is killed: `failed: abuse`.',
+    'Every call, log line and progress update is one message. Over the rate, '
+        'or one message too big or too deep: the sandbox is killed, '
+        '`failed: abuse`.',
   ],
   ['Plan items', '$kMaxPlanItems', 'The run fails `limit_exceeded`.'],
   [

@@ -339,5 +339,21 @@ void sdkExampleTests(ScriptEngine Function() engine, {String? skip}) {
       );
       expect(sealedUpdates(o).keys.toSet(), low);
     }, skip: skip);
+
+    test('a button run on an empty view plans nothing', () async {
+      final o = await rig.run(
+        'low-stock-flag',
+        'flagLow',
+        collectionId: SeedIds.fabrics,
+        cardIds: const [],
+        params: {
+          'stockField': FabricFields.stock,
+          'flagField': ExampleFields.lowStock,
+        },
+      );
+      expect(o.status, RunStatus.succeeded, reason: _failure(o));
+      expect(o.plan, isNull);
+      expect(o.summary, 'No products shown');
+    }, skip: skip);
   });
 }

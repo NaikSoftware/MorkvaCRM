@@ -149,16 +149,18 @@ decides:
 - **Button runs and Run again** open the review now, unless the automation
   applies automatically.
 - **Event runs** wait in **Needs review** (the indicator in the sidebar).
+- The editor offers **Apply automatically** only when the module's
+  auto-apply switch is on and its manifest asks for none of `data:delete`,
+  `schema:write`, `schema:delete`, `views:write`.
 - **Automatic apply** happens only when all of these hold; otherwise the plan
   goes to review and the run log says which check failed:
   - the automation is set to **Apply automatically** by the signed-in person;
   - that person turned on auto-apply for the module (the module page's switch,
     the only place that can), and the consent still matches this exact
     bundle;
-  - the manifest asks for none of `data:delete`, `schema:write`,
-    `schema:delete`, `views:write` (the editor offers Auto only then);
   - the plan has at most 20 items, every one a low-risk card create or update
-    that clears no value, inside the effective grants;
+    that clears no value, inside the effective grants (deletes, schema and
+    view changes always wait for review);
   - the workspace has applied fewer than 1,000 items automatically in the last
     10 minutes.
 - **Approving a review** re-checks the live consent and the code: if either

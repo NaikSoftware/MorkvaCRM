@@ -275,10 +275,10 @@ A run ends `succeeded`, `awaiting_review`, `failed`, `timed_out`, `skipped`, `re
 | Arguments of one call | 256 KB of JSON | Refused `limit_exceeded`. |
 | Arguments per run | 2 MB of JSON | The run fails `limit_exceeded`. |
 | Time spent in ops per run | 5 s | The run fails `limit_exceeded`. |
-| Log lines | 500 per run, 500 chars each, 50 arguments | Longer lines are cut; extra lines are dropped and counted. |
+| Log lines | 500 per run, 500 chars each, 50 arguments | Longer lines are cut; lines past the cap are dropped and counted (but still count as messages, below). |
 | Progress | 10 per second, label 60 chars | Extra updates are dropped. |
-| Timers | 100 pending, delay at most 60 s and the run's time left | `setTimeout` throws `RangeError`. Timers die with the run. |
-| Messages to the app | 2000 per second, 1 MB each, JSON depth 64 | The sandbox is killed: `failed: abuse`. |
+| Timers | 100 pending | The next `setTimeout` throws `RangeError`. Delays are clamped to 60 s and the run's time left; timers die with the run. |
+| Messages to the app | 2000 per second, 1 MB each, JSON depth 64 | Every call, log line and progress update is one message. Over the rate, or one message too big or too deep: the sandbox is killed, `failed: abuse`. |
 | Plan items | 500 | The run fails `limit_exceeded`. |
 | Return value | 16 KB (900 KB inside the sandbox) | Only the summary is kept (over 900 KB: dropped). |
 | Auto-apply | 20 low-risk card creates/updates per run; 1000 items per workspace per 10 min | The plan waits for review instead. |
