@@ -218,12 +218,17 @@ final class ModulesState extends Equatable {
     this.loading = true,
     this.modules = const [],
     this.automations = const [],
+    this.loadFailed = false,
     this.error,
   });
 
   final bool loading;
   final List<ModuleEntry> modules;
   final List<AutomationEntry> automations;
+
+  /// The stores couldn't be read (denied, or the listener died): the tabs
+  /// show "Couldn't load" + Retry.
+  final bool loadFailed;
 
   /// The last refused action, shown as is.
   final String? error;
@@ -239,16 +244,18 @@ final class ModulesState extends Equatable {
     bool? loading,
     List<ModuleEntry>? modules,
     List<AutomationEntry>? automations,
+    bool? loadFailed,
     String? Function()? error,
   }) => ModulesState(
     loading: loading ?? this.loading,
     modules: modules ?? this.modules,
     automations: automations ?? this.automations,
+    loadFailed: loadFailed ?? this.loadFailed,
     error: error == null ? this.error : error(),
   );
 
   @override
-  List<Object?> get props => [loading, modules, automations, error];
+  List<Object?> get props => [loading, modules, automations, loadFailed, error];
 }
 
 /// The Modules and Automations tabs: installed modules and automations with
@@ -256,33 +263,50 @@ final class ModulesState extends Equatable {
 class ModulesCubit extends Cubit<ModulesState> {
   ModulesCubit(
     this._runner,
-    AutomationStores stores, {
+    this._stores, {
     required String uid,
     DateTime Function() now = DateTime.now,
-  }) : _now = now,
+  }) : _uid = uid,
+       _now = now,
        super(const ModulesState()) {
+    _listen();
+  }
+
+  final AutomationRunnerApi _runner;
+  final AutomationStores _stores;
+  final String _uid;
+  final DateTime Function() _now;
+  StreamSubscription<Object?>? _sub;
+
+  void _listen() {
     _sub =
         Rx.combineLatest3(
-          stores.modules.watch(),
-          stores.automations.watch(),
-          stores.grants.watch(uid),
-          (m, a, g) => joinEntries(m, a, g, uid: uid),
+          _stores.modules.watch(),
+          _stores.automations.watch(),
+          _stores.grants.watch(_uid),
+          (m, a, g) => joinEntries(m, a, g, uid: _uid),
         ).listen(
           (e) => emit(
             state.copyWith(
               loading: false,
+              loadFailed: false,
               modules: e.modules,
               automations: e.automations,
             ),
           ),
-          onError: (Object e) =>
-              emit(state.copyWith(loading: false, error: () => '$e')),
+          onError: (Object _) =>
+              emit(state.copyWith(loading: false, loadFailed: true)),
         );
   }
 
-  final AutomationRunnerApi _runner;
-  final DateTime Function() _now;
-  late final StreamSubscription<Object?> _sub;
+  /// "Retry" on a failed load: a failed Firestore listener is dead, so
+  /// subscribe again.
+  Future<void> retry() async {
+    await _sub?.cancel();
+    if (isClosed) return;
+    emit(state.copyWith(loading: true, loadFailed: false));
+    _listen();
+  }
 
   /// The row switch: saved at once (no save button). False when the
   /// automation is gone.
@@ -342,7 +366,7 @@ class ModulesCubit extends Cubit<ModulesState> {
 
   @override
   Future<void> close() async {
-    await _sub.cancel();
+    await _sub?.cancel();
     return super.close();
   }
 }

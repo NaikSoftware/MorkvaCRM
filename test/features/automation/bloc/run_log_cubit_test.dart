@@ -400,5 +400,25 @@ void main() {
       expect(cubit.state.row('run_a')?.undo, UndoState.afterReload);
       await cubit.close();
     });
+
+    test('a failed load is loadFailed, no raw error; Retry recovers', () async {
+      stores.failAll();
+      final cubit = build();
+      await settle();
+      expect(cubit.state.loading, isFalse);
+      expect(cubit.state.loadFailed, isTrue);
+      expect(cubit.state.error, isNull);
+
+      final module = stampModule();
+      await stores.modules.save(module);
+      await stores.automations.save(automation());
+      await stores.grants.save(uid, consentTo(module));
+      await seedRuns();
+      await cubit.retry();
+      await settle();
+      expect(cubit.state.loadFailed, isFalse);
+      expect(cubit.state.rows, hasLength(4));
+      await cubit.close();
+    });
   });
 }

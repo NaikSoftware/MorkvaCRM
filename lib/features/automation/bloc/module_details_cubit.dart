@@ -48,11 +48,15 @@ final class ModuleDetailsState extends Equatable {
     this.recentRuns = const [],
     this.engineUnavailable = false,
     this.busy = false,
+    this.loadFailed = false,
     this.error,
     this.testRun,
   });
 
   final bool loading;
+
+  /// The stores couldn't be read: "Couldn't load this module" + Retry.
+  final bool loadFailed;
 
   /// Null once loaded: the module is gone (uninstalled elsewhere).
   final ModuleEntry? entry;
@@ -100,6 +104,7 @@ final class ModuleDetailsState extends Equatable {
     List<RunRecord>? recentRuns,
     bool? engineUnavailable,
     bool? busy,
+    bool? loadFailed,
     String? Function()? error,
     TestRunState? Function()? testRun,
   }) => ModuleDetailsState(
@@ -109,6 +114,7 @@ final class ModuleDetailsState extends Equatable {
     recentRuns: recentRuns ?? this.recentRuns,
     engineUnavailable: engineUnavailable ?? this.engineUnavailable,
     busy: busy ?? this.busy,
+    loadFailed: loadFailed ?? this.loadFailed,
     error: error == null ? this.error : error(),
     testRun: testRun == null ? this.testRun : testRun(),
   );
@@ -121,6 +127,7 @@ final class ModuleDetailsState extends Equatable {
     recentRuns,
     engineUnavailable,
     busy,
+    loadFailed,
     error,
     testRun,
   ];
@@ -132,50 +139,67 @@ final class ModuleDetailsState extends Equatable {
 class ModuleDetailsCubit extends Cubit<ModuleDetailsState> {
   ModuleDetailsCubit(
     this._runner,
-    AutomationStores stores, {
+    this._stores, {
     required String uid,
     required this.moduleId,
-  }) : super(
+  }) : _uid = uid,
+       super(
          ModuleDetailsState(
            engineUnavailable: _runner.activity.engineUnavailable,
          ),
        ) {
-    _subs = [
-      Rx.combineLatest4(
-        stores.modules.watch(),
-        stores.automations.watch(),
-        stores.grants.watch(uid),
-        stores.runs.watchRecent(),
-        (m, a, g, r) => (entries: joinEntries(m, a, g, uid: uid), runs: r),
-      ).listen(
-        (s) => emit(
-          state.copyWith(
-            loading: false,
-            entry: () => s.entries.modules
-                .where((m) => m.module.id == moduleId)
-                .firstOrNull,
-            automations: [
-              for (final a in s.entries.automations)
-                if (a.automation.moduleId == moduleId) a,
-            ],
-            recentRuns: s.runs
-                .where((r) => r.moduleId == moduleId)
-                .take(5)
-                .toList(),
-          ),
-        ),
-        onError: (Object e) =>
-            emit(state.copyWith(loading: false, error: () => '$e')),
-      ),
-      _runner.activityChanges.listen(
-        (a) => emit(state.copyWith(engineUnavailable: a.engineUnavailable)),
-      ),
-    ];
+    _engine = _runner.activityChanges.listen(
+      (a) => emit(state.copyWith(engineUnavailable: a.engineUnavailable)),
+    );
+    _listen();
   }
 
   final AutomationRunnerApi _runner;
+  final AutomationStores _stores;
+  final String _uid;
   final String moduleId;
-  late final List<StreamSubscription<Object?>> _subs;
+  late final StreamSubscription<Object?> _engine;
+  StreamSubscription<Object?>? _sub;
+
+  void _listen() {
+    _sub =
+        Rx.combineLatest4(
+          _stores.modules.watch(),
+          _stores.automations.watch(),
+          _stores.grants.watch(_uid),
+          _stores.runs.watchRecent(),
+          (m, a, g, r) => (entries: joinEntries(m, a, g, uid: _uid), runs: r),
+        ).listen(
+          (s) => emit(
+            state.copyWith(
+              loading: false,
+              loadFailed: false,
+              entry: () => s.entries.modules
+                  .where((m) => m.module.id == moduleId)
+                  .firstOrNull,
+              automations: [
+                for (final a in s.entries.automations)
+                  if (a.automation.moduleId == moduleId) a,
+              ],
+              recentRuns: s.runs
+                  .where((r) => r.moduleId == moduleId)
+                  .take(5)
+                  .toList(),
+            ),
+          ),
+          onError: (Object _) =>
+              emit(state.copyWith(loading: false, loadFailed: true)),
+        );
+  }
+
+  /// "Retry" on a failed load: a failed Firestore listener is dead, so
+  /// subscribe again.
+  Future<void> retry() async {
+    await _sub?.cancel();
+    if (isClosed) return;
+    emit(state.copyWith(loading: true, loadFailed: false));
+    _listen();
+  }
 
   /// The consent sheet for the module as it is now. The sheet keeps this
   /// view, and [allow] gets its bundle: the hash is of what the user saw,
@@ -277,9 +301,8 @@ class ModuleDetailsCubit extends Cubit<ModuleDetailsState> {
 
   @override
   Future<void> close() async {
-    for (final s in _subs) {
-      await s.cancel();
-    }
+    await _engine.cancel();
+    await _sub?.cancel();
     return super.close();
   }
 }

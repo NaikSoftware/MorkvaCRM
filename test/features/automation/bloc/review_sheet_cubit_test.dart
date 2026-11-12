@@ -176,4 +176,15 @@ void main() {
     expect(cubit.state.run, isNull);
     await cubit.close();
   });
+
+  test('an unreadable run log never stops the sheet', () async {
+    stores.failAll();
+    stores.runs.getError = kPermissionDenied;
+    final cubit = build();
+    await settle();
+    expect(cubit.state.phase, ReviewPhase.review);
+    await cubit.approve();
+    expect(cubit.state.phase, ReviewPhase.done);
+    await cubit.close();
+  });
 }

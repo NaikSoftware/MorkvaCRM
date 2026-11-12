@@ -262,10 +262,15 @@ final class RunLogState extends Equatable {
     this.rows = const [],
     this.expanded = const {},
     this.live = const [],
+    this.loadFailed = false,
     this.error,
   });
 
   final bool loading;
+
+  /// The run log couldn't be read (denied, or the listener died): "Couldn't
+  /// load runs" + Retry.
+  final bool loadFailed;
   final RunFilter filter;
 
   /// Every run doc (≤ 200), mapped, newest first, unfiltered.
@@ -300,6 +305,7 @@ final class RunLogState extends Equatable {
     List<RunRow>? rows,
     Set<String>? expanded,
     List<RunView>? live,
+    bool? loadFailed,
     String? Function()? error,
   }) => RunLogState(
     loading: loading ?? this.loading,
@@ -307,11 +313,20 @@ final class RunLogState extends Equatable {
     rows: rows ?? this.rows,
     expanded: expanded ?? this.expanded,
     live: live ?? this.live,
+    loadFailed: loadFailed ?? this.loadFailed,
     error: error == null ? this.error : error(),
   );
 
   @override
-  List<Object?> get props => [loading, filter, rows, expanded, live, error];
+  List<Object?> get props => [
+    loading,
+    filter,
+    rows,
+    expanded,
+    live,
+    loadFailed,
+    error,
+  ];
 }
 
 /// The Runs tab and the run detail page: run docs mapped for this session
@@ -324,18 +339,29 @@ class RunLogCubit extends Cubit<RunLogState> {
     required String uid,
     RunFilter filter = const RunFilter(),
     DateTime Function() now = DateTime.now,
-  }) : _now = now,
+  }) : _uid = uid,
+       _now = now,
        super(RunLogState(filter: filter)) {
+    _listen();
+  }
+
+  final AutomationRunnerApi _runner;
+  final AutomationStores _stores;
+  final String _uid;
+  final DateTime Function() _now;
+  StreamSubscription<Object?>? _sub;
+
+  void _listen() {
     _sub =
         Rx.combineLatest5(
           _stores.runs.watchRecent(),
           _stores.modules.watch(),
           _stores.automations.watch(),
-          _stores.grants.watch(uid),
+          _stores.grants.watch(_uid),
           _runner.activityChanges.startWith(_runner.activity),
           (runs, m, a, g, activity) => (
             runs: runs,
-            automations: joinEntries(m, a, g, uid: uid).automations,
+            automations: joinEntries(m, a, g, uid: _uid).automations,
             activity: activity,
           ),
         ).listen(
@@ -343,15 +369,20 @@ class RunLogCubit extends Cubit<RunLogState> {
             _last = s;
             _emitRows();
           },
-          onError: (Object e) =>
-              emit(state.copyWith(loading: false, error: () => '$e')),
+          onError: (Object _) =>
+              emit(state.copyWith(loading: false, loadFailed: true)),
         );
   }
 
-  final AutomationRunnerApi _runner;
-  final AutomationStores _stores;
-  final DateTime Function() _now;
-  late final StreamSubscription<Object?> _sub;
+  /// "Retry" on a failed load: a failed Firestore listener is dead, so
+  /// subscribe again.
+  Future<void> retry() async {
+    await _sub?.cancel();
+    if (isClosed) return;
+    emit(state.copyWith(loading: true, loadFailed: false));
+    _listen();
+  }
+
   ({
     List<RunRecord> runs,
     List<AutomationEntry> automations,
@@ -371,6 +402,7 @@ class RunLogCubit extends Cubit<RunLogState> {
     emit(
       state.copyWith(
         loading: false,
+        loadFailed: false,
         live: [
           for (final r in s.activity.runs)
             if (r.status != RunStatus.awaitingReview) r,
@@ -395,7 +427,8 @@ class RunLogCubit extends Cubit<RunLogState> {
     );
   }
 
-  /// Makes sure [runId] has a row (the run detail of an older run).
+  /// Makes sure [runId] has a row (the run detail of an older run). Throws
+  /// when the read fails (the page shows its error state).
   Future<void> load(String runId) async {
     if (state.row(runId) != null) return;
     final run = await _stores.runs.get(runId);
@@ -447,7 +480,7 @@ class RunLogCubit extends Cubit<RunLogState> {
 
   @override
   Future<void> close() async {
-    await _sub.cancel();
+    await _sub?.cancel();
     return super.close();
   }
 }

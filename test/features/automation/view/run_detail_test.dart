@@ -196,4 +196,29 @@ void main() {
     expect(json, contains('"startedAt": "2026-11-12T10:00:00.000Z"'));
     expect(json, contains('"op": "cards.update"'));
   });
+
+  testWidgets('an unreadable run: "Couldn\'t load this run", no spinner', (
+    tester,
+  ) async {
+    rig.stores.runs.getError = kPermissionDenied;
+    await pump(tester, 'r_old');
+    await tester.pumpAndSettle();
+    expect(find.text("Couldn't load this run"), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+
+    rig.stores.runs.getError = null;
+    await rig.stores.runs.create(storedRun('r_old', summary: 'Stamped #7'));
+    await tester.tap(find.text('Retry'));
+    await tester.pumpAndSettle();
+    expect(find.text("Couldn't load this run"), findsNothing);
+    expect(find.textContaining('Stamped #7'), findsWidgets);
+  });
+
+  testWidgets('a failed run log: "Couldn\'t load this run"', (tester) async {
+    rig.stores.failAll();
+    await pump(tester, 'r_old');
+    await tester.pumpAndSettle();
+    expect(find.text("Couldn't load this run"), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+  });
 }

@@ -219,4 +219,22 @@ void main() {
       );
     });
   });
+
+  test('a failed load is loadFailed, no raw error; Retry recovers', () async {
+    stores.failAll();
+    final cubit = build();
+    await settle();
+    expect(cubit.state.loading, isFalse);
+    expect(cubit.state.loadFailed, isTrue);
+    expect(cubit.state.error, isNull);
+
+    await stores.modules.save(module); // the stores read again
+    await stores.automations.save(automation());
+    await stores.grants.save(uid, consentTo(module));
+    await cubit.retry();
+    await settle();
+    expect(cubit.state.loadFailed, isFalse);
+    expect(cubit.state.modules, hasLength(1));
+    await cubit.close();
+  });
 }

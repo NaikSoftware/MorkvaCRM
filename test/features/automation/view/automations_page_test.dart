@@ -308,6 +308,44 @@ void main() {
     );
   });
 
+  group('load failure', () {
+    for (final (name, size) in [('wide', wideWindow), ('phone', phoneWindow)]) {
+      for (final (tab, title) in [
+        (AutomationsTab.modules, "Couldn't load modules"),
+        (AutomationsTab.automations, "Couldn't load automations"),
+        (AutomationsTab.runs, "Couldn't load runs"),
+      ]) {
+        testWidgets('$name ${tab.name}: "$title", no raw error', (
+          tester,
+        ) async {
+          rig.stores.failAll();
+          await pump(tester, tab: tab, size: size);
+          await tester.pumpAndSettle();
+          expect(find.text(title), findsOneWidget);
+          expect(find.byType(CircularProgressIndicator), findsNothing);
+          expect(find.textContaining('permission-denied'), findsNothing);
+          expect(find.byType(SnackBar), findsNothing);
+        });
+      }
+    }
+
+    testWidgets('Retry subscribes again and shows the runs', (tester) async {
+      rig.stores.failAll();
+      await pump(tester, tab: AutomationsTab.runs);
+      await tester.pumpAndSettle();
+      expect(find.text("Couldn't load runs"), findsOneWidget);
+
+      // The rules now allow it: each store has data again.
+      await seedModule();
+      await rig.stores.automations.save(automation());
+      await rig.stores.runs.create(storedRun('r1', summary: 'Stamped #1042'));
+      await tester.tap(find.text('Retry'));
+      await tester.pumpAndSettle();
+      expect(find.text("Couldn't load runs"), findsNothing);
+      expect(find.text('Stamped #1042'), findsOneWidget);
+    });
+  });
+
   group('breakpoints and dark', () {
     for (final (name, size) in [
       ('tablet', tabletWindow),

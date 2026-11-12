@@ -72,8 +72,17 @@ class _RunDetailPageState extends State<RunDetailPage>
     } else {
       body = FutureBuilder<void>(
         future: _loading,
-        builder: (context, snap) =>
-            snap.connectionState != ConnectionState.done || state.loading
+        builder: (context, snap) => state.loadFailed || snap.hasError
+            ? AutomationLoadError(
+                title: "Couldn't load this run",
+                onRetry: () {
+                  setState(() {
+                    _loading = runLog.load(widget.runId);
+                  });
+                  if (state.loadFailed) runLog.retry();
+                },
+              )
+            : snap.connectionState != ConnectionState.done || state.loading
             ? const Center(child: LoadingIndicator())
             : const EmptyState(
                 icon: Icons.history,

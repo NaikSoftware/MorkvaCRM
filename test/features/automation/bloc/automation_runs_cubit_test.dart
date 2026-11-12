@@ -304,4 +304,16 @@ void main() {
       await cubit.close();
     });
   });
+
+  test(
+    'unreadable stores leave the indicator idle, no uncaught error',
+    () async {
+      stores.failAll();
+      final cubit = build();
+      await settle();
+      expect(cubit.primary, IndicatorState.idle);
+      expect(cubit.state.recent, isEmpty);
+      await cubit.close();
+    },
+  );
 }

@@ -23,7 +23,20 @@ final class FakeStores {
     runs.dispose(),
     grants.dispose(),
   ]);
+
+  /// Every watch fails, as with undeployed rules.
+  void failAll() {
+    modules.failWatch();
+    automations.failWatch();
+    runs.failWatch();
+    grants.failWatch('u1');
+  }
 }
+
+/// What a denied Firestore listener reports.
+final Exception kPermissionDenied = Exception(
+  '[cloud_firestore/permission-denied] Missing or insufficient permissions.',
+);
 
 /// Docs by id with a replaying change stream.
 class _Docs<T> {
@@ -56,6 +69,10 @@ class _Docs<T> {
     if (docs.remove(id) != null) _subject.add(all);
   }
 
+  /// The watch reports [error] (replayed to new listeners until the next
+  /// change), like a listener the rules deny.
+  void fail(Object error) => _subject.addError(error);
+
   Future<void> dispose() => _subject.close();
 }
 
@@ -80,6 +97,8 @@ final class FakeModuleStore implements ModuleStore {
 
   @override
   Future<void> delete(String moduleId) async => _docs.remove(moduleId);
+
+  void failWatch([Object? error]) => _docs.fail(error ?? kPermissionDenied);
 
   Future<void> dispose() => _docs.dispose();
 }
@@ -106,6 +125,8 @@ final class FakeAutomationStore implements AutomationStore {
   @override
   Future<void> delete(String automationId) async => _docs.remove(automationId);
 
+  void failWatch([Object? error]) => _docs.fail(error ?? kPermissionDenied);
+
   Future<void> dispose() => _docs.dispose();
 }
 
@@ -124,8 +145,14 @@ final class FakeRunStore implements RunStore {
         .toList(),
   );
 
+  /// When set, [get] throws it (a denied read).
+  Object? getError;
+
   @override
-  Future<RunRecord?> get(String runId) async => _docs.read(runId);
+  Future<RunRecord?> get(String runId) async {
+    if (getError case final e?) throw e;
+    return _docs.read(runId);
+  }
 
   @override
   Future<void> create(RunRecord run) async {
@@ -157,6 +184,8 @@ final class FakeRunStore implements RunStore {
     return doomed.length;
   }
 
+  void failWatch([Object? error]) => _docs.fail(error ?? kPermissionDenied);
+
   Future<void> dispose() => _docs.dispose();
 }
 
@@ -184,6 +213,9 @@ final class FakeGrantStore implements GrantStore {
   @override
   Future<void> delete(String uid, String moduleId) async =>
       _of(uid).remove(moduleId);
+
+  void failWatch(String uid, [Object? error]) =>
+      _of(uid).fail(error ?? kPermissionDenied);
 
   Future<void> dispose() =>
       Future.wait([for (final d in _byUid.values) d.dispose()]);

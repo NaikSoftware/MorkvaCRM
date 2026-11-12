@@ -43,6 +43,11 @@ class ModuleDetailsPage extends StatelessWidget {
     final Widget content;
     if (state.loading) {
       content = const Center(child: LoadingIndicator());
+    } else if (state.loadFailed) {
+      content = AutomationLoadError(
+        title: "Couldn't load this module",
+        onRetry: context.read<ModuleDetailsCubit>().retry,
+      );
     } else if (entry == null) {
       content = const EmptyState(
         icon: Icons.extension_off_outlined,

@@ -128,10 +128,13 @@ class ReviewSheetCubit extends Cubit<ReviewSheetState> {
     : super(_initial(_runner, runId)) {
     _subs = [
       _runner.activityChanges.listen(_activity),
-      _stores.runs.watchRecent().listen((runs) {
-        final record = runs.where((r) => r.id == state.runId).firstOrNull;
-        if (record != null) emit(state.copyWith(record: () => record));
-      }),
+      _stores.runs.watchRecent().listen(
+        (runs) {
+          final record = runs.where((r) => r.id == state.runId).firstOrNull;
+          if (record != null) emit(state.copyWith(record: () => record));
+        },
+        onError: (Object _) {}, // the record is extra: keep the last one
+      ),
     ];
     unawaited(_loadRecord());
   }
@@ -163,8 +166,18 @@ class ReviewSheetCubit extends Cubit<ReviewSheetState> {
       r.runId,
   ];
 
+  /// The run doc, or null when it can't be read (the sheet keeps the last
+  /// one it had).
+  Future<RunRecord?> _read() async {
+    try {
+      return await _stores.runs.get(state.runId);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _loadRecord() async {
-    final record = await _stores.runs.get(state.runId);
+    final record = await _read();
     if (!isClosed && record != null && state.record == null) {
       emit(state.copyWith(record: () => record));
     }
@@ -194,7 +207,7 @@ class ReviewSheetCubit extends Cubit<ReviewSheetState> {
     try {
       await _runner.approve(state.runId, itemIds: state.selection);
       // The receipt decides whether the sheet closes: read it before done.
-      final record = await _stores.runs.get(state.runId);
+      final record = await _read();
       if (isClosed) return;
       emit(
         state.copyWith(
@@ -241,7 +254,7 @@ class ReviewSheetCubit extends Cubit<ReviewSheetState> {
   Future<void> _decided(Future<void> Function() action) async {
     try {
       await action();
-      final record = await _stores.runs.get(state.runId);
+      final record = await _read();
       if (!isClosed && record != null) {
         emit(state.copyWith(record: () => record, refusal: () => null));
       }

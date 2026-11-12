@@ -201,11 +201,15 @@ class AutomationRunsCubit extends Cubit<AutomationRunsState> {
     _subs = [
       _runner.activityChanges.listen((a) => emit(state.copyWith(activity: a))),
       _runner.finished.listen(_finished),
+      // Unreadable stores (denied, offline errors) leave the indicator as
+      // the runner reports it; the pages show the load error.
       stores.runs.watchRecent().listen(
         (runs) => emit(state.copyWith(recent: runs)),
+        onError: (Object _) {},
       ),
       stores.automations.watch().listen(
         (all) => emit(state.copyWith(anyEnabled: all.any((a) => a.enabled))),
+        onError: (Object _) {},
       ),
     ];
   }

@@ -263,4 +263,26 @@ void main() {
       stampId,
     ]);
   });
+
+  testWidgets('a failed load: "Couldn\'t load this module" + Retry', (
+    tester,
+  ) async {
+    rig.stores.failAll();
+    await pump(tester);
+    await tester.pump();
+    await tester.pump();
+    expect(find.text("Couldn't load this module"), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(find.textContaining('permission-denied'), findsNothing);
+
+    // The rules allow it again: every store reads.
+    await rig.stores.modules.save(module);
+    await consent();
+    await rig.stores.automations.save(automation());
+    await rig.stores.runs.create(storedRun('r1'));
+    await tester.tap(find.text('Retry'));
+    await tester.pump();
+    await tester.pump();
+    expect(find.text("Couldn't load this module"), findsNothing);
+  });
 }

@@ -268,4 +268,23 @@ void main() {
     expect(cubit.state.engineUnavailable, isTrue);
     await cubit.close();
   });
+
+  test('a failed load is loadFailed, no raw error; Retry recovers', () async {
+    stores.failAll();
+    final cubit = build();
+    await settle();
+    expect(cubit.state.loading, isFalse);
+    expect(cubit.state.loadFailed, isTrue);
+    expect(cubit.state.error, isNull);
+
+    await stores.modules.save(module);
+    await stores.automations.save(automation());
+    await stores.grants.save(uid, consentTo(module));
+    await stores.runs.create(runRecord('run_1'));
+    await cubit.retry();
+    await settle();
+    expect(cubit.state.loadFailed, isFalse);
+    expect(cubit.state.entry, isNotNull);
+    await cubit.close();
+  });
 }

@@ -552,10 +552,13 @@ class _NewAutomationAction extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          'Install a module first',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
+        // Flexible: the header gives the action ~512 px (less on a phone).
+        Flexible(
+          child: Text(
+            'Install a module first',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
         const SizedBox(width: Spacing.sm),
@@ -690,6 +693,31 @@ class CountBadge extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The stores couldn't be read (rules, a dead listener): a calm empty
+/// state with Retry instead of a raw exception.
+class AutomationLoadError extends StatelessWidget {
+  const AutomationLoadError({
+    super.key,
+    required this.title,
+    required this.onRetry,
+  });
+
+  final String title;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => EmptyState(
+    icon: Icons.cloud_off_outlined,
+    title: title,
+    message: 'Check your connection and try again.',
+    action: SecondaryButton(
+      label: 'Retry',
+      icon: Icons.refresh,
+      onPressed: onRetry,
+    ),
+  );
 }
 
 /// A top-of-page banner (`Radii.md`, live region): amber, error or info.
@@ -868,6 +896,12 @@ class _ModulesTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (state.loading) return const Center(child: LoadingIndicator());
+    if (state.loadFailed) {
+      return AutomationLoadError(
+        title: "Couldn't load modules",
+        onRetry: context.read<ModulesCubit>().retry,
+      );
+    }
     final host = context.read<AutomationsHost>();
     final ask = host.askMorkva;
     if (state.modules.isEmpty) {
@@ -1047,6 +1081,12 @@ class _AutomationsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (state.loading) return const Center(child: LoadingIndicator());
+    if (state.loadFailed) {
+      return AutomationLoadError(
+        title: "Couldn't load automations",
+        onRetry: context.read<ModulesCubit>().retry,
+      );
+    }
     final host = context.read<AutomationsHost>();
     final collections = automationCollections(context);
     final pad = automationsExpanded(context) ? Spacing.xxl : Spacing.md;
@@ -1409,8 +1449,14 @@ class _RunsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (state.loading) return const Center(child: LoadingIndicator());
-    final host = context.read<AutomationsHost>();
     final runLog = context.read<RunLogCubit>();
+    if (state.loadFailed) {
+      return AutomationLoadError(
+        title: "Couldn't load runs",
+        onRetry: runLog.retry,
+      );
+    }
+    final host = context.read<AutomationsHost>();
     final filter = state.filter;
     final pad = automationsExpanded(context) ? Spacing.xxl : Spacing.md;
     final picked = automations

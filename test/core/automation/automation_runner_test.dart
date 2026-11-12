@@ -1537,6 +1537,16 @@ void main() {
       await awaitingReview(runId);
     });
 
+    test('a press still runs while every store watch fails', () async {
+      await rig.install();
+      await rig.automation();
+      rig.stamps();
+      rig.fakes.failAll(); // e.g. rules denying the listeners
+      await rig.start();
+      final runId = await rig.runner.pressCard('a_1', cardId: _order);
+      await awaitingReview(runId);
+    });
+
     test('reset drops the live run without writing its doc', () async {
       await rig.install();
       await rig.automation();
