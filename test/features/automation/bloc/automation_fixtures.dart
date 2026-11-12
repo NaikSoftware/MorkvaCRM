@@ -80,6 +80,7 @@ RunRecord runRecord(
   List<String> touched = const [],
   String moduleId = stampId,
   RunError? error,
+  DateTime? changedAt,
 }) => RunRecord(
   id: id,
   status: status,
@@ -97,6 +98,7 @@ RunRecord runRecord(
     collectionId: 'c_orders',
     cardId: cardId,
     cardLabel: '#1042',
+    changedAt: changedAt,
   ),
   apply: ApplyMode.ask,
   by: 'user:$uid',
