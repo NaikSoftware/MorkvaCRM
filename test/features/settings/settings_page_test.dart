@@ -7,10 +7,10 @@ import '../automation/view/automation_view_harness.dart' show setWindow;
 
 void main() {
   for (final (name, size, scale) in [
-    ('a short window', const Size(390, 360), 1.0),
-    ('large text on a phone', const Size(390, 640), 2.0),
+    ('a short window', const Size(390, 240), 1.0),
+    ('large text on a landscape phone', const Size(844, 330), 2.0),
   ]) {
-    testWidgets('$name scrolls instead of overflowing', (tester) async {
+    testWidgets('$name scrolls to Sign out', (tester) async {
       setWindow(tester, size);
       tester.platformDispatcher.textScaleFactorTestValue = scale;
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
@@ -22,7 +22,10 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      await tester.scrollUntilVisible(find.text('Sign out'), 100);
+      // Without the scroll view Sign out sat below the window, unreachable.
+      expect(find.text('Sign out').hitTestable(), findsNothing);
+      await tester.drag(find.byType(SettingsPage), const Offset(0, -400));
+      await tester.pumpAndSettle();
       expect(find.text('Sign out').hitTestable(), findsOneWidget);
     });
   }

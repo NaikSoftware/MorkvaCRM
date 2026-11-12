@@ -121,6 +121,21 @@ void main() {
       expect(find.text('Import from Trello'), findsNothing);
     });
 
+    for (final (name, size) in [('wide', wideWindow), ('phone', phoneWindow)]) {
+      testWidgets('$name: a scrim tap or drag keeps the sheet', (tester) async {
+        await open(tester, size: size);
+        await tester.tapAt(const Offset(4, 4));
+        await tester.pumpAndSettle();
+        expect(find.text('Import from Trello'), findsOneWidget);
+        await tester.drag(
+          find.text('Import from Trello'),
+          const Offset(0, 600),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('Import from Trello'), findsOneWidget);
+      });
+    }
+
     testWidgets('a picked file becomes a board row; remove takes it out', (
       tester,
     ) async {
