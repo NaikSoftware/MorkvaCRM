@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/automation/automation.dart';
 import 'package:morkva_crm/core/harness/harness.dart';
@@ -105,6 +108,43 @@ void main() {
     final paths = [for (final d in e.details!) d.path];
     expect(paths, containsAll(['manifest.name', 'manifest.network']));
     expect(paths.any((p) => p.startsWith('manifest.permissions')), isTrue);
+  });
+
+  test('declares the manifest keys, capabilities and action shape', () {
+    // Gemini only sees the declaration: an untyped manifest made it guess
+    // keys and capability names until the turn ran out (web e2e, 2026-11-12).
+    final args = m.p.registry.lookup('modules.save')!.descriptor.argsSchema;
+    final manifest =
+        (args['properties']! as Map)['manifest'] as Map<String, Object?>;
+    expect(JsonSchema.check(manifest), isEmpty);
+    final props = manifest['properties']! as Map;
+    expect(props.keys, containsAll(['id', 'permissions', 'actions']));
+    expect(manifest['required'], containsAll(['permissions', 'actions']));
+    final caps =
+        ((props['permissions'] as Map)['properties'] as Map)['capabilities']
+            as Map;
+    for (final cap in kCapabilityCopy.keys) {
+      expect(caps['description'], contains(cap));
+    }
+    final action = (props['actions'] as Map)['items'] as Map;
+    expect(
+      (action['properties'] as Map)['scope'],
+      containsPair('enum', ['card', 'collection', 'any']),
+    );
+
+    // Never stricter than parseManifest: every shipped manifest passes it.
+    final shipped = [
+      stampManifest(),
+      for (final dir in Directory('docs/sdk/examples').listSync())
+        if (dir is Directory)
+          jsonDecode(File('${dir.path}/manifest.json').readAsStringSync())
+              as Map<String, Object?>,
+    ];
+    expect(shipped.length, greaterThan(3));
+    for (final j in shipped) {
+      expect(JsonSchema.validate(manifest, j), isEmpty, reason: '${j['id']}');
+      parseManifest(j);
+    }
   });
 
   test('code over 256 KB is limit_exceeded', () async {

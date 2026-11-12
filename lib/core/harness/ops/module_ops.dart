@@ -597,6 +597,72 @@ final _runsGet = OperationDescriptor(
   },
 );
 
+/// The manifest's shape for the model; open objects, so `parseManifest`
+/// stays the one strict check and reports every problem at once.
+final Map<String, Object?> _manifestSchema = {
+  'type': 'object',
+  'description': 'The module manifest; unknown keys are refused.',
+  'properties': {
+    'id': JsonSchema.string(
+      description:
+          '3-40 lowercase letters, digits or dashes, starting with a letter.',
+    ),
+    'name': JsonSchema.string(
+      description: 'Up to 60 chars; never "Morkva" or "assistant".',
+    ),
+    'version': JsonSchema.string(description: 'Like "1.0.0".'),
+    'description': JsonSchema.string(),
+    'apiVersion': JsonSchema.integer(description: 'Always 2.'),
+    'timeoutMs': JsonSchema.integer(minimum: 1000, maximum: 60000),
+    'permissions': {
+      'type': 'object',
+      'properties': {
+        'capabilities': JsonSchema.array(
+          JsonSchema.string(),
+          minItems: 1,
+          description:
+              'From: ${kCapabilityCopy.keys.join(', ')}. data:write and '
+              'data:delete need data:read; schema:write, schema:delete and '
+              'views:write need schema:read.',
+        ),
+      },
+      'required': ['capabilities'],
+    },
+    'actions': JsonSchema.array(
+      {
+        'type': 'object',
+        'properties': {
+          'id': JsonSchema.string(
+            description:
+                'The id passed to morkva.action: letters, digits, _; '
+                'starts with a letter.',
+          ),
+          'label': JsonSchema.string(description: 'Button text, ≤ 40 chars.'),
+          'description': JsonSchema.string(),
+          'scope': JsonSchema.enumOf(
+            [for (final s in ActionScope.values) s.name],
+            description:
+                'card: card buttons and card events; collection: '
+                'collection buttons.',
+          ),
+          'icon': JsonSchema.enumOf(kActionIconIds),
+          'input': {
+            'type': 'object',
+            'description':
+                'Optional JSON Schema object of the settings an automation '
+                'fills in (params); string properties may have format '
+                '"field" or "collection".',
+          },
+        },
+        'required': ['id', 'label', 'scope'],
+      },
+      minItems: 1,
+      maxItems: 20,
+    ),
+  },
+  'required': ['id', 'name', 'version', 'apiVersion', 'permissions', 'actions'],
+};
+
 final _modulesSave = OperationDescriptor(
   id: 'modules.save',
   kind: OpKind.plan,
@@ -606,10 +672,7 @@ final _modulesSave = OperationDescriptor(
       'it also grants the manifest\'s permissions in the named collections.',
   argsSchema: JsonSchema.object(
     {
-      'manifest': {
-        'type': 'object',
-        'description': 'The module manifest (docs/sdk/manifest.md).',
-      },
+      'manifest': _manifestSchema,
       'code': JsonSchema.string(
         description: 'The module code: an IIFE bundle.',
       ),

@@ -54,6 +54,8 @@ void main() {
       expect(text, contains('morkva.action(id, async (input, ctx) => …)'));
       expect(text, contains('await morkva.call(op, args)'));
       expect(text, contains('Modules have no network.'));
+      expect(text, contains('ctx.card'));
+      expect(text, contains('keyed by field id'));
       expect(text, contains('bind it with automations_save'));
       expect(text, contains('check it with modules_testRun on a real card'));
       expect(text, contains('runs_list then runs_get'));

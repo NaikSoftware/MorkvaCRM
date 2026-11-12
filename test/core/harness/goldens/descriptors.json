@@ -4549,7 +4549,125 @@
         "properties": {
           "manifest": {
             "type": "object",
-            "description": "The module manifest (docs/sdk/manifest.md)."
+            "description": "The module manifest; unknown keys are refused.",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "3-40 lowercase letters, digits or dashes, starting with a letter."
+              },
+              "name": {
+                "type": "string",
+                "description": "Up to 60 chars; never \"Morkva\" or \"assistant\"."
+              },
+              "version": {
+                "type": "string",
+                "description": "Like \"1.0.0\"."
+              },
+              "description": {
+                "type": "string"
+              },
+              "apiVersion": {
+                "type": "integer",
+                "description": "Always 2."
+              },
+              "timeoutMs": {
+                "type": "integer",
+                "minimum": 1000,
+                "maximum": 60000
+              },
+              "permissions": {
+                "type": "object",
+                "properties": {
+                  "capabilities": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "From: schema:read, data:read, data:write, data:delete, schema:write, schema:delete, views:write, ui:navigate. data:write and data:delete need data:read; schema:write, schema:delete and views:write need schema:read.",
+                    "minItems": 1
+                  }
+                },
+                "required": [
+                  "capabilities"
+                ]
+              },
+              "actions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "The id passed to morkva.action: letters, digits, _; starts with a letter."
+                    },
+                    "label": {
+                      "type": "string",
+                      "description": "Button text, ≤ 40 chars."
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "scope": {
+                      "type": "string",
+                      "enum": [
+                        "card",
+                        "collection",
+                        "any"
+                      ],
+                      "description": "card: card buttons and card events; collection: collection buttons."
+                    },
+                    "icon": {
+                      "type": "string",
+                      "enum": [
+                        "cards",
+                        "grid",
+                        "box",
+                        "truck",
+                        "cart",
+                        "bag",
+                        "tag",
+                        "people",
+                        "person",
+                        "business",
+                        "store",
+                        "money",
+                        "receipt",
+                        "calendar",
+                        "task",
+                        "folder",
+                        "note",
+                        "star",
+                        "flag",
+                        "home",
+                        "car",
+                        "build",
+                        "pets",
+                        "restaurant"
+                      ]
+                    },
+                    "input": {
+                      "type": "object",
+                      "description": "Optional JSON Schema object of the settings an automation fills in (params); string properties may have format \"field\" or \"collection\"."
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "label",
+                    "scope"
+                  ]
+                },
+                "minItems": 1,
+                "maxItems": 20
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "version",
+              "apiVersion",
+              "permissions",
+              "actions"
+            ]
           },
           "code": {
             "type": "string",

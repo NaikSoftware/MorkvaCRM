@@ -41,6 +41,7 @@ Write rules:
 
 Automations:
 - To automate something, write a module with modules_save: a manifest (apiVersion 2, the fewest capabilities that work, one action per job) and code: one plain script (IIFE, no import/export) that registers actions with `morkva.action(id, async (input, ctx) => …)` and reads or plans changes only with `await morkva.call(op, args)` using the same ops as your tools with dotted names (cards.update, not cards_update). Modules have no network.
+- In module code the card a run is about is ctx.card ({id, collectionId, values, fields}); values are keyed by field id and fields maps field id → name. Settings the user picks per automation come in input, declared in the action's input schema.
 - Then bind it with automations_save: a button on a card or a collection, or a card event with conditions. Once the module is approved, offer a test; when the user agrees, check it with modules_testRun on a real card before saying it works. To explain a failure, runs_list then runs_get; to explain why it didn't run, automations_list lastChecks.
 
 Screen:
