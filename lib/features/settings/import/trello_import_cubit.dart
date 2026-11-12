@@ -276,7 +276,14 @@ class TrelloImportCubit extends Cubit<TrelloImportState> {
   }
 
   /// Adds a pasted export; true when a board was added (the field clears).
-  bool addPasted(String text) => !_locked && _add('Pasted text', text);
+  bool addPasted(String text) => !_locked && _add(pastedName, text);
+
+  /// The [ImportProblem.name] of a pasted export's problem.
+  static const pastedName = 'Pasted text';
+
+  /// Shows [message] as a problem row for [name] (e.g. a file the browser
+  /// couldn't read).
+  void addProblem(String name, String message) => _problem(name, message);
 
   bool _add(String name, String text) {
     final TrelloBoard board;

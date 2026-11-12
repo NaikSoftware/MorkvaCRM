@@ -26,6 +26,7 @@ class TrelloBoard {
     this.checklists = const [],
     this.customFields = const [],
     this.comments = const [],
+    this.actionsCapped = false,
   });
 
   final String id;
@@ -40,6 +41,9 @@ class TrelloBoard {
 
   /// The `commentCard` actions (an export keeps only the newest 1000 actions).
   final List<TrelloComment> comments;
+
+  /// The export hit Trello's 1000-action cap, so older comments are missing.
+  final bool actionsCapped;
 
   static const _notABoard = TrelloFormatException(
     "This isn't a Trello board export. Use Export as JSON on the board.",
@@ -89,6 +93,7 @@ class TrelloBoard {
         for (final action in _maps(json['actions']))
           if (action['type'] == 'commentCard') ?TrelloComment._fromJson(action),
       ],
+      actionsCapped: _maps(json['actions']).length >= 1000,
     );
   }
 }

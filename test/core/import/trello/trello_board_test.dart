@@ -66,6 +66,15 @@ void main() {
       expect(board.customFields, isEmpty);
     });
 
+    test('an export at the 1000-action cap is flagged as cut off', () {
+      expect(TrelloBoard.parse(fixture).actionsCapped, isFalse);
+      final actions = List.filled(1000, '{"type":"updateCard"}').join(',');
+      final capped = TrelloBoard.parse(
+        '{"id":"b1","name":"Busy","lists":[],"cards":[],"actions":[$actions]}',
+      );
+      expect(capped.actionsCapped, isTrue);
+    });
+
     test('keeps the first of entries that repeat an id', () {
       final board = TrelloBoard.parse(
         '{"id":"b1","name":"Tiny","lists":[{"id":"l1","name":"A"},'
