@@ -37,7 +37,7 @@ final class CardShaper {
       final stored = derived.base[cardId];
       return stored == null
           ? null
-          : _card(derived.schema, derived.deriveWith(stored)!, grants);
+          : await _card(derived.schema, derived.deriveWith(stored)!, grants);
     } on MissingCollectionException {
       return null;
     }
@@ -46,11 +46,11 @@ final class CardShaper {
   /// `ctx.card` from an event image [object] of [collection] whose
   /// calculated values are already filled (`DerivedSnapshot.deriveWith`):
   /// a `CardRef` without `data:read`.
-  Map<String, Object?>? card(
+  Future<Map<String, Object?>?> card(
     Collection collection,
     MorkvaObject? object,
     Grants grants,
-  ) {
+  ) async {
     if (object == null || !grants.allowsCollection(collection.id)) {
       return null;
     }
@@ -61,39 +61,63 @@ final class CardShaper {
 
   /// `trigger.before` / `trigger.after`: like [card], but null without
   /// `data:read`.
-  Map<String, Object?>? image(
+  Future<Map<String, Object?>?> image(
     Collection collection,
     MorkvaObject? object,
     Grants grants,
-  ) => grants.allows(Capability.dataRead)
+  ) async => grants.allows(Capability.dataRead)
       ? card(collection, object, grants)
       : null;
 
-  Map<String, Object?> _card(
+  // Holds the granted reference targets while shaping, as `cards.get`
+  // does, so titles do not depend on what happens to be cached.
+  Future<Map<String, Object?>> _card(
     Collection collection,
     MorkvaObject object,
     Grants grants,
-  ) {
-    final readable = [
-      for (final f in collection.fields)
-        if (!readsUngranted(collection, f, grants, cache.collections)) f,
-    ];
-    final values = <String, Object?>{};
-    for (final f in readable) {
-      final shown = shaper.value(
-        f,
-        object[f.id] ?? f.emptyValue(),
-        referenceTitle: (cid, id) => _title(grants, cid, id),
-      );
-      if (shown != null) values[f.id] = shown;
+  ) async {
+    final lease = await _leaseTargets(collection, grants);
+    try {
+      final readable = [
+        for (final f in collection.fields)
+          if (!readsUngranted(collection, f, grants, cache.collections)) f,
+      ];
+      final values = <String, Object?>{};
+      for (final f in readable) {
+        final shown = shaper.value(
+          f,
+          object[f.id] ?? f.emptyValue(),
+          referenceTitle: (cid, id) => _title(grants, cid, id),
+        );
+        if (shown != null) values[f.id] = shown;
+      }
+      return {
+        'id': object.id,
+        'collectionId': collection.id,
+        'title': shaper.title(collection, object),
+        'values': values,
+        'fields': {for (final f in readable) f.id: shaper.name(f.name)},
+      };
+    } finally {
+      lease?.release();
     }
-    return {
-      'id': object.id,
-      'collectionId': collection.id,
-      'title': shaper.title(collection, object),
-      'values': values,
-      'fields': {for (final f in readable) f.id: shaper.name(f.name)},
+  }
+
+  Future<Lease?> _leaseTargets(Collection collection, Grants grants) async {
+    final targets = {
+      for (final f in collection.fields)
+        if (presentedAs(f, f.emptyValue()).$1
+            case ReferenceFieldDefinition(:final targetCollectionId)
+            when grants.allowsCollection(targetCollectionId) &&
+                cache.collection(targetCollectionId) != null)
+          targetCollectionId,
     };
+    if (targets.isEmpty) return null;
+    try {
+      return await cache.lease(targets);
+    } on MissingCollectionException {
+      return null; // titles stay hidden
+    }
   }
 
   String? _title(Grants grants, String collectionId, String id) {

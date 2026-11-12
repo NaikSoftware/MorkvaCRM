@@ -54,6 +54,7 @@ final class BridgeRequest {
     this.timeZoneName = '',
     this.timeout = const Duration(seconds: 20),
     this.onProgress,
+    this.log,
   });
 
   final String moduleId;
@@ -75,6 +76,10 @@ final class BridgeRequest {
 
   /// Module progress, throttled to [kMaxProgressPerSecond].
   final void Function(RunProgress progress)? onProgress;
+
+  /// The run's log, when the runner fills its own lines (`triggerEval`,
+  /// `policy`) and builds it again after the outcome; else a new one.
+  final RunLogBuilder? log;
 }
 
 /// How the run's script phase ended.
@@ -145,7 +150,7 @@ final class ScriptBridge {
 final class BridgeRun {
   BridgeRun._(this._bridge, this.request)
     : actor = Actor.plugin(request.moduleId),
-      _log = RunLogBuilder(now: _bridge.now) {
+      _log = request.log ?? RunLogBuilder(now: _bridge.now) {
     turnId = _bridge.harness.openTurn(actor);
     _kinds = {for (final d in _bridge.harness.descriptors) d.id: d.kind};
     unawaited(_run());
@@ -294,8 +299,8 @@ final class BridgeRun {
         if (!_admit(_progress, kMaxProgressPerSecond)) return;
         request.onProgress?.call(
           RunProgress(
-            done: done < 0 ? 0 : done.toInt(),
-            total: total < 0 ? 0 : total.toInt(),
+            done: _count(done),
+            total: _count(total),
             label: label == null
                 ? null
                 : cutText(label, kMaxProgressLabelChars),
@@ -304,7 +309,7 @@ final class BridgeRun {
       case CallFrame(:final id, :final op, :final args):
         _call(id, op, args);
       case InvalidCallFrame(:final id?, :final reason):
-        _calls++;
+        if (_overCallCap(id, '?', null)) return;
         _answer(id, '?', null, error: _error(ErrorCode.invalidArgs, reason));
       case InvalidCallFrame():
         break; // no id: nothing to answer
@@ -323,19 +328,25 @@ final class BridgeRun {
     return true;
   }
 
+  /// Counts a call; the one past [kMaxCallsPerRun] is refused and ends
+  /// the run.
+  bool _overCallCap(int id, String op, Map<String, Object?>? args) {
+    if (++_calls <= kMaxCallsPerRun) return false;
+    _answer(
+      id,
+      op,
+      args,
+      error: _error(
+        ErrorCode.limitExceeded,
+        'A run makes at most $kMaxCallsPerRun calls.',
+      ),
+    );
+    _kill('limit_exceeded');
+    return true;
+  }
+
   void _call(int id, String op, Map<String, Object?>? args) {
-    if (++_calls > kMaxCallsPerRun) {
-      _answer(
-        id,
-        op,
-        args,
-        error: _error(
-          ErrorCode.limitExceeded,
-          'A run makes at most $kMaxCallsPerRun calls.',
-        ),
-      );
-      return _kill('limit_exceeded');
-    }
+    if (_overCallCap(id, op, args)) return;
     final bytes = args == null ? 0 : utf8.encode(jsonEncode(args)).length;
     _argsBytes += bytes;
     if (_argsBytes > kMaxRunArgsBytes) {
@@ -597,6 +608,9 @@ final class BridgeRun {
         error: RunError(code: reason.wire, message: message, stack: stack),
         summary: _log.summary,
       );
+
+  // JSON can carry 1e999 (Infinity) through decodeFrame.
+  static int _count(num n) => n.isFinite && n > 0 ? n.toInt() : 0;
 
   static String _killMessage(String reason) => switch (reason) {
     'cancelled' => 'Stopped by you.',

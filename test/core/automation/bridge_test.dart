@@ -222,6 +222,35 @@ void main() {
       },
     );
 
+    test('a runner-supplied log keeps its own lines', () async {
+      r = Rig();
+      final log = RunLogBuilder(now: () => r.clock)
+        ..triggerEval = 'whereB=false whereA=true';
+      r.engine.action = (m, _) async {
+        m.log('info', ['hi']);
+        return null;
+      };
+      final out = await r.bridge
+          .start(
+            BridgeRequest(
+              moduleId: _module,
+              code: _code,
+              actionId: 'run',
+              input: null,
+              context: _ctx,
+              grants: Grants(kModuleGrantable),
+              workspaceId: 'w1',
+              today: today,
+              log: log,
+            ),
+          )
+          .outcome;
+      expect(out.log.triggerEval, 'whereB=false whereA=true');
+      expect(out.log.console.single.text, 'hi');
+      log.policy = 'review: 23 items > 20';
+      expect(log.build().policy, 'review: 23 items > 20');
+    });
+
     test(
       'a call the action did not await still lands before the seal',
       () async {
@@ -563,11 +592,25 @@ void main() {
       expect(reply.error!['code'], 'invalid_args');
     });
 
+    test('malformed calls count toward the call cap', () async {
+      r = Rig(seed: false);
+      final out = await r.run((m, _) async {
+        for (var i = 1; i <= kMaxCallsPerRun + 1; i++) {
+          m.send('{"t":"call","id":$i,"op":"x","args":[1]}');
+        }
+        await Completer<void>().future;
+        return null;
+      });
+      expect(out.reason, RunReason.limitExceeded);
+      expect(out.log.calls, hasLength(kMaxCallsPerRun + 1));
+    });
+
     test('progress is throttled to $kMaxProgressPerSecond/s with the label '
         'cut', () async {
       r = Rig(seed: false);
       final seen = <RunProgress>[];
       final run = r.start((m, _) async {
+        m.send('{"t":"progress","done":1e999,"total":-3}');
         for (var i = 0; i < 15; i++) {
           m.progress(i + 0.5, 15, label: 'L' * 80);
         }
@@ -576,8 +619,9 @@ void main() {
       }, onProgress: seen.add);
       await run.outcome;
       expect(seen, hasLength(kMaxProgressPerSecond));
-      expect(seen.first.done, 0);
-      expect(seen.first.label!.length, kMaxProgressLabelChars);
+      expect((seen.first.done, seen.first.total), (0, 0));
+      expect(seen[1].done, 0);
+      expect(seen[1].label!.length, kMaxProgressLabelChars);
     });
   });
 

@@ -45,6 +45,29 @@ void main() {
     expect(values[OrderFields.created], isA<String>());
   });
 
+  test(
+    'reference titles show for a target that is no calculation source',
+    () async {
+      final fabric = q.seed.fabricCards.firstWhere(
+        (f) =>
+            f[FabricFields.supplier] is ReferenceFieldValue &&
+            (f[FabricFields.supplier]! as ReferenceFieldValue)
+                .objectIds
+                .isNotEmpty,
+      );
+      expect(q.cache.current(SeedIds.clients), isNull, reason: 'not held yet');
+      final card = (await shaper.current(
+        SeedIds.fabrics,
+        fabric.id,
+        grants(),
+        today: today,
+      ))!;
+      final supplier =
+          (card['values']! as Map)[FabricFields.supplier]! as List<Object?>;
+      expect((supplier.single! as Map)['title'], isA<String>());
+    },
+  );
+
   test('calculated values reading an ungranted collection and reference '
       'titles outside the grants are withheld', () async {
     final card = (await shaper.current(
@@ -79,12 +102,12 @@ void main() {
       );
       final orders = q.collection(SeedIds.orders);
       final stored = q.seed.orderCards.first;
-      expect(shaper.card(orders, stored, noRead), {
+      expect(await shaper.card(orders, stored, noRead), {
         'id': stored.id,
         'collectionId': SeedIds.orders,
       });
-      expect(shaper.image(orders, stored, noRead), isNull);
-      expect(shaper.image(orders, stored, grants()), isNotNull);
+      expect(await shaper.image(orders, stored, noRead), isNull);
+      expect(await shaper.image(orders, stored, grants()), isNotNull);
     },
   );
 
@@ -107,7 +130,10 @@ void main() {
       await shaper.current('c_gone', order, grants(), today: today),
       isNull,
     );
-    expect(shaper.image(q.collection(SeedIds.orders), null, grants()), isNull);
+    expect(
+      await shaper.image(q.collection(SeedIds.orders), null, grants()),
+      isNull,
+    );
   });
 
   test(
@@ -124,7 +150,7 @@ void main() {
           },
         ),
       );
-      final card = shaper.card(derived.schema, image, grants())!;
+      final card = (await shaper.card(derived.schema, image, grants()))!;
       expect((card['values']! as Map)[OrderFields.total], 300);
     },
   );
