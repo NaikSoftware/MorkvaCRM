@@ -26,7 +26,7 @@ an approval round-trip (owner preference).
 > automations row, Close while writing, "stalled" wording), the UI decisions and the mockups win.
 
 Settings gets an **Import** section with a "Trello" row ("Boards, lists, cards and checklists").
-It opens a three-step sheet (`showAutomationSheet`: 560 dialog on wide, full-height bottom sheet on
+It opens a sheet with two steps, then an Importing → Done phase with no step counter (`showAutomationSheet`: 560 dialog on wide, full-height bottom sheet on
 phone; *my call:* a sheet, not a `/settings/import` route, so the phone back button is not routed to
 Home):
 
@@ -67,7 +67,7 @@ https://claude.ai/artifact/VtcEYDWkDHVfygGtoAtwEL, local copies `docs/superpower
   copy all of it and use Paste"). Files/Paste `SegmentedButton` 44 px tall. Files: multi-file picker.
   Paste: mono field + "Add board" — parses, appends a row, clears the field. Empty list: "No boards
   yet" box; footer hint "Add at least one board", Continue disabled. Parse error: inline error row
-  (`Semantics(liveRegion)`), dismissible. The same board again: inline note "Already added", not a
+  (`Semantics(liveRegion)`), dismissible. The same board again: "Already added" (see Round 2 additions), not a
   second row.
 - Step 2 order: neutral automations note first ("Automations can't come along. …"), then the
   archived switch, then Collections. Each board is a bordered group: the board row is the head
