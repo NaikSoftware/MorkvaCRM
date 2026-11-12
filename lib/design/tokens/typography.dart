@@ -66,4 +66,11 @@ abstract final class MorkvaTypography {
   static TextStyle tabular(TextStyle style) => style.copyWith(
         fontFeatures: const [FontFeature.tabularFigures()],
       );
+
+  /// Returns [style] in the platform monospace face (code, logs, pasted
+  /// JSON) — a system font, so nothing is downloaded.
+  static TextStyle mono(TextStyle style) => style.copyWith(
+        fontFamily: 'monospace',
+        fontFamilyFallback: const ['Roboto Mono', 'Courier New'],
+      );
 }
