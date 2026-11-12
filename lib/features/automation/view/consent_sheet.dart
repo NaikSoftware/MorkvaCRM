@@ -496,7 +496,22 @@ class _ConsentSheetState extends State<ConsentSheet> {
                 const SizedBox(width: Spacing.sm),
                 Flexible(child: Text(a.label, style: label)),
                 const SizedBox(width: Spacing.xs),
-                HugChip(label: scopeTag(a.scope), tone: CopyTone.neutral),
+                // In dark the row is surfaceContainerHigh, the neutral
+                // chip's own fill: one step up so the chip shows.
+                Theme(
+                  data: theme.brightness == Brightness.light
+                      ? theme
+                      : theme.copyWith(
+                          colorScheme: scheme.copyWith(
+                            surfaceContainerHigh:
+                                scheme.surfaceContainerHighest,
+                          ),
+                        ),
+                  child: HugChip(
+                    label: scopeTag(a.scope),
+                    tone: CopyTone.neutral,
+                  ),
+                ),
               ],
             ),
           ),

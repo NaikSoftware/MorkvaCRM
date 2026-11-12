@@ -202,6 +202,13 @@ void main() {
     );
   });
 
+  testWidgets('radio titles are 500 14, not body-large 16', (tester) async {
+    await pump(tester, build());
+    final style = tester.widget<Text>(find.text('Ask first')).style!;
+    expect(style.fontSize, 14);
+    expect(style.fontWeight, FontWeight.w500);
+  });
+
   testWidgets('When: the two button tiles share one height', (tester) async {
     await pump(tester, build());
     Finder tile(String title) => find

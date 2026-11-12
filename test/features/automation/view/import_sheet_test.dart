@@ -97,6 +97,29 @@ void main() {
     expect(continueButton(tester).onPressed, isNotNull);
   });
 
+  testWidgets('file: the installed bundle itself says so, no "replaces"', (
+    tester,
+  ) async {
+    await rig.stores.modules.save(stampModule());
+    rig.host.file = (name: 'stamp.morkva.json', text: stampBundle().encode());
+    await open(tester);
+    await tester.pump();
+    await tester.tap(find.text('Choose file'));
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining(
+        'This version (v1.0.0) is already installed.',
+        findRichText: true,
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('replaces it', findRichText: true),
+      findsNothing,
+    );
+    expect(continueButton(tester).onPressed, isNotNull);
+  });
+
   testWidgets('a file the browser cannot read says so, nothing uncaught', (
     tester,
   ) async {

@@ -365,7 +365,9 @@ class _AutomationsPageState extends State<AutomationsPage>
     final host = _host;
     final ask = host.askMorkva;
 
-    final Widget? action = switch (widget.tab) {
+    // Wide: in the header. Phone: the first row of the tab's list, so the
+    // tab bar sits under the app bar on every tab.
+    Widget? actionFor(AutomationsTab tab) => switch (tab) {
       AutomationsTab.modules => Wrap(
         alignment: WrapAlignment.end,
         spacing: Spacing.xs,
@@ -373,7 +375,7 @@ class _AutomationsPageState extends State<AutomationsPage>
         children: [
           if (ask != null)
             TextActionButton(
-              label: 'Ask Morkva to write one',
+              label: expanded ? 'Ask Morkva to write one' : 'Ask Morkva',
               icon: Icons.auto_awesome_outlined,
               onPressed: () => ask('Write a module that '),
             ),
@@ -414,21 +416,7 @@ class _AutomationsPageState extends State<AutomationsPage>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (expanded)
-                    _Header(action: action)
-                  else if (action != null)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        Spacing.md,
-                        0,
-                        Spacing.md,
-                        Spacing.xs,
-                      ),
-                      child: Align(
-                        alignment: Alignment.centerRight,
-                        child: action,
-                      ),
-                    ),
+                  if (expanded) _Header(action: actionFor(widget.tab)),
                   _Tabs(
                     controller: _tabs,
                     // No "0" for lists that failed to load.
@@ -461,10 +449,19 @@ class _AutomationsPageState extends State<AutomationsPage>
                       controller: _tabs,
                       physics: const NeverScrollableScrollPhysics(),
                       children: [
-                        _ModulesTab(state: modules, onImport: _import),
+                        _ModulesTab(
+                          state: modules,
+                          onImport: _import,
+                          lead: expanded
+                              ? null
+                              : actionFor(AutomationsTab.modules),
+                        ),
                         _AutomationsTab(
                           state: modules,
                           collectionId: widget.collectionId,
+                          lead: expanded
+                              ? null
+                              : actionFor(AutomationsTab.automations),
                         ),
                         _RunsTab(
                           state: runs,
@@ -508,13 +505,51 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        Spacing.xxl,
-        Spacing.lg,
-        Spacing.xxl,
-        Spacing.md,
+    final title = Text('Automations', style: theme.textTheme.headlineSmall);
+    final subtitle = Text(
+      'Modules add actions. Automations put them on buttons or '
+      'run them when cards change.',
+      style: theme.textTheme.bodyMedium?.copyWith(
+        color: theme.colorScheme.onSurfaceVariant,
       ),
+    );
+    const padding = EdgeInsets.fromLTRB(
+      Spacing.xxl,
+      Spacing.lg,
+      Spacing.xxl,
+      Spacing.md,
+    );
+    // Under 1240 the subtitle would wrap beside the Modules actions: it goes
+    // full width under a title row of one height on every tab, so it stays
+    // one line and the tabs stay put when switching.
+    if (MediaQuery.sizeOf(context).width < 1240) {
+      return Padding(
+        padding: padding,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 44),
+              child: Row(
+                children: [
+                  Expanded(child: title),
+                  if (action != null) ...[
+                    const SizedBox(width: Spacing.md),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 480),
+                      child: action,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            subtitle,
+          ],
+        ),
+      );
+    }
+    return Padding(
+      padding: padding,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -522,28 +557,13 @@ class _Header extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Automations', style: theme.textTheme.headlineSmall),
+                title,
                 const SizedBox(height: Spacing.xxs),
-                Text(
-                  'Modules add actions. Automations put them on buttons or '
-                  'run them when cards change.',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
+                subtitle,
               ],
             ),
           ),
-          // Under 1240 the subtitle wraps beside the Modules actions: every
-          // tab reserves that slot so the subtitle (and the tabs under it)
-          // stay put when switching.
-          if (MediaQuery.sizeOf(context).width < 1240) ...[
-            const SizedBox(width: Spacing.md),
-            SizedBox(
-              width: 420,
-              child: Align(alignment: Alignment.topRight, child: action),
-            ),
-          ] else if (action != null) ...[
+          if (action != null) ...[
             const SizedBox(width: Spacing.md),
             // Not Flexible: an even flex split wrapped the subtitle on the
             // Modules / Automations tabs (not on Runs), so the tabs jumped.
@@ -842,6 +862,7 @@ class AutomationSection extends StatelessWidget {
     this.trailing,
     this.footer,
     this.divided = true,
+    this.dense = false,
   });
 
   final String title;
@@ -854,6 +875,9 @@ class AutomationSection extends StatelessWidget {
   /// title's continuation.
   final bool divided;
 
+  /// A 14 px title in a ~40 px band (Running now), not the 44 px row.
+  final bool dense;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -863,36 +887,47 @@ class AutomationSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-              Spacing.md,
-              Spacing.sm,
-              Spacing.md,
-              divided ? Spacing.sm : 0,
-            ),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 44),
-              // Centred in the 44 px row: a title alone sat at its top and
-              // left an empty band under it.
-              child: Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: SizedBox(
-                  width: double.infinity,
-                  // A Wrap, so a wide trailing (Revoke + Change access) drops
-                  // under the title on a phone instead of overflowing.
-                  child: Wrap(
-                    alignment: WrapAlignment.spaceBetween,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    runSpacing: Spacing.xs,
-                    children: [
-                      Text(title, style: theme.textTheme.titleMedium),
-                      ?trailing,
-                    ],
+          if (dense)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                Spacing.md,
+                Spacing.sm,
+                Spacing.md,
+                Spacing.xs,
+              ),
+              child: Text(title, style: theme.textTheme.titleSmall),
+            )
+          else
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                Spacing.md,
+                Spacing.sm,
+                Spacing.md,
+                divided ? Spacing.sm : 0,
+              ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 44),
+                // Centred in the 44 px row: a title alone sat at its top and
+                // left an empty band under it.
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: SizedBox(
+                    width: double.infinity,
+                    // A Wrap, so a wide trailing (Revoke + Change access) drops
+                    // under the title on a phone instead of overflowing.
+                    child: Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      runSpacing: Spacing.xs,
+                      children: [
+                        Text(title, style: theme.textTheme.titleMedium),
+                        ?trailing,
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
           for (final (i, child) in children.indexed) ...[
             if (divided || i > 0) divider,
             child,
@@ -937,10 +972,13 @@ class MetaLine extends StatelessWidget {
 // ------------------------------------------------------------------ modules
 
 class _ModulesTab extends StatelessWidget {
-  const _ModulesTab({required this.state, required this.onImport});
+  const _ModulesTab({required this.state, required this.onImport, this.lead});
 
   final ModulesState state;
   final VoidCallback onImport;
+
+  /// Phone: the tab's actions, the list's first row.
+  final Widget? lead;
 
   @override
   Widget build(BuildContext context) {
@@ -992,7 +1030,11 @@ class _ModulesTab extends StatelessWidget {
     final pad = automationsExpanded(context) ? Spacing.xxl : Spacing.md;
     return LayoutBuilder(
       builder: (context, box) => box.maxWidth - 2 * pad < kTwoColumnWidth
-          ? _oneColumn(cards, pad)
+          ? _oneColumn([
+              if (lead != null)
+                Align(alignment: Alignment.centerRight, child: lead),
+              ...cards,
+            ], pad)
           : _twoColumns(cards, pad),
     );
   }
@@ -1128,10 +1170,13 @@ class _ModuleCard extends StatelessWidget {
 // -------------------------------------------------------------- automations
 
 class _AutomationsTab extends StatelessWidget {
-  const _AutomationsTab({required this.state, this.collectionId});
+  const _AutomationsTab({required this.state, this.collectionId, this.lead});
 
   final ModulesState state;
   final String? collectionId;
+
+  /// Phone: the tab's action, the list's first row.
+  final Widget? lead;
 
   @override
   Widget build(BuildContext context) {
@@ -1165,10 +1210,22 @@ class _AutomationsTab extends StatelessWidget {
                   host.openAutomations(tab: AutomationsTab.automations),
             ),
           );
+    final leadRow = lead == null
+        ? null
+        : Padding(
+            padding: const EdgeInsets.only(bottom: Spacing.xs),
+            child: Align(alignment: Alignment.centerRight, child: lead),
+          );
     if (filtered.isEmpty) {
       final noModules = state.modules.isEmpty;
       return Column(
         children: [
+          // The empty state has its own New automation; not the hint.
+          if (leadRow != null && noModules)
+            Padding(
+              padding: EdgeInsets.fromLTRB(pad, Spacing.md, pad, 0),
+              child: leadRow,
+            ),
           if (chip != null)
             Padding(
               padding: EdgeInsets.fromLTRB(pad, Spacing.md, pad, 0),
@@ -1198,6 +1255,7 @@ class _AutomationsTab extends StatelessWidget {
     return ListView(
       padding: EdgeInsets.fromLTRB(pad, Spacing.md, pad, Spacing.xl),
       children: [
+        ?leadRow,
         ?chip,
         for (final MapEntry(key: id, value: list) in groups.entries) ...[
           Padding(
@@ -1641,6 +1699,7 @@ class _RunsTab extends StatelessWidget {
             padding: EdgeInsets.fromLTRB(pad, 0, pad, Spacing.md),
             child: AutomationSection(
               title: 'Running now',
+              dense: true,
               children: [
                 for (final r in live)
                   LiveRunTile(run: r, onStop: () => runLog.stop(r.runId)),

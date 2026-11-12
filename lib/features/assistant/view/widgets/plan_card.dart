@@ -418,9 +418,13 @@ class _Header extends StatelessWidget {
 /// "Status  [Packing] → [Shipped]": the old value struck through on a warm
 /// sand tint, the new one on leaf.
 class DiffLine extends StatelessWidget {
-  const DiffLine({super.key, required this.change});
+  const DiffLine({super.key, required this.change, this.markEmpty = false});
 
   final PlanChange change;
+
+  /// A value set from empty reads "— → new" (the run log's Plan), not
+  /// just the new pill.
+  final bool markEmpty;
 
   @override
   Widget build(BuildContext context) {
@@ -440,8 +444,19 @@ class DiffLine extends StatelessWidget {
             color: scheme.onSurfaceVariant,
           ),
         ),
-        if (before != null && before.isNotEmpty) DiffPill(before, before: true),
-        if (before != null && before.isNotEmpty && after != null)
+        if (before != null && before.isNotEmpty)
+          DiffPill(before, before: true)
+        else if (markEmpty && after != null && after.isNotEmpty)
+          Text(
+            '—',
+            semanticsLabel: 'from empty',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+        if (after != null &&
+            ((before != null && before.isNotEmpty) ||
+                (markEmpty && after.isNotEmpty)))
           Icon(
             Icons.arrow_forward_rounded,
             size: 14,

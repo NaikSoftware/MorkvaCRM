@@ -206,6 +206,19 @@ void main() {
       sheetSurface(Theme.of(tester.element(find.byType(Dialog)))),
       isNot(scheme.surfaceContainerHigh),
     );
+    // The scope chip on that row is a step above it, not its own colour.
+    final chip = tester.widget<Container>(
+      find
+          .ancestor(
+            of: find.text('On a card'),
+            matching: find.byType(Container),
+          )
+          .first,
+    );
+    expect(
+      (chip.decoration! as BoxDecoration).color,
+      scheme.surfaceContainerHighest,
+    );
   });
 
   testWidgets('edit: only Where, Save returns the new scope', (tester) async {

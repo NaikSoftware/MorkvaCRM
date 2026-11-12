@@ -63,8 +63,12 @@ class RadioRow<T> extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: (titleStyle ?? theme.textTheme.bodyLarge)
-                            ?.copyWith(color: ink),
+                        style:
+                            (titleStyle ??
+                                    theme.textTheme.bodyMedium?.copyWith(
+                                      fontWeight: FontWeight.w500,
+                                    ))
+                                ?.copyWith(color: ink),
                       ),
                       if (hint != null)
                         Text(

@@ -478,6 +478,8 @@ class PlanLineRow extends StatelessWidget {
         if (rest != null) Text(rest, style: theme.textTheme.titleSmall),
         for (final c in line.changes)
           DiffLine(
+            // A create's fields have no before: no dashes there.
+            markEmpty: line.kind != 'createCard',
             change: PlanChange(
               field: c.field,
               beforeText: c.before,

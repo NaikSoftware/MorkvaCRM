@@ -174,7 +174,19 @@ class _ImportSheetState extends State<ImportSheet> {
             ),
           ),
         ],
-        if (replacing != null && bundle != null) ...[
+        if (replacing != null &&
+            bundle != null &&
+            replacing.module.codeHash ==
+                bundleHashOf(bundle.manifestJson, bundle.code)) ...[
+          const SizedBox(height: Spacing.sm),
+          AutomationBanner(
+            tone: CopyTone.neutral,
+            icon: Icons.check_circle_outline,
+            title:
+                'This version (v${bundle.manifest.version}) is already '
+                'installed.',
+          ),
+        ] else if (replacing != null && bundle != null) ...[
           const SizedBox(height: Spacing.sm),
           AutomationBanner(
             tone: CopyTone.warning,

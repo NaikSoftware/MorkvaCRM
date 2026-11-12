@@ -1196,9 +1196,10 @@ class _Do extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: _Labeled('Module', module)),
+              // 3:2, so a module name fits (the mock's 252 / 168 px).
+              Expanded(flex: 3, child: _Labeled('Module', module)),
               const SizedBox(width: Spacing.sm),
-              Expanded(child: _Labeled('Action', action)),
+              Expanded(flex: 2, child: _Labeled('Action', action)),
             ],
           )
         else ...[

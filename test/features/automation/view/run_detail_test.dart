@@ -100,7 +100,26 @@ void main() {
     expect(find.text('Iryna Melnyk'), findsOneWidget);
     expect(find.text('Shipped on'), findsOneWidget);
     expect(find.text('12 Nov'), findsOneWidget);
+    // Set from empty: a muted dash before the new value.
+    expect(find.text('—'), findsOneWidget);
     expect(find.text('Shipped on: — → 12 Nov'), findsNothing);
+    // Calls: one rule between each two rows; the op in 13 px mono.
+    expect(
+      find.descendant(
+        of: find
+            .ancestor(
+              of: find.text('Orders · Shipped on · planned 1 change'),
+              matching: find.byType(Column),
+            )
+            .first,
+        matching: find.byType(Divider),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      tester.widget<Text>(find.text('cards.update').first).style?.fontSize,
+      13,
+    );
     // Calls: collection and field names, then what happened; no key dump.
     expect(find.text('Orders · Shipped on · planned 1 change'), findsOneWidget);
     expect(

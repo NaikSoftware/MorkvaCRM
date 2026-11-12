@@ -466,14 +466,26 @@ class HeaderActionButtons extends StatelessWidget {
     final budget = headerWidth * 0.45;
     final widths = [for (final v in views) widthOf(v)];
     final all = widths.fold<double>(0, (s, w) => s + w + _gap);
+    // More grows with the state of what it hides ("Running… 2/3").
+    double moreWidth(Iterable<ButtonView> hidden) {
+      final loud = _loudest(hidden);
+      final icon = loud == null ? 0.0 : 18.0 + Spacing.xs;
+      return iconOnly
+          ? 44 + icon
+          : _MoreButton.chrome + icon + textWidth(_MoreButton.textOf(loud));
+    }
+
     var shown = views.length;
     if (all > budget) {
-      final more = iconOnly ? 44.0 : _MoreButton.chrome + textWidth('More');
-      var used = more;
+      var used = 0.0;
       shown = 0;
       while (shown < views.length && used + widths[shown] + _gap <= budget) {
         used += widths[shown] + _gap;
         shown++;
+      }
+      while (shown > 0 && used + moreWidth(views.skip(shown)) > budget) {
+        shown--;
+        used -= widths[shown] + _gap;
       }
     }
     return Row(
@@ -752,7 +764,23 @@ class _SaveAndRunMenu extends StatelessWidget {
   }
 }
 
-/// **More ▾**: the buttons that didn't fit (Stop under a live one).
+/// The view whose state **More** shows: running, then queued, waiting for
+/// review, last failed.
+ButtonView? _loudest(Iterable<ButtonView> views) {
+  for (final phase in const [
+    ButtonPhase.running,
+    ButtonPhase.queued,
+    ButtonPhase.review,
+    ButtonPhase.failed,
+  ]) {
+    final v = views.where((v) => v.phase == phase).firstOrNull;
+    if (v != null) return v;
+  }
+  return null;
+}
+
+/// **More ▾**: the buttons that didn't fit (Stop under a live one), with the
+/// state of the busiest one on its face.
 class _MoreButton extends StatelessWidget {
   const _MoreButton({
     required this.views,
@@ -768,10 +796,44 @@ class _MoreButton extends StatelessWidget {
 
   static const double chrome = Spacing.sm * 2 + Spacing.xxs + 18;
 
+  static String textOf(ButtonView? loud) =>
+      loud != null && loud.busy ? liveRunLabel(loud.run!) : 'More';
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final loud = _loudest(views);
+    final dot = loud == null ? null : _dotColor(context, loud);
+    final state = switch (loud?.phase) {
+      // `info`, as every other running spinner.
+      ButtonPhase.running => Center(
+        child: SizedBox(
+          width: 14,
+          height: 14,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: theme.extension<MorkvaSemanticColors>()!.info,
+          ),
+        ),
+      ),
+      ButtonPhase.queued => Icon(
+        Icons.schedule_rounded,
+        size: 18,
+        color: scheme.onSurface,
+      ),
+      _ when dot != null => Center(
+        child: Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+        ),
+      ),
+      _ => null,
+    };
+    final said = loud == null
+        ? 'More actions'
+        : 'More actions, ${loud.label} ${_stateWord(loud)}';
     return MenuAnchor(
       menuChildren: [
         for (final v in views) ...[
@@ -791,11 +853,13 @@ class _MoreButton extends StatelessWidget {
         ],
       ],
       builder: (context, controller, _) => Tooltip(
-        message: 'More actions',
+        message: loud == null
+            ? 'More actions'
+            : '${loud.label} · ${loud.busy ? liveRunLabel(loud.run!) : _stateWord(loud)}',
         child: PressableScale(
           onPressed: () =>
               controller.isOpen ? controller.close() : controller.open(),
-          semanticLabel: 'More actions',
+          semanticLabel: said,
           borderRadius: Radii.mdAll,
           child: SizedBox(
             height: 44,
@@ -810,8 +874,12 @@ class _MoreButton extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    if (state != null) ...[
+                      SizedBox(width: 18, height: 18, child: state),
+                      const SizedBox(width: Spacing.xs),
+                    ],
                     if (!iconOnly) ...[
-                      Text('More', style: theme.textTheme.labelLarge),
+                      Text(textOf(loud), style: theme.textTheme.labelLarge),
                       const SizedBox(width: Spacing.xxs),
                     ],
                     Icon(

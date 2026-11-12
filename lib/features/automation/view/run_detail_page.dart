@@ -423,8 +423,11 @@ class _Detail extends StatelessWidget {
         count: log.calls.length,
         children: [
           if (log.calls.isEmpty) Text('No calls', style: muted),
-          for (final c in log.calls)
+          for (final (i, c) in log.calls.indexed) ...[
+            if (i > 0)
+              Divider(height: 1, color: theme.colorScheme.outlineVariant),
             _CallRow(call: c, collections: collections, fallback: collection),
+          ],
           if (log.dropped.calls > 0)
             Text('+${log.dropped.calls} calls dropped', style: muted),
         ],
@@ -652,14 +655,17 @@ class _CallRow extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final color = call.ok ? scheme.onSurface : scheme.error;
-    final mono = MorkvaTypography.mono(theme.textTheme.bodySmall!);
+    // The mock's `.mono` is 400 13px/20px.
+    final mono = MorkvaTypography.mono(
+      theme.textTheme.bodyMedium!.copyWith(fontSize: 13, height: 20 / 13),
+    );
     final targets = callTargets(call.args, collections, fallback);
     final text = [
       if (targets.isNotEmpty) targets,
       if (!(call.ok && call.result == 'Done') || targets.isEmpty) call.result,
     ].join(' · ');
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: Spacing.xxs),
+      padding: const EdgeInsets.symmetric(vertical: Spacing.xs),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

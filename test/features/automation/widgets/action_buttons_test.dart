@@ -159,6 +159,62 @@ void main() {
       expect(argsOf('stop'), ['run_1']);
     });
 
+    // A run under More showed nothing in the header for its whole length.
+    testWidgets('running under More: More shows the spinner and n/N', (
+      tester,
+    ) async {
+      await rig.setUp(automations: three);
+      addTearDown(rig.dispose);
+      rig.runner.activity = RunActivity(
+        runs: [
+          liveRun(
+            'run_1',
+            automationId: 'a_flag',
+            label: 'Flag low stock',
+            progress: const RunProgress(done: 2, total: 3),
+          ),
+        ],
+      );
+      final semantics = tester.ensureSemantics();
+      await pump(tester, headerWidth: 1000);
+      expect(find.text('Flag low stock'), findsNothing);
+      expect(find.text('More'), findsNothing);
+      expect(find.text('Running… 2/3'), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(
+        find.bySemanticsLabel(RegExp('^More actions, Flag low stock running')),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+      semantics.dispose();
+    });
+
+    testWidgets('review under More: More says so with the amber dot', (
+      tester,
+    ) async {
+      await rig.setUp(automations: three);
+      addTearDown(rig.dispose);
+      rig.runner.activity = RunActivity(
+        runs: [
+          liveRun(
+            'run_1',
+            automationId: 'a_flag',
+            label: 'Flag low stock',
+            status: RunStatus.awaitingReview,
+          ),
+        ],
+      );
+      final semantics = tester.ensureSemantics();
+      await pump(tester, headerWidth: 1000);
+      expect(find.text('More'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel(
+          RegExp('^More actions, Flag low stock waiting for review'),
+        ),
+        findsOneWidget,
+      );      semantics.dispose();
+    });
+
     testWidgets('queued: clock and the position', (tester) async {
       await rig.setUp(automations: [three.first]);
       addTearDown(rig.dispose);

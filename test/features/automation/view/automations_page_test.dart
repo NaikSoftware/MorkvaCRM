@@ -522,9 +522,14 @@ void main() {
   });
 
   group('breakpoints and dark', () {
-    // At 1024 the Modules actions wrapped the subtitle and the tabs jumped
-    // 21 px on switching; every tab now keeps the same subtitle width.
+    // Under 1240 the subtitle goes full width under a title row of one
+    // height, so it doesn't wrap beside the actions and the tabs keep their
+    // y on every tab.
     testWidgets('tablet: the tab bar stays put across tabs', (tester) async {
+      // The test font is far wider than the real one: with "Ask Morkva to
+      // write one" the Modules actions wrap here (not in the app, checked
+      // live at 1024).
+      rig.host.askEnabled = false;
       await seedModule();
       final ys = <double>[];
       for (final tab in AutomationsTab.values) {
@@ -533,6 +538,48 @@ void main() {
         ys.add(tester.getTopLeft(find.byType(TabBar)).dy);
       }
       expect(ys.toSet(), hasLength(1), reason: '$ys');
+      // Modules: the subtitle sits under the actions, not beside them.
+      await pump(tester, size: tabletWindow);
+      await tester.pumpAndSettle();
+      final subtitle = find.textContaining('Modules add actions.');
+      expect(
+        tester.getTopLeft(subtitle).dy,
+        greaterThanOrEqualTo(
+          tester.getBottomLeft(find.text('Import module')).dy,
+        ),
+      );
+      expect(
+        tester.getTopLeft(subtitle).dx,
+        tester.getTopLeft(find.text('Automations').first).dx,
+      );
+    });
+
+    // The phone actions sat in a band above the tabs on two tabs only: the
+    // tab bar jumped up to ~97 px on switching.
+    testWidgets('phone: the tab bar has one y on every tab', (tester) async {
+      await seedModule();
+      await rig.stores.automations.save(automation());
+      final ys = <double>[];
+      for (final tab in AutomationsTab.values) {
+        await pump(tester, tab: tab, size: phoneWindow);
+        await tester.pumpAndSettle();
+        ys.add(tester.getTopLeft(find.byType(TabBar)).dy);
+      }
+      expect(ys.toSet(), hasLength(1), reason: '$ys');
+      // The actions are still there, under the tabs.
+      final tabsBottom = tester.getBottomLeft(find.byType(TabBar)).dy;
+      await pump(tester, size: phoneWindow);
+      await tester.pumpAndSettle();
+      expect(
+        tester.getTopLeft(find.text('Import module')).dy,
+        greaterThan(tabsBottom),
+      );
+      await pump(tester, tab: AutomationsTab.automations, size: phoneWindow);
+      await tester.pumpAndSettle();
+      expect(
+        tester.getTopLeft(find.text('New automation')).dy,
+        greaterThan(tabsBottom),
+      );
     });
 
     for (final (name, size) in [
