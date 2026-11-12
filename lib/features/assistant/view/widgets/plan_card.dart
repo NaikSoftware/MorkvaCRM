@@ -21,9 +21,9 @@ const kUndoWindowMinutes = 10;
 /// - "Approve N changes" follows the selection and is disabled at 0; a
 ///   collection delete also asks for the collection's name.
 ///
-/// - A module install ([PlanView.grantsPermissions]) gets the shield header;
-///   an automation enrolled into auto-apply adds "Applies changes without
-///   asking".
+/// - A module install ([PlanView.grantsPermissions]) or an automation enrolled
+///   into auto-apply ([PlanView.autoApplies]) gets the shield header; the
+///   latter also adds "Applies changes without asking".
 ///
 /// Settled cards collapse to one line ("Rejected — nothing changed"); an
 /// applied plan renders nothing, its [AppliedItem] follows it. Actions go
@@ -294,8 +294,10 @@ const kAppliesWithoutAsking = 'Applies changes without asking';
 /// The warning code of a module install (its text is the shield subtitle).
 const kGrantsPermissionsWarning = 'grants_permissions';
 
-/// The shield header: a module install that deletes nothing.
-bool _shield(PlanView plan) => plan.grantsPermissions && !plan.destructive;
+/// The shield header: a module install or an auto-apply enrolment that
+/// deletes nothing.
+bool _shield(PlanView plan) =>
+    (plan.grantsPermissions || plan.autoApplies) && !plan.destructive;
 
 /// "Update card", "Add field" — a plan item kind for a mixed plan's group.
 String kindLabel(String kind) {

@@ -662,15 +662,48 @@ void main() {
     ) async {
       final plan = AssistantSeeds.moduleWithAutoPlan;
       expect(plan.autoApplies, isTrue);
-      await pump(
-        tester,
-        PlanItem(id: 'm', plan: plan, selected: const {'i1', 'i2'}),
-      );
+      // What the user first sees: the high-risk module stays ticked with
+      // the automation that depends on it.
+      await pump(tester, PlanItem.proposed(id: 'm', plan: plan));
       expect(find.byIcon(Icons.bolt_rounded), findsOneWidget);
       // The banner and the item's own diff line.
       expect(find.text('Applies changes without asking'), findsNWidgets(2));
       expect(find.text('Approve 2 changes'), findsOneWidget);
       expect(find.byIcon(Icons.shield_outlined), findsOneWidget);
+    });
+
+    testWidgets('an auto-apply automation alone gets the shield header', (
+      tester,
+    ) async {
+      final plan = PlanView(
+        planId: 'p_auto',
+        title: 'Save “Stamp when shipped”',
+        risk: PlanRisk.medium,
+        rows: [AssistantSeeds.moduleWithAutoPlan.rows.last],
+      );
+      await pump(tester, PlanItem.proposed(id: 'a', plan: plan));
+      expect(find.byIcon(Icons.shield_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.edit_outlined), findsNothing);
+      expect(find.byIcon(Icons.bolt_rounded), findsOneWidget);
+    });
+
+    test('autoApplies fails closed unless apply is "ask"', () {
+      PlanView plan(String? apply) => PlanView(
+        planId: 'p',
+        title: 'x',
+        risk: PlanRisk.low,
+        rows: [
+          PlanRow(
+            itemId: 'i1',
+            kind: 'saveAutomation',
+            label: 'x',
+            apply: apply,
+          ),
+        ],
+      );
+      expect(plan(null).autoApplies, isTrue);
+      expect(plan('auto').autoApplies, isTrue);
+      expect(plan('ask').autoApplies, isFalse);
     });
 
     testWidgets('provenance always reads "Module · name (id)"', (tester) async {

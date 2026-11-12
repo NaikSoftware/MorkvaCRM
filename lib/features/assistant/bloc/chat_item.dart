@@ -550,9 +550,11 @@ final class PlanView extends Equatable {
   /// The plan installs or updates a module: the shield header.
   bool get grantsPermissions => rows.any((r) => r.kind == 'saveModule');
 
-  /// The plan enrols an automation into auto-apply.
+  /// The plan enrols an automation into auto-apply. Fails closed: any
+  /// automation not explicitly `ask` counts, so a missing or misspelled
+  /// `apply` still shows the consent banner.
   bool get autoApplies =>
-      rows.any((r) => r.kind == 'saveAutomation' && r.apply == 'auto');
+      rows.any((r) => r.kind == 'saveAutomation' && r.apply != 'ask');
 
   /// Rows grouped by kind, in first-appearance order. A plan that only
   /// creates one collection and its fields is one group: the collection
@@ -575,16 +577,21 @@ final class PlanView extends Equatable {
 
   /// The selection a fresh card starts with: every item, except that in a
   /// plan mixing several kinds, medium- and high-risk groups start unticked
-  /// (so a delete cannot ride along under "Approve N").
+  /// (so a delete cannot ride along under "Approve N"). Module and
+  /// automation saves stay ticked: the shield header already asks for that
+  /// consent, and unticking a module would decline the automation that
+  /// depends on it.
   Set<String> get defaultSelection {
     final groups = this.groups;
     final mixed = groups.length > 1;
     return {
       for (final g in groups)
-        if (!mixed || g.risk == PlanRisk.low)
+        if (!mixed || g.risk == PlanRisk.low || _consentKinds.contains(g.kind))
           for (final r in g.rows) r.itemId,
     };
   }
+
+  static const _consentKinds = {'saveModule', 'saveAutomation'};
 
   /// The same plan cut to its first [maxItems] rows (what is persisted).
   PlanView compact({int maxItems = 5}) => rows.length <= maxItems
