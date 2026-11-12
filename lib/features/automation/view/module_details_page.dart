@@ -656,14 +656,34 @@ class _Actions extends StatelessWidget {
 
   Future<void> _test(BuildContext context, ActionSpec action) {
     final allowed = state.consent?.collections;
+    // First the collections this action already runs on, then the consent's
+    // own order (the module's main collection is usually named first).
+    final used = [
+      for (final e in state.automations)
+        if (e.automation.actionId == action.id)
+          e.automation.trigger.collectionId,
+    ];
+    int rank(Collection c) {
+      final u = used.indexOf(c.id);
+      if (u >= 0) return u;
+      final a = allowed?.indexOf(c.id) ?? -1;
+      return a >= 0 ? used.length + a : 1 << 20;
+    }
+
     return showTestRunSheet(
       context,
       cubit: context.read<ModuleDetailsCubit>(),
       action: action,
-      collections: [
-        for (final c in collections)
-          if (allowed == null || allowed.contains(c.id)) c,
-      ],
+      collections:
+          [
+            for (final c in collections)
+              if (allowed == null || allowed.contains(c.id)) c,
+          ]..sort(
+            // List.sort isn't stable: ties keep the workspace order.
+            (a, b) => rank(a) != rank(b)
+                ? rank(a).compareTo(rank(b))
+                : collections.indexOf(a).compareTo(collections.indexOf(b)),
+          ),
       // shortcut: loads the whole collection for the picker; upgrade to a
       // search-backed query once collections run to thousands of cards.
       loadCards: (collection) async {

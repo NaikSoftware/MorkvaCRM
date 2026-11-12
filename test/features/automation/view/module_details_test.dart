@@ -201,6 +201,27 @@ void main() {
     },
   );
 
+  testWidgets('Test run starts on the consent\'s first collection', (
+    tester,
+  ) async {
+    // The workspace lists Clients first; the consent names Orders first.
+    rig.dispose();
+    rig = AutomationRig(collections: [clients, orders]);
+    await rig.stores.modules.save(module);
+    await rig.stores.grants.save(
+      uid,
+      consentTo(module, collections: const ['c_orders', 'c_clients']),
+    );
+    await pump(tester);
+    await tester.ensureVisible(find.text('Test run'));
+    await tester.tap(find.text('Test run'));
+    await tester.pumpAndSettle();
+    final dropdown = tester.widget<DropdownButton<String>>(
+      find.byType(DropdownButton<String>).first,
+    );
+    expect(dropdown.value, 'c_orders');
+  });
+
   testWidgets('actions: wide puts Test run at the row end; phone stacks it', (
     tester,
   ) async {
