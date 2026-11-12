@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:morkva_crm/core/harness/api/capability.dart';
 import 'package:morkva_crm/design/design.dart';
 import 'package:morkva_crm/features/assistant/bloc/assistant_state.dart';
 import 'package:morkva_crm/features/assistant/bloc/chat_item.dart';
@@ -560,6 +561,198 @@ void main() {
       );
       expect(find.text('Set Status to Shipped · 3 orders'), findsNothing);
     });
+  });
+
+  group('PlanCardScope only (the review sheet)', () {
+    Future<void> pumpBare(WidgetTester tester, PlanItem item) =>
+        pumpInPlanScope(tester, PlanCard(item: item), actions: actions);
+
+    testWidgets('a pending plan selects, approves and opens objects', (
+      tester,
+    ) async {
+      await pumpBare(
+        tester,
+        PlanItem.proposed(id: 'm6', plan: AssistantSeeds.shipPlan),
+      );
+      await tester.tap(find.text('Iryna Melnyk'));
+      await tester.tap(find.text('#1040'));
+      await tester.tap(find.text('Approve 3 changes'));
+      await tester.tap(find.text('Reject'));
+      expect(actions.calls, [
+        'select(p_ship, i2,i3)',
+        'open(c_orders, o_1040, null)',
+        'approve(p_ship)',
+        'reject(p_ship)',
+      ]);
+    });
+
+    testWidgets('an expired plan\'s Rebuild calls retry', (tester) async {
+      await pumpBare(
+        tester,
+        PlanItem.proposed(
+          id: 'm6',
+          plan: AssistantSeeds.shipPlan,
+        ).copyWith(status: PlanStatus.expired),
+      );
+      await tester.tap(find.text('Rebuild'));
+      expect(actions.calls, ['retry()']);
+    });
+  });
+
+  group('a module install', () {
+    testWidgets('shield header, never the deletion styling', (tester) async {
+      final plan = AssistantSeeds.moduleInstallPlan;
+      expect(plan.destructive, isFalse);
+      expect(plan.grantsPermissions, isTrue);
+      await pump(tester, PlanItem.proposed(id: 'm', plan: plan));
+
+      expect(find.byIcon(Icons.shield_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.delete_outline_rounded), findsNothing);
+      expect(find.text('Install “Stamp shipped date”'), findsOneWidget);
+      // The grants warning is the subtitle, not a second warning line.
+      expect(
+        find.text(
+          'Approving installs this module and lets it use these '
+          'permissions. Auto-apply stays off.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.byIcon(Icons.warning_amber_rounded), findsNothing);
+      expect(find.text('Create and change cards'), findsOneWidget);
+      expect(find.text('Install module'), findsOneWidget);
+      expect(find.text('Applies changes without asking'), findsNothing);
+      expect(find.textContaining('Module ·'), findsNothing);
+    });
+
+    testWidgets('an update says Update module', (tester) async {
+      final plan = PlanView.fromJson({
+        ...AssistantSeeds.moduleInstallPlan.toJson(),
+        'title': 'Update “Stamp shipped date”',
+      });
+      await pump(tester, PlanItem.proposed(id: 'm', plan: plan));
+      expect(find.text('Update module'), findsOneWidget);
+    });
+
+    testWidgets('View code hands the row to viewCode', (tester) async {
+      await pump(
+        tester,
+        PlanItem.proposed(id: 'm', plan: AssistantSeeds.moduleInstallPlan),
+      );
+      await tester.tap(find.text('View code'));
+      expect(actions.calls, ['viewCode(i1)']);
+    });
+
+    testWidgets('no code (a restored plan): no View code', (tester) async {
+      final plan = PlanView.fromJson(
+        AssistantSeeds.moduleInstallPlan.toJson()
+          ..['items'] = [
+            {
+              ...(AssistantSeeds.moduleInstallPlan.toJson()['items']! as List)
+                      .single
+                  as Map<String, Object?>,
+            }..remove('code'),
+          ],
+      );
+      await pump(tester, PlanItem.proposed(id: 'm', plan: plan));
+      expect(find.text('View code'), findsNothing);
+    });
+
+    testWidgets('an auto-apply automation says so above the rows', (
+      tester,
+    ) async {
+      final plan = AssistantSeeds.moduleWithAutoPlan;
+      expect(plan.autoApplies, isTrue);
+      await pump(
+        tester,
+        PlanItem(id: 'm', plan: plan, selected: const {'i1', 'i2'}),
+      );
+      expect(find.byIcon(Icons.bolt_rounded), findsOneWidget);
+      // The banner and the item's own diff line.
+      expect(find.text('Applies changes without asking'), findsNWidgets(2));
+      expect(find.text('Approve 2 changes'), findsOneWidget);
+      expect(find.byIcon(Icons.shield_outlined), findsOneWidget);
+    });
+
+    testWidgets('provenance always reads "Module · name (id)"', (tester) async {
+      await pumpInPlanScope(
+        tester,
+        PlanCard(
+          item: PlanItem.proposed(id: 'm', plan: AssistantSeeds.shipPlan),
+          provenance: (id: 'stamp-shipped', name: 'Stamp shipped date'),
+        ),
+        actions: actions,
+      );
+      expect(
+        find.text('Module · Stamp shipped date (stamp-shipped)'),
+        findsOneWidget,
+      );
+    });
+  });
+
+  group('the destructive rule', () {
+    PlanView plan(String kind, {int? itemCount}) => PlanView(
+      planId: 'p',
+      title: 'x',
+      risk: PlanRisk.high,
+      itemCount: itemCount,
+      rows: [PlanRow(itemId: 'i1', kind: kind, label: 'x')],
+    );
+
+    test('high risk that deletes is destructive', () {
+      for (final k in [
+        'deleteCard',
+        'deleteField',
+        'deleteCollection',
+        'deleteView',
+        'deleteAutomation',
+      ]) {
+        expect(plan(k).destructive, isTrue, reason: k);
+      }
+    });
+
+    test('high risk that deletes nothing is not', () {
+      expect(plan('saveModule').destructive, isFalse);
+      expect(plan('updateField').destructive, isFalse);
+    });
+
+    test('a high-risk compact plan stays destructive (unseen rows)', () {
+      expect(plan('updateCard', itemCount: 9).destructive, isTrue);
+    });
+
+    test('low risk never is', () {
+      expect(
+        const PlanView(
+          planId: 'p',
+          title: 'x',
+          rows: [PlanRow(itemId: 'i1', kind: 'deleteView', label: 'x')],
+        ).destructive,
+        isFalse,
+      );
+    });
+  });
+
+  test('createdBy, code and apply round-trip the plan JSON', () {
+    final plan = AssistantSeeds.moduleWithAutoPlan;
+    final withCreator = PlanView.fromJson({
+      ...plan.toJson(),
+      'createdBy': {
+        'actor': 'plugin:stamp-shipped',
+        'grants': {
+          'caps': ['data:read'],
+          'collections': ['c_orders'],
+        },
+      },
+    });
+    expect(PlanView.fromJson(withCreator.toJson()), withCreator);
+    expect(withCreator.createdBy!.actor.kind, ActorKind.plugin);
+    expect(withCreator.createdBy!.actor.id, 'stamp-shipped');
+    expect(withCreator.createdBy!.collections, ['c_orders']);
+    expect(withCreator.rows.first.code, isNotNull);
+    expect(withCreator.rows.last.apply, 'auto');
+    expect(
+      PlanView.fromJson(AssistantSeeds.moduleInstallPlan.toJson()),
+      AssistantSeeds.moduleInstallPlan,
+    );
   });
 
   test('kindLabel splits the item kind', () {

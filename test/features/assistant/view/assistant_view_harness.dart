@@ -11,6 +11,7 @@ import 'package:morkva_crm/features/assistant/bloc/chat_item.dart';
 import 'package:morkva_crm/features/assistant/view/assistant_actions.dart';
 import 'package:morkva_crm/features/assistant/view/assistant_panel.dart';
 import 'package:morkva_crm/features/assistant/view/widgets/assistant_scope.dart';
+import 'package:morkva_crm/features/assistant/view/widgets/plan_card_scope.dart';
 
 /// Records every [AssistantActions] call as `name(args)` for assertions.
 class RecordingActions implements AssistantActions {
@@ -72,12 +73,16 @@ class RecordingActions implements AssistantActions {
     openedTables.add(item);
     calls.add('openTable(${item.id})');
   }
+
+  @override
+  void viewCode(PlanRow row) => calls.add('viewCode(${row.itemId})');
 }
 
 /// A pinned clock for countdowns.
 final testNow = DateTime(2026, 11, 10, 12, 40);
 
-/// Hosts [child] (a single assistant widget) in the app theme with a scope.
+/// Hosts [child] (a single assistant widget) in the app theme with both
+/// scopes, as the chat list provides them.
 Future<void> pumpInScope(
   WidgetTester tester,
   Widget child, {
@@ -87,6 +92,7 @@ Future<void> pumpInScope(
   bool phone = false,
   double width = 404,
 }) async {
+  final clock = now ?? () => testNow;
   await tester.pumpWidget(
     MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -94,17 +100,55 @@ Future<void> pumpInScope(
       home: Scaffold(
         body: AssistantScope(
           actions: actions,
-          now: now ?? () => testNow,
+          now: clock,
           phone: phone,
-          child: Align(
-            alignment: Alignment.topLeft,
-            child: SizedBox(
-              width: width,
-              child: SingleChildScrollView(child: child),
-            ),
+          child: PlanCardScope(
+            actions: actions,
+            now: clock,
+            child: _Sized(width: width, child: child),
           ),
         ),
       ),
+    ),
+  );
+}
+
+/// Hosts a plan widget ([child]) under [PlanCardScope] only — no
+/// `AssistantScope`, as the automation review sheet does.
+Future<void> pumpInPlanScope(
+  WidgetTester tester,
+  Widget child, {
+  required PlanCardActions actions,
+  DateTime Function()? now,
+  double width = 404,
+}) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light,
+      home: Scaffold(
+        body: PlanCardScope(
+          actions: actions,
+          now: now ?? () => testNow,
+          child: _Sized(width: width, child: child),
+        ),
+      ),
+    ),
+  );
+}
+
+class _Sized extends StatelessWidget {
+  const _Sized({required this.width, required this.child});
+
+  final double width;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Align(
+    alignment: Alignment.topLeft,
+    child: SizedBox(
+      width: width,
+      child: SingleChildScrollView(child: child),
     ),
   );
 }

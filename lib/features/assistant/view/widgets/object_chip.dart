@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../design/design.dart';
 import '../../bloc/chat_item.dart';
 import 'assistant_scope.dart';
+import 'plan_card_scope.dart';
 
 /// A `#1042`-style chip that opens a card (or a collection / view) through
 /// the deep-link contract. The tinted pill is 26 px; its hit area is 44 px
@@ -103,7 +104,7 @@ class ObjectChipMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final actions = AssistantScope.of(context).actions;
+    final actions = PlanCardScope.of(context).actions;
     final colors = AssistantColors.of(context);
     return Align(
       alignment: AlignmentDirectional.centerStart,

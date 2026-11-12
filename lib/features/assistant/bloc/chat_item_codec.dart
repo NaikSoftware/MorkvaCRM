@@ -5,7 +5,8 @@
 /// summary and query spec but **no row values** and no handle (handles are not
 /// persisted; the spec re-runs), and plans keep only their first 5 items,
 /// without the before/after values of their diffs (a restored card never
-/// shows them; deleting a card leaves no copy of its values).
+/// shows them; deleting a card leaves no copy of its values) and without a
+/// module's code.
 ///
 /// Decoding restores, it does not resurrect: a turn doc is member-writable,
 /// so a malformed record, an unknown `type` or a newer `schema` is skipped
@@ -99,8 +100,8 @@ Map<String, Object?> encodeChatItem(ChatItem item) => {
   },
 };
 
-/// [plan]'s first items with each diff cut to its field: titles, labels
-/// and details stay.
+/// [plan]'s first items with each diff cut to its field and no module
+/// `code`: titles, labels and details stay.
 Map<String, Object?> _persistedPlan(PlanView plan) {
   final json = plan.compact(maxItems: kPersistedPlanItems).toJson();
   Map<String, Object?> field(Object? change) {
@@ -113,7 +114,8 @@ Map<String, Object?> _persistedPlan(PlanView plan) {
     'items': [
       for (final row in json['items']! as List)
         {
-          ...row as Map<String, Object?>,
+          for (final e in (row as Map<String, Object?>).entries)
+            if (e.key != 'code') e.key: e.value,
           'changes': [for (final c in row['changes']! as List) field(c)],
         },
     ],
