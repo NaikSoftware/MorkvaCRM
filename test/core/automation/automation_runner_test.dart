@@ -306,6 +306,38 @@ void main() {
       expect(rig.runner.canUndo(runId), isFalse);
     });
 
+    test('a review past its 8 h expires: approve is refused', () async {
+      final runId = await rig.runner.pressCard('a_1', cardId: _order);
+      await awaitingReview(runId);
+      rig.clock = DateTime.now().add(const Duration(hours: 9));
+      expect(rig.runner.reviewPlan(runId), isNull);
+      await expectLater(
+        rig.runner.approve(runId),
+        throwsA(
+          isA<AutomationRefused>().having((e) => e.code, 'code', 'expired'),
+        ),
+      );
+      final doc = await settled(runId);
+      expect(doc.status, RunStatus.expired);
+      expect(rig.item(_order), isNot('Stamped'));
+    });
+
+    test('new module code rejects the waiting review code_changed', () async {
+      final runId = await rig.runner.pressCard('a_1', cardId: _order);
+      await awaitingReview(runId);
+      await rig.fakes.modules.save(
+        ModuleRecord.fromBundle(
+          ModuleBundle.of(rig.module.manifestJson, '$_code // v2'),
+          source: ModuleSource.import,
+          createdBy: 'user:u1',
+          now: DateTime.utc(2026, 11, 12),
+        ),
+      );
+      final doc = await settled(runId);
+      expect(doc.status, RunStatus.rejected);
+      expect(doc.reason, RunReason.codeChanged);
+    });
+
     test('reject drops the plan and ends the run rejected', () async {
       final runId = await rig.runner.pressCard('a_1', cardId: _order);
       final planId = (await awaitingReview(runId)).planId!;
@@ -574,6 +606,26 @@ void main() {
       },
     );
 
+    test('auto-apply turned off while the run ran: the live consent sends '
+        'it to review', () async {
+      rig.engine.action = (m, inv) async {
+        await rig.fakes.grants.save('u1', rig.consentFor(false));
+        await m.call('cards.update', {
+          'collection': 'Orders',
+          'target': {
+            'ids': [_order],
+          },
+          'set': {'Item': 'Stamped'},
+        });
+        return null;
+      };
+      final doc = await awaitingReview(
+        await rig.runner.pressCard('a_1', cardId: _order),
+      );
+      expect(doc.log.policy, 'review: auto-apply is off for this module');
+      expect(rig.item(_order), isNot('Stamped'));
+    });
+
     test('an auto commit offline fails offline', () async {
       rig.online = false;
       final doc = await settled(
@@ -724,6 +776,83 @@ void main() {
         contains("1 change by this run didn't re-trigger it"),
       );
       expect(rig.engine.sessions, hasLength(1));
+    });
+
+    test('Run again of an event run: the current card, the stored before, '
+        'a manual run; a deleted card is card_gone', () async {
+      await rig.automation(trigger: shipped);
+      await rig.start();
+      rig.engine.action = (m, inv) async => throw StateError('boom');
+      await setStatus(SeedOptions.shipped);
+      await until(() async => (await rig.docs()).isNotEmpty);
+      final failed = await settled((await rig.docs()).single.id);
+      expect(failed.reason, RunReason.moduleError);
+
+      rig.stamps();
+      final again = await rig.runner.runAgain(failed.id);
+      final doc = await awaitingReview(again);
+      expect(doc.parentRunId, failed.id);
+      expect(doc.depth, 1);
+      expect(doc.chain, ['a_1']);
+      final trigger =
+          rig.engine.sessions.last.invocations.single.ctx['trigger']! as Map;
+      String? status(Object? image) =>
+          ((image! as Map)['values']! as Map)[OrderFields.status] as String?;
+      expect(status(trigger['after']), isNot(status(trigger['before'])));
+      expect((trigger['after']! as Map)['id'], target.id);
+
+      await rig.repo.deleteObject(_orders, target.id);
+      final gone = await settled(await rig.runner.runAgain(failed.id));
+      expect(gone.reason, RunReason.cardGone);
+    });
+
+    test('an indirect loop through real commits stops with a loop row '
+        'that shows the chain', () async {
+      await rig.automation(
+        id: 'a_A',
+        trigger: const EventTrigger(
+          kind: TriggerKind.cardUpdated,
+          collectionId: _orders,
+          fields: [OrderFields.status],
+        ),
+        apply: ApplyMode.auto,
+      );
+      await rig.automation(
+        id: 'a_B',
+        trigger: const EventTrigger(
+          kind: TriggerKind.cardUpdated,
+          collectionId: _orders,
+          fields: [OrderFields.item],
+        ),
+        apply: ApplyMode.auto,
+      );
+      await rig.start();
+      rig.engine.action = (m, inv) async {
+        final a = (inv.ctx['automation']! as Map)['id'];
+        await m.call('cards.update', {
+          'collection': 'Orders',
+          'target': {
+            'ids': [target.id],
+          },
+          'set': a == 'a_A' ? {'Item': 'Looped'} : {'Status': 'Done'},
+        });
+        return null;
+      };
+      await setStatus(SeedOptions.shipped);
+      await until(() async {
+        final docs = await rig.docs();
+        return docs.any((d) => d.reason == RunReason.loop);
+      });
+      final docs = await rig.docs();
+      final loop = docs.singleWhere((d) => d.reason == RunReason.loop);
+      expect(loop.automationId, 'a_A');
+      expect(loop.chain, ['a_A', 'a_B', 'a_A']);
+      expect(loop.depth, 3);
+      final b = docs.singleWhere((d) => d.automationId == 'a_B');
+      expect(b.status, RunStatus.succeeded);
+      expect(b.depth, 2);
+      expect(b.chain, ['a_A', 'a_B']);
+      expect(rig.engine.sessions, hasLength(2));
     });
 
     test('a module that needs consent writes one coalesced row', () async {
@@ -1016,6 +1145,21 @@ void main() {
       );
       expect((await rig.fakes.automations.get('a_1'))!.brokenDetail, isNotNull);
     });
+
+    test(
+      'reset, then the session and the runner bind again: a press runs',
+      () async {
+        await rig.install();
+        await rig.automation();
+        await rig.start();
+        await rig.runner.reset();
+        await rig.session.reset();
+        rig.session.initialize('w1');
+        await rig.start();
+        rig.stamps();
+        await awaitingReview(await rig.runner.pressCard('a_1', cardId: _order));
+      },
+    );
 
     test('a press before the automations load still runs', () async {
       await rig.install();

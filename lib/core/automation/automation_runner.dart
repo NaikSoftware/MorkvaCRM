@@ -1629,7 +1629,6 @@ final class AutomationRunner implements AutomationRunnerApi {
     if (epoch != _epoch) {
       throw const AutomationRefused('cancelled', 'Signed out.');
     }
-    run.expiry?.cancel();
     run.status = RunStatus.applying;
     _notify();
     final response = await _host.commit(
