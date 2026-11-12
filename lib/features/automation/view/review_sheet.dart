@@ -46,6 +46,7 @@ Future<void> showReviewSheet(
       barrierColor: scrim,
       barrierLabel: 'Decide later',
       builder: (context) => Dialog(
+        backgroundColor: Theme.of(context).colorScheme.surface,
         insetPadding: const EdgeInsets.all(Spacing.xl),
         shape: const RoundedRectangleBorder(borderRadius: Radii.lgAll),
         clipBehavior: Clip.antiAlias,

@@ -402,6 +402,28 @@ TextStyle? _errorStyle(BuildContext context) => Theme.of(
   context,
 ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.error);
 
+/// A label above a control, as `MorkvaTextField` draws its own.
+class _Labeled extends StatelessWidget {
+  const _Labeled(this.label, this.child);
+
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(label, style: theme.textTheme.labelMedium),
+        const SizedBox(height: Spacing.xs),
+        child,
+      ],
+    );
+  }
+}
+
 class _Problem extends StatelessWidget {
   const _Problem(this.message);
 
@@ -959,6 +981,7 @@ class _AddButton extends StatelessWidget {
       child: SizedBox(
         height: 44,
         child: Center(
+          widthFactor: 1,
           child: CustomPaint(
             painter: _DashedBorder(color: scheme.outline),
             child: Padding(
@@ -1132,7 +1155,7 @@ class _Do extends StatelessWidget {
       initialValue: s.moduleId,
       isExpanded: true,
       hint: const Text('Pick a module'),
-      decoration: const InputDecoration(labelText: 'Module'),
+      decoration: const InputDecoration(),
       items: [
         for (final m in s.usableModules)
           DropdownMenuItem(
@@ -1149,7 +1172,6 @@ class _Do extends StatelessWidget {
       isExpanded: true,
       hint: const Text('Pick an action'),
       decoration: InputDecoration(
-        labelText: 'Action',
         errorText: s.problemAt('actionId'),
         errorMaxLines: 2,
       ),
@@ -1179,15 +1201,15 @@ class _Do extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: module),
+              Expanded(child: _Labeled('Module', module)),
               const SizedBox(width: Spacing.sm),
-              Expanded(child: action),
+              Expanded(child: _Labeled('Action', action)),
             ],
           )
         else ...[
-          module,
+          _Labeled('Module', module),
           const SizedBox(height: Spacing.sm),
-          action,
+          _Labeled('Action', action),
         ],
         if (input != null)
           for (final MapEntry(:key, :value) in input.properties.entries)
@@ -1247,23 +1269,23 @@ class _ParamState extends State<_Param> {
     final value = s.params[widget.name];
     final title = '${p.title ?? widget.name}${widget.required ? ' *' : ''}';
     final error = s.problemAt('params.${widget.name}');
-    Widget dropdown(List<(String, String, bool)> items) =>
-        DropdownButtonFormField<String>(
-          initialValue: items.any((i) => i.$1 == value)
-              ? value as String
-              : null,
-          isExpanded: true,
-          decoration: InputDecoration(labelText: title, errorText: error),
-          items: [
-            for (final (id, label, enabled) in items)
-              DropdownMenuItem(
-                value: id,
-                enabled: enabled,
-                child: Text(label, overflow: TextOverflow.ellipsis),
-              ),
-          ],
-          onChanged: widget.onChanged,
-        );
+    Widget dropdown(List<(String, String, bool)> items) => _Labeled(
+      title,
+      DropdownButtonFormField<String>(
+        initialValue: items.any((i) => i.$1 == value) ? value as String : null,
+        isExpanded: true,
+        decoration: InputDecoration(errorText: error),
+        items: [
+          for (final (id, label, enabled) in items)
+            DropdownMenuItem(
+              value: id,
+              enabled: enabled,
+              child: Text(label, overflow: TextOverflow.ellipsis),
+            ),
+        ],
+        onChanged: widget.onChanged,
+      ),
+    );
     final control = switch (p) {
       InputProperty(format: InputFormat.field) => dropdown([
         for (final f in s.collection?.fields ?? const <FieldDefinition>[])
