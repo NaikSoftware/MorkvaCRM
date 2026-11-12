@@ -398,7 +398,10 @@ class TestRunResultView extends StatelessWidget {
         ],
         if (result.log.calls.isNotEmpty)
           ExpansionTile(
-            title: Text('Calls (${result.log.calls.length})'),
+            title: Text(
+              'Calls (${result.log.calls.length})',
+              style: theme.textTheme.titleSmall,
+            ),
             tilePadding: EdgeInsets.zero,
             childrenPadding: EdgeInsets.zero,
             expandedCrossAxisAlignment: CrossAxisAlignment.start,
@@ -412,7 +415,10 @@ class TestRunResultView extends StatelessWidget {
           ),
         if (result.log.console.isNotEmpty)
           ExpansionTile(
-            title: Text('Console (${result.log.console.length})'),
+            title: Text(
+              'Console (${result.log.console.length})',
+              style: theme.textTheme.titleSmall,
+            ),
             tilePadding: EdgeInsets.zero,
             childrenPadding: EdgeInsets.zero,
             expandedCrossAxisAlignment: CrossAxisAlignment.start,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/rendering.dart';
 import 'package:morkva_crm/core/agent/agent_event.dart';
 import 'package:morkva_crm/core/domain/automation/automation.dart';
 import 'package:morkva_crm/features/assistant/bloc/assistant_state.dart';
@@ -63,6 +64,28 @@ void main() {
       expect(find.text('Console (1)'), findsOneWidget);
       expect(find.byType(Checkbox), findsNothing);
       expect(tester.takeException(), isNull);
+    });
+
+    // Web e2e 2026-11-12: "Calls (n)" read larger than the rest of the card.
+    testWidgets('Calls and Console headings match the status line size', (
+      tester,
+    ) async {
+      await pumpInScope(
+        tester,
+        const TestRunCard(
+          item: TestRunItem(id: 't', title: 'Test run · m', result: _result),
+        ),
+        actions: RecordingActions(),
+      );
+
+      double sizeOf(String text) => tester
+          .renderObject<RenderParagraph>(find.text(text))
+          .text
+          .style!
+          .fontSize!;
+      final status = sizeOf('Would change 1 card · 12 ms');
+      expect(sizeOf('Calls (1)'), status);
+      expect(sizeOf('Console (1)'), status);
     });
 
     testWidgets('a failed run says why', (tester) async {
