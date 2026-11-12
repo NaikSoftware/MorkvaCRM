@@ -9,10 +9,12 @@ import '../../api/data/data_repository.dart';
 import '../../api/files/attachment_store.dart';
 import '../../app/shell/app_shell.dart';
 import '../../core/automation/runner_api.dart';
+import '../../core/domain/automation/automation.dart' show AutomationStatus;
 import '../../core/domain/domain.dart';
 import '../../design/design.dart';
 import '../automation/bloc/automation_runs_cubit.dart';
 import '../automation/bloc/modules_cubit.dart';
+import '../automation/view/automations_page.dart' show automationsOffline;
 import '../automation/view/review_sheet.dart';
 import '../automation/widgets/action_buttons.dart';
 import '../automation/widgets/reason_copy.dart' show CopyTone;
@@ -413,7 +415,18 @@ class _ObjectEditorState extends State<ObjectEditor> {
     return _RunBanner(
       copy: run == null
           ? (text: message!, actions: const [], error: _runMessageError)
-          : runNoticeCopy(run, card: _otherCard(run)),
+          : runNoticeCopy(
+              run,
+              card: _otherCard(run),
+              runnable:
+                  maybeRead<ModulesCubit>(context)?.state.automations.any(
+                    (a) =>
+                        a.automation.id == run.automationId &&
+                        a.status != AutomationStatus.needsConsent &&
+                        a.status != AutomationStatus.broken,
+                  ) ??
+                  false,
+            ),
       compact: widget.compact,
       onAction: run == null ? null : (a) => _onNoticeAction(a, run),
       onDismiss: () => setState(() {
@@ -931,6 +944,10 @@ class _RunBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final review = copy.actions.contains(NoticeAction.review);
+    // Run again needs a connection, as on run detail.
+    final offline =
+        copy.actions.contains(NoticeAction.runAgain) &&
+        automationsOffline(context);
     final colors = StatusChip.colorsOf(
       theme,
       copy.error
@@ -963,11 +980,23 @@ class _RunBanner extends StatelessWidget {
             foregroundColor: colors.foreground,
             minimumSize: const Size(44, 44),
           ),
-          onPressed: onAction == null ? null : () => onAction!(a),
+          onPressed: onAction == null || (offline && a == NoticeAction.runAgain)
+              ? null
+              : () => onAction!(a),
           icon: a == NoticeAction.undo
               ? const Icon(Icons.undo_rounded, size: 18)
               : null,
           label: Text(_labels[a]!),
+        ),
+      if (offline)
+        Padding(
+          padding: const EdgeInsets.only(right: Spacing.xs),
+          child: Text(
+            'Needs a connection',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colors.foreground,
+            ),
+          ),
         ),
       if (copy.actions.isEmpty)
         IconButton(

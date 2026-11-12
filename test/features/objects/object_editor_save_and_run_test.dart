@@ -116,11 +116,14 @@ void main() {
   group('card editor with action buttons', () {
     late AutomationRig rig;
     late FakeDataRepository repo;
+    late SyncStatusCubit sync;
     ObjectEditorResult? result;
     var closed = false;
 
     setUp(() {
       rig = AutomationRig();
+      sync = SyncStatusCubit();
+      addTearDown(sync.close);
       repo = FakeDataRepository([orders])..seedObjects('c_orders', [_order()]);
       result = null;
       closed = false;
@@ -145,8 +148,11 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       await tester.pumpWidget(
-        RepositoryProvider<DataRepository>.value(
-          value: repo,
+        MultiRepositoryProvider(
+          providers: [
+            RepositoryProvider<DataRepository>.value(value: repo),
+            BlocProvider<SyncStatusCubit>.value(value: sync),
+          ],
           child: rig.wrap(
             MaterialApp(
               theme: AppTheme.light,
@@ -380,6 +386,38 @@ void main() {
         find.descendant(of: banner, matching: find.byIcon(Icons.error_outline)),
         findsOneWidget,
       );
+    });
+
+    testWidgets('offline: Run again is disabled with "Needs a connection"', (
+      tester,
+    ) async {
+      sync.reportSnapshotMeta(isFromCache: true, hasPendingWrites: false);
+      await open(tester, object: _order());
+      rig.runner.finish(
+        liveRun('run_1', status: RunStatus.failed, reason: RunReason.offline),
+      );
+      await tester.pumpAndSettle();
+
+      final again = find.widgetWithText(TextButton, 'Run again');
+      expect(tester.widget<TextButton>(again).onPressed, isNull);
+      expect(find.text('Needs a connection'), findsOneWidget);
+      await tester.tap(again, warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(rig.runner.methods, isNot(contains('runAgain')));
+    });
+
+    testWidgets('a timed-out run offers Run again beside View run', (
+      tester,
+    ) async {
+      await open(tester, object: _order());
+      rig.runner.finish(liveRun('run_1', status: RunStatus.timedOut));
+      await tester.pumpAndSettle();
+
+      expect(find.text('View run'), findsOneWidget);
+      expect(find.text('Needs a connection'), findsNothing);
+      await tester.tap(find.text('Run again'));
+      await tester.pumpAndSettle();
+      expect(argsOf('runAgain'), ['run_1']);
     });
 
     testWidgets('a button run of this card waits: the review sheet opens '

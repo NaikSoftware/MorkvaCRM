@@ -135,7 +135,9 @@ typedef NoticeCopy = ({String text, List<NoticeAction> actions, bool error});
 
 /// [card] names the card when the notice is about another card than the
 /// one on screen ("Spin forever on Order #1042 timed out after 20 s").
-NoticeCopy runNoticeCopy(RunView run, {String? card}) {
+/// [runnable]: the automation may run again (neither needs consent nor is
+/// broken), as the run log's Run again rule.
+NoticeCopy runNoticeCopy(RunView run, {String? card, bool runnable = false}) {
   final label = card == null ? run.label : '${run.label} on $card';
   switch (run.status) {
     case RunStatus.awaitingReview:
@@ -157,7 +159,14 @@ NoticeCopy runNoticeCopy(RunView run, {String? card}) {
     case RunStatus.timedOut:
       return (
         text: '$label timed out after 20 s',
-        actions: const [NoticeAction.viewRun],
+        // View run first: the snackbar offers only the first.
+        actions: [
+          NoticeAction.viewRun,
+          if (runnable &&
+              run.automationId != null &&
+              run.trigger.kind != TriggerKind.cardDeleted)
+            NoticeAction.runAgain,
+        ],
         error: true,
       );
     case RunStatus.failed when run.reason == RunReason.cancelled:
