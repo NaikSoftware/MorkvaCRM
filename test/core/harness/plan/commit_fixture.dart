@@ -26,6 +26,7 @@ final class CommitHarness {
     SeedWorkspace? seed,
     int batchSize = maxBatchWrites,
     Duration ackTimeout = kCommitAckTimeout,
+    AutomationCatalog? catalog,
   }) : p = PlanHarness(seed) {
     journal = Journal(random: Random(11));
     committer = PlanCommitter(
@@ -35,6 +36,7 @@ final class CommitHarness {
       isOnline: () => online,
       batchSize: batchSize,
       ackTimeout: ackTimeout,
+      catalog: catalog,
     );
     registerHostOps(
       p.registry,
@@ -48,6 +50,9 @@ final class CommitHarness {
 
   /// What the host's `SyncStatus` says.
   bool online = true;
+
+  /// The origin every host call carries (null: a UI write).
+  WriteOrigin? origin;
 
   /// Progress events of every host call.
   final List<HarnessEvent> events = [];
@@ -63,6 +68,7 @@ final class CommitHarness {
         now: at ?? now,
         today: today,
         events: _ListSink(events),
+        origin: origin,
       );
 
   /// Calls host op [op] as [actor] (the user by default).
