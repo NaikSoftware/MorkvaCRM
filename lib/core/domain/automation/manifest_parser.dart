@@ -293,8 +293,10 @@ ActionSpec? _action(Object? json, String at, _Problems p) {
   if (icon != null && (icon is! String || !kActionIconIds.contains(icon))) {
     p.add('$at.icon', 'invalid', '"$icon" isn\'t a collection icon.');
   }
-  final input = json.containsKey('input')
-      ? _input(json['input'], '$at.input', p)
+  // `input: {}` (a natural "no settings") means the same as leaving it out.
+  final rawInput = json['input'];
+  final input = rawInput != null && !(rawInput is Map && rawInput.isEmpty)
+      ? _input(rawInput, '$at.input', p)
       : null;
   if (id == null || label == null || scope.isEmpty) return null;
   return ActionSpec(
@@ -313,7 +315,8 @@ InputSpec? _input(Object? json, String at, _Problems p) {
     return null;
   }
   _keys(json, at, const {'type', 'required', 'properties'}, p);
-  if (json['type'] != 'object') {
+  // `type` may be left out; any other value than "object" is refused.
+  if (json.containsKey('type') && json['type'] != 'object') {
     p.add('$at.type', 'invalid', 'Must be "object".');
   }
   final rawProps = json['properties'];

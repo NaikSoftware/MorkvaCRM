@@ -64,6 +64,32 @@ void main() {
     expect(problemsOf(withKey('timeoutMs', 1500.5)), ['timeoutMs invalid']);
   });
 
+  test('an empty or typeless input reads as the model writes it', () {
+    // `input: {}` is no settings, like leaving it out.
+    final empty = parseManifest(withAction((a) => a..['input'] = {}));
+    expect(empty.actions.single.input, isNull);
+    final typeless = parseManifest(
+      withAction(
+        (a) => a
+          ..['input'] = {
+            'properties': {
+              'x': {'type': 'string'},
+            },
+          },
+      ),
+    );
+    expect(typeless.actions.single.input?.properties.keys, ['x']);
+    expect(
+      problemsOf(
+        withAction(
+          (a) => a
+            ..['input'] = {'type': 'array', 'properties': <String, Object?>{}},
+        ),
+      ),
+      ['actions[0].input.type invalid'],
+    );
+  });
+
   group('rejects', () {
     test('a non-object', () {
       expect(problemsOf('nope'), [' invalid']);

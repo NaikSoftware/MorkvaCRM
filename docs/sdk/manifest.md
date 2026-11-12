@@ -79,7 +79,7 @@ defaults filled in.
 
 | Key | Rules |
 |---|---|
-| `type` | `"object"`. |
+| `type` | `"object"`; may be left out. An empty `input: {}` means no settings. |
 | `required` | Names of properties the user must fill in. |
 | `properties.<name>.type` | `string`, `number`, `integer` or `boolean`. |
 | `properties.<name>.title` | Up to 40 characters: the form label. |
