@@ -9,7 +9,6 @@ import '../bloc/module_details_cubit.dart';
 import '../bloc/modules_cubit.dart';
 import '../bloc/run_log_cubit.dart';
 import '../widgets/reason_copy.dart';
-import '../widgets/status_chip.dart';
 import 'automations_page.dart';
 import 'code_viewer.dart';
 import 'consent_sheet.dart';
@@ -319,11 +318,8 @@ class _Header extends StatelessWidget {
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Text(module.name, style: theme.textTheme.headlineSmall),
-                  StatusChip(
-                    label: 'v${module.version}',
-                    tone: CopyTone.neutral,
-                  ),
-                  StatusChip.of(moduleChip(entry.status)),
+                  HugChip(label: 'v${module.version}', tone: CopyTone.neutral),
+                  HugChip.of(moduleChip(entry.status)),
                 ],
               ),
               const SizedBox(height: Spacing.xxs),
@@ -667,7 +663,7 @@ class _Actions extends StatelessWidget {
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           Text(a.label, style: theme.textTheme.titleSmall),
-                          StatusChip(
+                          HugChip(
                             label: scopeTag(a.scope),
                             tone: CopyTone.neutral,
                           ),
@@ -823,7 +819,7 @@ class _RecentRuns extends StatelessWidget {
               ),
             ),
           ),
-        for (final r in rows) RunRowTile(row: r, now: now),
+        for (final r in rows) RunRowTile(row: r, now: now, compact: true),
       ],
     );
   }

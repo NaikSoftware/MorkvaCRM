@@ -5,7 +5,6 @@ import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
 import '../bloc/modules_cubit.dart';
 import '../widgets/reason_copy.dart';
-import '../widgets/status_chip.dart';
 import 'automations_page.dart';
 import 'code_viewer.dart';
 
@@ -88,6 +87,51 @@ class AutomationSheetFrame extends StatelessWidget {
         Divider(height: 1, color: theme.colorScheme.outlineVariant),
         Padding(padding: const EdgeInsets.all(Spacing.md), child: footer),
       ],
+    );
+  }
+}
+
+/// A sheet's button row: an optional muted [hint] (a disabled button's
+/// reason) at the left, the [buttons] at the right; stacked when narrow.
+class SheetFooter extends StatelessWidget {
+  const SheetFooter({super.key, this.hint, required this.buttons});
+
+  final String? hint;
+  final List<Widget> buttons;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final text = hint == null
+        ? null
+        : Text(
+            hint!,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          );
+    final row = Wrap(
+      alignment: WrapAlignment.end,
+      spacing: Spacing.xs,
+      runSpacing: Spacing.xs,
+      children: buttons,
+    );
+    return LayoutBuilder(
+      builder: (context, box) => box.maxWidth < 480
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (text != null) ...[text, const SizedBox(height: Spacing.xs)],
+                Align(alignment: Alignment.centerRight, child: row),
+              ],
+            )
+          : Row(
+              children: [
+                Expanded(child: text ?? const SizedBox.shrink()),
+                row,
+              ],
+            ),
     );
   }
 }
@@ -420,7 +464,7 @@ class _ConsentSheetState extends State<ConsentSheet> {
                 const SizedBox(width: Spacing.sm),
                 Flexible(child: Text(a.label, style: label)),
                 const SizedBox(width: Spacing.xs),
-                StatusChip(label: scopeTag(a.scope), tone: CopyTone.neutral),
+                HugChip(label: scopeTag(a.scope), tone: CopyTone.neutral),
               ],
             ),
           ),
@@ -507,18 +551,13 @@ class _ConsentSheetState extends State<ConsentSheet> {
         subtitle: 'v${manifest.version} · ${widget.source} · ${kbLabel(bytes)}',
       ),
       body: body,
-      footer: Row(
-        children: [
-          Expanded(
-            child: _scope.chosen
-                ? const SizedBox.shrink()
-                : Text('Choose where it can work', style: muted),
-          ),
+      footer: SheetFooter(
+        hint: _scope.chosen ? null : 'Choose where it can work',
+        buttons: [
           TextActionButton(
             label: 'Cancel',
             onPressed: () => Navigator.of(context).pop(),
           ),
-          const SizedBox(width: Spacing.xs),
           Semantics(
             hint: _scope.chosen ? null : 'Choose where it can work',
             child: PrimaryButton(

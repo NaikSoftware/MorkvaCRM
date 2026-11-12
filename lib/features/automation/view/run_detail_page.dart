@@ -90,22 +90,28 @@ class _RunDetailPageState extends State<RunDetailPage>
       },
       child: Material(
         type: MaterialType.transparency,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(pad, Spacing.sm, pad, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextActionButton(
-                  label: 'Runs',
-                  icon: Icons.arrow_back,
-                  onPressed: () =>
-                      host.openAutomations(tab: AutomationsTab.runs),
-                ),
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: 1040 + 2 * pad),
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(pad, Spacing.sm, pad, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextActionButton(
+                      label: 'Runs',
+                      icon: Icons.arrow_back,
+                      onPressed: () =>
+                          host.openAutomations(tab: AutomationsTab.runs),
+                    ),
+                  ),
+                  Expanded(child: body),
+                ],
               ),
-              Expanded(child: body),
-            ],
+            ),
           ),
         ),
       ),
@@ -144,7 +150,7 @@ class _LiveDetail extends StatelessWidget {
           spacing: Spacing.sm,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            StatusChip(label: statusLabel(run.status), tone: copy.tone),
+            HugChip(label: statusLabel(run.status), tone: copy.tone),
             Text(run.label, style: theme.textTheme.headlineSmall),
           ],
         ),
@@ -446,7 +452,7 @@ class _Detail extends StatelessWidget {
           runSpacing: Spacing.xxs,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            StatusChip(
+            HugChip(
               label: run.undoneAt != null ? 'Undone' : statusLabel(run.status),
               tone: row.copy.tone,
             ),

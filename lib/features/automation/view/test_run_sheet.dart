@@ -207,23 +207,13 @@ class _TestRunSheetState extends State<TestRunSheet> {
         title: 'Test "${action.label}"',
       ),
       body: body,
-      footer: Row(
-        children: [
-          Expanded(
-            child: state.canTestRun
-                ? const SizedBox.shrink()
-                : Text(
-                    'Allow the module to test it',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-          ),
+      footer: SheetFooter(
+        hint: state.canTestRun ? null : 'Allow the module to test it',
+        buttons: [
           TextActionButton(
             label: 'Close',
             onPressed: () => Navigator.of(context).pop(),
           ),
-          const SizedBox(width: Spacing.xs),
           Semantics(
             hint: state.canTestRun ? null : 'Allow the module to test it',
             child: PrimaryButton(

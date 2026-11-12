@@ -4,7 +4,6 @@ import '../../../design/design.dart';
 import '../../assistant/view/widgets/dashed_border.dart';
 import '../bloc/modules_cubit.dart';
 import '../widgets/reason_copy.dart';
-import '../widgets/status_chip.dart';
 import 'automations_page.dart';
 import 'consent_sheet.dart';
 
@@ -180,7 +179,7 @@ class _ImportSheetState extends State<ImportSheet> {
                 ),
               ),
               const SizedBox(width: Spacing.xs),
-              StatusChip(
+              HugChip(
                 label: 'v${bundle.manifest.version}',
                 tone: CopyTone.neutral,
               ),
@@ -188,14 +187,12 @@ class _ImportSheetState extends State<ImportSheet> {
           ),
         ],
       ],
-      footer: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
+      footer: SheetFooter(
+        buttons: [
           TextActionButton(
             label: 'Cancel',
             onPressed: () => Navigator.of(context).pop(),
           ),
-          const SizedBox(width: Spacing.xs),
           PrimaryButton(
             label: 'Continue',
             onPressed: bundle == null

@@ -617,6 +617,29 @@ class _Tabs extends StatelessWidget {
   }
 }
 
+/// A [StatusChip] that hugs its label: the chip's pill fills any bounded
+/// width (inside a Wrap or Column) otherwise.
+class HugChip extends StatelessWidget {
+  const HugChip({
+    super.key,
+    required this.label,
+    required this.tone,
+    this.onTap,
+  });
+
+  HugChip.of(ChipCopy copy, {Key? key, VoidCallback? onTap})
+    : this(key: key, label: copy.label, tone: copy.tone, onTap: onTap);
+
+  final String label;
+  final CopyTone tone;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) => IntrinsicWidth(
+    child: StatusChip(label: label, tone: tone, onTap: onTap),
+  );
+}
+
 /// A count pill: neutral, or solid amber (`warning` / `onWarning`) for
 /// reviews waiting.
 class CountBadge extends StatelessWidget {
@@ -767,11 +790,14 @@ class AutomationSection extends StatelessWidget {
             ),
             child: ConstrainedBox(
               constraints: const BoxConstraints(minHeight: 44),
-              child: Row(
+              // A Wrap, so a wide trailing (Revoke + Change access) drops
+              // under the title on a phone instead of overflowing.
+              child: Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                runSpacing: Spacing.xs,
                 children: [
-                  Expanded(
-                    child: Text(title, style: theme.textTheme.titleMedium),
-                  ),
+                  Text(title, style: theme.textTheme.titleMedium),
                   ?trailing,
                 ],
               ),
@@ -955,12 +981,12 @@ class _ModuleCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: Spacing.xs),
-                    StatusChip(
+                    HugChip(
                       label: 'v${module.version}',
                       tone: CopyTone.neutral,
                     ),
                     const Spacer(),
-                    StatusChip.of(moduleChip(entry.status)),
+                    HugChip.of(moduleChip(entry.status)),
                   ],
                 ),
                 if (description != null) ...[
@@ -1172,7 +1198,7 @@ class AutomationRowTile extends StatelessWidget {
     final a = entry.automation;
     final status = automationChip(entry.status);
     final apply = applyChip(entry.apply);
-    final applyChipW = StatusChip.of(
+    final applyChipW = HugChip.of(
       apply,
       onTap: entry.apply == EffectiveApply.autoOff
           ? () => host.openModule(a.moduleId)
@@ -1180,7 +1206,7 @@ class AutomationRowTile extends StatelessWidget {
     );
     final statusChipW = status == null
         ? null
-        : StatusChip.of(
+        : HugChip.of(
             status,
             onTap: switch (entry.status) {
               AutomationStatus.needsConsent => () => host.openModule(
@@ -1677,10 +1703,18 @@ class LiveRunTile extends StatelessWidget {
 /// One run row (UX §1c): status, title, the summary or reason, the card,
 /// when, how long, and the trailing action. Tap → run detail.
 class RunRowTile extends StatelessWidget {
-  const RunRowTile({super.key, required this.row, required this.now});
+  const RunRowTile({
+    super.key,
+    required this.row,
+    required this.now,
+    this.compact = false,
+  });
 
   final RunRow row;
   final DateTime now;
+
+  /// Module details' recent runs: the card over "when · how long".
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -1760,22 +1794,41 @@ class RunRowTile extends StatelessWidget {
       ],
     );
     final Widget body;
-    if (automationsExpanded(context)) {
+    final cardText = Text(
+      card ?? '',
+      style: theme.textTheme.bodyMedium?.copyWith(color: ink),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+    if (automationsExpanded(context) && compact) {
       body = Row(
         children: [
           status,
           const SizedBox(width: Spacing.sm),
-          Expanded(flex: 5, child: text),
+          Expanded(child: text),
           const SizedBox(width: Spacing.sm),
-          SizedBox(
-            width: 104,
-            child: Text(
-              card ?? '',
-              style: theme.textTheme.bodyMedium?.copyWith(color: ink),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              cardText,
+              Text(
+                '${agoLabel(run.startedAt, now)} · '
+                '${durationLabel(run.durationMs)}',
+                style: muted,
+              ),
+            ],
           ),
+          if (action != null) ...[const SizedBox(width: Spacing.sm), action],
+        ],
+      );
+    } else if (automationsExpanded(context)) {
+      body = Row(
+        children: [
+          status,
+          const SizedBox(width: Spacing.sm),
+          Expanded(child: text),
+          const SizedBox(width: Spacing.sm),
+          SizedBox(width: 104, child: cardText),
           SizedBox(
             width: 96,
             child: Text(agoLabel(run.startedAt, now), style: muted),
@@ -1785,7 +1838,7 @@ class RunRowTile extends StatelessWidget {
             child: Text(durationLabel(run.durationMs), style: muted),
           ),
           SizedBox(
-            width: 168,
+            width: 200,
             child: Align(alignment: Alignment.centerRight, child: action),
           ),
         ],
