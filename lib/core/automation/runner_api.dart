@@ -189,6 +189,7 @@ final class RunView extends Equatable {
     this.progress,
     this.summary,
     this.planId,
+    this.commitId,
     this.error,
     this.links = const [],
   });
@@ -212,6 +213,9 @@ final class RunView extends Equatable {
   final RunProgress? progress;
   final String? summary;
   final String? planId;
+
+  /// [RunRecord.commitId].
+  final String? commitId;
   final RunError? error;
 
   /// `ui.open` chips (one becomes "Open #1042" on the snackbar).
@@ -234,6 +238,7 @@ final class RunView extends Equatable {
     progress,
     summary,
     planId,
+    commitId,
     error,
     links,
   ];

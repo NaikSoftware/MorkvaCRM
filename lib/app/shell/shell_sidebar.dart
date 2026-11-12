@@ -8,11 +8,12 @@ import '../../api/sync/sync_status_cubit.dart';
 import '../../core/domain/domain.dart';
 import '../../design/design.dart';
 import '../../features/assistant/view/widgets/sparkle_icon.dart';
+import '../../features/automation/widgets/run_indicator.dart';
 import 'brand_wordmark.dart';
 import 'sync_status_indicator.dart';
 
 /// Where the user is, as far as the navigation is concerned.
-enum ShellPlace { allCollections, collection, settings }
+enum ShellPlace { allCollections, automations, collection, settings }
 
 /// The wide-screen navigation: the brand, "Jump to…", the Ask Morkva toggle,
 /// All collections, the pinned collections and the profile row with
@@ -36,6 +37,7 @@ class ShellSidebar extends StatelessWidget {
     this.user,
     this.onAssistant,
     this.assistantOpen = false,
+    this.onAutomations,
   });
 
   final bool extended;
@@ -66,6 +68,9 @@ class ShellSidebar extends StatelessWidget {
 
   /// The panel is open: the toggle is carrot-tinted (never "selected").
   final bool assistantOpen;
+
+  /// Opens the Automations page; null hides the entry.
+  final VoidCallback? onAutomations;
 
   /// Width of the full sidebar.
   static const double width = 272;
@@ -137,6 +142,14 @@ class ShellSidebar extends StatelessWidget {
             leading: _AllTile(size: 28, selected: true),
             onTap: onAllCollections,
           ),
+          if (onAutomations case final onAutomations?)
+            _NavRow(
+              label: 'Automations',
+              selected: place == ShellPlace.automations,
+              leading: const _AutomationsTile(),
+              trailing: const RunIndicatorPill(),
+              onTap: onAutomations,
+            ),
           Padding(
             padding: const EdgeInsets.fromLTRB(
               Spacing.sm,
@@ -244,6 +257,17 @@ class ShellSidebar extends StatelessWidget {
             onTap: onAllCollections,
             child: _AllTile(size: 36, selected: _allSelected),
           ),
+          if (onAutomations case final onAutomations?)
+            _RailButton(
+              tooltip: 'Automations',
+              selected: place == ShellPlace.automations,
+              onTap: onAutomations,
+              child: RunIndicatorRailIcon(
+                color: place == ShellPlace.automations
+                    ? scheme.onPrimaryContainer
+                    : scheme.onSurfaceVariant,
+              ),
+            ),
           SizedBox(
             width: 28,
             child: Divider(height: Spacing.md, color: scheme.outlineVariant),
@@ -347,6 +371,29 @@ class _AllTile extends StatelessWidget {
         Icons.grid_view_rounded,
         size: size * 0.57,
         color: selected ? scheme.onPrimary : scheme.onSurfaceVariant,
+      ),
+    );
+  }
+}
+
+/// The Automations row's bolt tile.
+class _AutomationsTile extends StatelessWidget {
+  const _AutomationsTile();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: 28,
+      height: 28,
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(28 * 0.3),
+      ),
+      child: Icon(
+        Icons.bolt_rounded,
+        size: 18,
+        color: scheme.onPrimaryContainer,
       ),
     );
   }
@@ -502,6 +549,7 @@ class _NavRow extends StatefulWidget {
     required this.selected,
     required this.leading,
     required this.onTap,
+    this.trailing,
     this.dragIndex,
     this.onUnpin,
   });
@@ -509,6 +557,7 @@ class _NavRow extends StatefulWidget {
   final String label;
   final bool selected;
   final Widget leading;
+  final Widget? trailing;
   final VoidCallback onTap;
   final int? dragIndex;
   final VoidCallback? onUnpin;
@@ -576,6 +625,7 @@ class _NavRowState extends State<_NavRow> {
                             ),
                           ),
                         ),
+                        ?widget.trailing,
                         if (index != null && _hovered)
                           ReorderableDragStartListener(
                             index: index,

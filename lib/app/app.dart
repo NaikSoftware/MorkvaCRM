@@ -21,8 +21,13 @@ import '../api/automation/firestore_docs.dart';
 import '../api/automation/firestore_grant_store.dart';
 import '../api/automation/firestore_module_store.dart';
 import '../api/automation/firestore_run_store.dart';
+import '../api/automation/engine/script_engine_factory.dart';
+import '../api/automation/session_key.dart';
 import '../api/data/firestore_data_repository.dart';
 import '../api/files/firebase_attachment_store.dart';
+import '../core/automation/automation_runner.dart';
+import '../core/automation/engine/script_engine.dart';
+import '../core/automation/runner_api.dart';
 import '../core/automation/store_catalog.dart';
 import '../core/domain/automation/automation.dart';
 import '../core/harness/session/harness_session.dart';
@@ -31,6 +36,9 @@ import '../features/assistant/bloc/assistant_bloc.dart';
 import '../features/assistant/bloc/assistant_focus.dart';
 import '../features/assistant/bloc/assistant_panel_cubit.dart';
 import '../features/assistant/bloc/assistant_session.dart';
+import '../features/automation/bloc/automation_runs_cubit.dart';
+import '../features/automation/bloc/modules_cubit.dart';
+import '../features/automation/bloc/run_log_cubit.dart';
 import 'router/app_router.dart';
 
 /// App-wide scroll behavior: no colored overscroll glow (it clashed with the
@@ -77,6 +85,7 @@ class MorkvaApp extends StatefulWidget {
     this.threadRepository,
     this.assistantConfigRepository,
     this.automationStores,
+    this.scriptEngine,
   });
 
   /// Auth backend; defaults to [FirestoreAuthRepository].
@@ -106,6 +115,10 @@ class MorkvaApp extends StatefulWidget {
   /// Modules, automations, runs and consents; defaults to the Firestore
   /// stores over `FirebaseFirestore.instance`.
   final AutomationStores? automationStores;
+
+  /// The automation sandbox; defaults to this platform's engine (web: the
+  /// iframe sandbox, Android/iOS: QuickJS).
+  final ScriptEngine? scriptEngine;
 
   @override
   State<MorkvaApp> createState() => _MorkvaAppState();
@@ -151,19 +164,47 @@ class _MorkvaAppState extends State<MorkvaApp> {
         grants: FirestoreGrantStore(workspace),
       );
 
+  // Consents belong to the signed-in member.
+  late final StoreAutomationCatalog _catalog = StoreAutomationCatalog(
+    _automationStores,
+    uid: () => switch (_authCubit.state) {
+      AuthAuthenticated(:final user) => user.uid,
+      _ => null,
+    },
+  );
+
   /// The one harness the assistant and the automation runner share.
   late final HarnessSession _harness = HarnessSession(
     repository: _dataRepository,
-    // Consents belong to the signed-in member.
-    catalog: StoreAutomationCatalog(
-      _automationStores,
-      uid: () => switch (_authCubit.state) {
-        AuthAuthenticated(:final user) => user.uid,
-        _ => null,
-      },
-    ),
+    catalog: _catalog,
     isOnline: () => _syncStatusCubit.state is! SyncOffline,
   );
+
+  late final PlatformEngine _engine = switch (widget.scriptEngine) {
+    final engine? => (engine: engine, crashMarker: null, device: 'web'),
+    null => platformScriptEngine(),
+  };
+
+  /// Buttons and card events over the shared harness.
+  late final AutomationRunner _runner = AutomationRunner(
+    session: _harness,
+    repository: _dataRepository,
+    stores: _automationStores,
+    engine: _engine.engine,
+    crashMarker: _engine.crashMarker,
+    device: _engine.device,
+    sessionId: sessionKey,
+    timeZoneName: DateTime.now().timeZoneName,
+  );
+
+  /// The signed-in member's automation cubits (they watch the bound stores
+  /// from construction); null until the first sign-in, closed after a
+  /// sign-out.
+  _AutomationCubits? _cubits;
+
+  /// Keeps the router's state while the automation providers come and go
+  /// around it.
+  final _routerKey = GlobalKey();
 
   /// Ask Morkva for the signed-in member: always provided, bound per
   /// workspace in [_onAuthChanged].
@@ -174,6 +215,7 @@ class _MorkvaAppState extends State<MorkvaApp> {
         widget.assistantConfigRepository ??
         AssistantConfigRepository(firestore: FirebaseFirestore.instance),
     syncStatus: _syncStatusCubit,
+    runsStarted: _runner.runsStarted,
   );
 
   late final AuthCubit _authCubit = AuthCubit(_authRepository)..initialize();
@@ -191,6 +233,13 @@ class _MorkvaAppState extends State<MorkvaApp> {
   /// The workspace the [DataRepository] is currently bound to, so we don't
   /// re-initialize on every repeated [AuthAuthenticated] emission.
   String? _initializedWorkspaceId;
+
+  @override
+  void initState() {
+    super.initState();
+    // modules.testRun (the assistant) runs through the runner.
+    _catalog.hooks = _runner;
+  }
 
   Future<void> _onAuthChanged(BuildContext context, AuthState state) async {
     try {
@@ -214,18 +263,37 @@ class _MorkvaAppState extends State<MorkvaApp> {
             return;
           }
           _automationWorkspace?.initialize(workspaceId: workspaceId);
+          // Binds the shared harness; the runner subscribes after its cache.
           await _assistant.initialize(workspaceId, user: user);
+          if (!mounted || _initializedWorkspaceId != workspaceId) return;
+          final since = DateTime.now();
+          _runner.initialize(workspaceId: workspaceId, uid: user.uid);
+          final stores = _automationStores;
+          setState(
+            () => _cubits = (
+              modules: ModulesCubit(_runner, stores, uid: user.uid),
+              runs: AutomationRunsCubit(_runner, stores, since: since),
+              runLog: RunLogCubit(_runner, stores, uid: user.uid),
+            ),
+          );
           _sessionReady.value = true;
 
         case AuthUnauthenticated() || AuthError():
           if (_initializedWorkspaceId == null) return;
           _initializedWorkspaceId = null;
           _sessionReady.value = false;
-          // Unbinds at once, so the assistant's cache cancels its listeners
-          // before the repository goes; their cancels need not hold it up.
+          // Stay provided (closed) until the next sign-in replaces them: the
+          // pages under them unmount only on the redirect's frame.
+          final cubits = _cubits;
+          // The runner first: no bridge call is cut with a stale uid. Both
+          // unbind at once, so the cache cancels its listeners before the
+          // repository goes; their cancels need not hold it up.
+          final runnerReset = _runner.reset();
           final reset = _assistant.reset();
           await _dataRepository.dispose();
+          await runnerReset;
           await reset;
+          await _close(cubits);
 
         case AuthInitial() || AuthLoading():
           break;
@@ -246,7 +314,9 @@ class _MorkvaAppState extends State<MorkvaApp> {
   /// repository first (so its Firestore listeners stop reporting into the sync
   /// cubit), then closes the cubits. Idempotent at the repository/cubit level.
   Future<void> _cleanup() async {
+    await _runner.dispose();
     await _assistant.dispose();
+    await _close(_cubits);
     await _dataRepository.dispose();
     await _authCubit.close();
     await _syncStatusCubit.close();
@@ -274,6 +344,8 @@ class _MorkvaAppState extends State<MorkvaApp> {
         RepositoryProvider<AttachmentStore>.value(value: _attachmentStore),
         RepositoryProvider<ThreadRepository>.value(value: _threads),
         RepositoryProvider<AssistantSession>.value(value: _assistant),
+        RepositoryProvider<AutomationRunnerApi>.value(value: _runner),
+        RepositoryProvider<AutomationStores>.value(value: _automationStores),
         ChangeNotifierProvider<AssistantFocusNotifier>.value(
           value: _assistant.focus,
         ),
@@ -295,9 +367,37 @@ class _MorkvaAppState extends State<MorkvaApp> {
             themeMode: ThemeMode.system,
             scrollBehavior: const AppScrollBehavior(),
             routerConfig: _router,
+            builder: (context, child) {
+              final router = KeyedSubtree(key: _routerKey, child: child!);
+              final cubits = _cubits;
+              if (cubits == null) return router;
+              return MultiBlocProvider(
+                providers: [
+                  BlocProvider<ModulesCubit>.value(value: cubits.modules),
+                  BlocProvider<AutomationRunsCubit>.value(value: cubits.runs),
+                  BlocProvider<RunLogCubit>.value(value: cubits.runLog),
+                ],
+                child: router,
+              );
+            },
           ),
         ),
       ),
     );
   }
+}
+
+typedef _AutomationCubits = ({
+  ModulesCubit modules,
+  AutomationRunsCubit runs,
+  RunLogCubit runLog,
+});
+
+Future<void> _close(_AutomationCubits? cubits) async {
+  if (cubits == null) return;
+  await Future.wait([
+    cubits.modules.close(),
+    cubits.runs.close(),
+    cubits.runLog.close(),
+  ]);
 }

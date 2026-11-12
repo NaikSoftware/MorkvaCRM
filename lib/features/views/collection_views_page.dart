@@ -255,18 +255,12 @@ class _CollectionViewsPageState extends State<CollectionViewsPage> {
                 compact: compact,
               ),
             };
-            final frame = compact
+            return compact
                 ? _PhoneFrame(state: ready, modes: modes, body: body)
                 : _WideFrame(
                     state: ready,
                     body: body,
                     narrow: constraints.maxWidth < _narrowContent,
-                  );
-            return ready == null
-                ? frame
-                : RunNoticeHost(
-                    collectionId: ready.collection.id,
-                    child: frame,
                   );
           },
         );

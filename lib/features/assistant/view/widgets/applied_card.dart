@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../design/design.dart';
+import '../../../automation/widgets/action_buttons.dart' show AutomationPaths;
 import '../../bloc/chat_item.dart';
 import 'assistant_scope.dart';
 import 'chip_button.dart';
@@ -204,12 +206,23 @@ class _AppliedCardState extends State<AppliedCard> {
                             'left as they were',
                             style: theme.textTheme.bodySmall,
                           ),
-                        // shortcut: no "· View" link until the runs route
-                        // and its chat action exist (T16).
                         if (item.startedRuns case final n when n > 0)
-                          Text(
-                            'Started $n automation ${n == 1 ? 'run' : 'runs'}',
-                            style: theme.textTheme.bodySmall,
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  'Started $n automation '
+                                  '${n == 1 ? 'run' : 'runs'} ·',
+                                  style: theme.textTheme.bodySmall,
+                                ),
+                              ),
+                              TextActionButton(
+                                label: 'View',
+                                onPressed: () => GoRouter.maybeOf(
+                                  context,
+                                )?.go(AutomationPaths.runs()),
+                              ),
+                            ],
                           ),
                       ],
                     ),

@@ -1,5 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -7,6 +10,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../api/api.dart';
 import '../../api/assistant/thread_repository.dart';
+import '../../core/domain/automation/automation.dart';
 import '../../core/domain/domain.dart';
 import '../../design/design.dart';
 import '../../features/assistant/bloc/assistant_bloc.dart';
@@ -21,7 +25,18 @@ import '../../features/assistant/view/assistant_panel.dart';
 import '../../features/assistant/view/thread_list_page.dart';
 import '../../features/assistant/view/widgets/sparkle_icon.dart';
 import '../../features/auth/conflict_warning_banner.dart';
+import '../../features/automation/bloc/automation_runs_cubit.dart';
+import '../../features/automation/bloc/modules_cubit.dart';
+import '../../features/automation/bloc/run_log_cubit.dart';
+import '../../features/automation/view/automation_editor_sheet.dart';
+import '../../features/automation/view/automations_page.dart';
+import '../../features/automation/view/code_viewer.dart';
+import '../../features/automation/view/review_sheet.dart';
+import '../../features/automation/widgets/action_buttons.dart';
+import '../../features/automation/widgets/collection_actions_menu.dart';
+import '../../features/automation/widgets/run_indicator.dart';
 import '../../features/collections/collections.dart';
+import '../../features/views/view_link.dart';
 import 'app_shell.dart';
 import 'brand_wordmark.dart';
 import 'jump_to_dialog.dart';
@@ -40,6 +55,8 @@ class AppShellScaffold extends StatelessWidget {
     required this.child,
     this.collectionId,
     this.inSettings = false,
+    this.inAutomations = false,
+    this.automationsDetail = false,
   });
 
   /// The routed page (the shell's navigator).
@@ -51,6 +68,12 @@ class AppShellScaffold extends StatelessWidget {
 
   /// The settings page is shown.
   final bool inSettings;
+
+  /// An `/automations` page is shown.
+  final bool inAutomations;
+
+  /// Module details or run detail: they draw their own back link.
+  final bool automationsDetail;
 
   @override
   Widget build(BuildContext context) {
@@ -71,6 +94,8 @@ class AppShellScaffold extends StatelessWidget {
       child: _ShellView(
         collectionId: collectionId,
         inSettings: inSettings,
+        inAutomations: inAutomations,
+        automationsDetail: automationsDetail,
         child: child,
       ),
     );
@@ -82,11 +107,15 @@ class _ShellView extends StatefulWidget {
     required this.child,
     required this.collectionId,
     required this.inSettings,
+    required this.inAutomations,
+    required this.automationsDetail,
   });
 
   final Widget child;
   final String? collectionId;
   final bool inSettings;
+  final bool inAutomations;
+  final bool automationsDetail;
 
   @override
   State<_ShellView> createState() => _ShellViewState();
@@ -111,6 +140,12 @@ class _ShellViewState extends State<_ShellView> {
   /// The panel is a sheet over the page, as last laid out.
   bool _sheet = false;
 
+  /// The automation pages' way into the app.
+  late final _automationsHost = _ShellAutomationsHost(this);
+
+  /// Opens Ask Morkva; null while it is flagged off.
+  VoidCallback? _openAssistant;
+
   SessionAssistantActions _actionsFor(
     AssistantSession assistant, {
     required bool sheet,
@@ -123,6 +158,7 @@ class _ShellViewState extends State<_ShellView> {
       onNavigated: () {
         if (_sheet) assistant.panel.hide();
       },
+      onViewCode: (code) => showCodeViewer(context, code: code),
     );
   }
 
@@ -136,6 +172,8 @@ class _ShellViewState extends State<_ShellView> {
       ? ShellPlace.collection
       : widget.inSettings
       ? ShellPlace.settings
+      : widget.inAutomations
+      ? ShellPlace.automations
       : ShellPlace.allCollections;
 
   void _onPanelChanged(bool open) {
@@ -205,6 +243,16 @@ class _ShellViewState extends State<_ShellView> {
     void openAll() => router.go('/');
     void openSettings() => router.go('/settings');
     void openCollection(String id) => router.go('/collections/$id');
+    // Idle: the page itself; else the Runs tab filtered to what needs a look.
+    void openAutomations() {
+      final runs = maybeRead<AutomationRunsCubit>(context);
+      router.go(
+        runs == null || runs.primary == IndicatorState.idle
+            ? '/automations'
+            : runIndicatorPathOf(context),
+      );
+    }
+
     Future<void> jumpTo() async {
       final rest = [
         for (final c in collections)
@@ -233,6 +281,12 @@ class _ShellViewState extends State<_ShellView> {
     final ask = !wide && toggleAssistant != null
         ? AskMorkvaAction(onTap: toggleAssistant)
         : null;
+    _openAssistant = assistant == null
+        ? null
+        : wide
+        ? assistant.panel.show
+        : () => router.push('/assistant');
+    final inAutomations = place == ShellPlace.automations;
     final avatar = Tooltip(
       message: 'Account and settings',
       child: InkResponse(
@@ -249,7 +303,7 @@ class _ShellViewState extends State<_ShellView> {
       ),
     );
 
-    return _KeyShortcut(
+    final shell = _KeyShortcut(
       keyboardKey: LogicalKeyboardKey.keyK,
       onKey: jumpTo,
       child: _KeyShortcut(
@@ -271,6 +325,7 @@ class _ShellViewState extends State<_ShellView> {
             onJumpTo: jumpTo,
             onAssistant: toggleAssistant,
             assistantOpen: assistantOpen,
+            onAutomations: openAutomations,
             onUnpin: pins.unpin,
             onReorder: (from, to) =>
                 pins.reorder([for (final c in pinned) c.id], from, to),
@@ -288,30 +343,36 @@ class _ShellViewState extends State<_ShellView> {
                       AssistantHistory(onPicked: back),
                 ),
           onDismissSidePanel: assistant?.panel.hide,
-          title: inSettings ? 'Settings' : 'Collections',
-          // Wide, All collections draws its own header; a collection always
-          // does.
-          header: inCollection || (wide && place == ShellPlace.allCollections)
+          title: inSettings
+              ? 'Settings'
+              : inAutomations
+              ? 'Automations'
+              : 'Collections',
+          // Wide, All collections and Automations draw their own header; a
+          // collection and the automation detail pages always do.
+          header:
+              inCollection ||
+                  widget.automationsDetail ||
+                  (wide &&
+                      (place == ShellPlace.allCollections || inAutomations))
               ? const SizedBox.shrink()
               : null,
           // Wide, the sidebar is the way back and carries the brand.
           headerLeading: wide
               ? null
-              : inSettings
+              : inSettings || inAutomations
               ? BackButton(onPressed: openAll)
               : const BrandLogomark(size: 34),
-          headerTrailing: inSettings
-              ? ask
-              : ask == null
-              ? avatar
-              : Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ask,
-                    const SizedBox(width: Spacing.xxs),
-                    avatar,
-                  ],
-                ),
+          headerTrailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            spacing: Spacing.xxs,
+            children: [
+              // Phone: hidden while idle.
+              if (!wide) const RunIndicatorButton(),
+              ?ask,
+              if (!inSettings && !inAutomations) avatar,
+            ],
+          ),
           bottomBar:
               tabs.isNotEmpty && (place == ShellPlace.allCollections || isTab)
               ? _PinsBar(
@@ -331,6 +392,131 @@ class _ShellViewState extends State<_ShellView> {
         ),
       ),
     );
+    // The app's one notice host: finish snackbars and collection-button
+    // reviews on any page.
+    return RepositoryProvider<AutomationsHost>.value(
+      value: _automationsHost,
+      child: RunNoticeHost(collectionId: collectionId, child: shell),
+    );
+  }
+}
+
+/// [AutomationsHost] over the router and the shell's context.
+final class _ShellAutomationsHost implements AutomationsHost {
+  _ShellAutomationsHost(this._shell);
+
+  final _ShellViewState _shell;
+
+  BuildContext get _context => _shell.context;
+
+  GoRouter get _router => GoRouter.of(_context);
+
+  @override
+  void openAutomations({
+    AutomationsTab tab = AutomationsTab.modules,
+    String? collectionId,
+    String? cardId,
+    RunFilterKind? filter,
+    String? moduleId,
+  }) => _router.go(
+    Uri(
+      path: '/automations',
+      queryParameters: {
+        if (tab != AutomationsTab.modules) 'tab': tab.name,
+        'collection': ?collectionId,
+        'card': ?cardId,
+        if (filter != null && filter != RunFilterKind.all)
+          'filter': filter.name,
+        'module': ?moduleId,
+      },
+    ).toString(),
+  );
+
+  @override
+  void openModule(String moduleId) =>
+      _router.go(AutomationPaths.module(moduleId));
+
+  @override
+  void openRun(String runId) => _router.go(AutomationPaths.run(runId));
+
+  @override
+  void openCard(String collectionId, String cardId) =>
+      _router.go(collectionLink(collectionId, card: cardId));
+
+  /// Refs per kind: `card` `<cid>/<cardId>`, `view` `<cid>/<viewId>`,
+  /// `collection` `<cid>`.
+  @override
+  void openLink(UiLink link) {
+    final slash = link.ref.indexOf('/');
+    final collectionId = slash < 0 ? link.ref : link.ref.substring(0, slash);
+    final id = slash < 0 ? null : link.ref.substring(slash + 1);
+    _router.go(
+      collectionLink(
+        collectionId,
+        card: link.kind == 'card' ? id : null,
+        view: link.kind == 'view' ? id : null,
+      ),
+    );
+  }
+
+  @override
+  void newAutomation({
+    String? moduleId,
+    String? actionId,
+    String? collectionId,
+  }) => unawaited(
+    showAutomationEditor(
+      _context,
+      moduleId: moduleId,
+      actionId: actionId,
+      collectionId: collectionId,
+    ),
+  );
+
+  @override
+  void editAutomation(String automationId) {
+    final existing = maybeRead<ModulesCubit>(_context)?.state.automations
+        .where((a) => a.automation.id == automationId)
+        .firstOrNull
+        ?.automation;
+    if (existing == null) return;
+    unawaited(showAutomationEditor(_context, existing: existing));
+  }
+
+  @override
+  void review(String runId) =>
+      unawaited(showReviewSheet(_context, runId: runId));
+
+  // shortcut: opens Ask Morkva without the prefill (the composer has no
+  // prefill seam yet); add one to the composer when people ask.
+  @override
+  void Function(String prefill)? get askMorkva =>
+      switch (_shell._openAssistant) {
+        final open? => (_) => open(),
+        null => null,
+      };
+
+  @override
+  Future<({String name, String text})?> pickModuleFile() async {
+    final file = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: const ['json'],
+    );
+    if (file == null) return null;
+    final bytes = await file.readAsBytes();
+    // Malformed text still reaches the parser, which says what is wrong.
+    return (name: file.name, text: utf8.decode(bytes, allowMalformed: true));
+  }
+
+  @override
+  Future<bool> saveFile(String name, String text) async {
+    final uri = await FilePicker.saveFile(
+      fileName: name,
+      bytes: utf8.encode(text),
+      mimeType: 'application/json',
+    );
+    // The web downloads the file; there is no dialog to cancel.
+    return kIsWeb || uri != null;
   }
 }
 
@@ -437,11 +623,19 @@ class AskMorkvaAction extends StatelessWidget {
 /// event; chips and "Open as filtered view" navigate through [RouterUiPort]
 /// (which pops the phone chat first), then [onNavigated] runs.
 final class SessionAssistantActions implements AssistantActions {
-  SessionAssistantActions(this._bloc, this._ui, {this.onNavigated});
+  SessionAssistantActions(
+    this._bloc,
+    this._ui, {
+    this.onNavigated,
+    this.onViewCode,
+  });
 
   final AssistantBloc _bloc;
   final RouterUiPort _ui;
   final VoidCallback? onNavigated;
+
+  /// Opens the read-only code viewer over a module's script.
+  final void Function(String code)? onViewCode;
 
   @override
   void submit(String text) => _bloc.add(PromptSubmitted(text));
@@ -499,9 +693,10 @@ final class SessionAssistantActions implements AssistantActions {
     if (spec != null && _ui.openQuery(spec)) onNavigated?.call();
   }
 
-  // shortcut: no code viewer until T12 builds it; T16 opens it here.
   @override
-  void viewCode(PlanRow row) {}
+  void viewCode(PlanRow row) {
+    if (row.code case final code?) onViewCode?.call(code);
+  }
 }
 
 /// The member's conversations: the panel's history pane, or with [onBack]
