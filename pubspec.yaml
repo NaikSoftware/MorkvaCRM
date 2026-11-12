@@ -43,6 +43,9 @@ dependencies:
   # Epic 9: module bundle hashes (core) and the web sandbox host (package:web).
   crypto: ^3.0.7
   web: ^1.1.1
+  # Epic 9: the QuickJS module engine (Android/iOS); exact pin, the engine
+  # relies on QuickJsRuntime2 internals (timeout slice, job drain).
+  flutter_qjs_next: 1.5.2
   # flutter_bloc's providers reject a Listenable (the assistant focus notifier).
   provider: ^6.1.5+1
 
