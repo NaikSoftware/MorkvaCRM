@@ -1,7 +1,9 @@
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/api/data/data_repository.dart';
 import 'package:morkva_crm/api/data/firestore_data_repository.dart';
+import 'package:morkva_crm/api/firestore/firestore_value_codec_impl.dart';
 import 'package:morkva_crm/api/sync/sync_status_cubit.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
 
@@ -331,4 +333,40 @@ void main() {
 
     expect(await drained(), isEmpty);
   });
+
+  test('a change that fails to build never fails its write', () async {
+    final broken = FirestoreDataRepository(
+      firestore: firestore,
+      syncStatus: syncStatus,
+      codec: _ThrowingDecodeCodec(),
+    );
+    await broken.initialize(workspaceId);
+    addTearDown(broken.dispose);
+    final seen = <CardChange>[];
+    final sub = broken.changes.listen(seen.add);
+    addTearDown(sub.cancel);
+    final reported = <FlutterErrorDetails>[];
+    final previous = FlutterError.onError;
+    FlutterError.onError = reported.add;
+    addTearDown(() => FlutterError.onError = previous);
+
+    await broken.saveObject(note('n1'), schema: notes);
+    final result = await broken.saveObjectsBatch([
+      ObjectCreate(note('n2')),
+    ], schemas: schemas);
+    await pumpEventQueue();
+
+    expect(result.failed, isEmpty);
+    expect(result.written, ['n2']);
+    expect(await stored('n1'), isNotNull);
+    expect(seen, isEmpty);
+    expect(reported, hasLength(2));
+  });
+}
+
+/// Encodes like the real codec; every decode throws.
+class _ThrowingDecodeCodec extends FirestoreValueCodecImpl {
+  @override
+  Object? decode(FieldDefinition field, Object? firestoreValue) =>
+      throw StateError('decode');
 }

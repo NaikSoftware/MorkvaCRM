@@ -2,7 +2,8 @@ import 'dart:async';
 import 'dart:math' show min;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:flutter/foundation.dart'
+    show ErrorDescription, FlutterError, FlutterErrorDetails, visibleForTesting;
 import 'package:morkva_crm/core/domain/domain.dart' hide FieldValue;
 import 'package:morkva_crm/core/domain/ids.dart';
 import 'package:rxdart/rxdart.dart';
@@ -499,23 +500,42 @@ class FirestoreDataRepository implements DataRepository {
       rethrow;
     }
     if (!_wants(epoch)) return;
-    final before = switch (beforeDoc) {
-      final doc? => _objectFromData(object.id, doc, schema),
-      null => null,
-    };
-    final after = _objectFromData(object.id, afterDoc, schema);
-    if (before != null && isNoOpUpdate(before, after, encodedValues.keys)) {
-      return;
+    _guarded(() {
+      final before = switch (beforeDoc) {
+        final doc? => _objectFromData(object.id, doc, schema),
+        null => null,
+      };
+      final after = _objectFromData(object.id, afterDoc, schema);
+      if (before != null && isNoOpUpdate(before, after, encodedValues.keys)) {
+        return;
+      }
+      _emit(
+        epoch,
+        object.collectionId,
+        object.id,
+        before: before,
+        after: after,
+        origin: _committed(origin),
+        rev: newRev,
+      );
+    });
+  }
+
+  /// Runs [emit] so that building a change can never fail the committed
+  /// write it reports on; a failing change is reported and dropped.
+  void _guarded(void Function() emit) {
+    try {
+      emit();
+    } catch (error, stack) {
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stack,
+          library: 'morkva data',
+          context: ErrorDescription('while emitting a card change'),
+        ),
+      );
     }
-    _emit(
-      epoch,
-      object.collectionId,
-      object.id,
-      before: before,
-      after: after,
-      origin: _committed(origin),
-      rev: newRev,
-    );
   }
 
   @override
@@ -627,7 +647,9 @@ class FirestoreDataRepository implements DataRepository {
           }
           written.add(write.id);
         }
-        _emitChunk(epoch, chunk, schemas, committed, committedOrigin);
+        _guarded(
+          () => _emitChunk(epoch, chunk, schemas, committed, committedOrigin),
+        );
       } catch (error) {
         final code = error is FirebaseException ? error.code : 'unknown';
         for (final write in chunk) {
