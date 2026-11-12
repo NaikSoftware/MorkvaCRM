@@ -326,6 +326,33 @@ void main() {
       );
     });
 
+    testWidgets('phone: another card\'s longest notice wraps, never cuts', (
+      tester,
+    ) async {
+      await open(tester, object: _order(), size: const Size(390, 844));
+      rig.runner.finish(
+        liveRun(
+          'run_10',
+          cardId: 'b_1041',
+          cardLabel: 'Order #1041',
+          status: RunStatus.succeeded,
+          outcome: '1 order updated',
+          planId: 'p_10',
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      final text = find.textContaining(
+        'Mark shipped on Order #1041 · 1 order updated',
+        findRichText: true,
+      );
+      expect(text, findsOneWidget);
+      expect(tester.widget<RichText>(text).overflow, TextOverflow.clip);
+      expect(tester.widget<RichText>(text).maxLines, isNull);
+      expect(find.text('Undo'), findsOneWidget);
+      expect(find.text('View run'), findsOneWidget);
+    });
+
     testWidgets('a refused Run again shows in the error tone', (tester) async {
       // Web e2e 2026-11-12: Run again offline said "You are offline.
       // Nothing was changed." in the green success banner.
