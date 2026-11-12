@@ -109,6 +109,18 @@ void main() {
     expectLastCall(rig.runner.calls, 'undo', ['r_ok']);
   });
 
+  // On web the steps' intrinsic text height came out 1 px short of their
+  // laid-out height (the Console step overflowed); the timeline may not
+  // size its steps from intrinsics.
+  testWidgets('timeline steps size to their content, not intrinsics', (
+    tester,
+  ) async {
+    await rig.stores.runs.create(applied());
+    await pump(tester, 'r_ok');
+    expect(find.text('Console'), findsOneWidget);
+    expect(find.byType(IntrinsicHeight), findsNothing);
+  });
+
   testWidgets('the countdown ends in "Undo expired" once the deadline '
       'passes and the journal lets go', (tester) async {
     rig.runner.undoable.add('r_ok');

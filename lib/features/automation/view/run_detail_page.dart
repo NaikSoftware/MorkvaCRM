@@ -757,97 +757,92 @@ class _StepState extends State<_Step> {
     final dot = widget.tone == null
         ? scheme.outline
         : StatusChip.colorsOf(theme, widget.tone!).foreground;
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(
-            width: 24,
+    // The card sizes the step; the rail is positioned beside it (an
+    // IntrinsicHeight row came out 1 px short of the text on web).
+    return Stack(
+      children: [
+        if (!widget.last)
+          Positioned(
+            left: 11,
+            top: 30,
+            bottom: 0,
+            child: Container(width: 2, color: scheme.outlineVariant),
+          ),
+        Positioned(
+          left: 6,
+          top: 18,
+          child: Container(
+            width: 12,
+            height: 12,
+            decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(
+            left: 24 + Spacing.sm,
+            bottom: Spacing.xs,
+          ),
+          child: SurfaceCard(
+            padding: EdgeInsets.zero,
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 18),
-                Container(
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+                InkWell(
+                  onTap: () => setState(() => _open = !_open),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 48),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: Spacing.sm,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            _open ? Icons.expand_more : Icons.chevron_right,
+                            size: 20,
+                          ),
+                          const SizedBox(width: Spacing.xs),
+                          Text(widget.title, style: theme.textTheme.titleSmall),
+                          if (widget.count != null) ...[
+                            const SizedBox(width: Spacing.xs),
+                            CountBadge(count: widget.count!),
+                          ],
+                          if (widget.summary != null) ...[
+                            const SizedBox(width: Spacing.sm),
+                            Expanded(
+                              child: Text(
+                                widget.summary!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-                if (!widget.last)
-                  Expanded(
-                    child: Container(width: 2, color: scheme.outlineVariant),
+                if (_open)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      Spacing.xl + Spacing.xs,
+                      0,
+                      Spacing.md,
+                      Spacing.md,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: widget.children,
+                    ),
                   ),
               ],
             ),
           ),
-          const SizedBox(width: Spacing.sm),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: Spacing.xs),
-              child: SurfaceCard(
-                padding: EdgeInsets.zero,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    InkWell(
-                      onTap: () => setState(() => _open = !_open),
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(minHeight: 48),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: Spacing.sm,
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                _open ? Icons.expand_more : Icons.chevron_right,
-                                size: 20,
-                              ),
-                              const SizedBox(width: Spacing.xs),
-                              Text(
-                                widget.title,
-                                style: theme.textTheme.titleSmall,
-                              ),
-                              if (widget.count != null) ...[
-                                const SizedBox(width: Spacing.xs),
-                                CountBadge(count: widget.count!),
-                              ],
-                              if (widget.summary != null) ...[
-                                const SizedBox(width: Spacing.sm),
-                                Expanded(
-                                  child: Text(
-                                    widget.summary!,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: scheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    if (_open)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(
-                          Spacing.xl + Spacing.xs,
-                          0,
-                          Spacing.md,
-                          Spacing.md,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: widget.children,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
