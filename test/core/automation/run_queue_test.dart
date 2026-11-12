@@ -20,7 +20,7 @@ void main() {
       ..add('a', manual: false)
       ..add('b', manual: false);
     expect(q.next(), 'a');
-    expect(q.busy, isTrue);
+    expect(q.current, isNotNull);
     expect(q.next(), isNull, reason: 'serial');
     q.release('b'); // not the holder: nothing changes
     expect(q.current, 'a');
@@ -45,7 +45,7 @@ void main() {
     expect(q.removeWhere((r) => r == 'c'), ['c']);
     expect(q.length, 1);
     q.clear();
-    expect(q.busy, isFalse);
+    expect(q.current, isNull);
     expect(q.waiting, isEmpty);
   });
 }

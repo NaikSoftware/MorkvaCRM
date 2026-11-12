@@ -1,4 +1,5 @@
 import '../domain/automation/automation.dart';
+import '../harness/api/capability.dart' show Grants;
 import '../harness/automation_validation.dart' show moduleGrants;
 import '../harness/plan/plan.dart';
 
@@ -83,11 +84,8 @@ final class ApplyPolicy {
       consent,
       collections: automation.collections,
     );
-    for (final item in plan.items) {
-      if (!grants.allows(item.capability) ||
-          !grants.allowsCollection(item.collectionId)) {
-        return const ApplyReview('review: a change is outside its permissions');
-      }
+    if (!withinGrants(plan.items, grants)) {
+      return const ApplyReview('review: a change is outside its permissions');
     }
     if (!takeBudget(plan.itemCount)) {
       return const ApplyReview(
@@ -97,3 +95,8 @@ final class ApplyPolicy {
     return const ApplyAuto();
   }
 }
+
+/// Whether [grants] allow every one of [items] (capability and collection).
+bool withinGrants(Iterable<PlanItem> items, Grants grants) => items.every(
+  (i) => grants.allows(i.capability) && grants.allowsCollection(i.collectionId),
+);

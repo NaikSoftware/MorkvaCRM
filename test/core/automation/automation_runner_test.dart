@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/api/data/data_repository.dart';
 import 'package:morkva_crm/core/automation/automation_runner.dart';
 import 'package:morkva_crm/core/automation/engine/protocol.dart';
+import 'package:morkva_crm/core/automation/loop_guard.dart';
 import 'package:morkva_crm/core/automation/engine/script_engine.dart';
 import 'package:morkva_crm/core/automation/runner_api.dart';
 import 'package:morkva_crm/core/automation/store_catalog.dart';
@@ -22,7 +23,11 @@ import '../harness/fixtures/seed_workspace.dart';
 const _orders = SeedIds.orders;
 const _code = '(() => { morkva.action("stamp", async (ctx) => "ok"); })();';
 
-/// A run store whose writes never resolve, like Firestore offline.
+/// Like Firestore offline: the write applies to the local cache at once,
+/// its future resolves only on the server's ack (never, here).
+Future<void> _queued(Future<void> applied) =>
+    applied.then((_) => Completer<void>().future);
+
 final class OfflineRunStore implements RunStore {
   OfflineRunStore(this.inner);
   final RunStore inner;
@@ -35,17 +40,62 @@ final class OfflineRunStore implements RunStore {
   @override
   Future<void> create(RunRecord run) {
     writes++;
-    return Completer<void>().future;
+    return _queued(inner.create(run));
   }
 
   @override
   Future<void> update(RunRecord run, {required Set<String> fields}) {
     writes++;
-    return Completer<void>().future;
+    return _queued(inner.update(run, fields: fields));
   }
 
   @override
   Future<int> prune({int keep = RunStore.kWindow}) => Completer<int>().future;
+}
+
+final class OfflineModuleStore implements ModuleStore {
+  OfflineModuleStore(this.inner);
+  final ModuleStore inner;
+
+  @override
+  Stream<List<ModuleRecord>> watch() => inner.watch();
+  @override
+  Future<ModuleRecord?> get(String moduleId) => inner.get(moduleId);
+  @override
+  Future<void> save(ModuleRecord module) => _queued(inner.save(module));
+  @override
+  Future<void> delete(String moduleId) => _queued(inner.delete(moduleId));
+}
+
+final class OfflineAutomationStore implements AutomationStore {
+  OfflineAutomationStore(this.inner);
+  final AutomationStore inner;
+
+  @override
+  Stream<List<AutomationRecord>> watch() => inner.watch();
+  @override
+  Future<AutomationRecord?> get(String id) => inner.get(id);
+  @override
+  Future<void> save(AutomationRecord a) => _queued(inner.save(a));
+  @override
+  Future<void> delete(String id) => _queued(inner.delete(id));
+}
+
+final class OfflineGrantStore implements GrantStore {
+  OfflineGrantStore(this.inner);
+  final GrantStore inner;
+
+  @override
+  Stream<Map<String, GrantRecord>> watch(String uid) => inner.watch(uid);
+  @override
+  Future<GrantRecord?> get(String uid, String moduleId) =>
+      inner.get(uid, moduleId);
+  @override
+  Future<void> save(String uid, GrantRecord grant) =>
+      _queued(inner.save(uid, grant));
+  @override
+  Future<void> delete(String uid, String moduleId) =>
+      _queued(inner.delete(uid, moduleId));
 }
 
 /// The runner over the seed workspace, the in-memory stores and the fake
@@ -55,15 +105,22 @@ final class Rig {
     String sessionId = 't_1',
     FakeCrashMarker? marker,
     bool offlineRuns = false,
+    bool offlineStores = false,
   }) : marker = marker ?? FakeCrashMarker() {
     repo = seed.repository();
-    final runs = offlineRuns ? OfflineRunStore(fakes.runs) : fakes.runs;
+    final runs = offlineRuns || offlineStores
+        ? OfflineRunStore(fakes.runs)
+        : fakes.runs;
     offline = runs is OfflineRunStore ? runs : null;
     stores = AutomationStores(
-      modules: fakes.modules,
-      automations: fakes.automations,
+      modules: offlineStores
+          ? OfflineModuleStore(fakes.modules)
+          : fakes.modules,
+      automations: offlineStores
+          ? OfflineAutomationStore(fakes.automations)
+          : fakes.automations,
       runs: runs,
-      grants: fakes.grants,
+      grants: offlineStores ? OfflineGrantStore(fakes.grants) : fakes.grants,
     );
     final catalog = StoreAutomationCatalog(stores, uid: () => 'u1');
     session = HarnessSession(
@@ -81,6 +138,7 @@ final class Rig {
       now: () => clock ?? DateTime.now(),
       ids: IdGenerator(random: Random(9)),
       settleTimeout: const Duration(seconds: 2),
+      ackWait: const Duration(milliseconds: 100),
     );
     catalog.hooks = runner;
     runner.finished.listen(finished.add);
@@ -447,6 +505,10 @@ void main() {
         };
         final running = await rig.runner.pressCard('a_1', cardId: _order);
         await until(() => rig.engine.sessions.isNotEmpty);
+        expect(rig.marker.leftover(), (
+          runId: running,
+          automationId: 'a_1',
+        ), reason: 'the crash breadcrumb is set while the module runs');
         final queued = await rig.runner.pressCard('a_1', cardId: _order);
         expect(rig.live(queued)!.status, RunStatus.queued);
         expect(rig.live(queued)!.queuedAhead, 1);
@@ -538,6 +600,95 @@ void main() {
       expect(rig.runner.activity.runs, isEmpty);
       expect(rig.offline!.writes, 2);
     });
+
+    test('an approve whose guard write is not acked in time is refused '
+        'offline and stays in review', () async {
+      await rig.dispose();
+      rig = Rig(offlineRuns: true);
+      await rig.install();
+      await rig.automation();
+      await rig.start();
+      rig.stamps();
+      final runId = await rig.runner.pressCard('a_1', cardId: _order);
+      await awaitingReview(runId);
+      await expectLater(
+        rig.runner.approve(runId),
+        throwsA(
+          isA<AutomationRefused>().having((e) => e.code, 'code', 'offline'),
+        ),
+      );
+      expect(rig.live(runId)!.status, RunStatus.awaitingReview);
+      expect((await rig.doc(runId))!.applyStartedAt, isNull);
+      expect(rig.item(_order), isNot('Stamped'));
+    });
+
+    test('approve refuses a plan outside the access narrowed after the '
+        'seal', () async {
+      final runId = await rig.runner.pressCard('a_1', cardId: _order);
+      await awaitingReview(runId);
+      await rig.runner.changeAccess(
+        rig.module.id,
+        collections: const [SeedIds.clients],
+      );
+      await expectLater(
+        rig.runner.approve(runId),
+        throwsA(
+          isA<AutomationRefused>()
+              .having((e) => e.code, 'code', 'needs_consent')
+              .having((e) => e.message, 'message', kPermissionsChanged),
+        ),
+      );
+      expect(rig.item(_order), isNot('Stamped'));
+    });
+
+    test(
+      'a review whose consent went while it ran is rejected at once',
+      () async {
+        rig.engine.action = (m, inv) async {
+          await rig.fakes.grants.delete('u1', rig.module.id);
+          await m.call('cards.update', {
+            'collection': 'Orders',
+            'target': {
+              'ids': [_order],
+            },
+            'set': {'Item': 'Stamped'},
+          });
+          return null;
+        };
+        final doc = await settled(
+          await rig.runner.pressCard('a_1', cardId: _order),
+        );
+        expect(doc.status, RunStatus.rejected);
+        expect(doc.reason, RunReason.needsConsent);
+        expect(rig.runner.activity.needsReview, 0);
+      },
+    );
+
+    test('saves, installs and uninstalls return while their writes wait '
+        'for the server', () async {
+      await rig.dispose();
+      rig = Rig(offlineStores: true);
+      await rig.install();
+      await rig.automation();
+      await rig.start();
+      final a = (await rig.fakes.automations.get('a_1'))!;
+      await rig.runner
+          .saveAutomation(a.copyWith(name: 'Renamed'))
+          .timeout(const Duration(seconds: 2));
+      expect((await rig.fakes.automations.get('a_1'))!.name, 'Renamed');
+      await rig.runner
+          .install(
+            ModuleBundle.of(rig.module.manifestJson, rig.module.code),
+            collections: const [_orders],
+          )
+          .timeout(const Duration(seconds: 2));
+      await rig.runner
+          .uninstall(rig.module.id)
+          .timeout(const Duration(seconds: 2));
+      expect(await rig.fakes.automations.get('a_1'), isNull);
+      expect(await rig.fakes.grants.get('u1', rig.module.id), isNull);
+      expect(await rig.fakes.modules.get(rig.module.id), isNull);
+    });
   });
 
   group('auto apply and the queue', () {
@@ -566,11 +717,22 @@ void main() {
           },
           'set': {'Item': 'Stamped'},
         });
+        // The commit will land in the repository, but the cache lags.
+        if (card == _order) rig.repo.hiddenFromWatch.add(_order);
         return 'Stamped';
       };
       final first = await rig.runner.pressCard('a_1', cardId: _order);
       final second = await rig.runner.pressCard('a_1', cardId: order2);
       expect(rig.live(second)!.queuedAhead, 1);
+      await until(() => rig.item(_order) == 'Stamped');
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+      expect(
+        rig.live(second)!.status,
+        RunStatus.queued,
+        reason: 'the slot is held until the commit reached the cache',
+      );
+      rig.repo.hiddenFromWatch.remove(_order);
+      rig.repo.seedObjects(_orders, rig.repo.objectsOf(_orders));
       final a = await settled(first);
       expect(a.status, RunStatus.succeeded);
       expect(a.apply, ApplyMode.auto);
@@ -855,6 +1017,103 @@ void main() {
       expect(rig.engine.sessions, hasLength(2));
     });
 
+    Future<void> forged(WriteOrigin origin, int i) => rig.repo.saveObject(
+      rig
+          .card(target.id)
+          .copyWith(
+            values: {
+              ...rig.card(target.id).values,
+              OrderFields.item: TextFieldValue('Write $i'),
+            },
+            updatedAt: DateTime.now(),
+          ),
+      schema: rig.seed.orders,
+      origin: origin,
+    );
+
+    const anyUpdate = EventTrigger(
+      kind: TriggerKind.cardUpdated,
+      collectionId: _orders,
+    );
+
+    /// Holds the slot with the first run so the next ones stay queued.
+    Completer<void> gateRuns() {
+      final gate = Completer<void>();
+      rig.engine.action = (m, inv) => gate.future.then((_) => null);
+      return gate;
+    }
+
+    test('a chain deeper than 3 writes a depth_limit row', () async {
+      await rig.automation(trigger: anyUpdate);
+      await rig.start();
+      await forged(
+        const WriteOrigin(
+          kind: WriteKind.automation,
+          depth: 3,
+          chain: ['a_x', 'a_y', 'a_z'],
+        ),
+        1,
+      );
+      await until(() async => (await rig.docs()).isNotEmpty);
+      final doc = (await rig.docs()).single;
+      expect(doc.status, RunStatus.skipped);
+      expect(doc.reason, RunReason.depthLimit);
+      expect(doc.depth, 4);
+      expect(doc.chain, ['a_x', 'a_y', 'a_z', 'a_1']);
+      expect(rig.engine.loads, isEmpty);
+    });
+
+    test('more than 100 changes of one commit write one fan_out row with '
+        'the count', () async {
+      await rig.automation(trigger: anyUpdate);
+      await rig.start();
+      gateRuns();
+      const origin = WriteOrigin(kind: WriteKind.plan, commitId: 'c_fan');
+      for (var i = 0; i < LoopGuard.kFanOutCap + 3; i++) {
+        await forged(origin, i);
+      }
+      await until(
+        () async =>
+            (await rig.docs()).any((d) => d.reason == RunReason.fanOut) &&
+            rig.runner.activity.runs.length == LoopGuard.kFanOutCap,
+        timeout: const Duration(seconds: 20),
+      );
+      await until(
+        () async =>
+            (await rig.docs())
+                .singleWhere((d) => d.reason == RunReason.fanOut)
+                .count ==
+            3,
+      );
+    });
+
+    test('the rate breaker pauses the automation loop_suspected and skips '
+        'its waiting runs', () async {
+      await rig.automation(trigger: anyUpdate);
+      await rig.start();
+      final gate = gateRuns();
+      // Chained writes (depth 2 runs), each its own commit.
+      const origin = WriteOrigin(
+        kind: WriteKind.automation,
+        depth: 1,
+        chain: ['a_other'],
+      );
+      for (var i = 0; i <= LoopGuard.kBreakerPerAutomation; i++) {
+        await forged(origin, i);
+      }
+      await until(
+        () async =>
+            (await rig.fakes.automations.get('a_1'))!.pausedReason ==
+            PausedReason.loopSuspected,
+        timeout: const Duration(seconds: 20),
+      );
+      await until(() => rig.runner.activity.runs.length == 1);
+      final docs = await rig.docs();
+      expect(docs.map((d) => d.reason).toSet(), {RunReason.loopSuspected});
+      expect(docs.single.count, LoopGuard.kBreakerPerAutomation);
+      gate.complete();
+    });
+
     test('a module that needs consent writes one coalesced row', () async {
       await rig.automation(trigger: shipped);
       await rig.fakes.grants.delete('u1', rig.module.id);
@@ -1085,13 +1344,20 @@ void main() {
       rig.engine.action = (m, inv) => gate.future.then((_) => null);
       final running = await rig.runner.pressCard('a_1', cardId: _order);
       final queued = await rig.runner.pressCard('a_1', cardId: _order);
-      await until(() => rig.live(running)?.status == RunStatus.running);
+      await until(() => rig.engine.sessions.length == 2);
 
       await rig.runner.uninstall(rig.module.id);
-      expect((await settled(queued)).reason, RunReason.needsConsent);
+      final skipped = await settled(queued);
+      expect(skipped.status, RunStatus.skipped);
+      expect(skipped.reason, RunReason.uninstalled);
       final rejected = await settled(review);
       expect(rejected.status, RunStatus.rejected);
       expect(rejected.reason, RunReason.uninstalled);
+      final stopped = await settled(running);
+      expect(stopped.status, RunStatus.failed);
+      expect(stopped.reason, RunReason.cancelled);
+      expect(rig.runner.activity.needsReview, 0);
+      expect(rig.runner.activity.runs, isEmpty);
       expect(rig.session.plans.get(planId), isNull);
       expect(await rig.fakes.automations.get('a_1'), isNull);
       expect(await rig.fakes.grants.get('u1', rig.module.id), isNull);
@@ -1099,17 +1365,31 @@ void main() {
       gate.complete();
     });
 
-    test('revoke skips queued runs and rejects reviews', () async {
+    test('revoke stops the running run, skips queued runs and rejects '
+        'reviews', () async {
       await rig.install();
       await rig.automation();
       await rig.start();
       rig.stamps();
       final review = await rig.runner.pressCard('a_1', cardId: _order);
       await awaitingReview(review);
+      final gate = Completer<void>();
+      rig.engine.action = (m, inv) => gate.future.then((_) => null);
+      final running = await rig.runner.pressCard('a_1', cardId: _order);
+      final queued = await rig.runner.pressCard('a_1', cardId: _order);
+      await until(() => rig.engine.sessions.length == 2);
+
       await rig.runner.revoke(rig.module.id);
       final doc = await settled(review);
       expect(doc.status, RunStatus.rejected);
       expect(doc.reason, RunReason.needsConsent);
+      expect((await settled(queued)).reason, RunReason.needsConsent);
+      final stopped = await settled(running);
+      expect(stopped.status, RunStatus.failed);
+      expect(stopped.reason, RunReason.cancelled);
+      expect(rig.runner.activity.needsReview, 0);
+      expect(rig.runner.activity.runs, isEmpty);
+      gate.complete();
     });
 
     test('schema revalidation marks an automation broken at once', () async {
@@ -1144,6 +1424,27 @@ void main() {
             PausedReason.broken,
       );
       expect((await rig.fakes.automations.get('a_1'))!.brokenDetail, isNotNull);
+    });
+
+    test('deleting the last collection revalidates too', () async {
+      await rig.install();
+      await rig.automation(
+        trigger: const EventTrigger(
+          kind: TriggerKind.cardUpdated,
+          collectionId: _orders,
+        ),
+      );
+      await rig.start();
+      await rig.repo.deleteCollection(SeedIds.clients);
+      await rig.repo.deleteCollection(SeedIds.fabrics);
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      expect((await rig.fakes.automations.get('a_1'))!.pausedReason, isNull);
+      await rig.repo.deleteCollection(_orders);
+      await until(
+        () async =>
+            (await rig.fakes.automations.get('a_1'))!.pausedReason ==
+            PausedReason.broken,
+      );
     });
 
     test(

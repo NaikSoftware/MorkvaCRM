@@ -100,6 +100,7 @@ final class AutomationRunner implements AutomationRunnerApi {
     IdGenerator? ids,
     Duration bootBudget = kBootBudget,
     this.settleTimeout = const Duration(seconds: 5),
+    this.ackWait = const Duration(seconds: 2),
   }) : crashMarker = crashMarker ?? const _NoCrashMarker(),
        _now = now ?? DateTime.now,
        _ids = ids ?? IdGenerator() {
@@ -142,6 +143,11 @@ final class AutomationRunner implements AutomationRunnerApi {
   final String device;
   final String timeZoneName;
   final Duration settleTimeout;
+
+  /// How long a user write waits for the server's ack: Firestore queues
+  /// writes offline and resolves them only on ack, so a save still pending
+  /// after this counts as queued (UX: saves work offline).
+  final Duration ackWait;
   final DateTime Function() _now;
   final IdGenerator _ids;
 
@@ -226,9 +232,9 @@ final class AutomationRunner implements AutomationRunnerApi {
     var first = true;
     _subs.add(
       repository.watchCollections().listen((collections) {
-        if (first || collections.isEmpty) {
+        if (first) {
           first = false;
-          return; // the start-up snapshot; an empty one is a cold cache
+          return; // the start-up snapshot
         }
         // After the cache, which subscribed first, took the same emission.
         Future<void>.delayed(Duration.zero, () {
@@ -932,6 +938,12 @@ final class AutomationRunner implements AutomationRunnerApi {
           if (epoch == _epoch) unawaited(_expire(run, null));
         });
         _announce(run);
+        // Uninstalled, revoked or changed while it ran: the watches that
+        // reject reviews have already fired, and this one could never be
+        // approved. (Rejected only now: `rejected` is no create status.)
+        if (_staleReason(run, module, consent) case final reason?) {
+          unawaited(_rejectRun(run, reason));
+        }
     }
   }
 
@@ -1170,7 +1182,11 @@ final class AutomationRunner implements AutomationRunnerApi {
     final key = '${a.id}|fan_out|$commitId';
     final existing = _coalesced[key];
     if (dropped == 1 || existing == null) {
-      final row = _coalesced[key] = _skipRecord(a, trigger, RunReason.fanOut);
+      final row = _coalesced[key] = _skipRecord(
+        a,
+        trigger,
+        RunReason.fanOut,
+      ).copyWith(count: dropped); // > 1 once the key was evicted
       _create(row, _epoch);
       return;
     }
@@ -1392,18 +1408,26 @@ final class AutomationRunner implements AutomationRunnerApi {
     if (!_loaded) return;
     for (final run in [..._live.values]) {
       if (run.status != RunStatus.awaitingReview) continue;
-      final module = _modules[run.automation.moduleId];
-      final consent = _consents[run.automation.moduleId];
-      final reason = module == null
-          ? RunReason.uninstalled
-          : module.bundleHash != run.module?.bundleHash
-          ? RunReason.codeChanged
-          : consent == null
-          ? RunReason.needsConsent
-          : null;
+      final reason = _staleReason(
+        run,
+        _modules[run.automation.moduleId],
+        _consents[run.automation.moduleId],
+      );
       if (reason != null) unawaited(_rejectRun(run, reason));
     }
   }
+
+  static RunReason? _staleReason(
+    _Run run,
+    ModuleRecord? module,
+    GrantRecord? consent,
+  ) => module == null
+      ? RunReason.uninstalled
+      : module.bundleHash != run.module?.bundleHash
+      ? RunReason.codeChanged
+      : consent == null
+      ? RunReason.needsConsent
+      : null;
 
   Future<void> _rejectRun(_Run run, RunReason? reason) async {
     if (run.status != RunStatus.awaitingReview) return;
@@ -1514,7 +1538,13 @@ final class AutomationRunner implements AutomationRunnerApi {
       throw const AutomationRefused('cancelled', 'Signed out.');
     }
     final automationId = old?.automationId;
-    final a = automationId == null ? null : _automations[automationId];
+    final a = automationId == null
+        ? null
+        : _automations[automationId] ??
+              await stores.automations.get(automationId);
+    if (epoch != _epoch) {
+      throw const AutomationRefused('cancelled', 'Signed out.');
+    }
     if (old == null || a == null) {
       throw const AutomationRefused('broken', 'This automation is gone.');
     }
@@ -1605,6 +1635,19 @@ final class AutomationRunner implements AutomationRunnerApi {
         module.bundleHash != run.module!.bundleHash) {
       throw const AutomationRefused('needs_consent', kPermissionsChanged);
     }
+    // The snapshot grants the committer checks predate a narrowed access.
+    final automation = _automations[run.automation.id] ?? run.automation;
+    final live = moduleGrants(
+      module.manifest!,
+      consent,
+      collections: automation.collections,
+    );
+    if (!withinGrants(
+      plan.items.where((i) => itemIds == null || itemIds.contains(i.itemId)),
+      live,
+    )) {
+      throw const AutomationRefused('needs_consent', kPermissionsChanged);
+    }
     // Rules refuse `applyStartedAt` unless the doc still awaits review here.
     final doc = await stores.runs.get(run.id);
     var record = run.record!;
@@ -1619,7 +1662,17 @@ final class AutomationRunner implements AutomationRunnerApi {
     }
     record = run.record = record.copyWith(applyStartedAt: () => _now());
     try {
-      await stores.runs.update(record, fields: const {'applyStartedAt'});
+      await stores.runs
+          .update(record, fields: const {'applyStartedAt'})
+          .timeout(ackWait);
+    } on TimeoutException {
+      // Still queued: take it back (in order after it) and stay in review.
+      record = run.record = record.copyWith(applyStartedAt: () => null);
+      _update(record, const {'applyStartedAt'}, epoch);
+      throw const AutomationRefused(
+        'offline',
+        'You are offline. Nothing was changed.',
+      );
     } catch (_) {
       throw const AutomationRefused(
         'replaced',
@@ -1757,10 +1810,10 @@ final class AutomationRunner implements AutomationRunnerApi {
       now: _now(),
       createdAt: existing?.createdAt,
     );
-    await _write(() => stores.modules.save(module));
-    await _write(
-      () => stores.grants.save(uid, _consentTo(bundle, collections)),
-    );
+    await Future.wait([
+      _write(() => stores.modules.save(module)),
+      _write(() => stores.grants.save(uid, _consentTo(bundle, collections))),
+    ]);
   }
 
   @override
@@ -1841,32 +1894,33 @@ final class AutomationRunner implements AutomationRunnerApi {
         if (a.moduleId == moduleId) a.id,
     ];
     await _dropModuleRuns(moduleId, RunReason.uninstalled);
-    for (final id in automations) {
-      await _write(() => stores.automations.delete(id));
-    }
-    await _write(() => stores.grants.delete(uid, moduleId));
-    await _write(() => stores.modules.delete(moduleId));
+    // All issued before any ack is awaited, in this order.
+    await Future.wait([
+      for (final id in automations) _write(() => stores.automations.delete(id)),
+      _write(() => stores.grants.delete(uid, moduleId)),
+      _write(() => stores.modules.delete(moduleId)),
+    ]);
   }
 
   /// Before the docs go (their watches would reject with a vaguer reason):
-  /// waiting runs are skipped, reviews rejected with [reason].
+  /// waiting runs are skipped and reviews rejected with [reason], and the
+  /// module's running run is stopped (it fails `cancelled`).
   Future<void> _dropModuleRuns(String moduleId, RunReason reason) {
-    _skipQueued(
-      (r) => r.automation.moduleId == moduleId,
-      RunReason.needsConsent,
-    );
+    bool ofModule(_Run r) => r.automation.moduleId == moduleId;
+    _skipQueued(ofModule, reason);
+    if (_queue.current case final run? when ofModule(run)) stop(run.id);
     return Future.wait([
       for (final run in [..._live.values])
-        if (run.automation.moduleId == moduleId) _rejectRun(run, reason),
+        if (ofModule(run)) _rejectRun(run, reason),
     ]);
   }
 
   String _signedIn() =>
       _uid ?? (throw const AutomationRefused('not_permitted', 'Signed out.'));
 
-  static Future<void> _write(Future<void> Function() write) async {
+  Future<void> _write(Future<void> Function() write) async {
     try {
-      await write();
+      await write().timeout(ackWait, onTimeout: () {});
     } catch (_) {
       throw const AutomationRefused(
         'internal',

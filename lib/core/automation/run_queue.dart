@@ -14,8 +14,6 @@ final class RunQueue<T> {
   /// The run holding the slot, if any.
   T? get current => _current;
 
-  bool get busy => _current != null;
-
   /// The waiting runs in the order they will start.
   List<T> get waiting => [..._manual, ..._events];
 
