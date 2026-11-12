@@ -1,0 +1,43 @@
+{
+  "morkva": 1,
+  "manifest": {
+    "id": "stamp-shipped-date",
+    "name": "Stamp shipped date",
+    "version": "1.0.0",
+    "description": "Fills a date field with today's date when it is still empty. Bind it to a card button, or to \"card updated\" when Status enters Shipped.",
+    "author": "SDK example",
+    "apiVersion": 2,
+    "timeoutMs": 10000,
+    "permissions": {
+      "capabilities": [
+        "schema:read",
+        "data:read",
+        "data:write"
+      ]
+    },
+    "actions": [
+      {
+        "id": "stamp",
+        "label": "Stamp today",
+        "description": "Sets the chosen date field to today unless it already has a date.",
+        "scope": "card",
+        "icon": "calendar",
+        "input": {
+          "type": "object",
+          "required": [
+            "dateField"
+          ],
+          "properties": {
+            "dateField": {
+              "type": "string",
+              "title": "Date field",
+              "description": "The date field to fill.",
+              "format": "field"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "code": "// Stamp shipped date: fills a date field with today when it is empty.\n// ctx.card is the card as it was when the button was pressed or the event\n// fired. Its values are display forms, and an empty field has no key.\nmorkva.action('stamp', async (input, ctx) => {\n  const card = ctx.card;\n  // A CardRef (no values) means the run lacks data:read.\n  if (!card || !('values' in card)) return 'No card to stamp';\n  const field = input.dateField;\n  const name = card.fields[field] || field;\n  if (card.values[field] !== undefined) {\n    return `${name} is already set on ${card.title}`;\n  }\n  await morkva.call('cards.update', {\n    collection: card.collectionId,\n    target: { ids: [card.id] },\n    set: { [field]: ctx.today },\n  });\n  return `Set ${name} to ${ctx.today} on ${card.title}`;\n});\n"
+}
