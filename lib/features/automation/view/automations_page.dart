@@ -1906,8 +1906,7 @@ class RunRowTile extends StatelessWidget {
       // "Needs your review · 1 change" (run detail has the plan title).
       RunRecord(status: RunStatus.awaitingReview, :final log)
           when log.plan.isNotEmpty =>
-        '${row.copy.row} · ${log.plan.length} '
-            '${log.plan.length == 1 ? 'change' : 'changes'}',
+        '${row.copy.row} · ${changeCount(log)}',
       RunRecord(status: RunStatus.awaitingReview, :final planTitle?) =>
         '${row.copy.row} · $planTitle',
       _ => row.copy.row,
@@ -2065,6 +2064,13 @@ class RunRowTile extends StatelessWidget {
       ),
     );
   }
+}
+
+/// "1 change", "200 changes": the plan's rows, those past the log's row cap
+/// too.
+String changeCount(RunLog log) {
+  final n = log.plan.length + log.dropped.plan;
+  return '$n ${n == 1 ? 'change' : 'changes'}';
 }
 
 /// "It was opened in another window." → "it was opened in another window".

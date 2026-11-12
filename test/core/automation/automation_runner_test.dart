@@ -820,6 +820,48 @@ void main() {
       expect(doc.reason, RunReason.offline);
     });
 
+    test('the host count names the collection written, and steps aside '
+        'for creates', () async {
+      // The module may write every collection, so Clients too.
+      await rig.runner.changeAccess(rig.module.id, collections: null);
+      rig.engine.action = (m, inv) async {
+        await m.call('cards.update', {
+          'collection': 'Clients',
+          'target': {
+            'ids': [SeedCards.olena],
+          },
+          'set': {'Notes': 'Ordered'},
+        });
+        return 'Noted';
+      };
+      final clientRun = await rig.runner.pressCard('a_1', cardId: _order);
+      expect((await settled(clientRun)).status, RunStatus.succeeded);
+      await until(() => rig.finished.any((r) => r.runId == clientRun));
+      expect(
+        rig.finished.lastWhere((r) => r.runId == clientRun).outcome,
+        '1 client updated',
+      );
+
+      rig.engine.action = (m, inv) async {
+        await m.call('cards.create', {
+          'collection': 'Orders',
+          'cards': [
+            {
+              'values': {'Item': 'Fresh'},
+            },
+          ],
+        });
+        return 'Created one';
+      };
+      final createRun = await rig.runner.pressCard('a_1', cardId: _order);
+      await settled(createRun);
+      await until(() => rig.finished.any((r) => r.runId == createRun));
+      expect(
+        rig.finished.lastWhere((r) => r.runId == createRun).outcome,
+        isNull,
+      );
+    });
+
     test('retryFailed retries the failed items of an applied run', () async {
       rig.engine.action = (m, inv) async {
         await m.call('cards.create', {

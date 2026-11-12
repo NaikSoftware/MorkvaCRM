@@ -30,54 +30,57 @@ class RadioRow<T> extends StatelessWidget {
     final ink = enabled
         ? theme.colorScheme.onSurface
         : theme.colorScheme.onSurface.withValues(alpha: 0.38);
-    return InkWell(
-      onTap: enabled
-          ? () => RadioGroup.maybeOf<T>(context)?.onChanged(value)
-          : null,
-      borderRadius: Radii.smAll,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 44),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: Spacing.xs),
-              child: Radio<T>(
-                value: value,
-                enabled: enabled,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                visualDensity: const VisualDensity(
-                  horizontal: VisualDensity.minimumDensity,
-                  vertical: VisualDensity.minimumDensity,
+    // One node: the radio's state with its title, as RadioListTile reads.
+    return MergeSemantics(
+      child: InkWell(
+        onTap: enabled
+            ? () => RadioGroup.maybeOf<T>(context)?.onChanged(value)
+            : null,
+        borderRadius: Radii.smAll,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 44),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: Spacing.xs),
+                child: Radio<T>(
+                  value: value,
+                  enabled: enabled,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: const VisualDensity(
+                    horizontal: VisualDensity.minimumDensity,
+                    vertical: VisualDensity.minimumDensity,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: Spacing.xs),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(top: Spacing.sm),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: (titleStyle ?? theme.textTheme.bodyLarge)
-                          ?.copyWith(color: ink),
-                    ),
-                    if (hint != null)
+              const SizedBox(width: Spacing.xs),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: Spacing.sm),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        hint!,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: enabled
-                              ? theme.colorScheme.onSurfaceVariant
-                              : ink,
-                        ),
+                        title,
+                        style: (titleStyle ?? theme.textTheme.bodyLarge)
+                            ?.copyWith(color: ink),
                       ),
-                  ],
+                      if (hint != null)
+                        Text(
+                          hint!,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: enabled
+                                ? theme.colorScheme.onSurfaceVariant
+                                : ink,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

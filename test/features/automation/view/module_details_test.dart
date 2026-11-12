@@ -287,6 +287,22 @@ void main() {
     );
   });
 
+  testWidgets('recent runs: a collection run shows its collection', (
+    tester,
+  ) async {
+    await consent();
+    final json = storedRun('r_coll', summary: 'Flagged 2').toJson();
+    json['trigger'] = const RunTrigger(
+      kind: TriggerKind.button,
+      collectionId: 'c_orders',
+      cardCount: 3,
+    ).toJson();
+    await rig.stores.runs.create(RunRecord.fromJson('r_coll', json));
+    await pump(tester);
+    await tester.scrollUntilVisible(find.text('Flagged 2'), 200);
+    expect(find.text('Orders'), findsOneWidget);
+  });
+
   testWidgets('All runs opens the Runs tab filtered to the module', (
     tester,
   ) async {

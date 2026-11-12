@@ -374,11 +374,7 @@ final class AutomationRunner implements AutomationRunnerApi {
     queuedAhead: run.status == RunStatus.queued ? _queue.ahead(run) : null,
     progress: run.progress,
     summary: run.summary,
-    outcome: switch (run.record?.receipt) {
-      RunReceipt(:final applied) when applied > 0 =>
-        '${PlanCommitter.cards(session.cache.collection(run.trigger.collectionId), applied)} updated',
-      _ => null,
-    },
+    outcome: run.outcome,
     planId: run.planId,
     commitId: run.commitId,
     error: run.error,
@@ -996,6 +992,7 @@ final class AutomationRunner implements AutomationRunnerApi {
       case HarnessOk(:final result):
         final (receipt, touched) = _receiptOf(plan, result);
         final written = receipt.applied + receipt.queued;
+        run.outcome = _outcomeOf(plan, result);
         _finish(
           run,
           written > 0 ? RunStatus.succeeded : RunStatus.failed,
@@ -1006,6 +1003,24 @@ final class AutomationRunner implements AutomationRunnerApi {
           summary: run.summary ?? result['summary'] as String?,
         );
     }
+  }
+
+  /// "2 orders updated": the host's count of an applied plan, only when
+  /// every applied item is a card update in one collection (a run may write
+  /// elsewhere than its trigger, or create); else null, and the module's
+  /// summary speaks.
+  String? _outcomeOf(Plan plan, Map<String, Object?> result) {
+    final applied = [
+      for (final id in (result['applied'] as List?) ?? const [])
+        ?plan.item('$id'),
+    ];
+    if (applied.isEmpty ||
+        applied.any((i) => i is! UpdateCardItem) ||
+        applied.map((i) => i.collectionId).toSet().length > 1) {
+      return null;
+    }
+    final collection = session.cache.collection(applied.first.collectionId);
+    return '${PlanCommitter.cards(collection, applied.length)} updated';
   }
 
   static (RunReceipt, List<String>) _receiptOf(
@@ -2202,6 +2217,9 @@ final class _Run {
   RunReason? reason;
   RunProgress? progress;
   String? summary;
+
+  /// The host's count of what it applied ([RunView.outcome]).
+  String? outcome;
   RunError? error;
   List<UiLink> links = const [];
   String? planId;

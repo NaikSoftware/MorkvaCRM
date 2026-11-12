@@ -471,7 +471,10 @@ class PlanLineRow extends StatelessWidget {
       spacing: Spacing.sm,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        ObjectChip(label: head),
+        // An edit is the plain case; a create or delete says so.
+        if (line.kind == 'createCard' || line.kind == 'deleteCard') icon,
+        // Not a link here: the chip names the card, nothing opens.
+        ObjectChip(label: head, semanticLabel: head),
         if (rest != null) Text(rest, style: theme.textTheme.titleSmall),
         for (final c in line.changes)
           DiffLine(

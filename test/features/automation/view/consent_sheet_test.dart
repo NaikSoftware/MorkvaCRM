@@ -165,6 +165,20 @@ void main() {
       final circleLeft = tester.getCenter(find.byWidget(radio)).dx - 10;
       expect(circleLeft - label, inInclusiveRange(0, 4));
     }
+    // The radio and its title read as one control.
+    expect(
+      tester.getSemantics(find.text('All collections')),
+      matchesSemantics(
+        label: 'All collections\nEvery collection, including new ones.',
+        isInMutuallyExclusiveGroup: true,
+        hasCheckedState: true,
+        hasEnabledState: true,
+        isEnabled: true,
+        isFocusable: true,
+        hasTapAction: true,
+        hasFocusAction: true,
+      ),
+    );
   });
 
   testWidgets('dark: the action row stays a step above the sheet', (

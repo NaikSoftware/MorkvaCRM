@@ -103,6 +103,29 @@ void main() {
     expect(back.copyWith(log: r.log), r);
   });
 
+  test("a plan line's field changes round-trip in the log (the pills)", () {
+    const line = PlanLine(
+      kind: 'updateCard',
+      label: '#1042 · Iryna Melnyk',
+      change: 'Shipped on: — → Nov 12, 2026',
+      changes: [(field: 'Shipped on', before: null, after: 'Nov 12, 2026')],
+    );
+    final back = RunRecord.fromJson(
+      'run_1',
+      run(log: const RunLog(plan: [line])).toJson(),
+    );
+    expect(back.log.plan.single, line);
+    // An older log without them reads as the text alone.
+    expect(
+      PlanLine.fromJson({
+        'kind': 'updateCard',
+        'label': '#1',
+        'change': 'x',
+      }).changes,
+      isEmpty,
+    );
+  });
+
   test('live statuses never reach a doc', () {
     for (final s in [RunStatus.queued, RunStatus.running, RunStatus.sealing]) {
       expect(() => run(status: s).toJson(), throwsStateError);

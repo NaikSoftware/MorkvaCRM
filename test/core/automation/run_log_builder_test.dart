@@ -160,6 +160,10 @@ void main() {
     expect(row.kind, 'updateCard');
     expect(row.label, plan.items.single.label);
     expect(row.change, matches(RegExp(r'^Qty: \d+ → 9$')));
+    // The pills' parts, kept beside the words.
+    expect(row.changes.single.field, 'Qty');
+    expect(row.changes.single.after, '9');
+    expect(row.changes.single.before, isNotNull);
   });
 
   test('a large log encodes within the run doc budget', () {

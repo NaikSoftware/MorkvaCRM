@@ -341,6 +341,21 @@ void main() {
       expect(find.text('Undone'), findsOneWidget);
     });
 
+    test('the change count includes plan rows past the log cap', () {
+      expect(
+        changeCount(
+          RunLog(
+            plan: [
+              for (var i = 0; i < RunLog.kMaxPlanRows; i++)
+                const PlanLine(kind: 'updateCard', label: '#1', change: 'x'),
+            ],
+            dropped: const RunLogDropped(plan: 150),
+          ),
+        ),
+        '200 changes',
+      );
+    });
+
     testWidgets('an undone run with a summary says "Undone · …"', (
       tester,
     ) async {

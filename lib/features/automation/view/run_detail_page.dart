@@ -467,7 +467,7 @@ class _Detail extends StatelessWidget {
         _Step(
           title: 'Plan',
           summary: [
-            '${log.plan.length} ${log.plan.length == 1 ? 'change' : 'changes'}',
+            changeCount(log),
             // A policy line means it asked first; applyStartedAt is the
             // approve.
             if (log.policy != null && run.applyStartedAt != null)
