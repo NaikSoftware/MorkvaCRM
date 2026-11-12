@@ -88,6 +88,10 @@ class FakeScriptSession implements ScriptSession {
   final invocations = <FakeInvocation>[];
   final replies = <FakeReply>[];
 
+  /// Replies sent after the kill: recorded (the `dead` answers and late
+  /// harness results tests assert on) but never delivered.
+  final repliesAfterKill = <FakeReply>[];
+
   /// The first kill reason, or null while alive.
   String? killedWith;
   bool get killed => killedWith != null;
@@ -147,8 +151,9 @@ class FakeScriptSession implements ScriptSession {
 
   @override
   void reply(int callId, {Object? value, HarnessErrorJson? error}) {
-    if (killed) return;
-    replies.add((callId: callId, value: value, error: error));
+    final reply = (callId: callId, value: value, error: error);
+    if (killed) return repliesAfterKill.add(reply);
+    replies.add(reply);
     module._receive(encodeResult(callId, value: value, error: error));
   }
 

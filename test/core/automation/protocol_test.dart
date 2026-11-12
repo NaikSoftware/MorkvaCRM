@@ -309,6 +309,7 @@ void main() {
         expect(session.killedWith, 'abuse');
         session.reply(1, value: 1); // late replies are dropped
         expect(session.replies, isEmpty);
+        expect(session.repliesAfterKill.single.callId, 1);
       }
     });
 
