@@ -183,8 +183,10 @@ void main() {
     expect(find.text('Module details'), findsOneWidget);
   });
 
-  testWidgets('a stored Auto the module no longer allows: no radio drawn '
-      'selected, and the stored value is kept', (tester) async {
+  testWidgets('a stored Auto the module no longer allows: Apply '
+      'automatically stays selected (disabled), the value is kept', (
+    tester,
+  ) async {
     final cubit = await pump(
       tester,
       build(
@@ -194,7 +196,8 @@ void main() {
     final group = tester.widget<RadioGroup<ApplyMode>>(
       find.byType(RadioGroup<ApplyMode>),
     );
-    expect(group.groupValue, isNull);
+    // Critic r3: no radio selected read as an unanswered required group.
+    expect(group.groupValue, ApplyMode.auto);
     expect(cubit.state.apply, ApplyMode.auto);
     expect(
       find.text('Turn on auto-apply for this module first.'),

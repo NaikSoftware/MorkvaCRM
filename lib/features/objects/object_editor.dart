@@ -356,12 +356,9 @@ class _ObjectEditorState extends State<ObjectEditor> {
     if (notice.surface == NoticeSurface.snackbar) return;
     cubit.noticeShown();
     final run = notice.run;
-    final mine =
-        run.trigger.cardId != null &&
-        run.trigger.cardId ==
-            context.read<ObjectEditorCubit>().state.stored?.id;
     if (notice.surface == NoticeSurface.reviewSheet &&
-        mine &&
+        run.trigger.cardId != null &&
+        _otherCard(run) == null &&
         (ModalRoute.of(context)?.isCurrent ?? false)) {
       showReviewSheet(context, runId: run.runId, overEditor: true);
       return;
@@ -372,6 +369,17 @@ class _ObjectEditorState extends State<ObjectEditor> {
     });
   }
 
+  /// The label of the card [run] ran on when that isn't this editor's card;
+  /// the banner names it so it never reads as this card's run.
+  String? _otherCard(RunView run) {
+    final cardId = run.trigger.cardId;
+    if (cardId == null ||
+        cardId == context.read<ObjectEditorCubit>().state.stored?.id) {
+      return null;
+    }
+    return run.trigger.cardLabel ?? 'another card';
+  }
+
   Future<void> _onNoticeAction(NoticeAction action, RunView run) async {
     final runs = _runs;
     if (runs == null) return;
@@ -379,7 +387,11 @@ class _ObjectEditorState extends State<ObjectEditor> {
       case NoticeAction.undo:
         if (await runs.undo(run.runId)) {
           if (mounted) {
-            _showRunMessage('${run.label} · Reverted', error: false);
+            final card = _otherCard(run);
+            _showRunMessage(
+              '${run.label}${card == null ? '' : ' on $card'} · Reverted',
+              error: false,
+            );
           }
         } else if (mounted) {
           _showRunMessage(runs.state.error);
@@ -401,7 +413,7 @@ class _ObjectEditorState extends State<ObjectEditor> {
     return _RunBanner(
       copy: run == null
           ? (text: message!, actions: const [], error: _runMessageError)
-          : runNoticeCopy(run),
+          : runNoticeCopy(run, card: _otherCard(run)),
       compact: widget.compact,
       onAction: run == null ? null : (a) => _onNoticeAction(a, run),
       onDismiss: () => setState(() {

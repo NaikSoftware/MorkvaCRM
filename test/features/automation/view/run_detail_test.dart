@@ -8,6 +8,26 @@ import 'package:morkva_crm/features/automation/view/run_detail_page.dart';
 import 'automation_view_harness.dart';
 
 void main() {
+  test('call results count in item nouns (critic r3: "1 Products")', () {
+    final collections = [orders, clients];
+    expect(
+      callResultCopy('Filtered 10 → 0 Orders', collections),
+      'Filtered 10 → 0 orders',
+    );
+    expect(
+      callResultCopy('Filtered 10 → 1 Orders', collections),
+      'Filtered 10 → 1 order',
+    );
+    expect(callResultCopy('2 Clients', collections), '2 clients');
+    expect(
+      callResultCopy('Filtered 9 → 1 Orders · Sum of Total', collections),
+      'Filtered 9 → 1 order · Sum of Total',
+    );
+    // Not a count of a known collection: unchanged.
+    expect(callResultCopy('Done', collections), 'Done');
+    expect(callResultCopy('3 Widgets', collections), '3 Widgets');
+  });
+
   late AutomationRig rig;
   late DateTime now;
 

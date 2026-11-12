@@ -2105,7 +2105,9 @@ class RunRowTile extends StatelessWidget {
             ],
           ),
           if (action != null)
-            Padding(padding: const EdgeInsets.only(left: 36), child: action),
+            // The status glyph's 24 + its gap, less the button's own start
+            // padding (both Spacing.sm): the icon lines up with the title.
+            Padding(padding: const EdgeInsets.only(left: 24), child: action),
         ],
       );
     }

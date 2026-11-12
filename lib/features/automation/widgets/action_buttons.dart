@@ -133,8 +133,10 @@ enum NoticeAction { undo, viewRun, review, runAgain }
 /// The words and actions of a finished run (UX §4 banner, §5 snackbar).
 typedef NoticeCopy = ({String text, List<NoticeAction> actions, bool error});
 
-NoticeCopy runNoticeCopy(RunView run) {
-  final label = run.label;
+/// [card] names the card when the notice is about another card than the
+/// one on screen ("Spin forever on Order #1042 timed out after 20 s").
+NoticeCopy runNoticeCopy(RunView run, {String? card}) {
+  final label = card == null ? run.label : '${run.label} on $card';
   switch (run.status) {
     case RunStatus.awaitingReview:
       return (
@@ -166,7 +168,9 @@ NoticeCopy runNoticeCopy(RunView run) {
       );
     case RunStatus.failed when run.reason == RunReason.offline:
       return (
-        text: "Couldn't apply — you're offline",
+        text: card == null
+            ? "Couldn't apply — you're offline"
+            : "Couldn't apply $label — you're offline",
         actions: const [NoticeAction.runAgain],
         error: true,
       );

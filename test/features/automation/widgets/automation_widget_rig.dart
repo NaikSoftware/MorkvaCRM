@@ -43,6 +43,7 @@ RunView liveRun(
   String runId, {
   String automationId = 'a_mark',
   String? cardId = 'b_1042',
+  String cardLabel = '#1042',
   RunStatus status = RunStatus.running,
   String label = 'Mark shipped',
   RunProgress? progress,
@@ -63,7 +64,7 @@ RunView liveRun(
     kind: TriggerKind.button,
     collectionId: 'c_orders',
     cardId: cardId,
-    cardLabel: cardId == null ? null : '#1042',
+    cardLabel: cardId == null ? null : cardLabel,
   ),
   startedAt: fixtureNow,
   progress: progress,

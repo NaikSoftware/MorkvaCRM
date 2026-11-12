@@ -465,6 +465,21 @@ void main() {
         runNoticeCopy(liveRun('r', status: RunStatus.awaitingReview)).actions,
         [NoticeAction.review],
       );
+      // Another card than the one on screen is named.
+      expect(
+        runNoticeCopy(
+          liveRun('r', status: RunStatus.timedOut),
+          card: 'Order #1042',
+        ).text,
+        'Mark shipped on Order #1042 timed out after 20 s',
+      );
+      expect(
+        runNoticeCopy(
+          liveRun('r', status: RunStatus.failed, reason: RunReason.offline),
+          card: 'Order #1042',
+        ).text,
+        "Couldn't apply Mark shipped on Order #1042 — you're offline",
+      );
     });
   });
 }

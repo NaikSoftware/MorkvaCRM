@@ -1509,9 +1509,10 @@ class _Apply extends StatelessWidget {
     final s = state;
     final available = s.autoAvailability == AutoAvailability.available;
     return RadioGroup<ApplyMode>(
-      // A stored Auto the module no longer allows: neither radio is drawn
-      // selected (it asks first meanwhile); Save asks for a choice.
-      groupValue: available || s.apply != ApplyMode.auto ? s.apply : null,
+      // A stored Auto the module no longer allows stays selected (disabled,
+      // with the lock line); it asks first meanwhile and Save asks for a
+      // choice.
+      groupValue: s.apply,
       onChanged: (m) => m == null ? null : onChanged(m),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

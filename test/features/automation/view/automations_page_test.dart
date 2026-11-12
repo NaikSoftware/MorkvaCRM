@@ -158,6 +158,21 @@ void main() {
       expect(saved.enabled, isFalse);
     });
 
+    testWidgets('the Enabled switch is a ≥ 44 px target on web/desktop', (
+      tester,
+    ) async {
+      // Critic r3: desktop platforms shrink-wrap switches to 40 px.
+      await pump(tester, tab: AutomationsTab.automations);
+      expect(
+        tester.getSize(find.byType(Switch)).height,
+        greaterThanOrEqualTo(44),
+      );
+      expect(
+        tester.getSemantics(find.byType(Switch)).rect.height,
+        greaterThanOrEqualTo(44),
+      );
+    }, variant: TargetPlatformVariant.only(TargetPlatform.linux));
+
     testWidgets('the collection query shows one group with a clear chip', (
       tester,
     ) async {
@@ -318,6 +333,23 @@ void main() {
       await pump(tester, tab: AutomationsTab.runs, size: phoneWindow);
       expect(find.text('Module failed · #1042'), findsOneWidget);
       expect(find.text('Run again on #1042'), findsOneWidget);
+      // Critic r3: Run again's icon lines up with the row title.
+      final tile = find.ancestor(
+        of: find.text('Run again on #1042'),
+        matching: find.byType(RunRowTile),
+      );
+      expect(
+        tester
+            .getTopLeft(
+              find.descendant(of: tile, matching: find.byIcon(Icons.refresh)),
+            )
+            .dx,
+        tester
+            .getTopLeft(
+              find.descendant(of: tile, matching: find.byType(Text)).first,
+            )
+            .dx,
+      );
       expect(
         find.text(
           'Review not available here — it was opened in another window, '

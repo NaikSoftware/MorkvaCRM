@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/automation/runner_api.dart';
 import '../../../core/domain/automation/automation.dart';
 import '../../../core/domain/domain.dart';
+import '../../../core/harness/plan/plan_committer.dart';
 import '../../../design/design.dart';
 import '../bloc/modules_cubit.dart';
 import '../bloc/run_log_cubit.dart';
@@ -639,6 +640,18 @@ String callTargets(
   }.join(' · ');
 }
 
+/// "Filtered 10 → 1 Products" → "Filtered 10 → 1 product": the harness
+/// summary names the collection (the agent reads it that way); the log
+/// counts in item nouns like the plan and banners. Unknown names stay.
+String callResultCopy(String result, List<Collection> collections) =>
+    result.replaceFirstMapped(
+      RegExp(r'^((?:Filtered \d+ → )?)(\d+) (.+?)(?= · |$)'),
+      (m) => switch (collections.where((c) => c.name == m[3]).firstOrNull) {
+        null => m[0]!,
+        final c => '${m[1]}${PlanCommitter.cards(c, int.parse(m[2]!))}',
+      },
+    );
+
 class _CallRow extends StatelessWidget {
   const _CallRow({
     required this.call,
@@ -662,7 +675,8 @@ class _CallRow extends StatelessWidget {
     final targets = callTargets(call.args, collections, fallback);
     final text = [
       if (targets.isNotEmpty) targets,
-      if (!(call.ok && call.result == 'Done') || targets.isEmpty) call.result,
+      if (!(call.ok && call.result == 'Done') || targets.isEmpty)
+        callResultCopy(call.result, collections),
     ].join(' · ');
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: Spacing.xs),

@@ -251,8 +251,12 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('run-banner')), findsOneWidget);
+      // This card's own run: no "on <card>".
       expect(
-        find.textContaining('1 order updated', findRichText: true),
+        find.textContaining(
+          'Mark shipped · 1 order updated',
+          findRichText: true,
+        ),
         findsOneWidget,
       );
       expect(find.byType(SnackBar), findsNothing);
@@ -263,6 +267,61 @@ void main() {
       expect(argsOf('undo'), ['run_1']);
       expect(
         find.textContaining('Reverted', findRichText: true),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('another card\'s run: the banner names that card', (
+      tester,
+    ) async {
+      // Critic r3: #1042's timeout showed in #1041's editor as its own.
+      await open(tester, object: _order());
+      rig.runner.finish(
+        liveRun(
+          'run_9',
+          cardId: 'b_1041',
+          cardLabel: 'Order #1041',
+          status: RunStatus.timedOut,
+        ),
+      );
+      await tester.pumpAndSettle();
+      final banner = find.byKey(const ValueKey('run-banner'));
+      expect(
+        find.descendant(
+          of: banner,
+          matching: find.textContaining(
+            'Mark shipped on Order #1041 timed out after 20 s',
+            findRichText: true,
+          ),
+        ),
+        findsOneWidget,
+      );
+
+      rig.runner.finish(
+        liveRun(
+          'run_10',
+          cardId: 'b_1041',
+          cardLabel: 'Order #1041',
+          status: RunStatus.succeeded,
+          outcome: '1 order updated',
+          planId: 'p_10',
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining(
+          'Mark shipped on Order #1041 · 1 order updated',
+          findRichText: true,
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining(
+          'Mark shipped on Order #1041 · Reverted',
+          findRichText: true,
+        ),
         findsOneWidget,
       );
     });
