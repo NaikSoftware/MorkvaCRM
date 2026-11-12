@@ -22,6 +22,7 @@ const _stackSize = 1024 * 1024;
 
 /// Jobs drained between yields to the worker's event loop.
 const _jobsPerYield = 1000;
+const _maxDrainSlice = Duration(milliseconds: 100);
 
 /// How long a stopping worker may take to free its runtime before it is
 /// killed outright (leaking the native heap).
@@ -282,13 +283,18 @@ Future<void> _workerMain(_Boot boot) async {
     final runtime = rt;
     if (draining || dead || runtime == null) return;
     draining = true;
+    final sinceYield = Stopwatch()..start();
     try {
       for (var n = 1; !dead; n++) {
         jobError = null;
         final r = runtime.executePendingJob();
         if (r < 0) return fail(_fatal(jobError));
         if (r == 0) return;
-        if (n % _jobsPerYield == 0) await Future<void>(() {});
+        // By time too: a chain of slow jobs must not keep the stop unread.
+        if (n % _jobsPerYield == 0 || sinceYield.elapsed > _maxDrainSlice) {
+          await Future<void>(() {});
+          sinceYield.reset();
+        }
       }
     } catch (e) {
       fail(_fatal(e));

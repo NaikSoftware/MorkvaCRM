@@ -121,6 +121,20 @@ void main() {
         expect(r.exitedAfter, lessThan(const Duration(seconds: 2)));
       });
 
+      test('a chain of slow jobs (the stop is read between jobs)', () async {
+        final r = await _killRun('''
+          morkva.action('run', async () => {
+            for (;;) {
+              const t = Date.now();
+              while (Date.now() - t < 700) {}
+              await 0;
+            }
+          });
+        ''');
+        expect(r.failure.code, 'timeout');
+        expect(r.exitedAfter, lessThan(const Duration(seconds: 2)));
+      });
+
       test('an endless promise chain', () async {
         final r = await _killRun('''
           morkva.action('run', () => {
