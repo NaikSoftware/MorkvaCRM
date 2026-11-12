@@ -19,9 +19,11 @@ const Set<RunReason> kDidntRunReasons = {
   RunReason.notPermitted,
 };
 
-/// Whether [run] counts as "failed" for the indicator and the Failed filter.
+/// Whether [run] counts as "failed" for the indicator and the Failed filter;
+/// the user's own Stop (`failed(cancelled)`) doesn't.
 bool runFailed(RunRecord run) =>
-    run.status == RunStatus.failed || run.status == RunStatus.timedOut;
+    (run.status == RunStatus.failed && run.reason != RunReason.cancelled) ||
+    run.status == RunStatus.timedOut;
 
 /// Whether [run] is an actionable skip ("didn't run").
 bool runDidntRun(RunRecord run) =>
@@ -65,6 +67,7 @@ final class RunNotice extends Equatable {
 final class AutomationRunsState extends Equatable {
   const AutomationRunsState({
     required this.seenAt,
+    required this.expiredSince,
     this.activity = RunActivity.idle,
     this.recent = const [],
     this.anyEnabled = false,
@@ -80,6 +83,12 @@ final class AutomationRunsState extends Equatable {
 
   /// Failures and skips after this are unseen (until the Runs tab opens).
   final DateTime seenAt;
+
+  /// Own-session reviews expired after this are unseen: the session start
+  /// (the runner expires them in `initialize`, before this cubit exists),
+  /// then the last Runs tab visit. The web session id survives reloads, so
+  /// older expiries must stay out.
+  final DateTime expiredSince;
 
   /// At least one automation is enabled (the engine warning shows only
   /// then).
@@ -101,8 +110,10 @@ final class AutomationRunsState extends Equatable {
   /// approved here, so it never counts.
   int get needsReview => activity.needsReview;
 
-  Iterable<RunRecord> get _unseen =>
-      recent.where((r) => !(r.endedAt ?? r.startedAt).isBefore(seenAt));
+  Iterable<RunRecord> _since(DateTime t) =>
+      recent.where((r) => !(r.endedAt ?? r.startedAt).isBefore(t));
+
+  Iterable<RunRecord> get _unseen => _since(seenAt);
 
   /// "1 failed".
   int get failed => _unseen.where(runFailed).length;
@@ -112,7 +123,7 @@ final class AutomationRunsState extends Equatable {
 
   /// "2 reviews expired · View": this session's reviews that expired (on
   /// start-up, after a reload); superseded ones were replaced by the user.
-  int expired(String sessionId) => _unseen
+  int expired(String sessionId) => _since(expiredSince)
       .where(
         (r) =>
             r.status == RunStatus.expired &&
@@ -136,6 +147,7 @@ final class AutomationRunsState extends Equatable {
     RunActivity? activity,
     List<RunRecord>? recent,
     DateTime? seenAt,
+    DateTime? expiredSince,
     bool? anyEnabled,
     bool? editorOpen,
     RunNotice? Function()? notice,
@@ -144,6 +156,7 @@ final class AutomationRunsState extends Equatable {
     activity: activity ?? this.activity,
     recent: recent ?? this.recent,
     seenAt: seenAt ?? this.seenAt,
+    expiredSince: expiredSince ?? this.expiredSince,
     anyEnabled: anyEnabled ?? this.anyEnabled,
     editorOpen: editorOpen ?? this.editorOpen,
     notice: notice == null ? this.notice : notice(),
@@ -155,6 +168,7 @@ final class AutomationRunsState extends Equatable {
     activity,
     recent,
     seenAt,
+    expiredSince,
     anyEnabled,
     editorOpen,
     notice,
@@ -164,14 +178,26 @@ final class AutomationRunsState extends Equatable {
 
 /// App level (next to `SyncStatusCubit`): live runs, the indicator counts
 /// and where each finished run is announced.
+///
+/// Construction contract (T16): build it after sign-in (it subscribes to the
+/// stores once), and pass as [since] the time captured just before
+/// `runner.initialize`, so the reviews that start-up expires count as
+/// "N reviews expired" until the Runs tab opens.
 class AutomationRunsCubit extends Cubit<AutomationRunsState> {
   AutomationRunsCubit(
     this._runner,
     AutomationStores stores, {
+    DateTime? since,
     DateTime Function() now = DateTime.now,
   }) : _now = now,
        // activityChanges doesn't replay, so start from the current activity.
-       super(AutomationRunsState(seenAt: now(), activity: _runner.activity)) {
+       super(
+         AutomationRunsState(
+           seenAt: now(),
+           expiredSince: since ?? now(),
+           activity: _runner.activity,
+         ),
+       ) {
     _subs = [
       _runner.activityChanges.listen((a) => emit(state.copyWith(activity: a))),
       _runner.finished.listen(_finished),
@@ -188,12 +214,23 @@ class AutomationRunsCubit extends Cubit<AutomationRunsState> {
   final DateTime Function() _now;
   late final List<StreamSubscription<Object?>> _subs;
 
+  /// Runs started by hand (a press, Run again): button-like, so a review
+  /// opens the sheet even for an event automation's run.
+  final _manual = <String>{};
+
   String get sessionId => _runner.sessionId;
 
   IndicatorState get primary => state.primary(_runner.sessionId);
 
   /// The Runs tab opened: attention is seen.
-  void markRunsSeen() => emit(state.copyWith(seenAt: _now()));
+  void markRunsSeen() {
+    final now = _now();
+    emit(state.copyWith(seenAt: now, expiredSince: now));
+  }
+
+  /// Run again started elsewhere (the run log, the review sheet): treat
+  /// [runId] as button-like when it finishes.
+  void startedManually(String runId) => _manual.add(runId);
 
   /// The card editor dialog opened / closed (it calls these).
   void editorOpened() => emit(state.copyWith(editorOpen: true));
@@ -221,11 +258,8 @@ class AutomationRunsCubit extends Cubit<AutomationRunsState> {
   }) => _press(
     automationId,
     null,
-    () => _runner.pressCollection(
-      automationId,
-      cardIds: cardIds,
-      viewId: viewId,
-    ),
+    () =>
+        _runner.pressCollection(automationId, cardIds: cardIds, viewId: viewId),
   );
 
   Future<String?> _press(
@@ -235,7 +269,7 @@ class AutomationRunsCubit extends Cubit<AutomationRunsState> {
   ) async {
     final live = state.activity.runOf(automationId, cardId: cardId);
     if (live != null) return live.runId;
-    return _guard(press);
+    return _manually(press);
   }
 
   /// Stop on a button, the indicator or a running row.
@@ -251,7 +285,13 @@ class AutomationRunsCubit extends Cubit<AutomationRunsState> {
 
   /// The snackbar's Run again; the new run's id, or null when refused.
   Future<String?> runAgain(String runId) =>
-      _guard(() => _runner.runAgain(runId));
+      _manually(() => _runner.runAgain(runId));
+
+  Future<String?> _manually(Future<String> Function() start) async {
+    final id = await _guard(start);
+    if (id != null) _manual.add(id);
+    return id;
+  }
 
   void clearError() => emit(state.copyWith(error: () => null));
 
@@ -266,7 +306,11 @@ class AutomationRunsCubit extends Cubit<AutomationRunsState> {
   }
 
   void _finished(RunView run) {
-    final surface = run.isButton && run.status == RunStatus.awaitingReview
+    final manual = run.status == RunStatus.awaitingReview
+        ? _manual.contains(run.runId)
+        : _manual.remove(run.runId);
+    final surface =
+        (run.isButton || manual) && run.status == RunStatus.awaitingReview
         ? NoticeSurface.reviewSheet
         : state.editorOpen
         ? NoticeSurface.banner

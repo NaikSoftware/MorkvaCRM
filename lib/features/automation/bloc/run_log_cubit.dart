@@ -184,6 +184,8 @@ final class RunFilter extends Equatable {
   bool accepts(RunRecord run) =>
       switch (kind) {
         RunFilterKind.all => true,
+        // Every review, another window's too ("Review not available here",
+        // UX §9 Tablet), though the chip counts only reviews held here.
         RunFilterKind.review => run.status == RunStatus.awaitingReview,
         RunFilterKind.failed => runFailed(run) || runDidntRun(run),
       } &&
@@ -217,8 +219,12 @@ final class RunEntryGroup extends RunEntry {
 
   final List<RunRow> rows;
 
-  /// The key [RunLogCubit.expand] takes.
-  String get key => rows.first.run.id;
+  /// The key [RunLogCubit.expand] takes: the oldest run, which stays put
+  /// while newer skips join the group.
+  String get key => rows.last.run.id;
+
+  /// "12 skipped": coalesced docs count every refusal they stand for.
+  int get count => rows.fold(0, (n, r) => n + r.run.count);
 
   @override
   List<Object?> get props => [rows];
@@ -239,7 +245,7 @@ List<RunEntry> groupRuns(List<RunRow> rows, Set<String> expanded) {
         j++;
       }
     }
-    if (j - i > 3 && !expanded.contains(run.id)) {
+    if (j - i > 3 && !expanded.contains(rows[j - 1].run.id)) {
       out.add(RunEntryGroup(rows.sublist(i, j)));
     } else {
       out.addAll([for (final r in rows.sublist(i, j)) RunEntryRow(r)]);

@@ -284,16 +284,21 @@ class ModulesCubit extends Cubit<ModulesState> {
   final DateTime Function() _now;
   late final StreamSubscription<Object?> _sub;
 
-  /// The row switch: saved at once (no save button).
-  Future<bool> setEnabled(String automationId, bool enabled) =>
-      _guard(() async {
-        final entry = state.automations.firstWhere(
-          (a) => a.automation.id == automationId,
-        );
-        await _runner.saveAutomation(
-          entry.automation.copyWith(enabled: enabled, updatedAt: _now()),
-        );
-      });
+  /// The row switch: saved at once (no save button). False when the
+  /// automation is gone.
+  // T14: saving only `enabled: false` must skip the save-time checks, or a
+  // broken automation can't be switched off.
+  Future<bool> setEnabled(String automationId, bool enabled) async {
+    final entry = state.automations
+        .where((a) => a.automation.id == automationId)
+        .firstOrNull;
+    if (entry == null) return false;
+    return _guard(
+      () => _runner.saveAutomation(
+        entry.automation.copyWith(enabled: enabled, updatedAt: _now()),
+      ),
+    );
+  }
 
   /// Clears a crash / loop pause.
   Future<bool> resume(String automationId) =>

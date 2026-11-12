@@ -125,6 +125,8 @@ void main() {
     ];
     expect(await cubit.setEnabled('a_1', true), isFalse);
     expect(cubit.state.error, 'The module isn\'t allowed in Orders');
+    // Deleted meanwhile: refused quietly, never a StateError.
+    expect(await cubit.setEnabled('a_gone', true), isFalse);
     cubit.clearError();
     expect(cubit.state.error, isNull);
     await cubit.close();

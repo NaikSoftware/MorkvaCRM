@@ -69,13 +69,14 @@ final class ReviewSheetState extends Equatable {
     return ['Module · ${m.name} (${m.id})', ?automationName].join(' · ');
   }
 
-  /// The module, for `PlanCard(provenance:)`.
+  /// The module, for `PlanCard(provenance:)`; null until the run doc
+  /// loads (the live run has no module name, only its id).
   ({String id, String name})? get module {
-    final id = record?.moduleId ?? run?.moduleId;
-    return id == null ? null : (id: id, name: record?.moduleName ?? id);
+    final r = record;
+    return r == null ? null : (id: r.moduleId, name: r.moduleName);
   }
 
-  String? get automationName => record?.automationName ?? run?.label;
+  String? get automationName => record?.automationName;
 
   /// Applied with failures: the sheet keeps the AppliedCard ("Updated 190,
   /// 10 failed · Retry failed") instead of closing.

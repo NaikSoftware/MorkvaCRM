@@ -22,8 +22,12 @@ void main() {
     await stores.dispose();
   });
 
-  AutomationRunsCubit build() =>
-      AutomationRunsCubit(runner, stores.stores, now: () => clock);
+  AutomationRunsCubit build({DateTime? since}) => AutomationRunsCubit(
+    runner,
+    stores.stores,
+    since: since,
+    now: () => clock,
+  );
 
   test('starts from the runner\'s current activity', () async {
     runner.activity = RunActivity(runs: [runView('run_1')]);
@@ -92,6 +96,16 @@ void main() {
         startedAt: clock,
       ),
     );
+    // The user's own Stop: not a failure.
+    await stores.runs.create(
+      runRecord(
+        'run_stop',
+        status: RunStatus.failed,
+        reason: RunReason.cancelled,
+        startedAt: clock,
+        endedAt: clock,
+      ),
+    );
     // Not actionable: no attention.
     await stores.runs.create(
       runRecord(
@@ -113,17 +127,20 @@ void main() {
     await cubit.close();
   });
 
-  test('reviews expired after a reload: own session, not superseded', () async {
-    final cubit = build();
+  test('reviews expired at start-up: own session, since the session start, '
+      'until the Runs tab opens', () async {
+    // The runner expires these in initialize, before the cubit is built.
+    final since = fixtureNow.subtract(const Duration(seconds: 5));
+    final atStartUp = fixtureNow.subtract(const Duration(seconds: 2));
     await stores.runs.create(
-      runRecord('run_e', status: RunStatus.expired, endedAt: fixtureNow),
+      runRecord('run_e', status: RunStatus.expired, endedAt: atStartUp),
     );
     await stores.runs.create(
       runRecord(
         'run_sup',
         status: RunStatus.expired,
         reason: RunReason.superseded,
-        endedAt: fixtureNow,
+        endedAt: atStartUp,
       ),
     );
     await stores.runs.create(
@@ -131,12 +148,26 @@ void main() {
         'run_other',
         status: RunStatus.expired,
         sessionId: 't_other',
-        endedAt: fixtureNow,
+        endedAt: atStartUp,
       ),
     );
+    // The web session id survives reloads: an older expiry stays out.
+    await stores.runs.create(
+      runRecord(
+        'run_old',
+        status: RunStatus.expired,
+        endedAt: fixtureNow.subtract(const Duration(days: 1)),
+      ),
+    );
+    final cubit = build(since: since);
     await settle();
     expect(cubit.state.expired(runner.sessionId), 1);
     expect(cubit.primary, IndicatorState.reviewsExpired);
+
+    clock = fixtureNow.add(const Duration(seconds: 1));
+    cubit.markRunsSeen();
+    expect(cubit.state.expired(runner.sessionId), 0);
+    expect(cubit.primary, IndicatorState.idle);
     await cubit.close();
   });
 
@@ -211,6 +242,37 @@ void main() {
       },
       verify: (cubit) =>
           expect(cubit.state.notice?.surface, NoticeSurface.reviewSheet),
+    );
+
+    test(
+      'a Run again or press of an event automation is button-like',
+      () async {
+        final cubit = build();
+        final again = await cubit.runAgain('run_old');
+        cubit.startedManually('run_log');
+        for (final id in [again!, 'run_log']) {
+          runner.finish(
+            runView(
+              id,
+              status: RunStatus.awaitingReview,
+              kind: TriggerKind.cardUpdated,
+            ),
+          );
+          await settle();
+          expect(cubit.state.notice!.surface, NoticeSurface.reviewSheet);
+        }
+        // An event run nobody started by hand: the snackbar.
+        runner.finish(
+          runView(
+            'run_event',
+            status: RunStatus.awaitingReview,
+            kind: TriggerKind.cardUpdated,
+          ),
+        );
+        await settle();
+        expect(cubit.state.notice!.surface, NoticeSurface.snackbar);
+        await cubit.close();
+      },
     );
 
     test('the open card editor gets a banner, never a snackbar', () async {

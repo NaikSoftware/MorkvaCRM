@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/automation/automation.dart';
@@ -159,6 +161,26 @@ void main() {
       final saved = runner.calls.single.$2.single! as AutomationRecord;
       expect(saved.apply, ApplyMode.auto);
       expect(saved.autoBy, uid);
+    });
+
+    test('turning auto-apply on elsewhere reaches the open editor', () async {
+      final modules = StreamController<List<ModuleEntry>>();
+      final cubit = AutomationEditorCubit(
+        runner,
+        uid: uid,
+        modules: entries(),
+        collections: [orders],
+        moduleChanges: modules.stream,
+        collectionId: 'c_orders',
+        moduleId: stampId,
+        actionId: 'stamp',
+      );
+      expect(cubit.state.autoAvailability, AutoAvailability.turnOnFirst);
+      modules.add(entries(consent: consentTo(module, autoApply: true)));
+      await settle();
+      expect(cubit.state.autoAvailability, AutoAvailability.available);
+      await cubit.close();
+      await modules.close();
     });
 
     test('a module that can delete always asks', () {

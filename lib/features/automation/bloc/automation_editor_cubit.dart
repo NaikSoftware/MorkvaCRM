@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -191,6 +193,7 @@ final class AutomationEditorState extends Equatable {
       problems.where((p) => p.path == path).firstOrNull?.message;
 
   AutomationEditorState copyWith({
+    List<ModuleEntry>? modules,
     String? name,
     bool? nameEdited,
     EditorKind? kind,
@@ -214,7 +217,7 @@ final class AutomationEditorState extends Equatable {
     bool? saved,
     String? Function()? error,
   }) => AutomationEditorState(
-    modules: modules,
+    modules: modules ?? this.modules,
     collections: collections,
     existing: existing,
     lastCheck: lastCheck,
@@ -273,15 +276,20 @@ final class AutomationEditorState extends Equatable {
   ];
 }
 
-/// The automation editor (UX §3): a draft over the modules and collections
-/// it was opened with; Save checks the form, then saves through the runner
-/// (whose `validate` is the planner's and the runner's own check).
+/// The automation editor (UX §3): a draft over the collections it was
+/// opened with and the live modules; Save checks the form, then saves
+/// through the runner (whose `validate` is the planner's and the runner's
+/// own check).
 class AutomationEditorCubit extends Cubit<AutomationEditorState> {
+  /// [moduleChanges] (e.g. `ModulesCubit.stream.map((s) => s.modules)`)
+  /// keeps consent fresh after "Change access" / "Turn on auto-apply for
+  /// this module first" and back.
   AutomationEditorCubit(
     this._runner, {
     required String uid,
     required List<ModuleEntry> modules,
     required List<Collection> collections,
+    Stream<List<ModuleEntry>>? moduleChanges,
     AutomationRecord? existing,
     String? collectionId,
     String? moduleId,
@@ -307,9 +315,11 @@ class AutomationEditorCubit extends Cubit<AutomationEditorState> {
       setModule(moduleId);
       if (actionId != null) setAction(actionId);
     }
+    _sub = moduleChanges?.listen((m) => emit(state.copyWith(modules: m)));
   }
 
   final AutomationRunnerApi _runner;
+  StreamSubscription<Object?>? _sub;
   final String _uid;
   final DateTime Function() _now;
   final String Function() _newId;
@@ -618,5 +628,11 @@ class AutomationEditorCubit extends Cubit<AutomationEditorState> {
       if (!isClosed) emit(state.copyWith(error: () => e.message));
       return false;
     }
+  }
+
+  @override
+  Future<void> close() async {
+    await _sub?.cancel();
+    return super.close();
   }
 }

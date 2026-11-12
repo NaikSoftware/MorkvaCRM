@@ -62,6 +62,17 @@ void main() {
     },
   );
 
+  test('no provenance until the run doc loads', () async {
+    final cubit = build();
+    // The live run only knows the module id and the button label.
+    expect(cubit.state.run, isNotNull);
+    expect(cubit.state.provenance, isNull);
+    expect(cubit.state.automationName, isNull);
+    await settle();
+    expect(cubit.state.automationName, 'Stamp when shipped');
+    await cubit.close();
+  });
+
   test('approve with the ticks, then Next review (oldest first)', () async {
     final cubit = build();
     cubit.select({'i_1'});

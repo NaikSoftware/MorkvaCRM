@@ -182,7 +182,38 @@ void main() {
       expect(entries.length, 4);
       expect((entries.first as RunEntryGroup).rows.length, 5);
       expect(entries.skip(1).every((e) => e is RunEntryRow), isTrue);
-      expect(groupRuns(rows, const {'s0'}).length, 8);
+      final group = entries.first as RunEntryGroup;
+      expect(group.key, 's4');
+      expect(groupRuns(rows, {group.key}).length, 8);
+      // A newer skip with the same reason joins: still expanded.
+      expect(
+        groupRuns(
+          [skip('s5', RunReason.notSettled), ...rows],
+          {group.key},
+        ).length,
+        9,
+      );
+    });
+
+    test('a group counts the refusals its coalesced docs stand for', () {
+      final rows = [
+        for (var i = 0; i < 4; i++) skip('s$i', RunReason.notSettled),
+      ];
+      final coalesced = runRowOf(
+        runRecord(
+          's9',
+          status: RunStatus.skipped,
+          reason: RunReason.notSettled,
+        ).copyWith(count: 8),
+        sessionId: 't_test',
+        hasReviewPlan: false,
+        live: false,
+        canUndo: false,
+        now: fixtureNow,
+        automation: AutomationStatus.active,
+      );
+      final group = groupRuns([...rows, coalesced], const {}).single;
+      expect((group as RunEntryGroup).count, 12);
     });
   });
 
@@ -270,6 +301,15 @@ void main() {
 
     test('filters: review, failed, automation, card', () async {
       await seedRuns();
+      // The user's own Stop isn't a failure.
+      await stores.runs.create(
+        runRecord(
+          'run_stop',
+          status: RunStatus.failed,
+          reason: RunReason.cancelled,
+          startedAt: fixtureNow.subtract(const Duration(minutes: 1)),
+        ),
+      );
       final cubit = build();
       await settle();
       List<String> ids() => [
