@@ -296,17 +296,21 @@ class TrelloImportCubit extends Cubit<TrelloImportState> {
     ),
   );
 
-  void removeBoard(String boardId) => _emit(
-    _summarized(
-      state.copyWith(
-        boards: [
-          for (final b in state.boards)
-            if (b.board.id != boardId) b,
-        ],
-        choices: {...state.choices}..remove(boardId),
+  void removeBoard(String boardId) {
+    // A newer export of the same board may be added next.
+    _summaryCache.removeWhere((key, _) => key.$1 == boardId);
+    _emit(
+      _summarized(
+        state.copyWith(
+          boards: [
+            for (final b in state.boards)
+              if (b.board.id != boardId) b,
+          ],
+          choices: {...state.choices}..remove(boardId),
+        ),
       ),
-    ),
-  );
+    );
+  }
 
   void dismissProblem(int index) {
     if (index < 0 || index >= state.problems.length) return;
@@ -410,7 +414,19 @@ class TrelloImportCubit extends Cubit<TrelloImportState> {
   }
 
   Future<void> _run() async {
-    _emit(state.copyWith(running: true, failure: () => null, stalled: false));
+    _emit(
+      state.copyWith(
+        running: true,
+        failure: () => null,
+        stalled: false,
+        rows: [
+          for (final r in state.rows)
+            r.status == ImportRowStatus.paused
+                ? r.copyWith(status: ImportRowStatus.pending)
+                : r,
+        ],
+      ),
+    );
     for (final c in _collections) {
       final collection = c.collection;
       if (_saved.contains(collection.id)) continue;

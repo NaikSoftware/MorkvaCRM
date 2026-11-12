@@ -145,6 +145,19 @@ void main() {
       expect(c.state.summaries[_boardId], same(off), reason: 'cached');
     });
 
+    test('a newer export of a removed board gets a fresh summary', () {
+      final c = chosen();
+      expect(c.state.summaries[_boardId]!.comments, 2);
+
+      // The same board, exported again after its comments were deleted.
+      final newer = _sample.replaceAll('"commentCard"', '"updateCard"');
+      c
+        ..removeBoard(_boardId)
+        ..addFiles([(name: 'newer.json', text: newer)]);
+      expect(c.state.summaries[_boardId]!.comments, 0);
+      expect(c.state.selectedCollectionCount, 2);
+    });
+
     test('children are inert while their board is unticked', () {
       final c = chosen()..select(_boardId, comments: false);
       expect(c.state.selectedCollectionCount, 2);
@@ -363,6 +376,26 @@ void main() {
         async.flushMicrotasks();
         expect(c.state.step, TrelloImportStep.done);
         expect(repo.saveCount, 4, reason: 'only the unacked one is re-saved');
+      });
+    });
+
+    test('a paused row is not shown paused while the retry writes', () {
+      fakeAsync((async) {
+        final c = chosen(sliceTimeout: const Duration(seconds: 5));
+        repo.saveError = () => StateError('refused');
+        unawaited(c.startImport());
+        async.flushMicrotasks();
+        expect(c.state.rows.first.status, ImportRowStatus.paused);
+
+        // The retry's collection save hangs: nothing is paused meanwhile.
+        repo
+          ..saveError = null
+          ..collectionAck = Completer<void>();
+        unawaited(c.retry());
+        async.flushMicrotasks();
+        expect(c.state.isWriting, isTrue);
+        expect(c.state.rows.first.status, ImportRowStatus.pending);
+        async.elapse(const Duration(seconds: 5));
       });
     });
 
