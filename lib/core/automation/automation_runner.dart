@@ -316,7 +316,18 @@ final class AutomationRunner implements AutomationRunnerApi {
   Stream<RunView> get finished => _finished.stream;
 
   void _notify() {
-    final current = _queue.current;
+    // The slot's holder until released, unless it already moved on to
+    // review (listed below) or ended.
+    final current = switch (_queue.current) {
+      final r?
+          when const {
+            RunStatus.running,
+            RunStatus.sealing,
+            RunStatus.applying,
+          }.contains(r.status) =>
+        r,
+      _ => null,
+    };
     final paused = _autoPausedUntil;
     final next = RunActivity(
       runs: [
@@ -627,6 +638,7 @@ final class AutomationRunner implements AutomationRunnerApi {
   void _release(_Run run) {
     _queue.release(run);
     _pump();
+    _notify();
   }
 
   Future<void> _execute(_Run run, int epoch) async {
@@ -1504,6 +1516,7 @@ final class AutomationRunner implements AutomationRunnerApi {
       throw const AutomationRefused('card_gone', 'The card was deleted.');
     }
     final unknown =
+        old.reason == RunReason.interrupted ||
         old.status == RunStatus.applying ||
         old.status == RunStatus.awaitingReview && old.applyStartedAt != null ||
         (old.receipt?.unconfirmed ?? 0) > 0;
@@ -1811,12 +1824,8 @@ final class AutomationRunner implements AutomationRunnerApi {
   @override
   Future<void> revoke(String moduleId) async {
     final uid = _signedIn();
+    await _dropModuleRuns(moduleId, RunReason.needsConsent);
     await _write(() => stores.grants.delete(uid, moduleId));
-    _skipQueued(
-      (r) => r.automation.moduleId == moduleId,
-      RunReason.needsConsent,
-    );
-    await _rejectModule(moduleId, RunReason.needsConsent);
   }
 
   @override
@@ -1826,22 +1835,26 @@ final class AutomationRunner implements AutomationRunnerApi {
       for (final a in _automations.values)
         if (a.moduleId == moduleId) a.id,
     ];
+    await _dropModuleRuns(moduleId, RunReason.uninstalled);
     for (final id in automations) {
       await _write(() => stores.automations.delete(id));
     }
     await _write(() => stores.grants.delete(uid, moduleId));
     await _write(() => stores.modules.delete(moduleId));
+  }
+
+  /// Before the docs go (their watches would reject with a vaguer reason):
+  /// waiting runs are skipped, reviews rejected with [reason].
+  Future<void> _dropModuleRuns(String moduleId, RunReason reason) {
     _skipQueued(
       (r) => r.automation.moduleId == moduleId,
       RunReason.needsConsent,
     );
-    await _rejectModule(moduleId, RunReason.uninstalled);
+    return Future.wait([
+      for (final run in [..._live.values])
+        if (run.automation.moduleId == moduleId) _rejectRun(run, reason),
+    ]);
   }
-
-  Future<void> _rejectModule(String moduleId, RunReason reason) => Future.wait([
-    for (final run in [..._live.values])
-      if (run.automation.moduleId == moduleId) _rejectRun(run, reason),
-  ]);
 
   String _signedIn() =>
       _uid ?? (throw const AutomationRefused('not_permitted', 'Signed out.'));
