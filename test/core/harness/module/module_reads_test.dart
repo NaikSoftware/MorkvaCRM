@@ -280,6 +280,47 @@ void main() {
       },
     );
 
+    test('a failed dry run comes back as plain JSON', () async {
+      await m.install();
+      m.withHooks();
+      m.runner.testRunResult = const TestRunResult(
+        status: RunStatus.failed,
+        reason: RunReason.moduleError,
+        plan: [
+          PlanLine(kind: 'updateCard', label: '#1001', change: '— → today'),
+        ],
+        log: RunLog(
+          calls: [
+            RunCall(
+              t: 3,
+              op: 'cards.get',
+              kind: 'read',
+              args: '{}',
+              ok: true,
+              result: '1 card',
+              ms: 2,
+            ),
+          ],
+          console: [ConsoleLine(t: 5, level: 'error', text: 'boom')],
+        ),
+        error: RunError(
+          code: 'module_error',
+          message: 'boom',
+          stack: 'at morkva-module/stamp-shipped-date.js:1',
+        ),
+      );
+      final r = await m.p.ok('modules.testRun', args());
+      expect(r['status'], 'failed');
+      expect(r['reason'], 'module_error');
+      expect(r['plan'], [
+        {'kind': 'updateCard', 'label': '#1001', 'change': '— → today'},
+      ]);
+      expect((r['log']! as Map)['console'], [
+        {'t': 5, 'level': 'error', 'text': 'boom'},
+      ]);
+      expect((r['error']! as Map)['code'], 'module_error');
+    });
+
     test('a card action needs a card', () async {
       await m.install();
       m.withHooks();

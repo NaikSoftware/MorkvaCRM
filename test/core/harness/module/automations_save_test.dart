@@ -237,6 +237,54 @@ void main() {
     expect(item.draft.button!.label, hasLength(ButtonSpec.kMaxLabel));
   });
 
+  Map<String, Object?> onCreated(Object value) => {
+    'kind': 'card.created',
+    'collection': 'Orders',
+    'where': [
+      {'field': 'Created', 'op': 'onDay', 'value': value},
+    ],
+  };
+
+  test('a day word is stored relative, never frozen to a date', () async {
+    await m.install();
+    for (final word in ['tomorrow', '+3d']) {
+      final item = await planned(save(trigger: onCreated(word)));
+      expect((item.draft.trigger as EventTrigger).where.single, {
+        'field': OrderFields.created,
+        'op': 'onDay',
+        'value': word,
+      });
+      m.p.newTurn();
+    }
+    final fixed = await planned(save(trigger: onCreated('2026-12-01')));
+    expect(
+      (fixed.draft.trigger as EventTrigger).where.single['value'],
+      '2026-12-01',
+    );
+  });
+
+  test('an update keeps a loop pause but clears broken', () async {
+    await m.install();
+    final stored = (await planned(save())).recordFor('u1', now);
+    await m.fakes.automations.save(
+      stored.withPause(PausedReason.loopSuspected, now: now),
+    );
+    m.p.newTurn();
+    final kept = await planned(
+      save(id: stored.id, params: const {'dateField': 'Created'}),
+    );
+    expect(kept.draft.pausedReason, PausedReason.loopSuspected);
+
+    await m.fakes.automations.save(
+      stored.withPause(PausedReason.broken, detail: 'gone', now: now),
+    );
+    m.p.newTurn();
+    // Saving a broken one as it is revalidates it (not no_change).
+    final fixed = await planned(save(id: stored.id));
+    expect(fixed.draft.pausedReason, isNull);
+    expect(fixed.draft.brokenDetail, isNull);
+  });
+
   test('timestamps are not offered in conditions', () async {
     await m.install();
     final e = await m.p.error(

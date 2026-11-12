@@ -323,6 +323,11 @@ Future<void> planAutomationsSave(
       button: button,
       collections: existing?.collections,
       apply: ApplyMode.ask,
+      // Saving revalidates, which clears `broken`; a loop or crash pause
+      // stays until the user resumes it.
+      pausedReason: existing?.pausedReason == PausedReason.broken
+          ? null
+          : existing?.pausedReason,
       createdBy: existing?.createdBy ?? ctx.actor.wire,
       createdAt: existing?.createdAt ?? ctx.now,
       updatedAt: ctx.now,
@@ -460,7 +465,7 @@ bool _sameScope(List<String>? a, List<String>? b) =>
 
 String _actionsText(ModuleManifest manifest) => [
   for (final a in manifest.actions)
-    '${a.label} (${switch (a.scope) {
+    '${sanitizeName(a.label)} (${switch (a.scope) {
       ActionScope.card => 'on a card',
       ActionScope.collection => 'on a collection',
       ActionScope.any => 'on a card or a collection',
@@ -524,6 +529,17 @@ Map<String, Object?> _normalizeFilter(
     final compiled = compiler.compileOne(collection, raw, path: path);
     if (compiled.length != 1) return {...raw, 'field': fieldId};
     final f = compiled.single;
+    final value = raw['value'];
+    // A day word (`today`, `+3d`) compiles to a date, which would freeze the
+    // condition on the day it was saved; kept raw, every evaluation
+    // recompiles it with the run's today.
+    if (value is String &&
+        value != f.operand &&
+        f.operand is String &&
+        DateTime.tryParse(value.trim()) == null &&
+        DateTime.tryParse(f.operand! as String) != null) {
+      return {'field': f.fieldId, 'op': f.op.name, 'value': value.trim()};
+    }
     return {'field': f.fieldId, 'op': f.op.name, 'value': ?f.operand};
   } on HarnessException {
     return {...raw, 'field': fieldId};
@@ -611,7 +627,8 @@ bool _sameAutomation(
     'button': a.button?.toJson(),
     'apply': mode.name,
   };
-  return existing.pausedReason == null &&
+  // A broken one is worth saving again: that revalidates it.
+  return existing.pausedReason != PausedReason.broken &&
       jsonEquals(key(existing, existing.apply), key(draft, apply));
 }
 

@@ -9,6 +9,7 @@ import '../automation_catalog.dart';
 import '../automation_validation.dart';
 import '../cache/workspace_cache.dart';
 import '../input/ref_resolver.dart';
+import '../input/screen_line.dart';
 import '../plan/plan.dart';
 import '../plan/planners/module_planners.dart';
 import '../plan/planners/plan_call.dart';
@@ -292,8 +293,8 @@ Future<_Json> _testRun(
     throw HarnessException.of(
       ErrorCode.notPermitted,
       status == ModuleStatus.broken
-          ? '"${module.name}" no longer loads; save it again first.'
-          : '"${module.name}" needs the user\'s consent to its current code '
+          ? '${quoteName(module.name)} no longer loads; save it again first.'
+          : '${quoteName(module.name)} needs the user\'s consent to its current code '
                 'before it can run.',
       path: 'moduleId',
     );
@@ -303,7 +304,7 @@ Future<_Json> _testRun(
       manifest.action(actionId) ??
       (throw HarnessException.of(
         ErrorCode.invalidArgs,
-        '"${module.name}" has no action "$actionId".',
+        '${quoteName(module.name)} has no action "$actionId".',
         path: 'actionId',
         candidates: [for (final a in manifest.actions) a.id],
       ));
@@ -346,8 +347,8 @@ Future<_Json> _testRun(
     throw HarnessException.of(
       ErrorCode.invalidArgs,
       cardId != null
-          ? '"${action.label}" runs on a collection; leave "card" out.'
-          : '"${action.label}" runs on a card; pass "card".',
+          ? '${quoteName(action.label)} runs on a collection; leave "card" out.'
+          : '${quoteName(action.label)} runs on a card; pass "card".',
       path: cardId != null ? 'card' : 'collection',
     );
   }
@@ -359,7 +360,7 @@ Future<_Json> _testRun(
             ErrorDetail(
               path: 'params',
               code: ErrorCode.invalidArgs,
-              message: '"${action.label}" takes no params.',
+              message: '${quoteName(action.label)} takes no params.',
             ),
         ]
       : JsonSchema.validate(

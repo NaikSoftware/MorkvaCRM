@@ -11,6 +11,7 @@ import 'api/envelope.dart';
 import 'api/harness_context.dart';
 import 'input/filter_compiler.dart';
 import 'input/ref_resolver.dart';
+import 'input/screen_line.dart';
 import 'schema/arg_shapes.dart';
 import 'schema/json_schema.dart';
 
@@ -72,7 +73,11 @@ List<AutomationProblem> validateAutomation(
     return problems;
   }
   if (manifest == null) {
-    add('moduleId', ErrorCode.invalidArgs, '"${module.name}" no longer loads.');
+    add(
+      'moduleId',
+      ErrorCode.invalidArgs,
+      '${quoteName(module.name)} no longer loads.',
+    );
     return problems;
   }
   final action = manifest.action(automation.actionId);
@@ -80,7 +85,7 @@ List<AutomationProblem> validateAutomation(
     add(
       'actionId',
       ErrorCode.invalidArgs,
-      '"${manifest.name}" has no action "${automation.actionId}".',
+      '${quoteName(manifest.name)} has no action "${automation.actionId}".',
     );
   }
 
@@ -105,7 +110,7 @@ List<AutomationProblem> validateAutomation(
     add(
       'trigger.collection',
       ErrorCode.notPermitted,
-      '"${manifest.name}" isn\'t allowed in ${collection.name}.',
+      '${quoteName(manifest.name)} isn\'t allowed in ${collection.name}.',
     );
   }
 
@@ -118,7 +123,7 @@ List<AutomationProblem> validateAutomation(
       add(
         'actionId',
         ErrorCode.invalidArgs,
-        '"${action.label}" runs on ${onCard ? 'a collection' : 'a card'}, '
+        '${quoteName(action.label)} runs on ${onCard ? 'a collection' : 'a card'}, '
             'not on ${onCard ? 'a card' : 'a collection'}.',
       );
     }
@@ -190,7 +195,7 @@ List<AutomationProblem> validateAutomation(
         add(
           'params',
           ErrorCode.invalidArgs,
-          '"${action.label}" takes no params.',
+          '${quoteName(action.label)} takes no params.',
         );
       }
     } else {
