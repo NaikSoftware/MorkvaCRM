@@ -245,6 +245,9 @@ void main() {
       await pump(tester, tab: AutomationsTab.runs);
       await tester.pump();
       expect(find.text('Running now'), findsOneWidget);
+      // A 14 / 600 title in a short band, not the 44 px section row.
+      final title = tester.widget<Text>(find.text('Running now')).style!;
+      expect((title.fontSize, title.fontWeight), (14, FontWeight.w600));
       // Titled like the rows below: automation · action.
       expect(
         find.text('Stamp date when shipped · Mark shipped'),

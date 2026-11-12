@@ -220,6 +220,23 @@ void main() {
     );
   });
 
+  testWidgets('Module and Action split 3:2 so a module name fits', (
+    tester,
+  ) async {
+    await pump(tester, build());
+    double width(String label) => tester
+        .getSize(
+          find
+              .ancestor(
+                of: find.text(label).first,
+                matching: find.byType(Expanded),
+              )
+              .first,
+        )
+        .width;
+    expect(width('Module') / width('Action'), closeTo(1.5, 0.01));
+  });
+
   testWidgets('selects use the house chevron at 14 px', (tester) async {
     await pump(tester, build());
     expect(find.byIcon(Icons.arrow_drop_down), findsNothing);

@@ -189,6 +189,28 @@ void main() {
       semantics.dispose();
     });
 
+    testWidgets('icon-only: More shows the spinner and still fits', (
+      tester,
+    ) async {
+      await rig.setUp(automations: three);
+      addTearDown(rig.dispose);
+      rig.runner.activity = RunActivity(
+        runs: [
+          liveRun(
+            'run_1',
+            automationId: 'a_flag',
+            label: 'Flag low stock',
+            progress: const RunProgress(done: 2, total: 3),
+          ),
+        ],
+      );
+      await pump(tester, headerWidth: 300);
+      expect(find.text('Running… 2/3'), findsNothing);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byIcon(Icons.expand_more_rounded), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('review under More: More says so with the amber dot', (
       tester,
     ) async {
@@ -212,7 +234,8 @@ void main() {
           RegExp('^More actions, Flag low stock waiting for review'),
         ),
         findsOneWidget,
-      );      semantics.dispose();
+      );
+      semantics.dispose();
     });
 
     testWidgets('queued: clock and the position', (tester) async {
