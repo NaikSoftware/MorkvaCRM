@@ -420,6 +420,18 @@ void main() {
       expect(argsOf('runAgain'), ['run_1']);
     });
 
+    testWidgets('phone: timed out offline fits View run, Run again and the '
+        'reason', (tester) async {
+      sync.reportSnapshotMeta(isFromCache: true, hasPendingWrites: false);
+      await open(tester, object: _order(), size: const Size(390, 844));
+      rig.runner.finish(liveRun('run_1', status: RunStatus.timedOut));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.text('View run'), findsOneWidget);
+      expect(find.text('Run again'), findsOneWidget);
+      expect(find.text('Needs a connection'), findsOneWidget);
+    });
+
     testWidgets('a button run of this card waits: the review sheet opens '
         'above the editor', (tester) async {
       await open(tester, object: _order());

@@ -1044,8 +1044,11 @@ class _RunBanner extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
+                  // Wraps: View run, Run again and "Needs a connection"
+                  // don't fit one phone row.
+                  Wrap(
+                    alignment: WrapAlignment.end,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: buttons,
                   ),
                 ],
