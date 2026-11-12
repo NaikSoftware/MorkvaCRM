@@ -1017,6 +1017,15 @@ void main() {
       expect((await rig.fakes.automations.get('a_1'))!.brokenDetail, isNotNull);
     });
 
+    test('a press before the automations load still runs', () async {
+      await rig.install();
+      await rig.automation();
+      rig.stamps();
+      rig.runner.initialize(workspaceId: 'w1', uid: 'u1');
+      final runId = await rig.runner.pressCard('a_1', cardId: _order);
+      await awaitingReview(runId);
+    });
+
     test('reset drops the live run without writing its doc', () async {
       await rig.install();
       await rig.automation();

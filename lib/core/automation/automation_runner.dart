@@ -659,7 +659,10 @@ final class AutomationRunner implements AutomationRunnerApi {
 
   Future<void> _executeChecked(_Run run, int epoch) async {
     final uid = _uid!;
-    final a = _automations[run.automation.id];
+    final a = _loaded
+        ? _automations[run.automation.id]
+        : await stores.automations.get(run.automation.id);
+    if (epoch != _epoch) return;
     if (a == null) {
       return _finish(run, RunStatus.skipped, reason: RunReason.cancelled);
     }
@@ -1459,7 +1462,10 @@ final class AutomationRunner implements AutomationRunnerApi {
     ButtonScope scope,
     RunTrigger Function(AutomationRecord a) trigger,
   ) async {
-    final a = _automations[automationId];
+    // The automations listener may lag a button the UI already shows.
+    final a =
+        _automations[automationId] ??
+        await stores.automations.get(automationId);
     if (_uid == null ||
         a == null ||
         a.trigger is! ButtonTrigger ||
