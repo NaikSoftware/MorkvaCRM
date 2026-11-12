@@ -9,7 +9,6 @@
     "apiVersion": 2,
     "permissions": {
       "capabilities": [
-        "schema:read",
         "data:read",
         "data:write"
       ]
@@ -24,6 +23,7 @@
           "type": "object",
           "required": [
             "clientField",
+            "clients",
             "totalField",
             "targetField"
           ],
@@ -33,6 +33,12 @@
               "title": "Client link",
               "description": "The reference field that links the order to its client.",
               "format": "field"
+            },
+            "clients": {
+              "type": "string",
+              "title": "Client collection",
+              "description": "The collection the client link points to.",
+              "format": "collection"
             },
             "totalField": {
               "type": "string",
@@ -51,5 +57,5 @@
       }
     ]
   },
-  "code": "// Copy order total to client: reads the order's client link and total, then\n// plans one update on the client card. The client collection must be in the\n// module's consent too, or the run fails.\nmorkva.action('copyTotal', async (input, ctx) => {\n  const order = ctx.card;\n  if (!order || !('values' in order)) return 'No order';\n  const links = order.values[input.clientField];\n  const client = Array.isArray(links) ? links[0] : undefined;\n  if (!client) return `${order.title} has no client`;\n  const total = order.values[input.totalField];\n  if (typeof total !== 'number') return `${order.title} has no total`;\n\n  // A link value holds card ids, not the collection: the schema names it.\n  const schema = await morkva.call('collections.get', {\n    collection: order.collectionId,\n    fields: [input.clientField],\n  });\n  const link = schema.fields.find((f) => f.id === input.clientField);\n  const clients = link && link.targetCollectionId;\n  if (typeof clients !== 'string') return `${input.clientField} is not a link`;\n\n  const name = client.title || 'the client';\n  try {\n    // Refused with \"Collection not available to this module\" when the\n    // consent leaves out the client collection.\n    await morkva.call('cards.update', {\n      collection: clients,\n      target: { ids: [client.id] },\n      set: { [input.targetField]: total },\n    });\n  } catch (e) {\n    // The client already holds this total: nothing to do, not a failure.\n    if (/** @type {MorkvaError} */ (e).code === 'no_change') {\n      return `${name} is up to date`;\n    }\n    throw e;\n  }\n  return `Copied ${total} to ${name}`;\n});\n"
+  "code": "// Copy order total to client: reads the order's client link and total, then\n// plans one update on the client card. A link value holds card ids only, so\n// the client collection is a setting (`format: collection`); it must be in\n// the module's consent too, or the run fails.\nmorkva.action('copyTotal', async (input, ctx) => {\n  const order = ctx.card;\n  if (!order || !('values' in order)) return 'No order';\n  const links = order.values[input.clientField];\n  const client = Array.isArray(links) ? links[0] : undefined;\n  if (!client) return `${order.title} has no client`;\n  const total = order.values[input.totalField];\n  if (typeof total !== 'number') return `${order.title} has no total`;\n\n  const name = client.title || 'the client';\n  try {\n    // Refused with \"Collection not available to this module\" when the\n    // consent leaves out the client collection.\n    await morkva.call('cards.update', {\n      collection: input.clients,\n      target: { ids: [client.id] },\n      set: { [input.targetField]: total },\n    });\n  } catch (e) {\n    // The client already holds this total: nothing to do, not a failure.\n    if (/** @type {MorkvaError} */ (e).code === 'no_change') {\n      return `${name} is up to date`;\n    }\n    throw e;\n  }\n  return `Copied ${total} to ${name}`;\n});\n"
 }

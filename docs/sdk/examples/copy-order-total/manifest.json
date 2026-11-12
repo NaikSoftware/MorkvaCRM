@@ -6,7 +6,7 @@
   "author": "SDK example",
   "apiVersion": 2,
   "permissions": {
-    "capabilities": ["schema:read", "data:read", "data:write"]
+    "capabilities": ["data:read", "data:write"]
   },
   "actions": [
     {
@@ -16,13 +16,19 @@
       "icon": "money",
       "input": {
         "type": "object",
-        "required": ["clientField", "totalField", "targetField"],
+        "required": ["clientField", "clients", "totalField", "targetField"],
         "properties": {
           "clientField": {
             "type": "string",
             "title": "Client link",
             "description": "The reference field that links the order to its client.",
             "format": "field"
+          },
+          "clients": {
+            "type": "string",
+            "title": "Client collection",
+            "description": "The collection the client link points to.",
+            "format": "collection"
           },
           "totalField": {
             "type": "string",

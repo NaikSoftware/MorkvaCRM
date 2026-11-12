@@ -230,7 +230,7 @@ Leave out the DOM library: those globals do not exist in a module, and its
 | Example | Shows |
 |---|---|
 | [stamp-shipped-date](examples/stamp-shipped-date) | A card action that fills a date field (a `format: field` setting). Bind it to a card button, or to "card updated" when Status enters Shipped. |
-| [copy-order-total](examples/copy-order-total) | Reading a link and a calculated total, then planning an update in **another** collection, which the consent must include. Catching `no_change`. |
+| [copy-order-total](examples/copy-order-total) | Reading a link and a calculated total, then planning an update in **another** collection, picked by a `format: collection` setting (link values hold card ids only) and which the consent must include. Catching `no_change`. |
 | [low-stock-flag](examples/low-stock-flag) | A collection action: one `cards.query` (paged with `cards.page`), the button's visible cards from `ctx.trigger.cardIds`, progress, and one bulk `cards.update`. |
 
 The app's tests run each example through the real sandbox on the web and on

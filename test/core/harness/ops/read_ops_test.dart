@@ -230,6 +230,11 @@ void main() {
       );
       expect(city['redacted'], isTrue);
       expect(city.containsKey('lookup'), isFalse);
+      final client = (r['fields']! as List).cast<Map>().firstWhere(
+        (f) => f['id'] == OrderFields.client,
+      );
+      expect(client['type'], 'reference');
+      expect(client.containsKey('targetCollectionId'), isFalse);
     });
 
     test('a schema over the budget is cut, never silently', () async {

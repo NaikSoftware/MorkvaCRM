@@ -301,10 +301,7 @@ final class WorkspaceDigest {
   }) {
     final redacted = readsUngranted(c, f, grants, all);
     final options = _selectOptions(f);
-    final target = f is ReferenceFieldDefinition
-        ? all.where((t) => t.id == f.targetCollectionId).firstOrNull
-        : null;
-    final shownTarget = target != null && grants.allowsCollection(target.id);
+    final target = _shownTarget(f, all, grants);
     return {
       'id': f.id,
       'name': shaper.name(f.name),
@@ -322,7 +319,7 @@ final class WorkspaceDigest {
             : [for (final o in options.take(maxOptions)) shaper.label(o.label)],
       if (options != null && !full && options.length > maxOptions)
         'moreOptions': options.length - maxOptions,
-      if (shownTarget) 'target': target.id,
+      'target': ?target,
       if (f is ReferenceFieldDefinition && f.multiple) 'multiple': true,
       if (f is FileFieldDefinition && f.multiple) 'multiple': true,
       if (full && f is DateFieldDefinition && f.includeTime)
@@ -340,6 +337,9 @@ final class WorkspaceDigest {
     Grants grants,
   ) {
     final json = <String, Object?>{...f.toJson()};
+    if (f is ReferenceFieldDefinition && _shownTarget(f, all, grants) == null) {
+      json.remove('targetCollectionId');
+    }
     json['name'] = shaper.name(f.name);
     if (f.description?.trim().isNotEmpty ?? false) {
       json['description'] = shaper.text(f.description!);
@@ -387,6 +387,20 @@ final class WorkspaceDigest {
     final String s => shaper.text(s),
     final List l => [for (final v in l) v is String ? shaper.text(v) : v],
     _ => operand,
+  };
+
+  /// A reference field's target id, or null when it is missing or outside
+  /// [grants]: naming it would leak an unconsented collection.
+  static String? _shownTarget(
+    FieldDefinition f,
+    List<Collection> all,
+    Grants grants,
+  ) => switch (f) {
+    ReferenceFieldDefinition(:final targetCollectionId)
+        when grants.allowsCollection(targetCollectionId) &&
+            all.any((t) => t.id == targetCollectionId) =>
+      targetCollectionId,
+    _ => null,
   };
 
   static List<SelectOption>? _selectOptions(FieldDefinition f) => switch (f) {

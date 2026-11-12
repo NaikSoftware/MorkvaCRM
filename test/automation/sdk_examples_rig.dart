@@ -242,6 +242,7 @@ void sdkExampleTests(ScriptEngine Function() engine, {String? skip}) {
       cardId: order,
       params: {
         'clientField': OrderFields.client,
+        'clients': SeedIds.clients,
         'totalField': OrderFields.total,
       },
       collections: {SeedIds.orders, SeedIds.clients},
@@ -261,6 +262,7 @@ void sdkExampleTests(ScriptEngine Function() engine, {String? skip}) {
       cardId: order,
       params: {
         'clientField': OrderFields.client,
+        'clients': SeedIds.clients,
         'totalField': OrderFields.total,
       },
       collections: {SeedIds.orders},
