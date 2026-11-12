@@ -2,7 +2,7 @@
 
 Companion to `2026-11-12-epic-09-automations-design.md` (architecture; vocabulary and decisions
 D1–D19 live there; every critique item and its resolution is in its **Critique log**, items `U1`–`U40`
-are this spec's). This spec wins on any UI detail. Mockups: Claude Design canvas, local copies in
+are this spec's). This spec wins on any UI detail. Mockups: Claude Design canvas https://claude.ai/artifact/VLcD8ckbpY3JdYAuoEnWYd (accepted by the design critic after 4 rounds), local copies in
 `docs/superpowers/mockups/epic-09/` (artboards at the end). Visual language: **"Warm Carrot"**
 (`lib/design/DESIGN.md`) — warm-paper canvas, carrot for primary actions only, amber `warning`
 (never carrot) for "needs attention", Bricolage Grotesque headings, Hanken Grotesk body, radii
@@ -601,3 +601,12 @@ sunk surface token with `onSurfaceVariant` line numbers; the review PlanCard kee
 | 11 | PhoneRuns | 390 × 844 | Phone Automations page, Runs tab with the icon-only bolt indicator (spinner ring), a "Running now" row with Stop, and an expired row with Run again |
 | 12 | Dark | 1440 × 900 | Dark theme: failed run detail with error stack and the module details code viewer dialog |
 | 13 | PhoneRunning | 390 × 844 | Phone card editor while a run is going: ⚡ with spinner ring and "1/3", linear progress under the AppBar, then the in-editor result banner |
+
+### Decisions from the mockups (critic-accepted)
+
+- Sidebar pill copy is shortened to fit the 272 px row: "1 didn't run" (full sentence in the
+  tooltip and semantics label); "2 reviews expired · View" is not drawn in the pill.
+- A bare number badge is solid `warning` amber with `onWarning` text; amber with words (pills,
+  chips, banners, the rail badge) uses the warning container pair.
+- An extra artboard `AutomationsTab` shows section 1b.
+- Every pressable drawn smaller than 44 px sits inside a 44 px transparent hit box.
