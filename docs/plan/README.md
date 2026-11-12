@@ -42,7 +42,7 @@ capability.
 (table + board), object editing, and calculated/aggregation fields — enough that a user can
 *rebuild* both example setups themselves, with no hardcoding.
 
-**Deferred (noted, not built here):** automation/triggers, Firebase admin/feature-flags,
+**Deferred (noted, not built here):** scheduled triggers, Firebase admin/feature-flags,
 shared-workspace collaboration, the JS-module marketplace, and extra view modes. See
 [`future-epics.md`](future-epics.md). (Firebase Auth ships in Epic 2, since it backs storage access.)
 
@@ -62,8 +62,9 @@ Build top to bottom. Arrows show hard dependencies.
 | 5 | [Object detail & field editors](epic-05-object-editing.md) | Open an object, edit every field type, validation UX | 1, 4 |
 | 6 | [Calculated & aggregation fields](epic-06-calculated-fields.md) | References + reverse lookups, formulas, cross-collection aggregation, auto-number, roll-up | 1, 5 |
 | 7 | [Example templates](epic-07-example-templates.md) | Importable hoodie + orders templates; end-to-end acceptance | 4, 6 |
-| 8 | [Global AI assistant](epic-08-ai-assistant.md) *(planned)* | "Ask Morkva" chat: ask / analyze / act on data via repository-bound tools | 2 (4, 6 soft) |
-| — | [Future epics](future-epics.md) | Automation, Firebase, marketplace, more modes | — |
+| 8 | [Global AI assistant](epic-08-ai-assistant.md) *(done)* | "Ask Morkva" chat: ask / analyze / act on data via the Morkva Harness | 2 (4, 6 soft) |
+| 9 | [Automations](epic-09-automations.md) | Sandboxed JS modules: actions on buttons or card-event triggers, consent, run log, SDK docs | 8 (2, 4, 6) |
+| — | [Future epics](future-epics.md) | Scheduled triggers, Firebase admin, marketplace, more modes | — |
 
 A reasonable first milestone ("the engine is real") is **Epics 0–4**: a user can sign in,
 create a collection, add objects, and look at them as a table or a board. Epics 5–6 make it
