@@ -305,6 +305,9 @@ class CollectionRunPill extends StatelessWidget {
     final theme = Theme.of(context);
     return Semantics(
       liveRegion: true,
+      label: 'Running ${live.label}',
+      onLongPress: () => runs.stop(live.runId),
+      excludeSemantics: true,
       child: Tooltip(
         message: 'Long-press to stop',
         child: GestureDetector(
@@ -382,17 +385,15 @@ List<PopupMenuEntry<void>> collectionPhoneMenuItems(
   ];
 }
 
-/// Opens the review sheet for a collection-button run of [collectionId]
-/// that waits for review, while this page is the top route (UX §4: else
-/// the indicator and the snackbar take over).
-class CollectionReviewListener extends StatelessWidget {
-  const CollectionReviewListener({
-    super.key,
-    required this.collectionId,
-    required this.child,
-  });
+/// The finish notices outside the card editor (UX §4–§5): the review sheet
+/// for a collection-button run of [collectionId] while this page is on top,
+/// the finish snackbar for every other notice. While a card editor is open
+/// its banner owns them. Mount exactly one (the collection page now; T16
+/// hoists it to the shell with [collectionId] null).
+class RunNoticeHost extends StatelessWidget {
+  const RunNoticeHost({super.key, this.collectionId, required this.child});
 
-  final String collectionId;
+  final String? collectionId;
   final Widget child;
 
   @override
@@ -405,17 +406,70 @@ class CollectionReviewListener extends StatelessWidget {
           next.notice != null && prev.notice != next.notice,
       listener: (context, state) {
         final notice = state.notice!;
+        if (state.editorOpen) return;
+        runs.noticeShown();
         final run = notice.run;
-        if (notice.surface != NoticeSurface.reviewSheet ||
-            run.trigger.collectionId != collectionId ||
-            run.trigger.cardId != null ||
-            !(ModalRoute.of(context)?.isCurrent ?? true)) {
+        if (notice.surface == NoticeSurface.reviewSheet &&
+            collectionId != null &&
+            run.trigger.collectionId == collectionId &&
+            run.trigger.cardId == null &&
+            (ModalRoute.of(context)?.isCurrent ?? true)) {
+          showReviewSheet(context, runId: run.runId);
           return;
         }
-        runs.noticeShown();
-        showReviewSheet(context, runId: run.runId);
+        showRunSnackbar(context, run, runs: runs);
       },
       child: child,
     );
   }
+}
+
+/// The finish snackbar (`persist: false`, 5 s, floating, 480 wide on wide
+/// screens). It queues behind a visible snackbar instead of replacing it.
+// shortcut: one snackbar per run; event runs aren't coalesced within 2 s
+// yet, add it here if bursts of event runs flood the queue.
+void showRunSnackbar(
+  BuildContext context,
+  RunView run, {
+  required AutomationRunsCubit runs,
+}) {
+  final messenger = ScaffoldMessenger.maybeOf(context);
+  if (messenger == null) return;
+  final copy = runNoticeCopy(run);
+  final router = GoRouter.maybeOf(context);
+  final wide = MediaQuery.sizeOf(context).width >= 840;
+  final action = copy.actions.firstOrNull;
+  messenger.showSnackBar(
+    SnackBar(
+      content: Text(copy.text),
+      duration: const Duration(seconds: 5),
+      persist: false,
+      behavior: SnackBarBehavior.floating,
+      width: wide ? 480 : null,
+      action: action == null
+          ? null
+          : SnackBarAction(
+              label: switch (action) {
+                NoticeAction.undo => 'Undo',
+                NoticeAction.viewRun => 'View run',
+                NoticeAction.review => 'Review',
+                NoticeAction.runAgain => 'Run again',
+              },
+              onPressed: () {
+                switch (action) {
+                  case NoticeAction.undo:
+                    runs.undo(run.runId);
+                  case NoticeAction.viewRun:
+                    router?.go(AutomationPaths.run(run.runId));
+                  case NoticeAction.review:
+                    if (context.mounted) {
+                      showReviewSheet(context, runId: run.runId);
+                    }
+                  case NoticeAction.runAgain:
+                    runs.runAgain(run.runId);
+                }
+              },
+            ),
+    ),
+  );
 }

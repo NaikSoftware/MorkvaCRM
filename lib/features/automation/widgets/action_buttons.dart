@@ -515,7 +515,9 @@ Color? _dotColor(BuildContext context, ButtonView view) {
 String _stateWord(ButtonView v) => switch (v.phase) {
   ButtonPhase.idle => v.dirty ? 'saves first' : '',
   ButtonPhase.needsConsent => 'needs consent',
-  ButtonPhase.queued || ButtonPhase.running => liveRunLabel(v.run!),
+  // The phase only: progress ticks are never announced.
+  ButtonPhase.queued => 'queued',
+  ButtonPhase.running => 'running',
   ButtonPhase.review => 'waiting for review',
   ButtonPhase.failed => 'last run failed',
 };
@@ -659,6 +661,8 @@ class _ActionButtonState extends State<_ActionButton> {
       liveRegion: view.phase != ButtonPhase.idle,
       label: [view.label, if (state.isNotEmpty) state].join(', '),
       excludeSemantics: true,
+      onTap: _tap,
+      onLongPress: view.busy && widget.onStop != null ? _menu.open : null,
       child: GestureDetector(
         onLongPress: view.busy && widget.onStop != null ? _menu.open : null,
         child: PressableScale(

@@ -22,6 +22,7 @@ AutomationRecord buttonAutomation(
   int order = 0,
   String? tint,
   bool enabled = true,
+  String collectionId = 'c_orders',
 }) => AutomationRecord(
   id: id,
   name: label,
@@ -29,7 +30,7 @@ AutomationRecord buttonAutomation(
   moduleId: stampId,
   actionId: 'stamp',
   params: const {'dateField': 'f_shipped'},
-  trigger: ButtonTrigger(scope: scope, collectionId: 'c_orders'),
+  trigger: ButtonTrigger(scope: scope, collectionId: collectionId),
   button: ButtonSpec(label: label, order: order, tint: tint),
   apply: ApplyMode.ask,
   createdBy: 'user:$uid',

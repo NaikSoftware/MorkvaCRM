@@ -231,6 +231,7 @@ class RunIndicatorButton extends StatelessWidget {
           button: true,
           label: 'Automations, ${v.sentence}',
           excludeSemantics: true,
+          onTap: () => GoRouter.maybeOf(context)?.go(v.path),
           child: PressableScale(
             onPressed: () => GoRouter.maybeOf(context)?.go(v.path),
             borderRadius: Radii.fullAll,

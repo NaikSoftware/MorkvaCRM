@@ -264,7 +264,7 @@ class _CollectionViewsPageState extends State<CollectionViewsPage> {
                   );
             return ready == null
                 ? frame
-                : CollectionReviewListener(
+                : RunNoticeHost(
                     collectionId: ready.collection.id,
                     child: frame,
                   );

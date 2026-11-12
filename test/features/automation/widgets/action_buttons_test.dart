@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/automation/runner_api.dart';
 import 'package:morkva_crm/core/domain/automation/automation.dart';
@@ -187,6 +188,27 @@ void main() {
       await tester.pumpAndSettle();
       expect(argsOf('pressCard'), ['a_mark', 'b_1042']);
       expect(saveAndRun, isEmpty);
+    });
+
+    testWidgets('screen readers can press it; progress is not announced', (
+      tester,
+    ) async {
+      final semantics = tester.ensureSemantics();
+      await rig.setUp(automations: [three.first]);
+      addTearDown(rig.dispose);
+      rig.runner.activity = RunActivity(
+        runs: [
+          liveRun('run_1', progress: const RunProgress(done: 2, total: 3)),
+        ],
+      );
+      await pump(tester);
+      final node = tester.getSemantics(
+        find.bySemanticsLabel('Mark shipped, running'),
+      );
+      final data = node.getSemanticsData();
+      expect(data.hasAction(SemanticsAction.tap), isTrue);
+      expect(data.hasAction(SemanticsAction.longPress), isTrue);
+      semantics.dispose();
     });
 
     testWidgets('an unsaved form opens Save and run; Cancel does nothing', (

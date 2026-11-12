@@ -221,9 +221,7 @@ void main() {
       expect(find.byType(ObjectEditor), findsOneWidget);
     });
 
-    testWidgets('an invalid form: Save and run saves nothing, runs nothing', (
-      tester,
-    ) async {
+    testWidgets('a failed save: the usual error, nothing runs', (tester) async {
       repo.objectWriteError = () => Exception('offline');
       await open(tester, object: _order());
       await tester.enterText(titleField(), 'x');
