@@ -1,0 +1,130 @@
+{
+ "v": 3,
+ "createdOnFiles": {
+  "v": 1,
+  "at": "2026-11-12T16:00:00Z"
+ },
+ "title": "Morkva \u2014 Epic 9 Automations",
+ "launch": {
+  "view": "canvas"
+ },
+ "pages": [],
+ "boards": {
+  "Main.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "1 \u00b7 Modules"
+  },
+  "ModuleDetails.dc.html": {
+   "x": 1520,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "2 \u00b7 Module details"
+  },
+  "Consent.dc.html": {
+   "x": 3040,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "3 \u00b7 Consent (import)"
+  },
+  "Reconsent.dc.html": {
+   "x": 4560,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "4 \u00b7 Re-consent after a change"
+  },
+  "Editor.dc.html": {
+   "x": 0,
+   "y": 1020,
+   "w": 1440,
+   "h": 900,
+   "title": "5 \u00b7 Automation editor"
+  },
+  "CardButtons.dc.html": {
+   "x": 1520,
+   "y": 1020,
+   "w": 1440,
+   "h": 900,
+   "title": "6 \u00b7 Card buttons + review"
+  },
+  "ActionsMenu.dc.html": {
+   "x": 3040,
+   "y": 1020,
+   "w": 1440,
+   "h": 900,
+   "title": "7 \u00b7 Collection actions menu"
+  },
+  "RunDetail.dc.html": {
+   "x": 4560,
+   "y": 1020,
+   "w": 1440,
+   "h": 900,
+   "title": "8 \u00b7 Run detail"
+  },
+  "Dark.dc.html": {
+   "x": 0,
+   "y": 2040,
+   "w": 1440,
+   "h": 900,
+   "title": "12 \u00b7 Dark: failed run + code"
+  },
+  "Tablet.dc.html": {
+   "x": 1520,
+   "y": 2040,
+   "w": 1024,
+   "h": 768,
+   "title": "9 \u00b7 Tablet: needs review"
+  },
+  "Phone.dc.html": {
+   "x": 2624,
+   "y": 2040,
+   "w": 390,
+   "h": 844,
+   "title": "10 \u00b7 Phone: card actions"
+  },
+  "PhoneRunning.dc.html": {
+   "x": 3094,
+   "y": 2040,
+   "w": 390,
+   "h": 844,
+   "title": "13 \u00b7 Phone: running"
+  },
+  "PhoneRuns.dc.html": {
+   "x": 3564,
+   "y": 2040,
+   "w": 390,
+   "h": 844,
+   "title": "11 \u00b7 Phone: runs"
+  },
+  "AutomationsTab.dc.html": {
+   "x": 4034,
+   "y": 2040,
+   "w": 1440,
+   "h": 900,
+   "title": "14 \u00b7 Automations tab"
+  }
+ },
+ "order": [
+  "Main.dc.html",
+  "ModuleDetails.dc.html",
+  "Consent.dc.html",
+  "Reconsent.dc.html",
+  "Editor.dc.html",
+  "CardButtons.dc.html",
+  "ActionsMenu.dc.html",
+  "RunDetail.dc.html",
+  "Dark.dc.html",
+  "Tablet.dc.html",
+  "Phone.dc.html",
+  "PhoneRunning.dc.html",
+  "PhoneRuns.dc.html",
+  "AutomationsTab.dc.html"
+ ],
+ "notes": {},
+ "designSystems": []
+}

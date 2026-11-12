@@ -10,6 +10,8 @@ import '../../app/shell/sync_status_indicator.dart';
 import '../../core/domain/domain.dart';
 import '../../design/design.dart';
 import '../assistant/bloc/assistant_focus.dart';
+import '../automation/widgets/collection_actions_menu.dart';
+import '../automation/widgets/run_indicator.dart';
 import '../auth/conflict_warning_banner.dart';
 import '../objects/object_editor.dart';
 import 'collection_views_cubit.dart';
@@ -340,6 +342,14 @@ void _notify(
       ),
     );
 }
+
+/// What the collection's buttons run on: the active view's shown cards.
+CollectionScope _actionScope(ViewsReady state) => CollectionScope(
+  collection: state.collection,
+  shownCardIds: [for (final o in state.objects) o.id],
+  filtered: state.effectiveFilters.isNotEmpty,
+  viewId: state.activeViewId,
+);
 
 /// Columns (Table) / Setup card (other modes), named by the mode.
 void _openFieldsEditor(BuildContext context, ViewMode mode) {
@@ -723,6 +733,8 @@ class _WideHeader extends StatelessWidget {
             ),
           ),
           // Sync status lives in the sidebar's profile row (rail: avatar dot).
+          CollectionRunPill(collectionId: collection.id),
+          CollectionActionsMenu(scope: _actionScope(state), narrow: narrow),
           if (narrow)
             IconButton.outlined(
               tooltip: 'Customize',
@@ -806,7 +818,8 @@ class _PhoneFrame extends StatelessWidget {
           if (onAsk != null) AskMorkvaAction(onTap: onAsk),
           if (collection != null) ...[
             if (onAsk != null) const SizedBox(width: Spacing.xs),
-            const SyncStatusIndicator(),
+            // Takes the sync pill's slot while automations need a look.
+            const RunIndicatorButton(idle: SyncStatusIndicator()),
             // Without fields the body's Customize carries the only `tune`.
             if (collection.fields.isNotEmpty)
               IconButton(
@@ -818,6 +831,8 @@ class _PhoneFrame extends StatelessWidget {
               tooltip: 'More',
               icon: const Icon(Icons.more_vert),
               itemBuilder: (_) => [
+                if (ready != null)
+                  ...collectionPhoneMenuItems(context, _actionScope(ready)),
                 PopupMenuItem(
                   onTap: () => _customize(context, collection.id),
                   child: const Row(

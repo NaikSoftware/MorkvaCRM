@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:morkva_crm/api/data/firestore_data_repository.dart';
 import 'package:morkva_crm/api/firestore/firestore_value_codec_impl.dart';
 import 'package:morkva_crm/api/sync/sync_status.dart';
@@ -524,6 +525,23 @@ void main() {
         expect(syncStatus.state, isNot(isA<SyncConflict>()));
       },
     );
+
+    test(
+      'a stale cache snapshot is never the baseline of a conflict',
+      () async {
+        Future<QuerySnapshot<Map<String, dynamic>>> at(
+          int rev, {
+          required bool fromCache,
+        }) => _snapshot(firestore, rev: rev, fromCache: fromCache);
+        // App start: the cache holds rev 2; the server has since moved to 5.
+        repository.processSnapshotMeta(await at(2, fromCache: true));
+        repository.processSnapshotMeta(await at(5, fromCache: false));
+        expect(syncStatus.state, isNot(isA<SyncConflict>()));
+        // A remote jump past a server-seen baseline still is one.
+        repository.processSnapshotMeta(await at(7, fromCache: false));
+        expect(syncStatus.state, isA<SyncConflict>());
+      },
+    );
   });
 
   group('listener release', () {
@@ -626,4 +644,27 @@ class _CountingCodec extends FirestoreValueCodecImpl {
     decodes++;
     return super.decode(field, firestoreValue);
   }
+}
+
+class _MockSnapshot extends Mock
+    implements QuerySnapshot<Map<String, dynamic>> {}
+
+class _MockMeta extends Mock implements SnapshotMetadata {}
+
+/// A one-doc query snapshot of object `o1` at [rev], with the given source.
+Future<QuerySnapshot<Map<String, dynamic>>> _snapshot(
+  FakeFirebaseFirestore firestore, {
+  required int rev,
+  required bool fromCache,
+}) async {
+  final ref = firestore.collection('probe');
+  await ref.doc('o1').set({'rev': rev});
+  final docs = (await ref.get()).docs;
+  final meta = _MockMeta();
+  when(() => meta.isFromCache).thenReturn(fromCache);
+  when(() => meta.hasPendingWrites).thenReturn(false);
+  final snapshot = _MockSnapshot();
+  when(() => snapshot.docs).thenReturn(docs);
+  when(() => snapshot.metadata).thenReturn(meta);
+  return snapshot;
 }

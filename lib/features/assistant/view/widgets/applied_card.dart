@@ -1,12 +1,15 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../design/design.dart';
+import '../../../automation/widgets/action_buttons.dart' show AutomationPaths;
 import '../../bloc/chat_item.dart';
 import 'assistant_scope.dart';
 import 'chip_button.dart';
 import 'plan_card.dart' show CardNote, TypeTag;
+import 'plan_card_scope.dart';
 
 /// The collapsed result of an approved plan ("Set Status to Done · 12
 /// orders", "You approved 12 of 14 · undo available for 9 min") with a
@@ -77,7 +80,7 @@ class _AppliedCardState extends State<AppliedCard> {
   Duration get _left {
     final until = item.undoUntil;
     if (until == null) return Duration.zero;
-    return until.difference(AssistantScope.of(context).now());
+    return until.difference(PlanCardScope.of(context).now());
   }
 
   bool get _undoOpen =>
@@ -92,7 +95,7 @@ class _AppliedCardState extends State<AppliedCard> {
     final scheme = theme.colorScheme;
     final semantic = theme.extension<MorkvaSemanticColors>()!;
     final colors = AssistantColors.of(context);
-    final actions = AssistantScope.of(context).actions;
+    final actions = PlanCardScope.of(context).actions;
     final receipt = item.receipt;
     final plan = item.plan;
     final schema =
@@ -202,6 +205,24 @@ class _AppliedCardState extends State<AppliedCard> {
                             '$stale changed elsewhere since the preview — '
                             'left as they were',
                             style: theme.textTheme.bodySmall,
+                          ),
+                        if (item.startedRuns case final n when n > 0)
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  'Started $n automation '
+                                  '${n == 1 ? 'run' : 'runs'} ·',
+                                  style: theme.textTheme.bodySmall,
+                                ),
+                              ),
+                              TextActionButton(
+                                label: 'View',
+                                onPressed: () => GoRouter.maybeOf(
+                                  context,
+                                )?.go(AutomationPaths.runs()),
+                              ),
+                            ],
                           ),
                       ],
                     ),

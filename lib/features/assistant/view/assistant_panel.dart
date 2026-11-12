@@ -29,6 +29,7 @@ class AssistantPanel extends StatefulWidget {
     this.historyBuilder,
     this.initiallyShowHistory = false,
     this.composerFocus,
+    this.draft,
     this.autofocus = true,
     this.overlay = false,
     this.now = DateTime.now,
@@ -38,6 +39,9 @@ class AssistantPanel extends StatefulWidget {
 
   final StateStreamable<AssistantState> bloc;
   final AssistantActions actions;
+
+  /// See [AssistantScope.draft].
+  final ValueNotifier<String?>? draft;
   final VoidCallback? onClose;
 
   /// Hidden history button when null.
@@ -64,10 +68,40 @@ class _AssistantPanelState extends State<AssistantPanel> {
   void _setHistory(bool on) => setState(() => _history = on);
 
   @override
+  void initState() {
+    super.initState();
+    widget.draft?.addListener(_onDraft);
+    _onDraft();
+  }
+
+  @override
+  void didUpdateWidget(AssistantPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.draft != widget.draft) {
+      oldWidget.draft?.removeListener(_onDraft);
+      widget.draft?.addListener(_onDraft);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.draft?.removeListener(_onDraft);
+    super.dispose();
+  }
+
+  /// A draft goes to the composer, so the chat replaces the history list.
+  void _onDraft() {
+    if (_history && widget.draft?.value != null) {
+      if (mounted) setState(() => _history = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return AssistantScope(
       actions: widget.actions,
+      draft: widget.draft,
       now: widget.now,
       child: Builder(
         builder: (context) {

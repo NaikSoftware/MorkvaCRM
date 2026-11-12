@@ -156,6 +156,9 @@ abstract final class AppTheme {
         ),
       ),
       switchTheme: SwitchThemeData(
+        // A 48 px tap target on desktop/web too (they default to shrinkWrap,
+        // 40 px) — the 44 px minimum.
+        materialTapTargetSize: MaterialTapTargetSize.padded,
         // Carrot accent when on; quiet neutral track/thumb when off — so a
         // toggle reads as a brand control, not stock Material blue.
         thumbColor: WidgetStateProperty.resolveWith(

@@ -4,11 +4,15 @@ These are out of scope for the current plan but are the natural next steps once 
 Listed so the foundation is built without painting them into a corner. Order is indicative, not
 fixed.
 
-## Automation & triggers
-Side effects when data changes — e.g. moving an order to "shipped" decrements stock, or a status
-change stamps a date. This is what the morkvawear setup uses Trello's Butler for (auto-numbering
-already moves into Epic 6; this covers the rest). Generic rule model: *when* condition *then*
-action, configured per collection. Build on the calculated-field dependency model from Epic 6.
+## Automation & triggers → Epic 9
+Moved to [`epic-09-automations.md`](epic-09-automations.md): sandboxed JS modules, buttons and
+card-event triggers. What stays future:
+- **Scheduled and date triggers** ("every Monday", "3 days before Due"). The app is client-only on
+  the Spark plan, so they need either a foreground scheduler with cross-device claims or Cloud
+  Functions + Scheduler (Blaze).
+- **Module network access**: a host op `http.fetch` gated by a manifest `network.domains` list
+  and logged per request; the sandbox CSP stays `connect-src 'none'`.
+- **Triggers on calculated-value changes** and on writes from other devices or external tools.
 
 ## Full formula engine
 Generalize Epic 6's concrete operation set into a richer expression language: conditionals,
@@ -21,9 +25,10 @@ The admin side from the PRD: email verification, admin roles, and per-user featu
 Epic 2; keep it behind the same kind of interface boundary as the storage layer.
 
 ## JS-module marketplace
-Runtime-loaded JS modules distributed via a Firebase-backed marketplace — the PRD's
-extensibility story. Needs a module runtime, a distribution/marketplace surface, and a safe
-extension API into the engine. Large; its own multi-epic effort.
+A Firebase-backed catalog of published modules (read-only to clients, admin-written), installed
+through the same consent sheet as an import. Epic 9 ships the module format (`*.morkva.json`), the
+runtime, consent and the SDK docs; the marketplace adds distribution, publisher identity, review
+and update notifications. Open risk: App Store guideline 2.5.2 for downloadable code on iOS.
 
 ## Additional view modes
 More renderers in the Epic 4 view system — calendar (group/place by a date field), gallery

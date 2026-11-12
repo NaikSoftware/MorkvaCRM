@@ -1,0 +1,49 @@
+{
+  "id": "copy-order-total",
+  "name": "Copy order total to client",
+  "version": "1.0.0",
+  "description": "Copies an order's total to a number field on the client it links to. Its consent must include both collections.",
+  "author": "SDK example",
+  "apiVersion": 2,
+  "permissions": {
+    "capabilities": ["data:read", "data:write"]
+  },
+  "actions": [
+    {
+      "id": "copyTotal",
+      "label": "Copy total to client",
+      "scope": "card",
+      "icon": "money",
+      "input": {
+        "type": "object",
+        "required": ["clientField", "clients", "totalField", "targetField"],
+        "properties": {
+          "clientField": {
+            "type": "string",
+            "title": "Client link",
+            "description": "The reference field that links the order to its client.",
+            "format": "field"
+          },
+          "clients": {
+            "type": "string",
+            "title": "Client collection",
+            "description": "The collection the client link points to.",
+            "format": "collection"
+          },
+          "totalField": {
+            "type": "string",
+            "title": "Total",
+            "description": "The number field to copy.",
+            "format": "field"
+          },
+          "targetField": {
+            "type": "string",
+            "title": "Client field",
+            "description": "The client's number field to write, by name or id.",
+            "default": "Last order total"
+          }
+        }
+      }
+    }
+  ]
+}

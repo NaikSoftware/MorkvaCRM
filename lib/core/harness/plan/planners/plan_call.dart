@@ -43,7 +43,9 @@ final class PlanServices {
 ///
 /// The call is planned on a staged layer and merged only when the whole call
 /// validated, so a failing call leaves the overlay as it was; the failure is
-/// recorded so `plans.seal` returns it (and no plan).
+/// recorded so `plans.seal` returns it (and no plan). A call that would
+/// change nothing fails `no_change` and is not recorded: it is information,
+/// so the turn's other calls still seal into a plan.
 abstract class PlanOperation extends Operation<Map<String, Object?>> {
   PlanOperation(this.services);
 
@@ -103,7 +105,7 @@ abstract class PlanOperation extends Operation<Map<String, Object?>> {
       await plan(args, call);
       if (call.changes.items.isEmpty) {
         throw HarnessException.of(
-          ErrorCode.invalidArgs,
+          ErrorCode.noChange,
           'Nothing would change. ${call.changes.notes.take(3).join(' ')}'
               .trim(),
         );
@@ -120,7 +122,9 @@ abstract class PlanOperation extends Operation<Map<String, Object?>> {
           'notes': call.changes.notes.take(kCompactPlanNotes).toList(),
       });
     } on HarnessException catch (e) {
-      overlay.fail(request.callId, e.error);
+      if (e.error.code != ErrorCode.noChange) {
+        overlay.fail(request.callId, e.error);
+      }
       rethrow;
     } catch (e) {
       overlay.fail(

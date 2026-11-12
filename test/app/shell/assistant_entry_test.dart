@@ -12,6 +12,7 @@ import 'package:morkva_crm/features/assistant/bloc/assistant_state.dart';
 import 'package:morkva_crm/features/assistant/view/assistant_page.dart';
 import 'package:morkva_crm/features/assistant/view/assistant_panel.dart';
 import 'package:morkva_crm/features/assistant/view/thread_list_page.dart';
+import 'package:morkva_crm/features/automation/widgets/run_indicator.dart';
 import 'package:morkva_crm/features/home/home_page.dart';
 import 'package:morkva_crm/features/views/collection_views_page.dart';
 
@@ -179,6 +180,20 @@ void main() {
     variant: TargetPlatformVariant.only(TargetPlatform.linux),
   );
 
+  testWidgets('the Automations page offers Ask Morkva', (tester) async {
+    await pumpApp(tester, const Size(1300, 900));
+    await tester.tap(find.text('Automations'));
+    await tester.pumpAndSettle();
+    expect(find.text('Ask Morkva to write one'), findsOneWidget);
+
+    await tester.tap(find.text('Ask Morkva to write one'));
+    await tester.pumpAndSettle();
+    // The panel opens with the text waiting for its composer (this rig
+    // shows the consent disclosure, so nothing takes it yet).
+    expect(session(tester).panel.isOpen, isTrue);
+    expect(session(tester).draft.value, 'Write a module that ');
+  });
+
   testWidgets('phone: the header sparkle opens /assistant and its history', (
     tester,
   ) async {
@@ -190,6 +205,14 @@ void main() {
 
     expect(find.byType(AssistantPage), findsOneWidget);
     expect(find.byType(AssistantPanel), findsNothing);
+    // The run indicator stays in sight in the chat's header.
+    expect(
+      find.descendant(
+        of: find.byType(AssistantPage),
+        matching: find.byType(RunIndicatorButton),
+      ),
+      findsOneWidget,
+    );
     // The route keeps the chat's collections warm.
     expect(session(tester).panel.isOpen, isTrue);
 
@@ -251,6 +274,19 @@ void main() {
       expect(find.text('Ask Morkva'), findsNothing);
       await pressCtrl(tester, LogicalKeyboardKey.keyJ);
       expect(find.byType(AssistantPanel), findsNothing);
+    });
+
+    testWidgets('no Ask Morkva entries on the Automations page', (
+      tester,
+    ) async {
+      await pumpApp(tester, const Size(1300, 900));
+      await flagRead(tester);
+      await tester.tap(find.text('Automations'));
+      await tester.pumpAndSettle();
+      expect(find.text('No modules yet'), findsOneWidget);
+      expect(find.text('Ask Morkva to write one'), findsNothing);
+      expect(find.text('Ask Morkva'), findsNothing);
+      expect(find.text('Import module'), findsWidgets);
     });
 
     testWidgets('no rail icon', (tester) async {

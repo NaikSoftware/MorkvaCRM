@@ -63,6 +63,7 @@ final class WorkspaceCache {
   final Map<String, _Entry> _entries = {};
   final Map<String, DerivedSnapshot> _derived = {};
   final Map<String, String> _derivedKeys = {};
+  final Set<_Settle> _settles = {};
 
   /// How long an unleased collection stays subscribed once the panel is
   /// closed (`leaseTtlMinutes` of the assistant config). A change applies to
@@ -155,6 +156,9 @@ final class WorkspaceCache {
     }
     _entries.clear();
     _derived.clear();
+    for (final w in [..._settles]) {
+      w.fail(reset);
+    }
     _derivedKeys.clear();
     _collections = const [];
     _byId = const {};
@@ -254,6 +258,43 @@ final class WorkspaceCache {
     }
   }
 
+  /// Waits until the held snapshot of [collectionId] passes [test] for card
+  /// [cardId] (null when the snapshot lacks it), so a write this device made
+  /// is visible to reads: e.g. `card.updatedAt >= written.updatedAt`, or
+  /// `card == null` for a delete. Completes with that snapshot, or null when
+  /// [timeout] (which also covers leasing a collection the cache does not
+  /// hold yet) passes first. Holds a lease while it waits.
+  ///
+  /// Throws [MissingCollectionException] when the collection is unknown or
+  /// deleted meanwhile, and [StateError] when the cache is reset.
+  Future<CollectionSnapshot?> settled(
+    String collectionId,
+    String cardId,
+    bool Function(MorkvaObject? card) test, {
+    Duration timeout = const Duration(seconds: 5),
+  }) async {
+    final wait = _Settle(collectionId, (s) => test(s[cardId]), _settles.remove);
+    _settles.add(wait);
+    wait.timer = Timer(timeout, () => wait.finish(null));
+    wait.check(current(collectionId));
+    if (!wait.done.isCompleted) {
+      lease([collectionId]).then(
+        (lease) {
+          if (wait.done.isCompleted) {
+            lease.release();
+          } else {
+            wait.lease = lease;
+            wait.check(current(collectionId));
+          }
+        },
+        onError: (Object error, StackTrace stack) {
+          wait.fail(error, stack);
+        },
+      );
+    }
+    return wait.done.future;
+  }
+
   // ---------------------------------------------------------------------------
 
   void _onSchema(List<Collection> stored) {
@@ -318,6 +359,9 @@ final class WorkspaceCache {
       raw: objects,
     );
     if (!e.ready.isCompleted) e.ready.complete();
+    for (final w in [..._settles]) {
+      if (w.collectionId == e.id) w.check(e.snapshot);
+    }
   }
 
   /// A failed stream is closed; the last snapshot stays readable and the
@@ -338,6 +382,9 @@ final class WorkspaceCache {
     _entries.remove(e.id);
     _derived.remove(e.id);
     _derivedKeys.remove(e.id);
+    for (final w in [..._settles]) {
+      if (w.collectionId == e.id) w.fail(MissingCollectionException(e.id));
+    }
   }
 
   void _release(Lease lease) {
@@ -451,5 +498,38 @@ final class _Entry {
     final s = sub;
     sub = null;
     return s?.cancel() ?? Future.value();
+  }
+}
+
+/// One [WorkspaceCache.settled] wait.
+final class _Settle {
+  _Settle(this.collectionId, this.test, this._remove);
+
+  final String collectionId;
+  final bool Function(CollectionSnapshot snapshot) test;
+  final void Function(_Settle) _remove;
+  final Completer<CollectionSnapshot?> done = Completer();
+  Timer? timer;
+  Lease? lease;
+
+  void check(CollectionSnapshot? snapshot) {
+    if (snapshot != null && test(snapshot)) finish(snapshot);
+  }
+
+  void finish(CollectionSnapshot? snapshot) {
+    if (_end()) done.complete(snapshot);
+  }
+
+  void fail(Object error, [StackTrace? stack]) {
+    if (_end()) done.completeError(error, stack);
+  }
+
+  /// Stops waiting; false when it already ended.
+  bool _end() {
+    if (done.isCompleted) return false;
+    timer?.cancel();
+    lease?.release();
+    _remove(this);
+    return true;
   }
 }

@@ -12,6 +12,7 @@ class AssistantScope extends InheritedWidget {
     required this.actions,
     this.now = DateTime.now,
     this.phone = false,
+    this.draft,
     required super.child,
   });
 
@@ -19,6 +20,10 @@ class AssistantScope extends InheritedWidget {
 
   /// The clock behind undo windows and retry countdowns (tests pin it).
   final DateTime Function() now;
+
+  /// Text to put in the composer, from an "Ask Morkva" button elsewhere; the
+  /// composer takes it and sets this back to null.
+  final ValueNotifier<String?>? draft;
 
   /// The full-screen phone route: 15 px message text, wider bubbles.
   final bool phone;
@@ -36,7 +41,8 @@ class AssistantScope extends InheritedWidget {
   bool updateShouldNotify(AssistantScope oldWidget) =>
       actions != oldWidget.actions ||
       now != oldWidget.now ||
-      phone != oldWidget.phone;
+      phone != oldWidget.phone ||
+      draft != oldWidget.draft;
 }
 
 /// The assistant's surface roles. The panel artboards step surfaces

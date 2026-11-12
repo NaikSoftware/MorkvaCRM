@@ -19,7 +19,7 @@ final class OpsHarness {
       registry,
       queries: q.queries,
       aggregates: q.aggregates,
-      thread: () => thread,
+      thread: (_) => thread,
     );
     registerUiOps(registry, queries: q.queries);
     harness = Harness(registry);

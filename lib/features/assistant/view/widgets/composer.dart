@@ -34,11 +34,38 @@ class _ComposerState extends State<Composer> {
 
   FocusNode get _focus => widget.focusNode ?? (_ownFocus ??= FocusNode());
 
+  ValueNotifier<String?>? _draft;
+
   @override
   void initState() {
     super.initState();
     _text.addListener(_onText);
     _focus.addListener(_onText);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final draft = AssistantScope.of(context).draft;
+    if (draft == _draft) return;
+    _draft?.removeListener(_takeDraft);
+    _draft = draft?..addListener(_takeDraft);
+    _takeDraft();
+  }
+
+  /// An "Ask Morkva" button's text replaces the field, caret at its end, so
+  /// only the rest is left to type.
+  void _takeDraft() {
+    final text = _draft?.value;
+    if (text == null) return;
+    _draft!.value = null;
+    _text.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _enabled) _focus.requestFocus();
+    });
   }
 
   @override
@@ -52,6 +79,7 @@ class _ComposerState extends State<Composer> {
 
   @override
   void dispose() {
+    _draft?.removeListener(_takeDraft);
     _focus.removeListener(_onText);
     _text.dispose();
     _ownFocus?.dispose();

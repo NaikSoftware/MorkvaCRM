@@ -4,6 +4,8 @@
 //   interface (plus itself);
 // - lib/core/agent imports nothing from lib/api (or the app layers) and never
 //   builds a user actor (`Actor.user` / `ActorKind.user`);
+// - only three files construct a user actor (`Actor.user(`, D18), besides
+//   its definition in capability.dart;
 // - lib/api never imports lib/features;
 // - firebase_ai is imported only in lib/api/ai.
 import 'dart:io';
@@ -34,6 +36,13 @@ final _directive = RegExp(
 final _quoted = RegExp(r'''(['"])(.*?)\1''');
 final _lineComment = RegExp(r'//.*$', multiLine: true);
 final _userActor = RegExp(r'\b(?:Actor\.user|ActorKind\.user)\b');
+final _userActorCtor = RegExp(r'\bActor\.user\(');
+const _userActorSites = {
+  'lib/core/harness/api/capability.dart', // the definition
+  'lib/features/assistant/bloc/assistant_bloc.dart',
+  'lib/core/automation/host_commits.dart',
+  'lib/features/views/view_link.dart',
+};
 
 /// Every URI named by an import, export or part directive of [source],
 /// including the branches of conditional imports.
@@ -86,9 +95,12 @@ List<String> boundaryViolations(String file, String source) {
       problems.add('$file: lib/api may not import $target');
     }
   }
-  if (file.startsWith('lib/core/agent/') &&
-      _userActor.hasMatch(source.replaceAll(_lineComment, ''))) {
+  final code = source.replaceAll(_lineComment, '');
+  if (file.startsWith('lib/core/agent/') && _userActor.hasMatch(code)) {
     problems.add('$file: lib/core/agent may not build a user actor');
+  }
+  if (!_userActorSites.contains(file) && _userActorCtor.hasMatch(code)) {
+    problems.add('$file: only the user-actor sites may build Actor.user(');
   }
   return problems;
 }
@@ -190,7 +202,7 @@ part 'c.g.dart';
           'lib/core/agent/agent_loop.dart',
           'final ctx = make(actor: const Actor.user(uid));',
         ),
-        hasLength(1),
+        hasLength(2), // the agent rule and the user-actor sites rule
       );
       expect(
         boundaryViolations(
@@ -205,6 +217,32 @@ part 'c.g.dart';
           '// The loop never builds Actor.user.\nfinal a = Actor.assistant;',
         ),
         isEmpty,
+      );
+      expect(
+        boundaryViolations(
+          'lib/core/automation/automation_runner.dart',
+          'final ctx = make(actor: Actor.user(uid));',
+        ),
+        [
+          'lib/core/automation/automation_runner.dart: only the user-actor '
+              'sites may build Actor.user(',
+        ],
+      );
+      expect(
+        boundaryViolations(
+          'lib/core/automation/host_commits.dart',
+          'final ctx = make(actor: Actor.user(uid));\n'
+              'if (a.kind == ActorKind.user) {}',
+        ),
+        isEmpty,
+      );
+      expect(
+        boundaryViolations(
+          'lib/core/harness/api/harness.dart',
+          'if (a.kind == ActorKind.user) {}',
+        ),
+        isEmpty,
+        reason: 'comparisons stay allowed',
       );
       expect(
         boundaryViolations(

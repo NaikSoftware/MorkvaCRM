@@ -49,7 +49,9 @@ class _ConflictBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final semantic = theme.extension<MorkvaSemanticColors>()!;
-    final fg = semantic.onWarning;
+    // The container pair: onWarning is for text on solid warning and was
+    // unreadable on this wash in dark mode.
+    final fg = semantic.onWarningContainer;
 
     return Semantics(
       liveRegion: true,
@@ -62,9 +64,9 @@ class _ConflictBanner extends StatelessWidget {
           vertical: Spacing.sm,
         ),
         decoration: BoxDecoration(
-          // Soft amber wash, not a saturated alarm bar, with a clear amber edge
-          // so the strip still announces itself against the cream canvas.
-          color: semantic.warning.withValues(alpha: 0.18),
+          // Soft amber container, not a saturated alarm bar, with a clear
+          // amber edge so the strip still announces itself.
+          color: semantic.warningContainer,
           border: Border(
             bottom: BorderSide(color: semantic.warning.withValues(alpha: 0.5)),
           ),

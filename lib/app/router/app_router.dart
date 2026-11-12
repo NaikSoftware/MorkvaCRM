@@ -6,10 +6,19 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../api/api.dart';
+import '../../core/automation/runner_api.dart';
+import '../../core/domain/automation/automation.dart';
 import '../../features/assistant/bloc/assistant_session.dart';
 import '../../features/assistant/host/router_ui_port.dart';
 import '../../features/assistant/view/assistant_page.dart';
 import '../../features/auth/session_loading_page.dart';
+import '../../features/automation/bloc/module_details_cubit.dart';
+import '../../features/automation/bloc/run_log_cubit.dart';
+import '../../features/automation/view/automations_page.dart';
+import '../../features/automation/view/code_viewer.dart';
+import '../../features/automation/view/module_details_page.dart';
+import '../../features/automation/view/run_detail_page.dart';
+import '../../features/automation/widgets/run_indicator.dart';
 import '../../features/auth/sign_in_page.dart';
 import '../../features/collections/collections.dart';
 import '../../features/home/home_page.dart';
@@ -87,11 +96,16 @@ GoRouter createAppRouter(
       // The persistent shell: the rail (wide) is built once and only the
       // main panel's page changes between Home and a collection.
       ShellRoute(
-        builder: (context, state, child) => AppShellScaffold(
-          collectionId: state.pathParameters['id'],
-          inSettings: state.matchedLocation == '/settings',
-          child: child,
-        ),
+        builder: (context, state, child) {
+          final location = state.matchedLocation;
+          return AppShellScaffold(
+            collectionId: state.pathParameters['id'],
+            inSettings: location.startsWith('/settings'),
+            inAutomations: location.startsWith('/automations'),
+            automationsDetail: location.startsWith('/automations/'),
+            child: child,
+          );
+        },
         routes: [
           GoRoute(
             path: '/',
@@ -104,6 +118,62 @@ GoRouter createAppRouter(
                   key: state.pageKey,
                   child: const SettingsPage(),
                 ),
+              ),
+              // Modules · Automations · Runs. The query is the page's state,
+              // so the page stays (keyed by the route) as it changes.
+              GoRoute(
+                path: 'automations',
+                pageBuilder: (context, state) {
+                  final q = state.uri.queryParameters;
+                  return collectionPage(
+                    context,
+                    key: state.pageKey,
+                    child: AutomationsPage(
+                      tab: AutomationsTab.fromQuery(q['tab']),
+                      collectionId: q['collection'],
+                      cardId: q['card'],
+                      filter: RunFilterKind.values.asNameMap()[q['filter']],
+                      moduleId: q['module'],
+                    ),
+                  );
+                },
+                routes: [
+                  // Keyed per id (the pageKey is the pattern): one module
+                  // → another must not keep the old page and its cubit.
+                  GoRoute(
+                    path: 'modules/:moduleId',
+                    pageBuilder: (context, state) {
+                      final id = state.pathParameters['moduleId']!;
+                      return collectionPage(
+                        context,
+                        key: ValueKey('/automations/modules/$id'),
+                        child: BlocProvider(
+                          create: (context) => ModuleDetailsCubit(
+                            context.read<AutomationRunnerApi>(),
+                            context.read<AutomationStores>(),
+                            uid: switch (authCubit.state) {
+                              AuthAuthenticated(:final user) => user.uid,
+                              _ => '',
+                            },
+                            moduleId: id,
+                          ),
+                          child: const ModuleDetailsPage(),
+                        ),
+                      );
+                    },
+                  ),
+                  GoRoute(
+                    path: 'runs/:runId',
+                    pageBuilder: (context, state) {
+                      final id = state.pathParameters['runId']!;
+                      return collectionPage(
+                        context,
+                        key: ValueKey('/automations/runs/$id'),
+                        child: RunDetailPage(runId: id),
+                      );
+                    },
+                  ),
+                ],
               ),
               // A collection's Work surface. Nested under `/` so back returns
               // Home. Same auth+session gate as `/` (the redirect above holds
@@ -199,6 +269,7 @@ class _AssistantRouteState extends State<_AssistantRoute> {
   late final _actions = SessionAssistantActions(
     _session.bloc,
     RouterUiPort(() => GoRouter.of(context)),
+    onViewCode: (code) => showCodeViewer(context, code: code),
   );
 
   @override
@@ -222,7 +293,10 @@ class _AssistantRouteState extends State<_AssistantRoute> {
     return Scaffold(
       body: AssistantPage(
         bloc: _session.bloc,
+        draft: _session.draft,
         actions: _actions,
+        // Phone: runs stay in sight while chatting.
+        indicator: const RunIndicatorButton(),
         onBack: () => context.canPop() ? context.pop() : context.go('/'),
         onOpenHistory: () => context.push('/assistant/history'),
       ),

@@ -992,12 +992,14 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
     final delete = _deleteObject(object);
     return () async {
       await delete;
-      await _writeObject(object);
+      await _writeObject(object, origin: _undo);
     };
   }
 
-  /// Puts [fieldId] of [objectId] back to [value], writing only that key so
-  /// other fields changed meanwhile keep their stored values.
+  static const _undo = WriteOrigin(kind: WriteKind.undo);
+
+  /// Puts [fieldId] of [objectId] back to [value] (an undo), writing only that
+  /// key so other fields changed meanwhile keep their stored values.
   Future<void> _revertField(String objectId, String fieldId, FieldValue value) {
     final current = _objectById(objectId);
     if (current == null) return Future.value();
@@ -1008,11 +1010,16 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
         updatedAt: now,
       ),
       saved: current.copyWith(values: {fieldId: value}, updatedAt: now),
+      origin: _undo,
     );
   }
 
   /// Shows [object] at once and saves [saved] (default: [object]).
-  Future<void> _writeObject(MorkvaObject object, {MorkvaObject? saved}) async {
+  Future<void> _writeObject(
+    MorkvaObject object, {
+    MorkvaObject? saved,
+    WriteOrigin origin = const WriteOrigin.ui(),
+  }) async {
     final collection = _collection;
     if (collection == null || isClosed) return;
     // Saved as given: values of fields this object was decoded without stay
@@ -1021,7 +1028,11 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
     _pending[object.id] = pending;
     _emitReady();
     try {
-      await _repository.saveObject(saved ?? object, schema: collection);
+      await _repository.saveObject(
+        saved ?? object,
+        schema: collection,
+        origin: origin,
+      );
       _settle(object.id, pending);
     } catch (_) {
       _fail(object.id, pending, "Couldn't save the change");
@@ -1033,7 +1044,7 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
     _pending[object.id] = pending;
     _emitReady();
     try {
-      await _repository.deleteObject(collectionId, object.id);
+      await _repository.deleteObject(collectionId, object.id, before: object);
       _settle(object.id, pending);
     } catch (_) {
       _fail(object.id, pending, "Couldn't delete it");

@@ -769,6 +769,40 @@ void main() {
     });
   });
 
+  group('under PlanCardScope only (no AssistantScope)', () {
+    testWidgets('AppliedCard counts down and undoes', (tester) async {
+      final applied = _item<AppliedItem>(AssistantSeeds.analyze(now: testNow));
+      await pumpInPlanScope(
+        tester,
+        AppliedCard(item: applied),
+        actions: actions,
+      );
+      expect(
+        find.text('You approved 12 of 14 · undo available for 9 min'),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Undo'));
+      expect(actions.calls, ['undo(j_done)']);
+    });
+
+    testWidgets('ObjectChipMessage opens the card', (tester) async {
+      await pumpInPlanScope(
+        tester,
+        const ObjectChipMessage(
+          item: ObjectChipItem(
+            id: 'c',
+            collectionId: 'c_orders',
+            cardId: 'o_1042',
+            label: '#1042',
+          ),
+        ),
+        actions: actions,
+      );
+      await tester.tap(find.text('#1042'));
+      expect(actions.calls, ['open(c_orders, o_1042, null)']);
+    });
+  });
+
   testWidgets('ObjectChipMessage opens the card', (tester) async {
     await pumpInScope(
       tester,

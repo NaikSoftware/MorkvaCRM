@@ -15,8 +15,8 @@ void main() {
 
   setUp(() => cubit = _MockSyncCubit());
 
-  Widget host() => MaterialApp(
-    theme: AppTheme.light,
+  Widget host({ThemeData? theme}) => MaterialApp(
+    theme: theme ?? AppTheme.light,
     home: Scaffold(
       body: BlocProvider<SyncStatusCubit>.value(
         value: cubit,
@@ -75,5 +75,17 @@ void main() {
     await tester.pump();
 
     verify(() => cubit.dismissConflict()).called(1);
+  });
+
+  testWidgets('dark mode: text uses the warning container pair', (
+    tester,
+  ) async {
+    when(
+      () => cubit.state,
+    ).thenReturn(const SyncConflict(affectedObjectIds: {'a'}));
+    await tester.pumpWidget(host(theme: AppTheme.dark));
+    final semantic = AppTheme.dark.extension<MorkvaSemanticColors>()!;
+    final title = tester.widget<Text>(find.textContaining('A newer version'));
+    expect(title.style?.color, semantic.onWarningContainer);
   });
 }

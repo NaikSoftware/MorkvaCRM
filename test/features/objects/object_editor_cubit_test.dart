@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:morkva_crm/api/data/data_repository.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/features/collections/util/id_generator.dart';
 import 'package:morkva_crm/features/objects/object_editor_cubit.dart';
@@ -16,9 +17,13 @@ class _RecordingRepo extends FakeDataRepository {
   final saved = <MorkvaObject>[];
 
   @override
-  Future<void> saveObject(MorkvaObject object, {required Collection schema}) {
+  Future<void> saveObject(
+    MorkvaObject object, {
+    required Collection schema,
+    WriteOrigin origin = const WriteOrigin.ui(),
+  }) {
     saved.add(object);
-    return super.saveObject(object, schema: schema);
+    return super.saveObject(object, schema: schema, origin: origin);
   }
 }
 
@@ -403,5 +408,49 @@ void main() {
     expect(repo.liveListeners, 2);
     await c.close();
     expect(repo.liveListeners, 0);
+  });
+
+  group('write origins', () {
+    late List<CardChange> changes;
+
+    setUp(() {
+      changes = [];
+      final sub = repo.changes.listen(changes.add);
+      addTearDown(sub.cancel);
+    });
+
+    test('save is a ui write with the stored before', () async {
+      final c = await edit();
+      c.change('amount', const NumberFieldValue(5));
+      expect(await c.save(), isTrue);
+      await pumpEventQueue();
+
+      final change = changes.single;
+      expect(change.origin.kind, WriteKind.ui);
+      expect(change.origin.commitId, isNotNull);
+      expect(change.before!['amount'], const NumberFieldValue(1200));
+      expect(change.after!['amount'], const NumberFieldValue(5));
+    });
+
+    test('deleting a child passes the item as before', () async {
+      final company = repo
+          .objectsOf('companies')
+          .firstWhere((o) => o.id == 'k2');
+      final c = ObjectEditorCubit(repo, companies, object: company);
+      addTearDown(c.close);
+      await c.initialize();
+      await pumpEventQueue();
+      final sublist = c.state.sublists.single;
+      final item = sublist.items!.first;
+
+      expect(await c.deleteChild(sublist, item), isTrue);
+      await pumpEventQueue();
+
+      expect(repo.deleteBefores.single, same(item));
+      final change = changes.single;
+      expect(change.before, same(item));
+      expect(change.after, isNull);
+      expect(change.origin.kind, WriteKind.ui);
+    });
   });
 }

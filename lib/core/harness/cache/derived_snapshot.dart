@@ -76,6 +76,39 @@ final class DerivedSnapshot {
     CalculatedFieldDefinition field,
   ) => _derive.valueOf(schema, object, field);
 
+  /// [substitute] (a card of this collection, e.g. a write's before or
+  /// after image) with its calculated values, derived over this state with
+  /// the stored card of the same id replaced by it, or added when absent (a
+  /// deleted card's before image). Neither a later write to that card nor
+  /// its absence leaks in. Null in, null out.
+  ///
+  /// Builds its own [Derivation]: the shared one's memo is keyed by card id
+  /// and would hand back (and keep) the stored card's values.
+  MorkvaObject? deriveWith(MorkvaObject? substitute) {
+    if (substitute == null) return null;
+    final calculated = schema.fields.whereType<CalculatedFieldDefinition>();
+    if (calculated.isEmpty) return substitute;
+    final derivation = Derivation(
+      collections: collections,
+      objects: {
+        collectionId: [
+          for (final o in base.raw)
+            if (o.id != substitute.id) o,
+          substitute,
+        ],
+        for (final s in sources.values) s.collectionId: s.raw,
+      },
+      today: today,
+    );
+    return substitute.copyWith(
+      values: {
+        ...substitute.values,
+        for (final f in calculated)
+          f.id: derivation.valueOf(schema, substitute, f),
+      },
+    );
+  }
+
   /// [object]'s value of [field]: derived when calculated, stored otherwise.
   FieldValue value(MorkvaObject object, FieldDefinition field) =>
       field is CalculatedFieldDefinition

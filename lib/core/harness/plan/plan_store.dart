@@ -117,6 +117,26 @@ final class PlanStore {
   /// The plan [planId], expired or not; null when unknown or long gone.
   Plan? get(String planId) => _plans[planId];
 
+  /// Moves sealed plan [planId]'s expiry to [now] + [ttl] (a run waiting for
+  /// review keeps its plan for hours); no-op when it is unknown or already
+  /// expired.
+  void extend(String planId, Duration ttl, {required DateTime now}) {
+    final p = _plans[planId];
+    if (p == null || p.isExpired(now)) return;
+    _plans[planId] = Plan(
+      planId: p.planId,
+      turnId: p.turnId,
+      title: p.title,
+      createdBy: p.createdBy,
+      items: p.items,
+      createdAt: p.createdAt,
+      expiresAt: now.add(ttl),
+      warnings: p.warnings,
+      notes: p.notes,
+      undo: p.undo,
+    );
+  }
+
   /// Forgets [planId] (rejected, or fully committed and journaled).
   void remove(String planId) {
     _plans.remove(planId);
@@ -161,9 +181,12 @@ final class PlanStore {
       '$first + ${rest.length} more change${rest.length == 1 ? '' : 's'}',
   };
 
+  // Module and automation items are not journaled.
   static UndoSupport _undo(List<PlanItem> items) {
     final none = items.where(
-      (i) => i is DeleteCollectionItem && i.cardCount > kMaxUndoableCards,
+      (i) =>
+          !i.kind.scoped ||
+          i is DeleteCollectionItem && i.cardCount > kMaxUndoableCards,
     );
     if (none.isEmpty) return UndoSupport.full;
     return none.length == items.length ? UndoSupport.none : UndoSupport.partial;

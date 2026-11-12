@@ -27,6 +27,10 @@ The user signs in once at `localhost:8088`; every later run auto-resumes.
 
 Run it in the background if the session should outlive the command (`nohup … &` and `disown`), or in the foreground to keep Flutter's `r` (hot reload) / `R` (hot restart) keys.
 
+Against the local Firestore emulator (e2e; no production data, persistence off), start
+`firebase emulators:start --only firestore --project morkvacrm` and add
+`--dart-define=MORKVA_FIRESTORE_EMULATOR=127.0.0.1:8080`; the stored Google sign-in still works.
+
 ## Notes
 
 - **Use `-d chrome`**, not `-d web-server` — only the chrome device launches a real browser to attach the profile to.

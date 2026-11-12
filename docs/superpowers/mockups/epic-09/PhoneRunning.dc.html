@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Phone card editor running</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&amp;family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#FBF7F2}
+.nav{display:flex;align-items:center;gap:12px;height:44px;padding:0 6px 0 8px;margin:0 0 2px;border-radius:14px;border:0;background:transparent;width:100%;text-align:left;font:500 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;color:#2B2018;box-sizing:border-box;text-decoration:none}
+.nav:hover{background:rgba(255,255,255,.55)}
+.tile{width:28px;height:28px;flex:0 0 28px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center}
+.cap{font:700 11px 'Hanken Grotesk',sans-serif;letter-spacing:.9px;text-transform:uppercase;color:#6B5E52;margin:0}
+.ib{width:44px;height:44px;border-radius:22px;border:0;background:transparent;color:#6B5E52;display:inline-flex;align-items:center;justify-content:center}
+.tab{position:relative;height:48px;padding:0 12px;border:0;background:transparent;display:inline-flex;align-items:center;gap:8px;font:500 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;color:#6B5E52;border-radius:8px}
+.cnt{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;box-sizing:border-box;border-radius:10px;font:600 12px 'Hanken Grotesk',sans-serif;font-variant-numeric:tabular-nums}
+.pill{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 10px 0 8px;box-sizing:border-box;border-radius:12px;font:600 12px 'Hanken Grotesk',sans-serif;letter-spacing:.2px;white-space:nowrap}
+.npill{flex:0 0 auto;display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;box-sizing:border-box;border-radius:12px;font:600 12px 'Hanken Grotesk',sans-serif;white-space:nowrap;font-variant-numeric:tabular-nums}
+.mod{display:flex;gap:16px;padding:16px;border-radius:16px;background:#FFFFFF;box-shadow:0 1px 2px rgba(0,0,0,.08),0 3px 6px rgba(74,53,32,.06);color:#2B2018;text-decoration:none}
+.mod:hover{box-shadow:0 2px 4px rgba(0,0,0,.10),0 8px 14px rgba(82,58,34,.08)}
+.meta{display:flex;align-items:flex-start;gap:8px;font:400 12px/1.45 'Hanken Grotesk',sans-serif;color:#6B5E52}
+.meta svg{flex:0 0 14px;margin-top:2px}
+.card{background:#FFFFFF;border-radius:16px;box-shadow:0 1px 2px rgba(0,0,0,.08),0 3px 6px rgba(74,53,32,.06)}
+.row{display:flex;align-items:center;gap:12px;min-height:44px;padding:8px 16px;border-top:1px solid #F4EDE3;font-size:14px}
+.lbl{display:flex;align-items:center;gap:8px;margin:0 0 6px;font:600 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;color:#6B5E52}
+.box{min-height:48px;box-sizing:border-box;padding:0 16px;border-radius:12px;border:1px solid #B6A593;background:#FFFFFF;display:flex;align-items:center;gap:8px;font:400 16px 'Hanken Grotesk',sans-serif;color:#2B2018}
+.opt{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;box-sizing:border-box;border-radius:12px;font:600 12px 'Hanken Grotesk',sans-serif;letter-spacing:.2px;color:#2B2018}
+.act{width:100%;display:flex;align-items:center;gap:12px;min-height:64px;padding:8px 12px;box-sizing:border-box;border:0;border-radius:16px;background:transparent;text-align:left;font-family:'Hanken Grotesk',sans-serif;color:#2B2018}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; overflow: hidden; display: flex; flex-direction: column; background: #E0D5C7; font-family: 'Hanken Grotesk', sans-serif; color: #2B2018">
+
+  <!-- State 1: a run is going -->
+  <section aria-label="While it runs" style="height: 418px; flex: 0 0 418px; display: flex; flex-direction: column; overflow: hidden; background: #FBF7F2">
+    <p style="margin: 0; height: 32px; flex: 0 0 32px; display: flex; align-items: center; gap: 8px; padding: 0 16px; background: #F4EDE3; font: 600 12px 'Hanken Grotesk', sans-serif; color: #6B5E52"><span style="display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 9px; background: #E8DECD; color: #2B2018; font-size: 11px">1</span>While it runs</p>
+    <header style="display: flex; align-items: center; height: 56px; flex: 0 0 auto; padding: 0 8px 0 4px; border-bottom: 1px solid #E0D5C7">
+      <button class="ib" aria-label="Close" style="width: 48px; height: 48px; border-radius: 24px; color: #2B2018"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <h1 style="margin: 0; flex: 1 1 auto; min-width: 0; font: 600 18px/1.3 'Bricolage Grotesque', sans-serif; letter-spacing: -0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">#1042</h1>
+      <!-- ⚡ with spinner ring + n/N while a run for this card is queued, running or applying -->
+      <button aria-label="Actions. Mark shipped running, step 1 of 3" style="height: 44px; padding: 0 12px 0 4px; border: 0; border-radius: 22px; background: rgba(58,124,165,.12); color: #2F5F80; display: inline-flex; align-items: center; gap: 4px; font: 600 13px 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums">
+        <span style="position: relative; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center">
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none" aria-hidden="true" style="position: absolute; inset: 0"><circle cx="18" cy="18" r="15" stroke="#3A7CA5" stroke-width="2.5" opacity=".22"/><path d="M18 3a15 15 0 0 1 15 15" stroke="#3A7CA5" stroke-width="2.5" stroke-linecap="round"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 2.5L4.5 13.5H11l-1.5 8 9-11H12z"/></svg>
+        </span>
+        1/3
+      </button>
+      <span style="width: 4px"></span>
+      <button style="height: 44px; padding: 0 24px; border-radius: 12px; border: 0; background: #E8821E; color: #3A1E00; display: inline-flex; align-items: center; gap: 8px; font: 600 14px 'Hanken Grotesk', sans-serif; letter-spacing: .1px">Save</button>
+    </header>
+    <!-- 2 px LinearProgressIndicator under the AppBar (determinate 1/3) -->
+    <div role="progressbar" aria-label="Mark shipped" aria-valuemin="0" aria-valuemax="3" aria-valuenow="1" style="height: 2px; flex: 0 0 2px; background: rgba(58,124,165,.18)"><div style="width: 33.3%; height: 2px; background: #3A7CA5"></div></div>
+
+    <div style="flex: 1 1 auto; overflow: hidden; padding: 16px; display: flex; flex-direction: column; gap: 16px">
+      <div>
+        <p class="lbl">Status</p>
+        <button class="box" style="width: 100%; justify-content: space-between; text-align: left"><span class="opt" style="background: #F8EED1"><span style="width: 8px; height: 8px; border-radius: 4px; background: #D4A017"></span>Packed</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B5E52" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+      </div>
+      <div>
+        <p class="lbl">Shipped on</p>
+        <button class="box" style="width: 100%; text-align: left"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B5E52" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg><span style="color: #6B5E52">Pick a date</span></button>
+      </div>
+      <div>
+        <p class="lbl">Client</p>
+        <span style="display: inline-flex; align-items: center; gap: 4px; height: 32px; padding: 0 4px 0 12px; border-radius: 8px; background: #F4EDE3; font: 600 14px 'Hanken Grotesk', sans-serif">Iryna Melnyk<button aria-label="Remove Iryna Melnyk" style="width: 44px; height: 44px; flex: 0 0 44px; margin: -8px; padding: 0; border: 0; background: transparent; display: inline-flex; align-items: center; justify-content: center; cursor: pointer"><span style="width: 28px; height: 28px; border: 0; border-radius: 14px; background: transparent; color: #6B5E52; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></span></button></span>
+      </div>
+      <div>
+        <p class="lbl">Total</p>
+        <span class="box" style="font-variant-numeric: tabular-nums"><span style="flex: 1 1 auto">2150</span><span style="color: #6B5E52; font-size: 14px">₴</span></span>
+      </div>
+    </div>
+  </section>
+
+  <div aria-hidden="true" style="height: 8px; flex: 0 0 8px"></div>
+
+  <!-- State 2: it finished (Auto) — in-editor banner in the editor's _Banners slot -->
+  <section aria-label="When it finishes" style="flex: 1 1 auto; display: flex; flex-direction: column; overflow: hidden; background: #FBF7F2">
+    <p style="margin: 0; height: 32px; flex: 0 0 32px; display: flex; align-items: center; gap: 8px; padding: 0 16px; background: #F4EDE3; font: 600 12px 'Hanken Grotesk', sans-serif; color: #6B5E52"><span style="display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 9px; background: #E8DECD; color: #2B2018; font-size: 11px">2</span>When it finishes</p>
+    <header style="display: flex; align-items: center; height: 56px; flex: 0 0 auto; padding: 0 8px 0 4px; border-bottom: 1px solid #E0D5C7">
+      <button class="ib" aria-label="Close" style="width: 48px; height: 48px; border-radius: 24px; color: #2B2018"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <h1 style="margin: 0; flex: 1 1 auto; min-width: 0; font: 600 18px/1.3 'Bricolage Grotesque', sans-serif; letter-spacing: -0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">#1042</h1>
+      <button class="ib" aria-label="Actions"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 2.5L4.5 13.5H11l-1.5 8 9-11H12z"/></svg></button>
+      <span style="width: 4px"></span>
+      <button style="height: 44px; padding: 0 24px; border-radius: 12px; border: 0; background: #E8821E; color: #3A1E00; display: inline-flex; align-items: center; gap: 8px; font: 600 14px 'Hanken Grotesk', sans-serif; letter-spacing: .1px">Save</button>
+    </header>
+
+    <div style="padding: 16px 16px 0">
+      <div role="status" style="display: flex; flex-direction: column; padding: 12px 14px 4px; border-radius: 12px; background: rgba(46,139,87,.12); color: #2B2018">
+        <div style="display: flex; align-items: flex-start; gap: 8px; font-size: 14px; line-height: 1.45">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2E8B57" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 20px"><circle cx="12" cy="12" r="8.5"/><path d="M8 12.3l2.8 2.8L16.2 9.5"/></svg>
+          <span style="flex: 1 1 auto"><b style="font-weight: 600">Mark shipped</b> · 1 order updated</span>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 4px; margin-right: -6px">
+          <button style="height: 44px; padding: 0 12px; border-radius: 12px; border: 0; background: transparent; color: #8A4708; font: 600 14px 'Hanken Grotesk', sans-serif; letter-spacing: .1px">Undo</button>
+          <button style="height: 44px; padding: 0 12px; border-radius: 12px; border: 0; background: transparent; color: #8A4708; font: 600 14px 'Hanken Grotesk', sans-serif; letter-spacing: .1px">View run</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex: 1 1 auto; overflow: hidden; padding: 16px; display: flex; flex-direction: column; gap: 16px">
+      <div>
+        <p class="lbl">Status</p>
+        <button class="box" style="width: 100%; justify-content: space-between; text-align: left"><span class="opt" style="background: #DCEEE4"><span style="width: 8px; height: 8px; border-radius: 4px; background: #2E8B57"></span>Shipped</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B5E52" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+      </div>
+      <div>
+        <p class="lbl">Shipped on</p>
+        <button class="box" style="width: 100%; text-align: left"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B5E52" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg><span>Nov 12, 2026</span></button>
+      </div>
+      <div>
+        <p class="lbl">Client</p>
+        <span style="display: inline-flex; align-items: center; gap: 4px; height: 32px; padding: 0 4px 0 12px; border-radius: 8px; background: #F4EDE3; font: 600 14px 'Hanken Grotesk', sans-serif">Iryna Melnyk<button aria-label="Remove Iryna Melnyk" style="width: 44px; height: 44px; flex: 0 0 44px; margin: -8px; padding: 0; border: 0; background: transparent; display: inline-flex; align-items: center; justify-content: center; cursor: pointer"><span style="width: 28px; height: 28px; border: 0; border-radius: 14px; background: transparent; color: #6B5E52; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></span></button></span>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

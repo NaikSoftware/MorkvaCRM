@@ -10,10 +10,12 @@ import 'assistant_text.dart';
 import 'error_row.dart';
 import 'object_chip.dart';
 import 'plan_card.dart';
+import 'plan_card_scope.dart';
 import 'result_chart_card.dart';
 import 'result_table_card.dart';
 import 'smooth_wheel_scroll.dart';
 import 'thinking_row.dart';
+import 'test_run_card.dart';
 import 'tool_steps.dart';
 import 'user_bubble.dart';
 
@@ -118,56 +120,64 @@ class _ChatListState extends State<ChatList> {
     final scope = AssistantScope.of(context);
     final colors = AssistantColors.of(context);
 
-    return ColoredBox(
-      color: colors.canvas,
-      child: Stack(
-        children: [
-          NotificationListener<UserScrollNotification>(
-            onNotification: _onUserScroll,
-            child: NotificationListener<ScrollMetricsNotification>(
-              onNotification: _onMetrics,
-              child: ListView.builder(
-                controller: _scroll,
-                padding: scope.phone
-                    ? EdgeInsets.fromLTRB(
-                        Spacing.md,
-                        Spacing.md,
-                        Spacing.md,
-                        Spacing.md + widget.bottomInset,
-                      )
-                    : EdgeInsets.fromLTRB(18, 18, 18, 8 + widget.bottomInset),
-                itemCount: count,
-                // Keys sit on the builder's top-level child, so a card's state
-                // follows its item id if items ever move.
-                findChildIndexCallback: (key) {
-                  if (key is! ValueKey<String>) return null;
-                  final i = items.indexWhere((it) => it.id == key.value);
-                  return i < 0 ? null : i;
-                },
-                itemBuilder: (context, i) {
-                  final thinkingRow = i == items.length;
-                  final child = thinkingRow
-                      ? const ThinkingRow()
-                      : ChatItemView(item: items[i], state: state);
-                  return Padding(
-                    key: thinkingRow
-                        ? const ValueKey(#thinking)
-                        : ValueKey(items[i].id),
-                    padding: EdgeInsets.only(top: i == 0 ? 0 : _gap(items, i)),
-                    child: child,
-                  );
-                },
+    // Plan, applied and chip widgets read only [PlanCardScope], so they also
+    // render outside the chat (the automation review sheet).
+    return PlanCardScope(
+      actions: scope.actions,
+      now: scope.now,
+      child: ColoredBox(
+        color: colors.canvas,
+        child: Stack(
+          children: [
+            NotificationListener<UserScrollNotification>(
+              onNotification: _onUserScroll,
+              child: NotificationListener<ScrollMetricsNotification>(
+                onNotification: _onMetrics,
+                child: ListView.builder(
+                  controller: _scroll,
+                  padding: scope.phone
+                      ? EdgeInsets.fromLTRB(
+                          Spacing.md,
+                          Spacing.md,
+                          Spacing.md,
+                          Spacing.md + widget.bottomInset,
+                        )
+                      : EdgeInsets.fromLTRB(18, 18, 18, 8 + widget.bottomInset),
+                  itemCount: count,
+                  // Keys sit on the builder's top-level child, so a card's state
+                  // follows its item id if items ever move.
+                  findChildIndexCallback: (key) {
+                    if (key is! ValueKey<String>) return null;
+                    final i = items.indexWhere((it) => it.id == key.value);
+                    return i < 0 ? null : i;
+                  },
+                  itemBuilder: (context, i) {
+                    final thinkingRow = i == items.length;
+                    final child = thinkingRow
+                        ? const ThinkingRow()
+                        : ChatItemView(item: items[i], state: state);
+                    return Padding(
+                      key: thinkingRow
+                          ? const ValueKey(#thinking)
+                          : ValueKey(items[i].id),
+                      padding: EdgeInsets.only(
+                        top: i == 0 ? 0 : _gap(items, i),
+                      ),
+                      child: child,
+                    );
+                  },
+                ),
               ),
             ),
-          ),
-          if (!_atBottom)
-            PositionedDirectional(
-              bottom: 12,
-              start: 0,
-              end: 0,
-              child: Center(child: _JumpToLatest(onPressed: _jumpToLatest)),
-            ),
-        ],
+            if (!_atBottom)
+              PositionedDirectional(
+                bottom: 12,
+                start: 0,
+                end: 0,
+                child: Center(child: _JumpToLatest(onPressed: _jumpToLatest)),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -257,6 +267,7 @@ class ChatItemView extends StatelessWidget {
         },
       ),
       AppliedItem() => AppliedCard(item: item),
+      TestRunItem() => TestRunCard(item: item),
       ErrorItem() => ErrorRow(item: item),
     };
   }

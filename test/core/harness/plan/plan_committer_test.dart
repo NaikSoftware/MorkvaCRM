@@ -626,6 +626,104 @@ void main() {
       });
     });
   });
+
+  group('write origin', () {
+    /// The [CardChange]s [h]'s repository emits while [body] runs.
+    Future<List<CardChange>> changesDuring(
+      CommitHarness h,
+      Future<void> Function() body,
+    ) async {
+      final out = <CardChange>[];
+      final sub = h.p.repo.changes.listen(out.add);
+      await body();
+      await h.settle();
+      await sub.cancel();
+      return out;
+    }
+
+    const assistant = WriteOrigin(
+      kind: WriteKind.plan,
+      actor: 'agent:assistant',
+    );
+
+    test("every chunk carries the caller's origin keyed by the plan id, "
+        'with the card as it stood before', () async {
+      final c = CommitHarness(batchSize: 2);
+      addTearDown(c.dispose);
+      c.origin = assistant;
+      final numbers = notShippedIn(c, 3);
+      final plan = await c.plan('cards.update', {
+        'collection': 'Orders',
+        'target': {
+          'ids': [for (final n in numbers) order(n)],
+        },
+        'set': {'Status': 'Shipped'},
+      });
+      final changes = await changesDuring(c, () => c.commit(plan));
+
+      expect(c.p.repo.batchCalls, 2);
+      expect(changes, hasLength(3));
+      for (final ch in changes) {
+        expect(ch.origin.kind, WriteKind.plan);
+        expect(ch.origin.actor, 'agent:assistant');
+        expect(ch.origin.commitId, plan.planId);
+        expect(
+          optionOf(ch.before, OrderFields.status),
+          isNot(SeedOptions.shipped),
+        );
+        expect(optionOf(ch.after, OrderFields.status), SeedOptions.shipped);
+      }
+    });
+
+    test('no origin: a UI write, still keyed by the plan id', () async {
+      final plan = await ship(notShipped(1));
+      final changes = await changesDuring(h, () => h.commit(plan));
+      expect(changes.single.origin.kind, WriteKind.ui);
+      expect(changes.single.origin.commitId, plan.planId);
+    });
+
+    test('a card delete carries the card it removed', () async {
+      final card = h.seed.orderCards.first;
+      final plan = await h.plan('cards.delete', {
+        'collection': 'Orders',
+        'target': {
+          'ids': [card.id],
+        },
+      });
+      final changes = await changesDuring(h, () => h.commit(plan));
+      expect(changes.single.before?.id, card.id);
+      expect(changes.single.after, isNull);
+    });
+
+    test("a collection delete's card writes are collectionDelete", () async {
+      h.origin = assistant;
+      final plan = await h.plan('collections.delete', {
+        'collection': 'Fabrics',
+      });
+      final changes = await changesDuring(h, () => h.commit(plan));
+      expect(changes, hasLength(6));
+      for (final ch in changes) {
+        expect(ch.origin.kind, WriteKind.collectionDelete);
+        expect(ch.origin.commitId, plan.planId);
+        expect(ch.before, isNotNull);
+      }
+    });
+
+    test("undo always writes as undo, whatever the caller's origin", () async {
+      h.origin = assistant;
+      final r = await h.commit(await ship(notShipped(2)));
+      final changes = await changesDuring(
+        h,
+        () => h.undo(r['journalId']! as String),
+      );
+      expect(changes, hasLength(2));
+      for (final ch in changes) {
+        expect(ch.origin.kind, WriteKind.undo);
+        expect(ch.origin.actor, 'agent:assistant');
+        expect(optionOf(ch.before, OrderFields.status), SeedOptions.shipped);
+      }
+    });
+  });
 }
 
 /// Orders of [h] whose Status is not Shipped, by number.

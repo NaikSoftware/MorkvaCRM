@@ -3,6 +3,7 @@ import 'dart:math' show min;
 
 import 'package:morkva_crm/api/data/data_repository.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
+import 'package:morkva_crm/core/domain/ids.dart';
 import 'package:rxdart/rxdart.dart';
 
 /// A lightweight in-memory [DataRepository] for cubit tests.
@@ -153,9 +154,12 @@ class FakeDataRepository implements DataRepository {
         ),
       );
 
-  void _emitObjects(String collectionId) => _subjectFor(
-    collectionId,
-  ).add(List.unmodifiable(_objects[collectionId] ?? const []));
+  void _emitObjects(String collectionId) {
+    final subject = _subjectFor(collectionId);
+    // A write after dispose is dropped, like the real repository's.
+    if (subject.isClosed) return;
+    subject.add(List.unmodifiable(_objects[collectionId] ?? const []));
+  }
 
   void _throwIfWriteFails() {
     final error = objectWriteError;
@@ -240,24 +244,81 @@ class FakeDataRepository implements DataRepository {
   }) async =>
       objectsOf(collectionId).where((o) => o.id == objectId).firstOrNull;
 
+  final _changes = StreamController<CardChange>.broadcast();
+  final _ids = IdGenerator();
+
+  /// Every card write, like the real repository: after it applied, never for
+  /// a failed write, nothing for an update that changed no value.
+  @override
+  Stream<CardChange> get changes => _changes.stream;
+
+  void _emitChange(
+    String collectionId,
+    String cardId,
+    MorkvaObject? before,
+    MorkvaObject? after,
+    WriteOrigin origin,
+  ) => _addChange(
+    CardChange(
+      collectionId: collectionId,
+      cardId: cardId,
+      before: before,
+      after: after,
+      writeId: _ids.writeId(),
+      origin: origin,
+    ),
+  );
+
+  // The real repository drops writes after dispose (epoch guard); so does this.
+  void _addChange(CardChange change) {
+    if (!_changes.isClosed) _changes.add(change);
+  }
+
+  WriteOrigin _committed(WriteOrigin origin) =>
+      origin.commitId == null ? origin.withCommitId(_ids.writeId()) : origin;
+
+  /// The field ids of [values] a write stores (calculated and unknown ids
+  /// are skipped, like the real encoder).
+  static Iterable<String> _stored(Iterable<String> ids, Collection schema) =>
+      ids.where(
+        (id) => switch (schema.fieldById(id)) {
+          null || CalculatedFieldDefinition() => false,
+          _ => true,
+        },
+      );
+
   @override
   Future<void> saveObject(
     MorkvaObject object, {
     required Collection schema,
+    WriteOrigin origin = const WriteOrigin.ui(),
   }) async {
     _throwIfWriteFails();
     final list = [...?_objects[object.collectionId]];
     final index = list.indexWhere((o) => o.id == object.id);
-    if (index < 0) {
+    final before = index < 0 ? null : list[index];
+    if (before == null) {
       list.add(_numbered(object, schema));
     } else {
       // Merged over the stored values, like the real repository.
       list[index] = object.copyWith(
-        values: {...list[index].values, ...object.values},
+        values: {...before.values, ...object.values},
       );
     }
     _objects[object.collectionId] = list;
     _emitObjects(object.collectionId);
+    final after = before == null ? list.last : list[index];
+    if (before != null &&
+        isNoOpUpdate(before, after, _stored(object.values.keys, schema))) {
+      return;
+    }
+    _emitChange(
+      object.collectionId,
+      object.id,
+      before,
+      after,
+      _committed(origin),
+    );
   }
 
   /// [object] with numbers for the auto-number fields it lacks, from
@@ -278,13 +339,28 @@ class FakeDataRepository implements DataRepository {
   }
 
   @override
-  Future<void> deleteObject(String collectionId, String objectId) async {
+  Future<void> deleteObject(
+    String collectionId,
+    String objectId, {
+    MorkvaObject? before,
+    WriteOrigin origin = const WriteOrigin.ui(),
+  }) async {
     _throwIfWriteFails();
+    deleteBefores.add(before);
+    final stood =
+        before ??
+        _objects[collectionId]?.where((o) => o.id == objectId).firstOrNull;
     _objects[collectionId] = [
       ...?_objects[collectionId]?.where((o) => o.id != objectId),
     ];
     _emitObjects(collectionId);
+    if (stood != null) {
+      _emitChange(collectionId, objectId, stood, null, _committed(origin));
+    }
   }
+
+  /// The `before` each [deleteObject] call was given, for assertions.
+  final deleteBefores = <MorkvaObject?>[];
 
   /// Count of [saveObjectsBatch] calls, for assertions.
   int batchCalls = 0;
@@ -294,8 +370,9 @@ class FakeDataRepository implements DataRepository {
   /// of the chunk is written (batches are atomic).
   String? Function(List<ObjectWrite> chunk)? batchWriteError;
 
-  /// When true, [saveObjectsBatch] applies its first chunk (and emits) but
-  /// never completes — like a batch waiting for a server ack while offline.
+  /// When true, [saveObjectsBatch] applies its first chunk (watchers see it)
+  /// but never completes and emits no [changes] — like a batch waiting for a
+  /// server ack while offline.
   bool batchNeverCompletes = false;
 
   /// When true, [saveObjectsBatch] never completes and writes nothing for a
@@ -307,8 +384,10 @@ class FakeDataRepository implements DataRepository {
   Future<BatchResult> saveObjectsBatch(
     List<ObjectWrite> writes, {
     required Map<String, Collection> schemas,
+    WriteOrigin origin = const WriteOrigin.ui(),
   }) async {
     batchCalls++;
+    final committedOrigin = _committed(origin);
     for (final write in writes) {
       if (write is! ObjectDelete && !schemas.containsKey(write.collectionId)) {
         throw ArgumentError.value(write.collectionId, 'schemas');
@@ -337,6 +416,8 @@ class FakeDataRepository implements DataRepository {
         await Completer<void>().future;
       }
       final touched = <String>{};
+      final now = DateTime.now().toUtc();
+      final changes = <CardChange>[];
       for (final write in chunk) {
         final cid = write.collectionId;
         final rest = [...?_objects[cid]?.where((o) => o.id != write.id)];
@@ -347,15 +428,48 @@ class FakeDataRepository implements DataRepository {
           ],
           ObjectUpdate() => [
             for (final o in _objects[cid]!)
-              o.id == write.id ? _updated(o, write, schemas[cid]!) : o,
+              o.id == write.id ? _updated(o, write, schemas[cid]!, now) : o,
           ],
           ObjectDelete() => rest,
         };
         touched.add(cid);
         written.add(write.id);
+        // Like the real repository: `before` only from the write itself.
+        final (before, after) = switch (write) {
+          ObjectCreate() => (null, _objects[cid]!.last),
+          ObjectUpdate(:final before?) => (
+            before,
+            _updated(before, write, schemas[cid]!, now),
+          ),
+          ObjectDelete(:final before?) => (before, null),
+          ObjectUpdate() || ObjectDelete() => (null, null),
+        };
+        if (before == null && after == null) continue;
+        if (before != null &&
+            after != null &&
+            write is ObjectUpdate &&
+            isNoOpUpdate(
+              before,
+              after,
+              _stored(write.values.keys, schemas[cid]!),
+            )) {
+          continue;
+        }
+        changes.add(
+          CardChange(
+            collectionId: cid,
+            cardId: write.id,
+            before: before,
+            after: after,
+            writeId: _ids.writeId(),
+            origin: committedOrigin,
+          ),
+        );
       }
       touched.forEach(_emitObjects);
+      // Like the real repository: a chunk emits only once its commit resolved.
       if (batchNeverCompletes) await Completer<void>().future;
+      changes.forEach(_addChange);
     }
     return BatchResult(written: written, failed: failed);
   }
@@ -369,6 +483,7 @@ class FakeDataRepository implements DataRepository {
     MorkvaObject object,
     ObjectUpdate update,
     Collection schema,
+    DateTime now,
   ) => object.copyWith(
     values: {
       ...object.values,
@@ -377,7 +492,7 @@ class FakeDataRepository implements DataRepository {
             when field is! CalculatedFieldDefinition)
           e.key: field.valueFromJson(e.value),
     },
-    updatedAt: DateTime.now().toUtc(),
+    updatedAt: now,
   );
 
   /// Applies [apply] to the stored collection through [saveCollection], so
@@ -408,6 +523,7 @@ class FakeDataRepository implements DataRepository {
 
   @override
   Future<void> dispose() async {
+    await _changes.close();
     await _subject.close();
     for (final subject in _objectSubjects.values) {
       await subject.close();

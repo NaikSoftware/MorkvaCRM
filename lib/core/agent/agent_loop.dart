@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 
 import '../domain/collection.dart';
@@ -74,8 +75,8 @@ final class AgentLoop {
     required LlmClient llm,
     required Harness harness,
     required AgentWorkspace workspace,
+    required Grants grants,
     AgentSettings settings = const AgentSettings(),
-    Grants? grants,
     HistoryCompactor compactor = const HistoryCompactor(),
     String locale = 'en',
     this.timeZoneName = '',
@@ -84,7 +85,7 @@ final class AgentLoop {
        _harness = harness,
        _workspace = workspace,
        _settings = settings,
-       _grants = grants ?? Grants.all(),
+       _grants = grants,
        _compactor = compactor,
        _now = now ?? DateTime.now,
        _model = settings.model,
@@ -106,6 +107,9 @@ final class AgentLoop {
   /// the user; neutral because the model may retry or give up.
   static const String stepFailed = "didn't go through";
 
+  /// The step summary of a plan call that would change nothing.
+  static const String stepNoChange = 'Already up to date';
+
   /// Harness errors whose message says something to the user.
   static const Set<ErrorCode> _userFacing = {
     ErrorCode.notPermitted,
@@ -125,6 +129,14 @@ final class AgentLoop {
   static const String nudgeTooMany =
       'That was too many tool calls at once; make fewer calls per response, '
       'or answer in text now.';
+
+  /// Sent before the step limit's forced text round when no change of this
+  /// turn was written: a model whose calls all failed claimed it had saved
+  /// a module and set up an automation (web e2e 2026-11-12).
+  static const String noteNothingSaved =
+      'Step limit reached: answer in text now with what you have. Nothing '
+      'was saved, created or changed in this turn, so never say anything '
+      'was saved or set up.';
 
   final LlmClient _llm;
   final Harness _harness;
@@ -285,6 +297,12 @@ final class AgentLoop {
     for (var round = 1; round <= maxRounds; round++) {
       final last = round == maxRounds;
       final mode = last || t.answerOnly ? LlmToolMode.none : LlmToolMode.auto;
+      // The step limit cut the turn short. Every write is an answered plan,
+      // so before one nothing was saved (after one the model holds its
+      // outcome).
+      if (round == _settings.maxRounds && round > 1 && !t.answerOnly) {
+        t.record.add(const LlmUserText(noteNothingSaved));
+      }
       final r = await _request(t, round, mode);
       t.usage += TokenUsage(
         promptTokens: r.promptTokens,
@@ -308,6 +326,13 @@ final class AgentLoop {
         _ => null,
       };
       if (nudge != null) {
+        // After an outcome its card is the answer: a model that still wants
+        // tools after one nudge (e.g. to bind a just-installed module) ends
+        // the turn instead of failing it.
+        if (t.answerOnly && nudge == nudgeAnswer) {
+          if (t.nudgedAfterOutcome) break;
+          t.nudgedAfterOutcome = true;
+        }
         if (last) {
           // A nudge on the forced last round gets one more text-only round;
           // when that one misses too, the turn fails visibly instead of
@@ -531,8 +556,10 @@ final class AgentLoop {
       }
       final result = readResults[i];
       if (result == null) continue;
-      responses[i] = _responseJson(result);
-      _finishStep(t, ids[i], result);
+      responses[i] = moduleTextOps.contains(op.id)
+          ? moduleDataResponse(op.id, calls[i].args, result)
+          : _responseJson(result);
+      _finishStep(t, ids[i], result, op: op.id);
       if (result is HarnessOk) _present(t, ids[i], op, calls[i], result);
     }
 
@@ -569,14 +596,27 @@ final class AgentLoop {
     List<Map<String, Object?>?> responses,
   ) async {
     final errors = <String, Map<String, Object?>>{};
+    // `no_change` calls keep that answer; the rest are proposed together.
+    final proposed = <int>[];
     for (final i in plans) {
       final result = await _call(t, ops[i]!.id, calls[i].args, ids[i]);
       _finishStep(t, ids[i], result);
-      if (result is HarnessFailure) errors[ids[i]] = _responseJson(result);
+      if (result case HarnessFailure(:final error)) {
+        if (error.code == ErrorCode.noChange) {
+          responses[i] = _responseJson(result);
+          continue;
+        }
+        errors[ids[i]] = _responseJson(result);
+      }
+      proposed.add(i);
     }
-    final seal = await _call(t, 'plans.seal', {
-      'turnId': t.turnId,
-    }, '${ids.first.split('.').first}.seal');
+    // Every call changed nothing: the overlay stays empty (no_change is
+    // never recorded), so there is nothing to seal or discard.
+    final seal = proposed.isEmpty
+        ? null
+        : await _call(t, 'plans.seal', {
+            'turnId': t.turnId,
+          }, '${ids.first.split('.').first}.seal');
 
     if (t.stopped) {
       final stopped = const Rejection(RejectReason.stopped).toModelJson();
@@ -586,11 +626,13 @@ final class AgentLoop {
       return const TurnStopped();
     }
 
+    if (seal == null) return null;
+
     CompactPlan? plan;
     switch (seal) {
       case HarnessFailure():
         // The merged plan is refused as a whole (e.g. over 500 items).
-        for (final i in plans) {
+        for (final i in proposed) {
           errors.putIfAbsent(ids[i], () => _responseJson(seal));
         }
       case HarnessOk(:final result):
@@ -609,7 +651,7 @@ final class AgentLoop {
     }
 
     if (plan == null) {
-      for (final i in plans) {
+      for (final i in proposed) {
         responses[i] =
             errors[ids[i]] ??
             (errors.isEmpty
@@ -646,7 +688,7 @@ final class AgentLoop {
       t.changed = true;
     }
     final json = outcome.toModelJson();
-    for (final i in plans) {
+    for (final i in proposed) {
       responses[i] = json;
     }
     return switch (outcome) {
@@ -666,10 +708,22 @@ final class AgentLoop {
     t.ctx,
   );
 
-  void _finishStep(_Turn t, String callId, HarnessResponse result) {
+  void _finishStep(
+    _Turn t,
+    String callId,
+    HarnessResponse result, {
+    String? op,
+  }) {
     switch (result) {
+      case HarnessFailure(:final error) when error.code == ErrorCode.noChange:
+        // Information, never shown as a failure.
+        t.record.addStep(stepNoChange);
+        _emit(t, StepFinished(callId: callId, summary: stepNoChange, ok: true));
       case HarnessOk(:final result):
-        final summary = result['summary'] as String? ?? 'Done';
+        // A module-written summary never becomes a step line.
+        final summary = moduleTextOps.contains(op)
+            ? _moduleStepLine(op!, result)
+            : result['summary'] as String? ?? 'Done';
         t.record.addStep(summary);
         _emit(
           t,
@@ -707,6 +761,17 @@ final class AgentLoop {
     HarnessOk ok,
   ) {
     final result = ok.result;
+    if (op.id == 'modules.testRun') {
+      _emit(
+        t,
+        TestRunShown(
+          title:
+              'Test run · ${sanitizeName('${call.args['moduleId']}', max: 40)}',
+          result: result,
+        ),
+      );
+      return;
+    }
     if (op.kind == OpKind.ui) {
       // shortcut: reads ids from the result and falls back to the args
       // (names) until ui.open (T5b) settles its result shape.
@@ -753,6 +818,56 @@ final class AgentLoop {
     message: 'There is no tool "${sanitizeName(call.name)}".',
     candidates: [for (final tool in t.tools!.tools) tool.name],
   );
+
+  /// Read ops whose results carry module-written text (code, logs,
+  /// errors, summaries, manifest names): the model gets them inside the
+  /// workspace-data block, tagged with where they came from.
+  static const Set<String> moduleTextOps = {
+    'modules.list',
+    'modules.get',
+    'modules.testRun',
+    'runs.list',
+    'runs.get',
+  };
+
+  /// [result] of module op [op] as the model sees it: a host-authored
+  /// summary, the `source` (`module:<id>` when the call names one module)
+  /// and the result as JSON inside the data block. `<` is escaped, so text
+  /// in it can never close the block; the JSON decodes unchanged.
+  static Map<String, Object?> moduleDataResponse(
+    String op,
+    Map<String, Object?> args,
+    HarnessResponse result,
+  ) {
+    if (result is! HarnessOk) return _responseJson(result);
+    final json = result.result;
+    final moduleId = switch (op) {
+      'modules.get' => json['id'],
+      'modules.testRun' => args['moduleId'],
+      'runs.get' => json['moduleId'],
+      _ => null,
+    };
+    final data = jsonEncode(json).replaceAll('<', r'\u003c');
+    return {
+      'summary': _moduleStepLine(op, json),
+      'source': moduleId is String ? 'module:$moduleId' : 'modules',
+      'data': '$kWorkspaceDataOpen$data$kWorkspaceDataClose',
+    };
+  }
+
+  static String _moduleStepLine(String op, Map<String, Object?> result) =>
+      switch (op) {
+        'modules.list' => 'Read the modules',
+        'modules.get' => 'Read the module',
+        'modules.testRun' => switch (result['status']) {
+          'succeeded' => 'Test run finished',
+          'skipped' => 'Test run skipped',
+          'timed_out' => 'Test run timed out',
+          _ => 'Test run failed',
+        },
+        'runs.list' => 'Read the runs',
+        _ => 'Read the run',
+      };
 
   static Map<String, Object?> _responseJson(HarnessResponse r) => switch (r) {
     HarnessOk(:final result) => result,
@@ -854,6 +969,14 @@ final class AgentLoop {
       'cards.aggregate' => 'Calculating over $collection',
       'cards.distinct' => 'Listing values in $collection',
       'ui.open' => 'Opening $collection',
+      'modules.list' || 'modules.get' => 'Reading modules',
+      'modules.save' => 'Writing module',
+      'modules.testRun' =>
+        'Testing ${sanitizeName('${args['moduleId'] ?? ''}', max: 40)}',
+      'automations.list' => 'Reading automations',
+      'automations.save' => 'Setting up automation',
+      'automations.delete' => 'Removing automation',
+      'runs.list' || 'runs.get' => 'Reading runs',
       final id when t.tools!.opFor(call.name)?.kind == OpKind.plan =>
         collection.isEmpty
             ? 'Preparing changes ($id)'
@@ -931,6 +1054,7 @@ final class _Turn {
   /// so the rounds after it may only answer in text (a rejected change must
   /// not come straight back as a new preview).
   bool answerOnly = false;
+  bool nudgedAfterOutcome = false;
 
   /// Calls whose responses are not in the history yet.
   List<LlmCall>? pendingCalls;

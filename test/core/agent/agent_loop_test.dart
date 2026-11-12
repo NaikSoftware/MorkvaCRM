@@ -98,6 +98,7 @@ void main() {
     llm: llm,
     harness: harness,
     workspace: workspace,
+    grants: Grants(kAssistantCaps),
     settings: settings,
     compactor: compactor,
     timeZoneName: 'Europe/Kyiv',
@@ -194,6 +195,33 @@ void main() {
           'fields_add',
           'ui_open',
         ],
+      );
+    });
+
+    test('the assistant grants declare the module and automation tools, '
+        'never a host:commit one', () async {
+      harness = fakeHarness([
+        query,
+        FakeOp('modules.list', capability: Capability.modulesRead),
+        FakeOp(
+          'modules.save',
+          kind: OpKind.plan,
+          capability: Capability.modulesWrite,
+        ),
+        FakeOp(
+          'automations.save',
+          kind: OpKind.plan,
+          capability: Capability.automationsWrite,
+        ),
+        FakeOp('host.peek', capability: Capability.hostCommit),
+      ]);
+      llm.add(const FakeReply(text: ['ok']));
+
+      await runTurn(loopFor(), 'hi');
+
+      expect(
+        [for (final t in llm.requests.single.tools) t.name],
+        ['automations_save', 'cards_query', 'modules_list', 'modules_save'],
       );
     });
 
@@ -523,6 +551,37 @@ void main() {
       },
     );
 
+    test('a model that keeps calling tools after the outcome ends the turn '
+        'quietly', () async {
+      // Web e2e 2026-11-12: after "Install module" the model kept calling
+      // automations_save in the answer-only rounds and the turn failed with
+      // "Something went wrong" although the install was applied.
+      llm.addAll([
+        FakeReply(
+          calls: [
+            call('fields_add', {'collection': 'Orders'}),
+          ],
+        ),
+        const FakeReply(finish: FinishKind.unexpectedToolCall),
+        FakeReply(
+          calls: [
+            call('cards_update', {'collection': 'Orders'}),
+          ],
+        ),
+      ]);
+      final loop = loopFor();
+
+      final events = await runTurn(loop, 'add it', outcome: (_) => receipt);
+
+      expect(llm.requests, hasLength(3));
+      expect([
+        for (final r in llm.requests.skip(1)) r.toolMode,
+      ], everyElement(LlmToolMode.none));
+      expect(events.whereType<TurnFailed>(), isEmpty);
+      expect(events.last, isA<TurnDone>());
+      expect(update.calls, isEmpty, reason: 'no call runs after the outcome');
+    });
+
     test('responses follow call order when the model sent no ids', () async {
       llm.addAll([
         FakeReply(
@@ -707,6 +766,114 @@ void main() {
       expect(seal.calls, hasLength(1), reason: 'the overlay is still sealed');
     });
 
+    group('no_change', () {
+      late FakeOp unchanged;
+
+      setUp(() {
+        unchanged = FakeOp(
+          'cards.set',
+          kind: OpKind.plan,
+          capability: Capability.dataWrite,
+          handler: (args, ctx, req) => {
+            'error': HarnessError(
+              code: ErrorCode.noChange,
+              message: 'Nothing would change. #1042 already Shipped',
+            ),
+          },
+        );
+      });
+
+      test(
+        'keeps the turn\'s plan and its answer, shown as no failure',
+        () async {
+          harness = fakeHarness([update, unchanged, seal]);
+          llm.addAll([
+            FakeReply(calls: [call('cards_update'), call('cards_set')]),
+            const FakeReply(text: ['Done.']),
+          ]);
+
+          final events = await runTurn(
+            loopFor(),
+            'ship',
+            outcome: (_) => receipt,
+          );
+
+          expect(events.whereType<PlanProposed>(), hasLength(1));
+          expect(seal.calls, hasLength(1));
+          final responses = lastResponses(llm.requests[1]);
+          expect(responses[0].response, receipt.toModelJson());
+          expect(
+            responses[1].response['error'],
+            containsPair('code', 'no_change'),
+          );
+          final step = events.whereType<StepFinished>().last;
+          expect(step.ok, isTrue);
+          expect(step.summary, AgentLoop.stepNoChange);
+          expect(events.last, isA<TurnDone>());
+        },
+      );
+
+      test('a round of only no_change neither seals nor errors', () async {
+        harness = fakeHarness([unchanged, seal]);
+        llm.addAll([
+          FakeReply(calls: [call('cards_set'), call('cards_set')]),
+          const FakeReply(text: ['Already shipped.']),
+        ]);
+
+        final events = await runTurn(loopFor(), 'ship');
+
+        expect(seal.calls, isEmpty);
+        expect(events.whereType<PlanProposed>(), isEmpty);
+        expect(events.whereType<StepFinished>().every((s) => s.ok), isTrue);
+        for (final r in lastResponses(llm.requests[1])) {
+          expect(r.response['error'], containsPair('code', 'no_change'));
+        }
+        expect(textOf(events), 'Already shipped.');
+        expect(events.last, isA<TurnDone>());
+      });
+
+      test('next to a real failure, the failure still seals and no_change '
+          'keeps its answer', () async {
+        sealAnswer = (_) => {
+          'errors': [
+            {
+              'callId': 'r1.1',
+              'error': {'code': 'count_mismatch', 'message': 'Expected 3.'},
+            },
+          ],
+        };
+        final failing = FakeOp(
+          'cards.delete',
+          kind: OpKind.plan,
+          capability: Capability.dataDelete,
+          handler: (args, ctx, req) => {
+            'error': HarnessError(
+              code: ErrorCode.countMismatch,
+              message: 'Expected 3.',
+            ),
+          },
+        );
+        harness = fakeHarness([failing, unchanged, seal]);
+        llm.addAll([
+          FakeReply(calls: [call('cards_delete'), call('cards_set')]),
+          const FakeReply(text: ['Let me recount.']),
+        ]);
+
+        await runTurn(loopFor(), 'clean up');
+
+        expect(seal.calls, hasLength(1), reason: 'drops the failed overlay');
+        final responses = lastResponses(llm.requests[1]);
+        expect(
+          responses[0].response['error'],
+          containsPair('code', 'count_mismatch'),
+        );
+        expect(
+          responses[1].response['error'],
+          containsPair('code', 'no_change'),
+        );
+      });
+    });
+
     test('a refused seal fails every plan call of the round', () async {
       sealAnswer = (_) => {
         'error': HarnessError(
@@ -825,6 +992,63 @@ void main() {
       );
       expect(events.last, isA<TurnDone>());
     });
+
+    // Web e2e 2026-11-12: every call failed, and the forced text round
+    // claimed "I saved the module and set up the automation".
+    test('a forced last round with nothing written is told nothing was '
+        'saved', () async {
+      sealAnswer = (_) => {
+        'errors': [
+          {
+            'callId': 'r1.1',
+            'error': {'code': 'invalid_args', 'message': 'Bad field.'},
+          },
+        ],
+      };
+      llm.addAll([
+        FakeReply(calls: [call('cards_update')]),
+        const FakeReply(text: ['Nothing was saved yet.']),
+      ]);
+
+      final events = await runTurn(
+        loopFor(settings: const AgentSettings(rpm: 1000, maxRounds: 2)),
+        'ship them',
+      );
+
+      expect(events.whereType<PlanProposed>(), isEmpty);
+      expect(llm.requests[1].toolMode, LlmToolMode.none);
+      expect(
+        (llm.requests[1].contents.last as LlmUserText).text,
+        AgentLoop.noteNothingSaved,
+      );
+      expect(events.last, isA<TurnDone>());
+    });
+
+    test(
+      'a forced last round after an applied plan gets no such note',
+      () async {
+        llm.addAll([
+          FakeReply(calls: [call('cards_update')]),
+          const FakeReply(text: ['Shipped.']),
+        ]);
+
+        await runTurn(
+          loopFor(settings: const AgentSettings(rpm: 1000, maxRounds: 2)),
+          'ship them',
+          outcome: (_) => const Receipt(
+            planId: 'p_1',
+            applied: ['i1'],
+            summary: 'Updated 1',
+          ),
+        );
+
+        expect(llm.requests, hasLength(2));
+        expect(
+          llm.requests[1].contents.whereType<LlmUserText>().map((c) => c.text),
+          isNot(contains(AgentLoop.noteNothingSaved)),
+        );
+      },
+    );
 
     test('calls on the forced last round are not run; the nudge is sent '
         'in one more text-only round', () async {

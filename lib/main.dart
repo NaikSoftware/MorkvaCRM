@@ -24,6 +24,12 @@ const _appCheckSiteKey = String.fromEnvironment(
 /// "not set up" there.
 const _appCheckMobile = String.fromEnvironment('APP_CHECK_MOBILE');
 
+/// `host:port` of a local Firestore emulator (e2e), e.g.
+/// `--dart-define=MORKVA_FIRESTORE_EMULATOR=127.0.0.1:8080`. Persistence is
+/// off then, so no write queued in the browser profile can later flush to
+/// production.
+const _firestoreEmulator = String.fromEnvironment('MORKVA_FIRESTORE_EMULATOR');
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -46,9 +52,16 @@ Future<void> main() async {
   // persistence on. On web this enables IndexedDB persistence; on mobile it is
   // on by default but we set it explicitly so the cache size is unbounded.
   FirebaseFirestore.instance.settings = const Settings(
-    persistenceEnabled: true,
+    persistenceEnabled: _firestoreEmulator == '',
     cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
   );
+  if (_firestoreEmulator.isNotEmpty) {
+    final i = _firestoreEmulator.lastIndexOf(':');
+    FirebaseFirestore.instance.useFirestoreEmulator(
+      _firestoreEmulator.substring(0, i),
+      int.parse(_firestoreEmulator.substring(i + 1)),
+    );
+  }
 
   runApp(const MorkvaApp());
 }

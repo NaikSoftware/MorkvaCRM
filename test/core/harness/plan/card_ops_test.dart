@@ -245,8 +245,8 @@ void main() {
       },
     );
 
-    test('an update where every card already has the value fails with the '
-        'skip notes', () async {
+    test('an update where every card already has the value is no_change '
+        'with the skip notes, not a recorded failure', () async {
       final card = h.seed.card(SeedIds.orders, SeedCards.order(1001));
       final item = (card[OrderFields.item]! as TextFieldValue).text!;
       final e = await h.error('cards.update', {
@@ -256,10 +256,37 @@ void main() {
         },
         'set': {'Item': item},
       });
-      expect(e.code, ErrorCode.invalidArgs);
+      expect(e.code, ErrorCode.noChange);
       expect(e.message, startsWith('Nothing would change.'));
       expect(e.message, contains('already'));
       expect(e.message, contains('— skipped'));
+      final overlay = h.store.overlayOf(Actor.assistant, h.turn)!;
+      expect(overlay.isEmpty, isTrue);
+      expect(overlay.callIds, isEmpty);
+    });
+
+    test('a no_change call keeps the turn\'s plan', () async {
+      final card = h.seed.card(SeedIds.orders, SeedCards.order(1001));
+      final item = (card[OrderFields.item]! as TextFieldValue).text!;
+      final planned = await h.ok('cards.update', {
+        'collection': 'Orders',
+        'target': {
+          'ids': [card.id],
+        },
+        'set': {'Item': '$item (gift)'},
+      });
+      final e = await h.error('cards.update', {
+        'collection': 'Orders',
+        'target': {
+          'ids': [card.id],
+        },
+        'set': {'Item': '$item (gift)'},
+      });
+      expect(e.code, ErrorCode.noChange);
+
+      final plan = await h.sealPlan();
+      expect(plan.planId, planned['planId']);
+      expect(plan.items, hasLength(1));
     });
 
     test('a setFrom no card converts fails with every card listed', () async {

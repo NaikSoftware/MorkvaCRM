@@ -19,16 +19,24 @@ class AssistantPage extends StatelessWidget {
     required this.actions,
     required this.onBack,
     this.onOpenHistory,
+    this.indicator,
+    this.draft,
     this.autofocus = false,
     this.now = DateTime.now,
   });
 
   final StateStreamable<AssistantState> bloc;
   final AssistantActions actions;
+
+  /// See [AssistantScope.draft].
+  final ValueNotifier<String?>? draft;
   final VoidCallback onBack;
 
   /// Opens `/assistant/history`; the button hides when null.
   final VoidCallback? onOpenHistory;
+
+  /// The automation run indicator, first in the header's actions.
+  final Widget? indicator;
   final bool autofocus;
   final DateTime Function() now;
 
@@ -36,6 +44,7 @@ class AssistantPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return AssistantScope(
       actions: actions,
+      draft: draft,
       now: now,
       phone: true,
       child: Builder(
@@ -57,6 +66,7 @@ class AssistantPage extends StatelessWidget {
                       subtitle: state.threadTitle,
                       onBack: onBack,
                       actions: [
+                        ?indicator,
                         if (onOpenHistory != null)
                           IconActionButton(
                             icon: Icons.history_rounded,

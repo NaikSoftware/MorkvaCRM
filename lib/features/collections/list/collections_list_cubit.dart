@@ -96,7 +96,11 @@ class CollectionsListCubit extends Cubit<CollectionsListState> {
     }
     await Future.wait([
       for (final o in built.objects)
-        _repository.saveObject(o, schema: byId[o.collectionId]!),
+        _repository.saveObject(
+          o,
+          schema: byId[o.collectionId]!,
+          origin: const WriteOrigin(kind: WriteKind.template),
+        ),
     ]);
     return built.collections.first.id;
   }

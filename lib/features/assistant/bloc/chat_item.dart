@@ -1,6 +1,8 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:morkva_crm/core/agent/agent_event.dart';
+import 'package:morkva_crm/core/domain/automation/automation.dart';
+import 'package:morkva_crm/core/harness/api/capability.dart' show Actor;
 
 /// One entry of the chat, rendered from structured parts only (no markdown).
 /// Every item has a stable [id] (list keys, in-place replacement); the bloc
@@ -301,6 +303,42 @@ final class ObjectChipItem extends ChatItem {
   List<Object?> get props => [id, collectionId, cardId, viewId, label];
 }
 
+/// A `modules.testRun` result, read-only: the dry run the assistant reads.
+final class TestRunItem extends ChatItem {
+  const TestRunItem({
+    required String id,
+    required this.title,
+    required this.result,
+  }) : super(id);
+
+  final String title;
+  final TestRunResult result;
+
+  @override
+  List<Object?> get props => [id, title, result];
+}
+
+/// The `modules.testRun` result [json] as a [TestRunResult]; throws
+/// [FormatException] when it is not one.
+TestRunResult testRunResultFromJson(Map<String, Object?> json) {
+  final status = RunStatus.values.where((s) => s.wire == json['status']);
+  if (status.isEmpty) throw const FormatException('Unknown test-run status');
+  return TestRunResult(
+    status: status.first,
+    reason: RunReason.fromWire(json['reason']),
+    summary: json['summary'] as String?,
+    plan: [
+      for (final p in _list(json, 'plan')) PlanLine.fromJson(_map(p, 'plan[]')),
+    ],
+    log: json['log'] == null
+        ? RunLog.empty
+        : RunLog.fromJson(_map(json['log'], 'log')),
+    error: json['error'] == null
+        ? null
+        : RunError.fromJson(_map(json['error'], 'error')),
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Plans.
 
@@ -339,6 +377,8 @@ final class PlanRow extends Equatable {
     this.risk = PlanRisk.low,
     this.changes = const [],
     this.detail,
+    this.code,
+    this.apply,
   });
 
   final String itemId;
@@ -360,6 +400,16 @@ final class PlanRow extends Equatable {
   /// ("Select · Kyiv, Lviv, Odesa"), a deleted card's context.
   final String? detail;
 
+  /// A `saveModule` item's script, for "View code". Never persisted.
+  final String? code;
+
+  /// A `saveAutomation` item's apply mode: `ask` or `auto`.
+  final String? apply;
+
+  /// Whether the item deletes something (card, field, collection, view,
+  /// automation).
+  bool get deletes => kind.startsWith('delete');
+
   @override
   List<Object?> get props => [
     itemId,
@@ -370,6 +420,8 @@ final class PlanRow extends Equatable {
     risk,
     changes,
     detail,
+    code,
+    apply,
   ];
 }
 
@@ -400,6 +452,49 @@ final class PlanWarning extends Equatable {
   List<Object?> get props => [code, message];
 }
 
+/// Who built a plan (`createdBy`) and the grants it was planned under.
+final class PlanCreatorView extends Equatable {
+  const PlanCreatorView({
+    required this.actor,
+    this.caps = const [],
+    this.collections,
+  });
+
+  /// Parses `{actor: "kind:id", grants: {caps, collections}}`. Throws
+  /// [FormatException] on a wrong shape.
+  factory PlanCreatorView.fromJson(Map<String, Object?> json) {
+    final grants = _map(json['grants'] ?? const {}, 'grants');
+    final collections = grants['collections'];
+    return PlanCreatorView(
+      actor: Actor.fromWire(_str(json, 'actor')),
+      caps: switch (grants['caps']) {
+        // A bare "*" (every capability) as older fixtures write it.
+        final String one => [one],
+        _ => [for (final c in _list(grants, 'caps')) '$c'],
+      },
+      collections: collections == null
+          ? null
+          : [for (final c in _list(grants, 'collections')) '$c'],
+    );
+  }
+
+  final Actor actor;
+
+  /// Capability wires (`data:write`, or `*` for every one).
+  final List<String> caps;
+
+  /// The pinned collection ids; null means every collection.
+  final List<String>? collections;
+
+  Map<String, Object?> toJson() => {
+    'actor': actor.wire,
+    'grants': {'caps': caps, 'collections': collections},
+  };
+
+  @override
+  List<Object?> get props => [actor, caps, collections];
+}
+
 /// The UI read-model of a plan, parsed from the harness plan JSON: the full
 /// plan from `plans.get`, or the compact one (first 5 items) from
 /// `plans.seal`. Every string in it is harness-written.
@@ -415,6 +510,7 @@ final class PlanView extends Equatable {
     this.notes = const [],
     this.undo = 'full',
     this.expiresAt,
+    this.createdBy,
   }) : _itemCount = itemCount;
 
   /// Parses the plan JSON. Throws [FormatException] on a wrong shape.
@@ -426,6 +522,7 @@ final class PlanView extends Equatable {
     ];
     final shared = json['sharedChange'];
     final expires = json['expiresAt'];
+    final creator = json['createdBy'];
     return PlanView(
       planId: _str(json, 'planId'),
       title: json['title'] as String? ?? '',
@@ -442,6 +539,9 @@ final class PlanView extends Equatable {
       notes: [for (final n in _list(json, 'notes')) '$n'],
       undo: json['undo'] as String? ?? 'full',
       expiresAt: expires is String ? DateTime.tryParse(expires) : null,
+      createdBy: creator == null
+          ? null
+          : PlanCreatorView.fromJson(_map(creator, 'createdBy')),
     );
   }
 
@@ -472,11 +572,26 @@ final class PlanView extends Equatable {
   final String undo;
   final DateTime? expiresAt;
 
+  /// Who built the plan; null in plans from before Epic 9.
+  final PlanCreatorView? createdBy;
+
   /// Whether [rows] holds every item.
   bool get isComplete => rows.length >= itemCount;
 
-  /// A destructive plan (error border, typed confirm for collections).
-  bool get destructive => risk == PlanRisk.high;
+  /// A destructive plan (error border, typed confirm for collections): high
+  /// risk because it deletes. A high-risk compact plan whose loaded rows
+  /// delete nothing stays destructive, since an unseen row may.
+  bool get destructive =>
+      risk == PlanRisk.high && (!isComplete || rows.any((r) => r.deletes));
+
+  /// The plan installs or updates a module: the shield header.
+  bool get grantsPermissions => rows.any((r) => r.kind == 'saveModule');
+
+  /// The plan enrols an automation into auto-apply. Fails closed: any
+  /// automation not explicitly `ask` counts, so a missing or misspelled
+  /// `apply` still shows the consent banner.
+  bool get autoApplies =>
+      rows.any((r) => r.kind == 'saveAutomation' && r.apply != 'ask');
 
   /// Rows grouped by kind, in first-appearance order. A plan that only
   /// creates one collection and its fields is one group: the collection
@@ -499,16 +614,21 @@ final class PlanView extends Equatable {
 
   /// The selection a fresh card starts with: every item, except that in a
   /// plan mixing several kinds, medium- and high-risk groups start unticked
-  /// (so a delete cannot ride along under "Approve N").
+  /// (so a delete cannot ride along under "Approve N"). Module and
+  /// automation saves stay ticked: the shield header already asks for that
+  /// consent, and unticking a module would decline the automation that
+  /// depends on it.
   Set<String> get defaultSelection {
     final groups = this.groups;
     final mixed = groups.length > 1;
     return {
       for (final g in groups)
-        if (!mixed || g.risk == PlanRisk.low)
+        if (!mixed || g.risk == PlanRisk.low || _consentKinds.contains(g.kind))
           for (final r in g.rows) r.itemId,
     };
   }
+
+  static const _consentKinds = {'saveModule', 'saveAutomation'};
 
   /// The same plan cut to its first [maxItems] rows (what is persisted).
   PlanView compact({int maxItems = 5}) => rows.length <= maxItems
@@ -524,6 +644,7 @@ final class PlanView extends Equatable {
           notes: notes,
           undo: undo,
           expiresAt: expiresAt,
+          createdBy: createdBy,
         );
 
   /// The plan JSON shape [PlanView.fromJson] reads.
@@ -540,6 +661,7 @@ final class PlanView extends Equatable {
     'notes': notes,
     'undo': undo,
     if (expiresAt != null) 'expiresAt': expiresAt!.toUtc().toIso8601String(),
+    if (createdBy != null) 'createdBy': createdBy!.toJson(),
   };
 
   @override
@@ -554,6 +676,7 @@ final class PlanView extends Equatable {
     notes,
     undo,
     expiresAt,
+    createdBy,
   ];
 }
 
@@ -654,6 +777,7 @@ final class AppliedItem extends ChatItem {
     this.undoState = UndoState.available,
     this.undoNote,
     this.undoSessionOnly = false,
+    this.startedRuns = 0,
   }) : super(id);
 
   /// The plan as previewed (title, rows for schema changes).
@@ -672,12 +796,16 @@ final class AppliedItem extends ChatItem {
   /// you close Morkva".
   final bool undoSessionOnly;
 
+  /// Automation runs this commit started ("Started 3 automation runs").
+  final int startedRuns;
+
   AppliedItem copyWith({
     Receipt? receipt,
     UndoState? undoState,
     String? undoNote,
     bool clearUndoNote = false,
     bool? undoSessionOnly,
+    int? startedRuns,
   }) => AppliedItem(
     id: id,
     plan: plan,
@@ -686,6 +814,7 @@ final class AppliedItem extends ChatItem {
     undoState: undoState ?? this.undoState,
     undoNote: clearUndoNote ? null : undoNote ?? this.undoNote,
     undoSessionOnly: undoSessionOnly ?? this.undoSessionOnly,
+    startedRuns: startedRuns ?? this.startedRuns,
   );
 
   @override
@@ -697,6 +826,7 @@ final class AppliedItem extends ChatItem {
     undoState,
     undoNote,
     undoSessionOnly,
+    startedRuns,
   ];
 }
 
@@ -755,6 +885,8 @@ PlanRow _row(Map<String, Object?> json, {required PlanRisk fallbackRisk}) =>
         for (final c in _list(json, 'changes')) _change(_map(c, 'changes[]')),
       ],
       detail: json['detail'] as String?,
+      code: json['code'] as String?,
+      apply: json['apply'] as String?,
     );
 
 Map<String, Object?> _rowJson(PlanRow r) => {
@@ -766,6 +898,8 @@ Map<String, Object?> _rowJson(PlanRow r) => {
   'risk': r.risk.name,
   'changes': [for (final c in r.changes) _changeJson(c)],
   'detail': ?r.detail,
+  'code': ?r.code,
+  'apply': ?r.apply,
 };
 
 PlanChange _change(Map<String, Object?> json) => PlanChange(

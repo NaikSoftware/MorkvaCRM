@@ -124,13 +124,7 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
   /// Starts watching the object and the reference targets.
   Future<void> initialize() async {
     if (_deriveValues != null) emit(state);
-    if (state.stored case final stored?) {
-      _subs.add(
-        _repository
-            .watchObject(_collection.id, stored.id, schema: _collection)
-            .listen(_onStored, onError: (Object _) {}),
-      );
-    }
+    if (state.stored case final stored?) _watchStored(stored);
     final targetIds = {for (final f in _referenceFields) f.targetCollectionId};
     List<Collection> collections;
     try {
@@ -334,12 +328,22 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
       );
     }
     try {
-      await _repository.deleteObject(sublist.collection.id, item.id);
+      await _repository.deleteObject(
+        sublist.collection.id,
+        item.id,
+        before: item,
+      );
       return true;
     } catch (_) {
       return false;
     }
   }
+
+  void _watchStored(MorkvaObject stored) => _subs.add(
+    _repository
+        .watchObject(_collection.id, stored.id, schema: _collection)
+        .listen(_onStored, onError: (Object _) {}),
+  );
 
   void _onStored(MorkvaObject? next) {
     if (isClosed) return;
@@ -544,7 +548,11 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
 
   /// Validates and writes the draft. Returns whether the object is saved;
   /// false when errors block it (all errors then show) or the write failed.
-  Future<bool> save() async {
+  ///
+  /// [stayOpen] ("Save and run"): the editor keeps editing the saved object
+  /// instead of closing, so an action can run on it while the form follows
+  /// the stored card.
+  Future<bool> save({bool stayOpen = false}) async {
     if (isClosed || state.isSaving || state.isUploading) return false;
     if (state.status == ObjectEditorStatus.saved) return true;
     if (state.status == ObjectEditorStatus.deleted) return false;
@@ -571,9 +579,14 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
         updatedAt: now,
       );
     } else if (state.draft.isEmpty) {
-      emit(
-        checked.copyWith(status: ObjectEditorStatus.saved, savedObject: stored),
-      );
+      if (!stayOpen) {
+        emit(
+          checked.copyWith(
+            status: ObjectEditorStatus.saved,
+            savedObject: stored,
+          ),
+        );
+      }
       return true;
     } else {
       // Only the changed keys: the repository merges them over the stored
@@ -592,11 +605,30 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
       }
       return false;
     }
-    if (!isClosed) {
+    if (isClosed) return true;
+    if (!stayOpen) {
       emit(
         state.copyWith(status: ObjectEditorStatus.saved, savedObject: whole),
       );
+      return true;
     }
+    final created = stored == null;
+    emit(
+      ObjectEditorState(
+        collection: state.collection,
+        readOnlyFieldIds: state.readOnlyFieldIds,
+        titleFieldId: state.titleFieldId,
+        stored: whole,
+        // Remembered so closing later still reports the save.
+        savedObject: whole,
+        notes: state.notes,
+        sublists: state.sublists,
+        references: state.references,
+        derived: state.derived,
+      ),
+    );
+    // A created card is followed from now on, as an opened one is.
+    if (created) _watchStored(whole);
     return true;
   }
 

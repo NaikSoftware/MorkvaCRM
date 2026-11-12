@@ -2,9 +2,12 @@ import 'dart:async';
 import 'dart:math' show min;
 
 import '../../../api/data/data_repository.dart';
+import '../../domain/automation/automation.dart';
 import '../../domain/domain.dart';
+import '../api/capability.dart';
 import '../api/envelope.dart';
 import '../api/harness_context.dart';
+import '../automation_catalog.dart';
 import '../cache/workspace_cache.dart';
 import '../query/result_shaper.dart';
 import 'journal_entry.dart';
@@ -125,16 +128,22 @@ final class UndoResult {
 /// 4. schema and view edits, one transaction per collection on the
 ///    **server** copy (`updateCollection`, or `updateViews` when only views
 ///    change), each item stale-checked on its touched keys inside it;
-/// 5. card creates, then card updates and deletes (an update may link a
+/// 5. module saves, then their consents, then automation saves and deletes
+///    (through [PlanCommitter.catalog]; not journaled);
+/// 6. card creates, then card updates and deletes (an update may link a
 ///    created card and depends on its create), through `saveObjectsBatch`
 ///    in chunks, stale-checked against the live cache;
-/// 6. a collection delete: its cards in chunks, the schema doc last, so a
+/// 7. a collection delete: its cards in chunks, the schema doc last, so a
 ///    failure midway can be retried.
 ///
 /// Every batch or transaction waits at most [ackTimeout] for the server.
 /// When one does not answer, its items are `queued` (written locally,
 /// journaled from their after-values) and nothing more is started: the
 /// rest fail `offline`, for `plans.retryFailed`.
+///
+/// Card writes carry `ctx.origin` with the plan id as `commitId` (one fan-out
+/// key across every chunk); a collection delete's card writes are
+/// [WriteKind.collectionDelete] and undo's always [WriteKind.undo].
 ///
 /// Undo is the same machinery fed with the inverse items, stale-checked
 /// against the after-values: anything edited since is left as it is.
@@ -146,6 +155,7 @@ final class PlanCommitter {
     required OnlineCheck isOnline,
     this.ackTimeout = kCommitAckTimeout,
     this.batchSize = maxBatchWrites,
+    this.catalog,
   }) : _repository = repository,
        _isOnline = isOnline;
 
@@ -161,6 +171,10 @@ final class PlanCommitter {
 
   /// Writes per `saveObjectsBatch` call (one ack each).
   final int batchSize;
+
+  /// Where module, consent and automation items are written; without it
+  /// those items fail.
+  final AutomationCatalog? catalog;
 
   static const ResultShaper _shaper = ResultShaper();
 
@@ -211,11 +225,15 @@ final class PlanCommitter {
         }
       }
     }
-    final grants = plan.createdBy.grants;
+    final PlanCreator(:actor, :grants) = plan.createdBy;
     for (final i in todo) {
       if (outcomes[i.itemId] != null) continue;
+      // Module and automation items are workspace docs (no collection
+      // scope), and a module may never install or rebind modules.
+      final scoped = i.kind.scoped;
       if (!grants.allows(i.capability) ||
-          !grants.allowsCollection(i.collectionId)) {
+          (scoped && !grants.allowsCollection(i.collectionId)) ||
+          (!scoped && actor.kind == ActorKind.plugin)) {
         outcomes[i.itemId] = ItemOutcome.failed(
           ErrorCode.notPermitted.wire,
           '${plan.createdBy.actor} may not ${i.capability.wire} here.',
@@ -231,6 +249,7 @@ final class PlanCommitter {
     await cache.ready;
     await c.createCollections(attempt.whereType<CreateCollectionItem>());
     await c.editSchemas(attempt.where(_isSchemaEdit));
+    await c.writeAutomationItems(attempt.where((i) => !i.kind.scoped));
     // Creates first: an update may link a card created here and depends on
     // its create, so it must see that create's outcome.
     await c.createCards(attempt.whereType<CreateCardItem>());
@@ -425,6 +444,7 @@ final class PlanCommitter {
     List<_CardWrite> writes,
     Map<String, Collection> schemas,
     _Run run, {
+    required WriteOrigin origin,
     bool counts = true,
   }) async {
     void settle(_CardWrite w, ItemOutcome o) {
@@ -461,6 +481,7 @@ final class PlanCommitter {
               for (final w in chunk)
                 w.write.collectionId: ?schemas[w.write.collectionId],
             },
+            origin: origin,
           );
           final acked = await _ackedBatch(batch);
           if (acked == null) {
@@ -629,6 +650,11 @@ final class _Commit {
   final Map<String, List<String>> _createdIn = {};
 
   WorkspaceCache get cache => c.cache;
+
+  /// The plan's card writes: the caller's origin (a UI write when it gave
+  /// none) keyed by the plan id.
+  WriteOrigin get origin =>
+      (run.ctx.origin ?? const WriteOrigin.ui()).withCommitId(plan.planId);
 
   List<JournalItem> journal() => [
     for (final e in _createdIn.entries)
@@ -807,6 +833,147 @@ final class _Commit {
     }
   }
 
+  // Modules and automations -------------------------------------------------
+
+  /// Module saves, then their consents, then automation saves and deletes
+  /// (an automation may depend on a module saved here), each stale-checked
+  /// against the live catalog. Not journaled: undo leaves them alone.
+  Future<void> writeAutomationItems(Iterable<PlanItem> items) async {
+    final list = items.toList();
+    if (list.isEmpty) return;
+    final catalog = c.catalog;
+    final actor = run.ctx.actor;
+    // The consent and `autoBy` belong to the approving member.
+    final refusal = catalog == null
+        ? ItemOutcome.failed(
+            ErrorCode.internal.wire,
+            'Modules and automations cannot be saved here.',
+          )
+        : actor.kind != ActorKind.user
+        ? ItemOutcome.failed(
+            ErrorCode.notPermitted.wire,
+            'Only the signed-in user approves modules and automations, '
+            'not $actor.',
+          )
+        : null;
+    if (refusal != null) {
+      for (final i in list) {
+        settle(i, refusal);
+        run.done++;
+      }
+      return;
+    }
+    final uid = actor.id;
+    final now = run.ctx.now;
+
+    Future<void> each(
+      Iterable<PlanItem> items,
+      Future<ItemOutcome> Function(PlanItem item) write, {
+      void Function(PlanItem item)? written,
+    }) async {
+      for (final item in items) {
+        if (skip(item)) continue;
+        ItemOutcome o;
+        try {
+          o = await write(item);
+        } on Object catch (e) {
+          o = ItemOutcome.failed(ErrorCode.internal.wire, 'Not saved: $e');
+        }
+        if (o == ItemOutcome.applied && written != null) {
+          written(item);
+          continue;
+        }
+        settle(item, o);
+        run.done++;
+        run.report();
+      }
+    }
+
+    // A catalog write is a doc set: its retry is harmless, so one the server
+    // did not confirm in time stays retryable.
+    Future<ItemOutcome> acked(Future<void> write) async {
+      if (await c._acked(write)) return ItemOutcome.applied;
+      run.stopped = true;
+      return ItemOutcome.unconfirmed;
+    }
+
+    final modules = list.whereType<SaveModuleItem>();
+    final saved = <PlanItem>[];
+    await each(modules, (item) async {
+      final m = (item as SaveModuleItem).module;
+      // Hashed, never the stored `codeHash`; an earlier attempt of this plan
+      // that wrote the module but not its consent is not "elsewhere".
+      final live = (await catalog!.getModule(m.id))?.bundleHash;
+      if (live != item.beforeCodeHash && live != m.bundleHash) {
+        return ItemOutcome.changedElsewhere;
+      }
+      return acked(catalog.saveModule(_stamped(m, now)));
+    }, written: saved.add);
+    await each(saved, (item) {
+      final SaveModuleItem(:module, consent: k) = item as SaveModuleItem;
+      return acked(
+        catalog!.saveConsent(
+          uid,
+          // A plan never grants auto-apply; only the module details switch.
+          GrantRecord(
+            moduleId: module.id,
+            codeHash: module.bundleHash,
+            version: k.version,
+            codeBytes: k.codeBytes,
+            caps: k.caps,
+            collections: k.collections,
+            autoApply: false,
+            grantedAt: now,
+            via: k.via,
+          ),
+        ),
+      );
+    });
+    await each(
+      [
+        for (final i in list)
+          if (i is! SaveModuleItem) i,
+      ],
+      (item) async {
+        final live = await catalog!.getAutomation(item.targetId!);
+        // shortcut: a retry of an unconfirmed save reads as changed elsewhere
+        // (its updatedAt is the first attempt's); upgrade if retries matter.
+        switch (item) {
+          case SaveAutomationItem(:final before):
+            if (!_sameInstant(live?.updatedAt, before?.updatedAt)) {
+              return ItemOutcome.changedElsewhere;
+            }
+            return acked(catalog.saveAutomation(item.recordFor(uid, now)));
+          case DeleteAutomationItem(:final before):
+            if (live == null) return ItemOutcome.missing;
+            if (!_sameInstant(live.updatedAt, before.updatedAt)) {
+              return ItemOutcome.changedElsewhere;
+            }
+            return acked(catalog.deleteAutomation(before.id));
+          default:
+            throw StateError('${item.kind.name} is not an automation item');
+        }
+      },
+    );
+  }
+
+  static bool _sameInstant(DateTime? a, DateTime? b) =>
+      a == null || b == null ? a == b : a.isAtSameMomentAs(b);
+
+  /// [m] as written now (the planned record is dated at plan time).
+  static ModuleRecord _stamped(ModuleRecord m, DateTime now) => ModuleRecord(
+    id: m.id,
+    manifestJson: m.manifestJson,
+    code: m.code,
+    codeHash: m.bundleHash,
+    source: m.source,
+    version: m.version,
+    name: m.name,
+    createdBy: m.createdBy,
+    createdAt: m.createdAt,
+    updatedAt: now,
+  );
+
   /// [collection] with [item] applied, or as it is plus why [item] cannot
   /// apply. Only the item's touched keys are compared and written.
   (Collection, ItemOutcome?) _apply(Collection collection, PlanItem item) {
@@ -981,6 +1148,7 @@ final class _Commit {
                   collectionId: item.collectionId,
                   id: card.id,
                   values: {for (final e in keys.entries) e.key: e.value.after},
+                  before: card,
                 ),
                 (o) {
                   settle(item, o);
@@ -1012,7 +1180,11 @@ final class _Commit {
             }
             writes.add(
               _CardWrite(
-                ObjectDelete(collectionId: item.collectionId, id: card.id),
+                ObjectDelete(
+                  collectionId: item.collectionId,
+                  id: card.id,
+                  before: card,
+                ),
                 (o) {
                   settle(item, o);
                   if (o.written) {
@@ -1025,7 +1197,7 @@ final class _Commit {
             throw StateError('${item.kind.name} is not a card edit');
         }
       }
-      await c._writeCards(writes, _schemas(writes), run);
+      await c._writeCards(writes, _schemas(writes), run, origin: origin);
     } finally {
       lease?.release();
     }
@@ -1071,7 +1243,7 @@ final class _Commit {
         }),
       );
     }
-    await c._writeCards(writes, _schemas(writes), run);
+    await c._writeCards(writes, _schemas(writes), run, origin: origin);
   }
 
   Map<String, Collection> _schemas(List<_CardWrite> writes) => {
@@ -1122,7 +1294,7 @@ final class _Commit {
           for (final card in cards)
             _CardWrite(
               serverListed: true,
-              ObjectDelete(collectionId: id, id: card.id),
+              ObjectDelete(collectionId: id, id: card.id, before: card),
               (o) {
                 if (o.written) {
                   if (undoable) {
@@ -1137,7 +1309,19 @@ final class _Commit {
               },
             ),
         ];
-        await c._writeCards(writes, {id: server}, run, counts: false);
+        await c._writeCards(
+          writes,
+          {id: server},
+          run,
+          // Ignored by the trigger evaluator, like a UI collection delete.
+          origin: WriteOrigin(
+            kind: WriteKind.collectionDelete,
+            actor: origin.actor,
+            runId: origin.runId,
+            commitId: plan.planId,
+          ),
+          counts: false,
+        );
       }
       if (firstFailure != null && left == 0) {
         settle(item, firstFailure!);
@@ -1574,7 +1758,12 @@ final class _Undo {
             }
             writes.add(
               _CardWrite(
-                ObjectUpdate(collectionId: cid, id: item.id, values: values),
+                ObjectUpdate(
+                  collectionId: cid,
+                  id: item.id,
+                  values: values,
+                  before: card,
+                ),
                 (o) => settle(item, o),
               ),
             );
@@ -1601,16 +1790,30 @@ final class _Undo {
               continue;
             }
             writes.add(
-              _CardWrite(ObjectDelete(collectionId: cid, id: item.id), (o) {
-                if (o.written) deletedCards.add(item.id);
-                settle(item, o);
-              }),
+              _CardWrite(
+                ObjectDelete(collectionId: cid, id: item.id, before: card),
+                (o) {
+                  if (o.written) deletedCards.add(item.id);
+                  settle(item, o);
+                },
+              ),
             );
           default:
             throw StateError('${item.kind} is not a card item');
         }
       }
-      await c._writeCards(writes, schemas, run);
+      final origin = run.ctx.origin;
+      // Always an undo, whatever the caller says: undo writes fire nothing.
+      await c._writeCards(
+        writes,
+        schemas,
+        run,
+        origin: WriteOrigin(
+          kind: WriteKind.undo,
+          actor: origin?.actor,
+          runId: origin?.runId,
+        ),
+      );
     } finally {
       lease?.release();
     }

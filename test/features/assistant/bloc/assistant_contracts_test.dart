@@ -111,7 +111,10 @@ void main() {
         'risk': 'low',
         'createdBy': {
           'actor': 'agent:assistant',
-          'grants': {'caps': '*', 'collections': null},
+          'grants': {
+            'caps': ['data:read', 'data:write'],
+            'collections': null,
+          },
         },
         'items': [item('i1', 'updateCard', 'low')],
         'sharedChange': {

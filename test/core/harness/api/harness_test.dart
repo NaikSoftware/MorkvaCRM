@@ -46,7 +46,7 @@ OperationDescriptor _descriptor(
   OpKind kind = OpKind.read,
   Capability? capability = Capability.dataRead,
   String? exemption,
-  String since = '1.0',
+  String since = '2.0',
   Map<String, Object?>? args,
   Map<String, Object?>? result,
 }) => OperationDescriptor(
@@ -166,7 +166,7 @@ void main() {
     test('a request for another major version is unsupported', () async {
       final response = await harness.call(
         const HarnessRequest(
-          v: 2,
+          v: 1,
           op: 'cards.query',
           args: {'collection': 'Orders'},
           callId: 'c',
@@ -464,10 +464,21 @@ void main() {
     });
 
     test('reports the version, codes, capabilities and events', () {
-      expect(result['apiVersion'], '1.0');
+      expect(result['apiVersion'], '2.0');
       expect(result['errorCodes'], hasLength(ErrorCode.values.length));
-      expect(result['errorCodes'], contains('count_mismatch'));
-      expect(result['capabilities'], contains('host:commit'));
+      expect(
+        result['errorCodes'],
+        containsAll(['count_mismatch', 'no_change']),
+      );
+      expect(
+        result['capabilities'],
+        containsAll([
+          'modules:read',
+          'modules:write',
+          'automations:write',
+          'host:commit',
+        ]),
+      );
       expect(result['events'], ['progress']);
     });
 
@@ -548,8 +559,8 @@ void main() {
       expectRefused(_descriptor('query'));
       expectRefused(_descriptor('cards.query_all'));
       expectRefused(_descriptor('cards.${'x' * 60}'));
-      expectRefused(_descriptor('cards.next', since: '1.1'));
-      expectRefused(_descriptor('cards.next', since: '2.0'));
+      expectRefused(_descriptor('cards.next', since: '2.1'));
+      expectRefused(_descriptor('cards.next', since: '3.0'));
       expectRefused(_descriptor('cards.next', since: 'soon'));
       expectRefused(_descriptor('cards.next', args: JsonSchema.string()));
       expectRefused(

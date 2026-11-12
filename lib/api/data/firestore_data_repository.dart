@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:math' show min;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:flutter/foundation.dart'
+    show ErrorDescription, FlutterError, FlutterErrorDetails, visibleForTesting;
 import 'package:morkva_crm/core/domain/domain.dart' hide FieldValue;
+import 'package:morkva_crm/core/domain/ids.dart';
 import 'package:rxdart/rxdart.dart';
 
 import '../firestore/firestore_refs.dart';
@@ -12,6 +14,12 @@ import '../firestore/firestore_value_codec.dart';
 import '../firestore/firestore_value_codec_impl.dart';
 import '../sync/sync_status_cubit.dart';
 import 'data_repository.dart';
+
+/// What a committed batch chunk wrote: the create documents and its `now`.
+typedef _CommittedChunk = ({
+  Map<ObjectCreate, Map<String, dynamic>> created,
+  String now,
+});
 
 /// Cloud Firestore implementation of [DataRepository].
 ///
@@ -40,16 +48,18 @@ class FirestoreDataRepository implements DataRepository {
   ///
   /// [refs] and [codec] default to the standard implementations; [registry]
   /// defaults to the built-in field-type registry. [syncStatus] receives
-  /// pending/snapshot/conflict signals.
+  /// pending/snapshot/conflict signals. [ids] mints write and commit ids.
   FirestoreDataRepository({
     required FirebaseFirestore firestore,
     required SyncStatusCubit syncStatus,
     FirestoreRefs? refs,
     FirestoreValueCodec? codec,
     FieldTypeRegistry? registry,
+    IdGenerator? ids,
   }) : _refs = refs ?? FirestoreRefsImpl(firestore),
        _codec = codec ?? const FirestoreValueCodecImpl(),
        _registry = registry ?? defaultFieldTypeRegistry(),
+       _ids = ids ?? IdGenerator(),
        _syncStatus = syncStatus,
        _db = firestore;
 
@@ -57,9 +67,54 @@ class FirestoreDataRepository implements DataRepository {
   final FirestoreRefs _refs;
   final FirestoreValueCodec _codec;
   final FieldTypeRegistry _registry;
+  final IdGenerator _ids;
   final SyncStatusCubit _syncStatus;
 
   String? _workspaceId;
+
+  // Not closed in dispose: the app disposes and re-initializes this same
+  // instance on sign-out → sign-in, so the stream outlives a session; the
+  // epoch keeps an old session's writes off it.
+  final _changes = StreamController<CardChange>.broadcast();
+
+  /// Bumped by [initialize] and [dispose]; a write emits only if it is still
+  /// the epoch the write started in. The workspace id equals the uid, so a
+  /// sign-out → sign-in as the same user would pass a workspace-id check.
+  int _epoch = 0;
+
+  @override
+  Stream<CardChange> get changes => _changes.stream;
+
+  /// Whether a write that started in [epoch] should build its change: no
+  /// decoding (or delete-time cache read) when nobody listens.
+  bool _wants(int epoch) => epoch == _epoch && _changes.hasListener;
+
+  void _emit(
+    int epoch,
+    String collectionId,
+    String cardId, {
+    required MorkvaObject? before,
+    required MorkvaObject? after,
+    required WriteOrigin origin,
+    int? rev,
+  }) {
+    if (epoch != _epoch) return;
+    _changes.add(
+      CardChange(
+        collectionId: collectionId,
+        cardId: cardId,
+        before: before,
+        after: after,
+        rev: rev,
+        writeId: _ids.writeId(),
+        origin: origin,
+      ),
+    );
+  }
+
+  /// [origin] with a commit id minted for this call when it carries none.
+  WriteOrigin _committed(WriteOrigin origin) =>
+      origin.commitId == null ? origin.withCommitId(_ids.writeId()) : origin;
 
   /// Last revision this client has reconciled per object id — either written by
   /// us or observed on a server snapshot. Used as the baseline for last-write-
@@ -125,6 +180,7 @@ class FirestoreDataRepository implements DataRepository {
 
   @override
   Future<void> initialize(String workspaceId) async {
+    _epoch++;
     _workspaceId = workspaceId;
     _localRev.clear();
     _pendingObjects.clear();
@@ -266,7 +322,7 @@ class FirestoreDataRepository implements DataRepository {
                 subject.add(const []);
                 return;
               }
-              _processSnapshotMeta(snapshot);
+              processSnapshotMeta(snapshot);
               var changed = !emitted;
               for (final change in snapshot.docChanges) {
                 final id = change.doc.id;
@@ -370,7 +426,9 @@ class FirestoreDataRepository implements DataRepository {
   Future<void> saveObject(
     MorkvaObject object, {
     required Collection schema,
+    WriteOrigin origin = const WriteOrigin.ui(),
   }) async {
+    final epoch = _epoch;
     _syncStatus.reportPendingWrite();
     _pendingObjects.add(object.id);
 
@@ -381,8 +439,13 @@ class FirestoreDataRepository implements DataRepository {
     );
     final docRef = _refs.object(_wid, object.id);
 
+    // Plain assignments: the callback may re-run on contention, and the
+    // committed attempt overwrites them.
+    Map<String, dynamic>? beforeDoc;
+    var afterDoc = const <String, dynamic>{};
+    final int newRev;
     try {
-      final newRev = await _db.runTransaction<int>((transaction) async {
+      newRev = await _db.runTransaction<int>((transaction) async {
         final snapshot = await transaction.get(docRef);
         final current = snapshot.data();
         final currentRev = (current?['rev'] as num?)?.toInt() ?? 0;
@@ -410,13 +473,16 @@ class FirestoreDataRepository implements DataRepository {
             }, SetOptions(merge: true));
           }
         }
-        transaction.set(docRef, {
+        final doc = {
           'collectionId': object.collectionId,
           'rev': nextRev,
           'createdAt': json['createdAt'],
           'updatedAt': json['updatedAt'],
           'values': values,
-        });
+        };
+        transaction.set(docRef, doc);
+        beforeDoc = current;
+        afterDoc = doc;
         return nextRev;
       });
       _localRev[object.id] = newRev;
@@ -433,20 +499,108 @@ class FirestoreDataRepository implements DataRepository {
       _syncStatus.reportError('Failed to save object', cause: error);
       rethrow;
     }
+    if (!_wants(epoch)) return;
+    _guarded(() {
+      final before = switch (beforeDoc) {
+        final doc? => _objectFromData(object.id, doc, schema),
+        null => null,
+      };
+      final after = _objectFromData(object.id, afterDoc, schema);
+      if (before != null && isNoOpUpdate(before, after, encodedValues.keys)) {
+        return;
+      }
+      _emit(
+        epoch,
+        object.collectionId,
+        object.id,
+        before: before,
+        after: after,
+        origin: _committed(origin),
+        rev: newRev,
+      );
+    });
+  }
+
+  /// Runs [emit] so that building a change can never fail the committed
+  /// write it reports on; a failing change is reported and dropped.
+  void _guarded(void Function() emit) {
+    try {
+      emit();
+    } catch (error, stack) {
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stack,
+          library: 'morkva data',
+          context: ErrorDescription('while emitting a card change'),
+        ),
+      );
+    }
   }
 
   @override
-  Future<void> deleteObject(String collectionId, String objectId) async {
+  Future<void> deleteObject(
+    String collectionId,
+    String objectId, {
+    MorkvaObject? before,
+    WriteOrigin origin = const WriteOrigin.ui(),
+  }) async {
+    final epoch = _epoch;
+    final wid = _wid;
     _localRev.remove(objectId);
     _pendingObjects.remove(objectId);
-    await _refs.object(_wid, objectId).delete();
+    // Read first: after a local delete the cache reports the doc missing.
+    final stood =
+        before ??
+        (_wants(epoch)
+            ? await _cachedObject(wid, collectionId, objectId)
+            : null);
+    await _refs.object(wid, objectId).delete();
+    if (stood == null) return;
+    _emit(
+      epoch,
+      collectionId,
+      objectId,
+      before: stood,
+      after: null,
+      origin: _committed(origin),
+    );
+  }
+
+  /// The object [objectId] of [collectionId] as the local cache holds it,
+  /// decoded against the cached schema; null when either is missing or the
+  /// read fails.
+  Future<MorkvaObject?> _cachedObject(
+    String wid,
+    String collectionId,
+    String objectId,
+  ) async {
+    const cache = GetOptions(source: Source.cache);
+    try {
+      final data = (await _refs.object(wid, objectId).get(cache)).data();
+      if (data == null || data['collectionId'] != collectionId) return null;
+      final schema = (await _refs.collection(wid, collectionId).get(cache))
+          .data();
+      if (schema == null) return null;
+      return _objectFromData(
+        objectId,
+        data,
+        _collectionFromData(collectionId, schema),
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   @override
   Future<BatchResult> saveObjectsBatch(
     List<ObjectWrite> writes, {
     required Map<String, Collection> schemas,
+    WriteOrigin origin = const WriteOrigin.ui(),
   }) async {
+    final epoch = _epoch;
+    // One commit id for every chunk of the call (the fan-out key).
+    final committedOrigin = _committed(origin);
     for (final write in writes) {
       if (write is! ObjectDelete && !schemas.containsKey(write.collectionId)) {
         throw ArgumentError.value(
@@ -478,7 +632,7 @@ class FirestoreDataRepository implements DataRepository {
       }
       _pendingObjects.addAll(tracked);
       try {
-        await _commitChunk(chunk, schemas);
+        final committed = await _commitChunk(chunk, schemas);
         for (final write in chunk) {
           switch (write) {
             case ObjectCreate():
@@ -493,6 +647,9 @@ class FirestoreDataRepository implements DataRepository {
           }
           written.add(write.id);
         }
+        _guarded(
+          () => _emitChunk(epoch, chunk, schemas, committed, committedOrigin),
+        );
       } catch (error) {
         final code = error is FirebaseException ? error.code : 'unknown';
         for (final write in chunk) {
@@ -518,9 +675,75 @@ class FirestoreDataRepository implements DataRepository {
     return BatchResult(written: written, failed: failed);
   }
 
+  /// Emits a [CardChange] for each write of a committed [chunk]: creates from
+  /// the documents written, updates as `before` ⊕ the written values at the
+  /// batch's `now`, deletes as `before`. An update or delete without `before`
+  /// emits nothing.
+  void _emitChunk(
+    int epoch,
+    List<ObjectWrite> chunk,
+    Map<String, Collection> schemas,
+    _CommittedChunk committed,
+    WriteOrigin origin,
+  ) {
+    if (!_wants(epoch)) return;
+    for (final write in chunk) {
+      switch (write) {
+        case ObjectCreate():
+          _emit(
+            epoch,
+            write.collectionId,
+            write.id,
+            before: null,
+            after: _objectFromData(
+              write.id,
+              committed.created[write]!,
+              schemas[write.collectionId]!,
+            ),
+            origin: origin,
+          );
+        case ObjectUpdate(:final before?):
+          final schema = schemas[write.collectionId]!;
+          final touched = _encodeValues(write.values, schema);
+          final stood = before.toJson();
+          final after = _objectFromData(write.id, {
+            'collectionId': write.collectionId,
+            'createdAt': stood['createdAt'],
+            'updatedAt': committed.now,
+            'values': {
+              ..._encodeValues(
+                (stood['values'] as Map).cast<String, dynamic>(),
+                schema,
+              ),
+              ...touched,
+            },
+          }, schema);
+          if (isNoOpUpdate(before, after, touched.keys)) continue;
+          _emit(
+            epoch,
+            write.collectionId,
+            write.id,
+            before: before,
+            after: after,
+            origin: origin,
+          );
+        case ObjectDelete(:final before?):
+          _emit(
+            epoch,
+            write.collectionId,
+            write.id,
+            before: before,
+            after: null,
+            origin: origin,
+          );
+        case ObjectUpdate() || ObjectDelete():
+      }
+    }
+  }
+
   /// Commits one [chunk] of at most [maxBatchWrites] writes as a single
   /// [WriteBatch], after reserving the auto-numbers its creates lack.
-  Future<void> _commitChunk(
+  Future<_CommittedChunk> _commitChunk(
     List<ObjectWrite> chunk,
     Map<String, Collection> schemas,
   ) async {
@@ -541,18 +764,22 @@ class FirestoreDataRepository implements DataRepository {
 
     final createValues = {for (final c in creates) c.write: c.values};
     final now = DateTime.now().toUtc().toIso8601String();
+    final created = <ObjectCreate, Map<String, dynamic>>{};
     final batch = _db.batch();
     for (final write in chunk) {
       final ref = _refs.object(wid, write.id);
       switch (write) {
         case ObjectCreate(:final object):
-          batch.set(ref, {
-            'collectionId': object.collectionId,
-            'rev': 1,
-            'createdAt': object.createdAt.toUtc().toIso8601String(),
-            'updatedAt': object.updatedAt.toUtc().toIso8601String(),
-            'values': createValues[write],
-          });
+          batch.set(
+            ref,
+            created[write] = {
+              'collectionId': object.collectionId,
+              'rev': 1,
+              'createdAt': object.createdAt.toUtc().toIso8601String(),
+              'updatedAt': object.updatedAt.toUtc().toIso8601String(),
+              'values': createValues[write],
+            },
+          );
         case ObjectUpdate(:final collectionId, :final values):
           // Only the touched keys, so concurrent edits to other fields stay.
           // FieldPath, not a dotted string, so any field id is safe.
@@ -570,6 +797,7 @@ class FirestoreDataRepository implements DataRepository {
       }
     }
     await batch.commit();
+    return (created: created, now: now);
   }
 
   /// Gives the [creates] that lack an auto-number one, reserving the whole
@@ -662,6 +890,7 @@ class FirestoreDataRepository implements DataRepository {
     // Teardown fence: drop the workspace binding and rev tracking BEFORE any
     // await, so a snapshot callback or watch* call racing during teardown can
     // neither create untracked subscriptions nor touch the cubit after close.
+    _epoch++;
     _workspaceId = null;
     _localRev.clear();
     _pendingObjects.clear();
@@ -729,9 +958,13 @@ class FirestoreDataRepository implements DataRepository {
   /// Folds an object snapshot's per-doc revisions and metadata into the sync
   /// status, detecting last-write-wins conflicts (see spec §"Conflict
   /// algorithm").
-  void _processSnapshotMeta(QuerySnapshot<Map<String, dynamic>> snapshot) {
+  @visibleForTesting
+  void processSnapshotMeta(QuerySnapshot<Map<String, dynamic>> snapshot) {
     final metadata = snapshot.metadata;
-    final isServer = !metadata.hasPendingWrites;
+    // A cache snapshot (app start, offline) holds possibly stale revs: taking
+    // them as the baseline made the first server snapshot after edits made
+    // elsewhere look like a conflict.
+    final isServer = !metadata.isFromCache && !metadata.hasPendingWrites;
     final conflicts = <String>{};
 
     for (final doc in snapshot.docs) {

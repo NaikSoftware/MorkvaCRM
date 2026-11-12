@@ -87,10 +87,23 @@ abstract interface class DataRepository {
   });
 
   /// Creates or updates [object], encoding its values against [schema].
-  Future<void> saveObject(MorkvaObject object, {required Collection schema});
+  /// [origin] says who caused the write; it travels on its [CardChange].
+  Future<void> saveObject(
+    MorkvaObject object, {
+    required Collection schema,
+    WriteOrigin origin = const WriteOrigin.ui(),
+  });
 
   /// Deletes the object identified by [objectId] in [collectionId].
-  Future<void> deleteObject(String collectionId, String objectId);
+  ///
+  /// [before] is the object as it stood, for its [CardChange]; when omitted
+  /// the implementation looks it up locally and emits nothing if it can't.
+  Future<void> deleteObject(
+    String collectionId,
+    String objectId, {
+    MorkvaObject? before,
+    WriteOrigin origin = const WriteOrigin.ui(),
+  });
 
   // Bulk and transactional writes (the assistant's plan commits).
 
@@ -107,7 +120,12 @@ abstract interface class DataRepository {
   Future<BatchResult> saveObjectsBatch(
     List<ObjectWrite> writes, {
     required Map<String, Collection> schemas,
+    WriteOrigin origin = const WriteOrigin.ui(),
   });
+
+  /// Every card write this instance made, after it resolved (D5). Broadcast;
+  /// never remote changes, failed writes or schema writes.
+  Stream<CardChange> get changes;
 
   /// Rewrites the collection [id] as [apply] returns it, reading the
   /// **server** copy inside a transaction, so a concurrent edit by another
@@ -166,6 +184,7 @@ final class ObjectUpdate extends ObjectWrite {
     required this.collectionId,
     required this.id,
     required this.values,
+    this.before,
   });
 
   @override
@@ -175,17 +194,27 @@ final class ObjectUpdate extends ObjectWrite {
   final String id;
 
   final Map<String, Object?> values;
+
+  /// The object before this write; without it no [CardChange] is emitted.
+  final MorkvaObject? before;
 }
 
 /// Deletes an object; deleting a missing one is a no-op.
 final class ObjectDelete extends ObjectWrite {
-  const ObjectDelete({required this.collectionId, required this.id});
+  const ObjectDelete({
+    required this.collectionId,
+    required this.id,
+    this.before,
+  });
 
   @override
   final String collectionId;
 
   @override
   final String id;
+
+  /// The object before this write; without it no [CardChange] is emitted.
+  final MorkvaObject? before;
 }
 
 /// The outcome of [DataRepository.saveObjectsBatch].
@@ -201,3 +230,108 @@ final class BatchResult {
   @override
   String toString() => 'BatchResult(written: $written, failed: $failed)';
 }
+
+/// What kind of caller made a write.
+enum WriteKind { ui, plan, automation, undo, template, collectionDelete }
+
+/// Who caused a write; travels with every write call (D5).
+final class WriteOrigin {
+  const WriteOrigin.ui()
+    : kind = WriteKind.ui,
+      actor = null,
+      runId = null,
+      commitId = null,
+      depth = 0,
+      chain = const [];
+
+  const WriteOrigin({
+    required this.kind,
+    this.actor,
+    this.runId,
+    this.commitId,
+    this.depth = 0,
+    this.chain = const [],
+  });
+
+  final WriteKind kind;
+
+  /// `agent:assistant` | `plugin:<id>` | null (= the signed-in user).
+  final String? actor;
+
+  /// The automation run that made the write.
+  final String? runId;
+
+  /// The plan id for plan/host commits; minted per UI write call. Every
+  /// change of one call shares it (the fan-out key).
+  final String? commitId;
+
+  /// 0 for ui/plan; the run's depth for automation writes.
+  final int depth;
+
+  /// Automation ids, root first.
+  final List<String> chain;
+
+  /// This origin with [commitId] set.
+  WriteOrigin withCommitId(String commitId) => WriteOrigin(
+    kind: kind,
+    actor: actor,
+    runId: runId,
+    commitId: commitId,
+    depth: depth,
+    chain: chain,
+  );
+
+  @override
+  String toString() =>
+      'WriteOrigin(${kind.name}, actor: $actor, runId: $runId, '
+      'commitId: $commitId, depth: $depth, chain: $chain)';
+}
+
+/// One card write a [DataRepository] made, emitted on
+/// [DataRepository.changes] once the write resolved.
+final class CardChange {
+  const CardChange({
+    required this.collectionId,
+    required this.cardId,
+    required this.before,
+    required this.after,
+    required this.writeId,
+    required this.origin,
+    this.rev,
+  });
+
+  final String collectionId;
+  final String cardId;
+
+  /// Null = created.
+  final MorkvaObject? before;
+
+  /// Null = deleted.
+  final MorkvaObject? after;
+
+  /// The new rev (saveObject only; batch writes increment, so null).
+  final int? rev;
+
+  /// Minted per emitted change (the idempotency key).
+  final String writeId;
+
+  final WriteOrigin origin;
+
+  @override
+  String toString() =>
+      'CardChange($collectionId/$cardId, '
+      '${before == null
+          ? 'created'
+          : after == null
+          ? 'deleted'
+          : 'updated'}, '
+      'rev: $rev, writeId: $writeId, origin: $origin)';
+}
+
+/// Whether an update from [before] to [after] changed none of the
+/// [touched] values; such a write emits no [CardChange].
+bool isNoOpUpdate(
+  MorkvaObject before,
+  MorkvaObject after,
+  Iterable<String> touched,
+) => touched.every((k) => before.values[k] == after.values[k]);

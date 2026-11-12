@@ -1,0 +1,4 @@
+tags:
+  # QuickJS engine tests on the gcc-built host lib (tool/build_qjs_test_lib.sh);
+  # they skip themselves unless FLUTTER_QJS_NEXT_LIBRARY is set.
+  qjs:

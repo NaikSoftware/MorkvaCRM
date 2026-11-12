@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Automations — allow a changed module</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&amp;family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#FBF7F2}
+.nav{display:flex;align-items:center;gap:12px;height:44px;padding:0 6px 0 8px;margin:0 0 2px;border-radius:14px;border:0;background:transparent;width:100%;text-align:left;font:500 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;color:#2B2018;box-sizing:border-box;text-decoration:none}
+.nav:hover{background:rgba(255,255,255,.55)}
+.tile{width:28px;height:28px;flex:0 0 28px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center}
+.cap{font:700 11px 'Hanken Grotesk',sans-serif;letter-spacing:.9px;text-transform:uppercase;color:#6B5E52;margin:0}
+.ib{width:44px;height:44px;border-radius:22px;border:0;background:transparent;color:#6B5E52;display:inline-flex;align-items:center;justify-content:center}
+.tab{position:relative;height:48px;padding:0 12px;border:0;background:transparent;display:inline-flex;align-items:center;gap:8px;font:500 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;color:#6B5E52;border-radius:8px}
+.cnt{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;box-sizing:border-box;border-radius:10px;font:600 12px 'Hanken Grotesk',sans-serif;font-variant-numeric:tabular-nums}
+.pill{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 10px 0 8px;box-sizing:border-box;border-radius:12px;font:600 12px 'Hanken Grotesk',sans-serif;letter-spacing:.2px;white-space:nowrap}
+.npill{flex:0 0 auto;display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;box-sizing:border-box;border-radius:12px;font:600 12px 'Hanken Grotesk',sans-serif;white-space:nowrap;font-variant-numeric:tabular-nums}
+.mod{display:flex;gap:16px;padding:16px;border-radius:16px;background:#FFFFFF;box-shadow:0 1px 2px rgba(0,0,0,.08),0 3px 6px rgba(74,53,32,.06);color:#2B2018;text-decoration:none}
+.mod:hover{box-shadow:0 2px 4px rgba(0,0,0,.10),0 8px 14px rgba(82,58,34,.08)}
+.meta{display:flex;align-items:flex-start;gap:8px;font:400 12px/1.45 'Hanken Grotesk',sans-serif;color:#6B5E52}
+.meta svg{flex:0 0 14px;margin-top:2px}
+.card{background:#FFFFFF;border-radius:16px;box-shadow:0 1px 2px rgba(0,0,0,.08),0 3px 6px rgba(74,53,32,.06)}
+.row{display:flex;align-items:center;gap:12px;min-height:44px;padding:8px 16px;border-top:1px solid #F4EDE3;font-size:14px}
+.h2{margin:0;flex:1 1 auto;font:600 16px/1.3 'Hanken Grotesk',sans-serif}
+.sub{font-size:12px;line-height:1.45;color:#6B5E52}
+.mono{font-family:monospace,'Roboto Mono','Courier New';font-size:13px;font-variant-numeric:tabular-nums}
+.tb{height:44px;padding:0 12px;border-radius:12px;border:0;background:transparent;color:#8A4708;display:inline-flex;align-items:center;gap:8px;font:600 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;white-space:nowrap}
+.sb{height:44px;padding:0 24px;border-radius:12px;border:1px solid #E0D5C7;background:#E8DECD;color:#2B2018;display:inline-flex;align-items:center;gap:8px;font:600 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;white-space:nowrap}
+.pb{height:44px;padding:0 24px;border-radius:12px;border:0;background:#E8821E;color:#3A1E00;display:inline-flex;align-items:center;gap:8px;font:600 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;white-space:nowrap}
+.sw{width:52px;height:44px;border:0;padding:0;background:transparent;display:inline-flex;align-items:center;flex:0 0 52px}
+.chk{appearance:none;-webkit-appearance:none;width:18px;height:18px;margin:0;flex:0 0 18px;border:2px solid #6B5E52;border-radius:4px;background:#FFFFFF}
+.rad{appearance:none;-webkit-appearance:none;width:20px;height:20px;margin:0;flex:0 0 20px;border:2px solid #6B5E52;border-radius:10px;background:#FFFFFF}
+.opt{display:flex;align-items:center;gap:12px;min-height:44px;padding:0 8px;border-radius:12px;font-size:14px;cursor:pointer}
+.dh{margin:0 0 4px;font:600 14px/1.3 'Hanken Grotesk',sans-serif}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; position: relative; display: flex; background: #FBF7F2; font-family: 'Hanken Grotesk', sans-serif; color: #2B2018; overflow: hidden">
+
+  <!-- Sidebar 272 (shell_sidebar.dart _full) -->
+  <nav aria-label="Main" style="width: 272px; flex: 0 0 272px; box-sizing: border-box; background: #F4EDE3; display: flex; flex-direction: column; padding: 16px 12px 12px">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 4px 4px 12px 6px">
+      <span style="width: 38px; height: 38px; flex: 0 0 38px; border-radius: 12px; background: #E8821E; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(232,130,30,.35)">
+        <svg width="24" height="24" viewBox="0.15 -1.9 24 24" aria-hidden="true"><path d="M4.5 19.5c2.6-1 8.3-5.6 10.3-8.6a2.7 2.7 0 0 0-3.7-3.7C8.1 9.2 3.5 14.9 2.5 17.5c-.4 1.1 1 2.4 2 2z" fill="#3A1E00"/><path d="M15.5 6.5l3.5-3.5M17 8.5l4-1.5M13.5 5l1.2-3.5" fill="none" stroke="#3A1E00" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </span>
+      <span style="display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto">
+        <span style="font: 700 18px 'Bricolage Grotesque', sans-serif; letter-spacing: -0.2px; line-height: 1.1">Morkva</span>
+        <span style="font-size: 12px; color: #6B5E52; letter-spacing: 1.2px">CRM</span>
+      </span>
+    </div>
+
+    <button style="display: flex; align-items: center; height: 44px; margin: -2px 0; padding: 0; border: 0; background: transparent; text-align: left; cursor: pointer"><span style="flex: 1 1 auto; display: flex; align-items: center; gap: 8px; height: 40px; box-sizing: border-box; padding: 0 8px 0 12px; border-radius: 12px; border: 1px solid #E0D5C7; background: #FBF7F2; color: #6B5E52; font: 400 14px 'Hanken Grotesk', sans-serif">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <span style="flex: 1 1 auto">Jump to…</span>
+      <kbd style="font: 600 11px 'Hanken Grotesk', sans-serif; color: #6B5E52; background: #F4EDE3; border: 1px solid #E0D5C7; border-radius: 6px; padding: 2px 6px">Ctrl K</kbd>
+    </span></button>
+
+    <!-- Ask Morkva toggle, panel closed -->
+    <button aria-pressed="false" style="display: flex; align-items: center; gap: 8px; height: 44px; margin-top: 8px; padding: 0 8px 0 12px; border-radius: 12px; border: 0; background: transparent; color: #2B2018; font: 600 14px 'Hanken Grotesk', sans-serif; text-align: left">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="#8A4708" aria-hidden="true"><path d="M12 2.5c.6 4.6 2.9 6.9 7.5 7.5-4.6.6-6.9 2.9-7.5 7.5-.6-4.6-2.9-6.9-7.5-7.5 4.6-.6 6.9-2.9 7.5-7.5zM19 15.5c.3 2 1.2 2.9 3.2 3.2-2 .3-2.9 1.2-3.2 3.2-.3-2-1.2-2.9-3.2-3.2 2-.3 2.9-1.2 3.2-3.2z"/></svg>
+      <span style="flex: 1 1 auto">Ask Morkva</span>
+      <kbd style="font: 600 11px 'Hanken Grotesk', sans-serif; color: #6B5E52; border: 1px solid #E0D5C7; border-radius: 6px; padding: 2px 6px">Ctrl J</kbd>
+    </button>
+
+    <div style="height: 8px"></div>
+    <a href="#" class="nav">
+      <span class="tile" style="background: #E8821E; color: #3A1E00"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></svg></span>
+      <span style="flex: 1 1 auto">All collections</span>
+    </a>
+    <!-- Automations: selected, 1 needs review (amber pill) -->
+    <a href="#" class="nav" aria-label="Automations, 1 needs review" aria-current="page" style="background: #FFFFFF; font-weight: 700; box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 3px 6px rgba(74,53,32,.06)">
+      <span class="tile" style="background: #EEE5D8; color: #4E2A00"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 2.5L4.5 13.5H11l-1.5 8 9-11H12z"/></svg></span>
+      <span style="flex: 1 1 auto">Automations</span>
+      <span class="npill" style="background: #FBF3DC; color: #5A4410; box-shadow: inset 0 0 0 1px #EBD7A0">1 needs review</span>
+    </a>
+
+    <div style="padding: 16px 4px 4px 12px"><p class="cap">Pinned</p></div>
+    <a href="#" class="nav"><span class="tile" style="background: #FFE0C2; color: #8A4708"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8"/></svg></span><span style="flex: 1 1 auto">Orders</span></a>
+    <a href="#" class="nav"><span class="tile" style="background: #E3EEDB; color: #3B6128"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4.5a3.5 3.5 0 1 1 0 7a3.5 3.5 0 1 1 0-7zM2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5c2 .7 3.2 2.6 3.5 5.5"/></svg></span><span style="flex: 1 1 auto">Clients</span></a>
+    <a href="#" class="nav"><span class="tile" style="background: #DCEAF3; color: #2F5F80"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12V4h8l10 10-8 8zM7.5 7a1.5 1.5 0 1 1 0 3a1.5 1.5 0 1 1 0-3z"/></svg></span><span style="flex: 1 1 auto">Products</span></a>
+    <a href="#" class="nav"><span class="tile" style="background: #EDE0EE; color: #6B3F70"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6h12v10H2zM14 10h4l3 3v3h-7M6 16a2 2 0 1 1 0 4a2 2 0 1 1 0-4zM17 16a2 2 0 1 1 0 4a2 2 0 1 1 0-4z"/></svg></span><span style="flex: 1 1 auto">Deliveries</span></a>
+
+    <span style="flex: 1 1 auto"></span>
+
+    <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0 0 4px; border-top: 1px solid #E0D5C7">
+      <span style="width: 34px; height: 34px; flex: 0 0 34px; border-radius: 17px; background: #4C7A34; color: #FFFFFF; display: inline-flex; align-items: center; justify-content: center; font: 700 14px 'Hanken Grotesk', sans-serif">OK</span>
+      <span style="display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto">
+        <span style="font-size: 14px; font-weight: 600">Olena Kovalenko</span>
+        <span style="display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; color: #2E6B45"><span style="width: 7px; height: 7px; border-radius: 4px; background: #2E8B57"></span>Synced</span>
+      </span>
+      <button class="ib" aria-label="Settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg></button>
+    </div>
+  </nav>
+
+  <main style="flex: 1 1 auto; min-width: 0; box-sizing: border-box; padding: 16px 64px 32px; display: flex; flex-direction: column; overflow: hidden">
+    <div style="flex: 0 0 auto; margin-bottom: 4px"><div role="status" style="display: flex; align-items: center; gap: 12px; padding: 12px 12px 12px 16px; border-radius: 12px; background: #FBF3DC; color: #5A4410; box-shadow: inset 0 0 0 1px #EBD7A0; font-size: 14px; line-height: 1.45">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 20px"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.3"/></svg>
+  <span style="flex: 1 1 auto"><b>This module changed (v1.0.0 → v1.1.0).</b> Its automations are paused until you allow the new version.</span>
+  <button class="pb">Review changes</button>
+</div></div>
+    <a href="#" class="tb" style="flex: 0 0 auto; align-self: flex-start; margin-left: -12px; text-decoration: none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 20px"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>Automations</a>
+    <header style="flex: 0 0 auto; display: flex; align-items: center; gap: 16px; margin-top: 8px">
+      <span style="width: 44px; height: 44px; flex: 0 0 44px; border-radius: 13px; background: #D8EEEA; color: #23605A; display: inline-flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 22px"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4M9 15l2 2 4-4"/></svg></span>
+      <div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+        <div style="display: flex; align-items: center; gap: 8px">
+          <h1 style="margin: 0; font: 600 20px/1.25 'Bricolage Grotesque', sans-serif; letter-spacing: -0.3px">Stamp shipped date</h1>
+          <span class="pill" style="padding: 0 8px; background: #EEE5D8; color: #2B2018; font-variant-numeric: tabular-nums"><span style="width: 8px; height: 8px; border-radius: 4px; background: #B6A593"></span>v1.1.0</span><span class="pill" style="background: #FBF3DC; color: #5A4410; box-shadow: inset 0 0 0 1px #EBD7A0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.3"/></svg>Needs consent</span>
+        </div>
+        <p style="margin: 0; font-size: 14px; line-height: 1.45; color: #6B5E52; font-variant-numeric: tabular-nums">Made by Ask Morkva · 12 Nov · 2.4 KB</p>
+      </div>
+      <button class="ib" aria-label="More: export, uninstall"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></button>
+    </header>
+    <div style="flex: 0 0 auto; margin-top: 16px; display: grid; grid-template-columns: minmax(0, 1fr) 392px; gap: 24px; align-items: start">
+      <div style="display: flex; flex-direction: column; gap: 16px; min-width: 0">
+<section class="card" aria-labelledby="sec-can" style="padding: 12px 0 8px">
+  <div style="display: flex; align-items: center; gap: 4px; min-height: 44px; padding: 4px 16px 4px 16px">
+    <h2 id="sec-can" class="h2">What it can do</h2><button class="tb" style="color: #C0392B">Revoke</button><button class="sb">Change access</button>
+  </div>
+  <div class="row">
+    <span style="width: 28px; height: 28px; flex: 0 0 28px; border-radius: 9px; background: #EEE5D8; color: #4E2A00; display: inline-flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 16px"><path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></svg></span>
+    <span style="flex: 1 1 auto; display: flex; flex-direction: column"><span style="font-weight: 600">Read cards</span><span class="sub">Reads card values in the allowed collections. · In Orders</span></span>
+  </div>
+  <div class="row">
+    <span style="width: 28px; height: 28px; flex: 0 0 28px; border-radius: 9px; background: #EEE5D8; color: #4E2A00; display: inline-flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 16px"><path d="M12 20h8M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span>
+    <span style="flex: 1 1 auto; display: flex; flex-direction: column"><span style="font-weight: 600">Create and change cards</span><span class="sub">Proposes new cards and edits. · In Orders</span></span>
+  </div>
+  <div class="row">
+    <span style="width: 28px; height: 28px; flex: 0 0 28px; border-radius: 9px; background: #EEE5D8; color: #4E2A00; display: inline-flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 16px"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M3.5 9.5h17M9.5 9.5v10"/></svg></span>
+    <span style="flex: 1 1 auto; display: flex; flex-direction: column"><span style="font-weight: 600">See your collections and fields</span><span class="sub">Reads collection and field names and types.</span></span>
+  </div>
+  <p class="meta" style="margin: 4px 0 0; padding: 8px 16px 0; border-top: 1px solid #F4EDE3; "><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 14px"><path d="M12 3l7.5 3v5.5c0 4.5-3.2 8.2-7.5 9.5-4.3-1.3-7.5-5-7.5-9.5V6z"/></svg><span>Modules can't reach the internet, your account or other apps.</span></p>
+</section>
+<section class="card" aria-labelledby="sec-act" style="padding: 12px 0 4px">
+  <div style="display: flex; align-items: center; gap: 4px; min-height: 44px; padding: 4px 8px 4px 16px">
+    <h2 id="sec-act" class="h2">Actions</h2>
+  </div>
+  <div class="row" style="align-items: center; padding: 10px 8px 10px 16px">
+    <span style="width: 28px; height: 28px; flex: 0 0 28px; border-radius: 9px; background: #D8EEEA; color: #23605A; display: inline-flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 16px"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4M9 15l2 2 4-4"/></svg></span>
+    <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="display: flex; align-items: center; gap: 8px"><span style="font-weight: 600">Stamp</span><span class="pill" style="padding: 0 8px; height: 22px; background: #F4EDE3; color: #6B5E52; font-weight: 600">On a card</span></span><span style="font-size: 13px; line-height: 1.4; color: #6B5E52">Sets a date field to today.</span><span class="sub">Date field — a field picker</span></span>
+    <span style="display: flex; flex-direction: column; align-items: flex-end"><span style="display: flex"><button class="tb" disabled="disabled" style="opacity: .38"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 16px"><path d="M7.5 5.5v13l10.5-6.5z"/></svg>Test run</button><button class="tb"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 16px"><rect x="3" y="7" width="18" height="10" rx="5"/><path d="M8.5 12h7"/></svg>Add to a button</button></span><span class="sub" style="padding-right: 12px">Allow this module first</span></span>
+  </div>
+</section>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 16px; min-width: 0">
+<section class="card" aria-labelledby="sec-about" style="padding: 12px 0 14px">
+  <div style="display: flex; align-items: center; gap: 4px; min-height: 44px; padding: 4px 8px 4px 16px">
+    <h2 id="sec-about" class="h2">About</h2>
+  </div>
+  <p style="margin: 0; padding: 0 16px 12px; font-size: 14px; line-height: 1.45">Sets a date field to today when an order ships. Now also links the stamped order.</p>
+
+</section>
+<section class="card" aria-label="Auto-apply" style="padding: 12px 0 16px">
+  <div style="display: flex; align-items: center; gap: 4px; min-height: 44px; padding: 4px 8px 4px 16px">
+    <h2 id="sec-auto" class="h2">Apply changes automatically</h2><button class="sw" role="switch" aria-checked="false" aria-label="Apply changes automatically" disabled="disabled" style=" opacity: .38;"><span style="position: relative; width: 52px; height: 32px; box-sizing: border-box; border-radius: 16px; background: #E8DECD; border: 2px solid #B6A593; display: block"><span style="position: absolute; top: 6px; left: 6px; width: 16px; height: 16px; border-radius: 8px; background: #B6A593"></span></span></button>
+  </div>
+  <p style="margin: 0; padding: 0 16px; font-size: 13px; line-height: 1.45; color: #6B5E52">Small card creates and edits from this module — up to 20 cards, nothing cleared — are applied without asking. Bigger changes, deletes and structure changes always wait for you. You can undo an applied run until you reload Morkva.</p><p style="margin: 8px 0 0; padding: 0 16px; font-size: 12px; font-weight: 600; color: #5A4410">Allow this module first</p>
+</section>
+<section class="card" aria-labelledby="sec-autos" style="padding: 12px 0 0">
+  <div style="display: flex; align-items: center; gap: 4px; min-height: 44px; padding: 4px 8px 4px 16px">
+    <h2 id="sec-autos" class="h2">Automations using it</h2><button class="tb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 18px"><path d="M12 5v14M5 12h14"/></svg>New automation</button>
+  </div>
+  <div class="row" style="align-items: flex-start; padding: 10px 8px 10px 16px">
+    <span style="width: 36px; height: 36px; flex: 0 0 36px; border-radius: 10px; background: #EEE5D8; color: #4E2A00; display: inline-flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 18px"><path d="M13.5 2.5L4.5 13.5H11l-1.5 8 9-11H12z"/></svg></span>
+    <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 600">Stamp when shipped</span><span class="sub">When a card is updated · Status is Shipped</span><span style="display: flex; gap: 6px; margin-top: 4px"><span class="pill" style="background: #FBF3DC; color: #5A4410; box-shadow: inset 0 0 0 1px #EBD7A0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.3"/></svg>Needs consent</span></span></span>
+    <button class="sw" role="switch" aria-checked="true" aria-label="Stamp when shipped" style=""><span style="position: relative; width: 52px; height: 32px; border-radius: 16px; background: #E8821E; display: block"><span style="position: absolute; top: 4px; left: 24px; width: 24px; height: 24px; border-radius: 12px; background: #3A1E00"></span></span></button>
+  </div>
+  <div class="row" style="align-items: flex-start; padding: 10px 8px 10px 16px">
+    <span style="width: 36px; height: 36px; flex: 0 0 36px; border-radius: 10px; background: #D8EEEA; color: #23605A; display: inline-flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 18px"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4M9 15l2 2 4-4"/></svg></span>
+    <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 600">Mark shipped</span><span class="sub">Button on a card</span><span style="display: flex; gap: 6px; margin-top: 4px"><span class="pill" style="background: #FBF3DC; color: #5A4410; box-shadow: inset 0 0 0 1px #EBD7A0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.3"/></svg>Needs consent</span></span></span>
+    <button class="sw" role="switch" aria-checked="true" aria-label="Mark shipped" style=""><span style="position: relative; width: 52px; height: 32px; border-radius: 16px; background: #E8821E; display: block"><span style="position: absolute; top: 4px; left: 24px; width: 24px; height: 24px; border-radius: 12px; background: #3A1E00"></span></span></button>
+  </div>
+</section>
+<section class="card" aria-labelledby="sec-code" style="padding: 12px 0 16px">
+  <div style="display: flex; align-items: center; gap: 4px; min-height: 44px; padding: 4px 16px 4px 16px">
+    <h2 id="sec-code" class="h2">Code</h2><button class="sb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 18px"><path d="M8.5 7L3.5 12l5 5M15.5 7l5 5-5 5"/></svg>View code</button>
+  </div>
+  <p style="margin: 0; padding: 0 16px; display: flex; align-items: center; gap: 8px; color: #6B5E52"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 16px"><path d="M14 3.5H7A2.5 2.5 0 0 0 4.5 6v12A2.5 2.5 0 0 0 7 20.5h10a2.5 2.5 0 0 0 2.5-2.5V9z"/><path d="M14 3.5V9h5.5"/></svg><span class="mono">module.js · 2.4 KB · sha256:5d0a…7f3b</span></p>
+</section>
+      </div>
+    </div>
+  </main>
+  <div style="position: absolute; inset: 0; background: rgba(43,32,24,.32); display: flex; align-items: center; justify-content: center">
+    <div role="dialog" aria-modal="true" aria-labelledby="dlg-t" style="width: 560px; height: 716px; box-sizing: border-box; background: #FFFFFF; border-radius: 16px; box-shadow: 0 4px 10px rgba(0,0,0,.14), 0 16px 28px rgba(82,58,34,.10); display: flex; flex-direction: column; overflow: hidden">
+      <div style="display: flex; align-items: center; gap: 16px; padding: 20px 24px 12px">
+        <span style="width: 44px; height: 44px; flex: 0 0 44px; border-radius: 13px; background: #FFE0C2; color: #4E2A00; display: inline-flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 22px"><path d="M12 3l7.5 3v5.5c0 4.5-3.2 8.2-7.5 9.5-4.3-1.3-7.5-5-7.5-9.5V6z"/></svg></span>
+        <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+          <h2 id="dlg-t" style="margin: 0; font: 600 20px/1.25 'Bricolage Grotesque', sans-serif; letter-spacing: -0.3px">Allow "Stamp shipped date"?</h2>
+          <p style="margin: 0; font-size: 14px; color: #6B5E52; font-variant-numeric: tabular-nums">v1.1.0 · Made by Ask Morkva · 2.4 KB</p>
+        </div>
+      </div>
+      <div style="position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; padding: 0 24px; display: flex; flex-direction: column; gap: 14px">
+<span aria-hidden="true" style="position: absolute; right: 6px; top: 8px; width: 4px; height: 300px; border-radius: 2px; background: #B6A593; opacity: .7"></span>
+        <div style="display: flex; flex-direction: column; gap: 4px; padding: 10px 14px; border-radius: 12px; background: #F4EDE3; font-size: 13px; line-height: 1.4">
+          <span style="display: flex; align-items: center; gap: 10px; font-variant-numeric: tabular-nums"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 16px"><path d="M8.5 7L3.5 12l5 5M15.5 7l5 5-5 5"/></svg><span>Code changed: v1.0.0 → v1.1.0 · 2.1 KB → 2.4 KB</span></span>
+          <span style="display: flex; align-items: center; gap: 10px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 16px"><path d="M13.5 2.5L4.5 13.5H11l-1.5 8 9-11H12z"/></svg><span>Auto-apply turns off for the new version. Turn it on again in module details.</span></span>
+        </div>
+        <div>
+          <p class="dh">It can:</p>
+          <div style="border-radius: 12px; box-shadow: inset 0 0 0 1px #F4EDE3; overflow: hidden">
+            <div class="row" style="min-height: 48px; padding: 4px 12px; border-top: 0; border-bottom: 1px solid #F4EDE3"><span style="width: 28px; height: 28px; flex: 0 0 28px; border-radius: 9px; background: #EEE5D8; color: #4E2A00; display: inline-flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 16px"><path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></svg></span><span style="flex: 1 1 auto; display: flex; flex-direction: column"><span style="font-weight: 600">Read cards</span><span class="sub">Reads card values in the allowed collections.</span></span></div>
+            <div class="row" style="min-height: 48px; padding: 4px 12px; border-top: 0; border-bottom: 1px solid #F4EDE3"><span style="width: 28px; height: 28px; flex: 0 0 28px; border-radius: 9px; background: #EEE5D8; color: #4E2A00; display: inline-flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 16px"><path d="M12 20h8M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span><span style="flex: 1 1 auto; display: flex; flex-direction: column"><span style="font-weight: 600">Create and change cards</span><span class="sub">Proposes new cards and edits.</span></span></div>
+            <div class="row" style="min-height: 48px; padding: 4px 12px; border-top: 0; border-bottom: 1px solid #F4EDE3"><span style="width: 28px; height: 28px; flex: 0 0 28px; border-radius: 9px; background: #EEE5D8; color: #4E2A00; display: inline-flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 16px"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg></span><span style="flex: 1 1 auto; display: flex; flex-direction: column"><span style="font-weight: 600">Link to cards</span><span class="sub">Shows links that open a card or view when you tap them.</span></span><span class="pill" style="padding: 0 8px; background: transparent; color: #5A4410; box-shadow: inset 0 0 0 1.5px #D4A017">New</span></div>
+            <div class="row" aria-label="Removed: See your collections and fields" style="min-height: 48px; padding: 4px 12px; color: #6B5E52; border-top: 0; border-bottom: 1px solid #F4EDE3"><span style="width: 28px; height: 28px; flex: 0 0 28px; border-radius: 9px; background: #F4EDE3; color: #6B5E52; display: inline-flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 16px"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M3.5 9.5h17M9.5 9.5v10"/></svg></span><span style="flex: 1 1 auto; display: flex; flex-direction: column"><s style="font-weight: 600">See your collections and fields</s><s class="sub">Reads collection and field names and types.</s></span><span class="sub" style="font-weight: 600">Removed</span></div>
+          </div>
+        </div>
+        <div>
+          <div style="display: flex; align-items: center; margin: -10px 0 -6px"><p class="dh" style="flex: 1 1 auto; margin: 0">Actions:</p><button class="tb" style="margin-right: -12px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 18px"><path d="M8.5 7L3.5 12l5 5M15.5 7l5 5-5 5"/></svg>View code</button></div>
+          <div style="display: flex; align-items: center; gap: 12px; min-height: 40px; padding: 0 12px; border-radius: 12px; background: #FBF7F2"><span style="width: 28px; height: 28px; flex: 0 0 28px; border-radius: 9px; background: #D8EEEA; color: #23605A; display: inline-flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 16px"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4M9 15l2 2 4-4"/></svg></span><span style="font-weight: 600; font-size: 14px">Stamp</span><span class="pill" style="padding: 0 8px; height: 22px; background: #F4EDE3; color: #6B5E52; font-weight: 600">On a card</span></div>
+        </div>
+        <fieldset style="border: 0; margin: 0; padding: 0; min-width: 0">
+          <legend class="dh" style="padding: 0">Where</legend>
+          <div role="radiogroup" style="display: flex; flex-direction: column; margin: 0 -8px">
+            <label class="opt"><input type="radio" class="rad" name="where"><span style="display: flex; flex-direction: column"><span style="font-weight: 600">All collections</span><span class="sub">Every collection, including new ones.</span></span></label>
+            <label class="opt"><input type="radio" class="rad" name="where" checked="checked" style="border-color: #E8821E; box-shadow: inset 0 0 0 3px #FFFFFF; background: #E8821E"><span style="display: flex; flex-direction: column"><span style="font-weight: 600">Only these</span><span class="sub">Pick the collections it may read and change.</span></span></label>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0 8px; margin: 0 -8px 0 24px">
+<label class="opt"><span style="position: relative; display: inline-flex"><input type="checkbox" class="chk" checked="checked" style="border-color: #E8821E; background: #E8821E"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3A1E00" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position: absolute; left: 2px; top: 2px; pointer-events: none"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span style="width: 24px; height: 24px; flex: 0 0 24px; border-radius: 8px; background: #FFE0C2; color: #8A4708; display: inline-flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 14px"><path d="M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8"/></svg></span><span>Orders</span></label>
+<label class="opt"><span style="position: relative; display: inline-flex"><input type="checkbox" class="chk"></span><span style="width: 24px; height: 24px; flex: 0 0 24px; border-radius: 8px; background: #E3EEDB; color: #3B6128; display: inline-flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 14px"><path d="M9 4.5a3.5 3.5 0 1 1 0 7a3.5 3.5 0 1 1 0-7zM2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5c2 .7 3.2 2.6 3.5 5.5"/></svg></span><span>Clients</span></label>
+<label class="opt"><span style="position: relative; display: inline-flex"><input type="checkbox" class="chk"></span><span style="width: 24px; height: 24px; flex: 0 0 24px; border-radius: 8px; background: #DCEAF3; color: #2F5F80; display: inline-flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 14px"><path d="M3 12V4h8l10 10-8 8zM7.5 7a1.5 1.5 0 1 1 0 3a1.5 1.5 0 1 1 0-3z"/></svg></span><span>Products</span></label>
+<label class="opt"><span style="position: relative; display: inline-flex"><input type="checkbox" class="chk"></span><span style="width: 24px; height: 24px; flex: 0 0 24px; border-radius: 8px; background: #EDE0EE; color: #6B3F70; display: inline-flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 14px"><path d="M2 6h12v10H2zM14 10h4l3 3v3h-7M6 16a2 2 0 1 1 0 4a2 2 0 1 1 0-4zM17 16a2 2 0 1 1 0 4a2 2 0 1 1 0-4z"/></svg></span><span>Deliveries</span></label>
+          </div>
+        </fieldset>
+        <p class="meta" style="margin: 0 0 8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 14px"><path d="M12 3l7.5 3v5.5c0 4.5-3.2 8.2-7.5 9.5-4.3-1.3-7.5-5-7.5-9.5V6z"/></svg><span>Modules can't reach the internet, your account or other apps. You can change or revoke this later in module details.</span></p>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; padding: 16px 24px 20px; border-top: 1px solid #F4EDE3">
+        <span style="flex: 1 1 auto"></span>
+        <button class="tb">Cancel</button>
+        <button class="pb">Allow</button>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

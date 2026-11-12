@@ -171,6 +171,37 @@ void main() {
     );
   });
 
+  test('a persisted module plan drops the code, keeps apply and createdBy', () {
+    final plan = PlanView.fromJson({
+      ...AssistantSeeds.moduleWithAutoPlan.toJson(),
+      'createdBy': {
+        'actor': 'agent:assistant',
+        'grants': {
+          'caps': ['*'],
+          'collections': null,
+        },
+      },
+    });
+    expect(plan.rows.first.code, isNotNull);
+    final records = encodeChatItems([
+      PlanItem(id: 'm', plan: plan, selected: const {'i1', 'i2'}),
+    ]);
+    expect(jsonEncode(records), isNot(contains('morkva.action')));
+    final items = (records.single['plan']! as Map)['items']! as List;
+    expect(items.first, isNot(contains('code')));
+
+    final restored =
+        roundTrip([
+              PlanItem(id: 'm', plan: plan, selected: const {'i1', 'i2'}),
+            ]).single
+            as PlanItem;
+    expect(restored.plan.rows.first.code, isNull);
+    expect(restored.plan.rows.last.apply, 'auto');
+    expect(restored.plan.autoApplies, isTrue);
+    expect(restored.plan.grantsPermissions, isTrue);
+    expect(restored.plan.createdBy, plan.createdBy);
+  });
+
   test('a plan keeps its first 5 items, the count and the selection', () {
     final plan = PlanItem(
       id: 'p',
