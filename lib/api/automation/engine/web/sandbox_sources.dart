@@ -85,9 +85,11 @@ function errFrame(t, e, extra) {
   var message = 'Error', stack = null;
   try {
     if (e !== null && typeof e === 'object') {
+      // Each read once: a getter may answer differently the second time.
+      var n = e.name, st = e.stack;
       message = Str(e.message);
-      if (typeof e.name === 'string' && e.name !== 'Error') message = e.name + ': ' + message;
-      if (typeof e.stack === 'string') stack = e.stack;
+      if (typeof n === 'string' && n !== 'Error') message = n + ': ' + message;
+      if (typeof st === 'string') stack = st;
     } else {
       message = Str(e);
     }

@@ -350,6 +350,52 @@ void main() {
     session.kill('done');
   });
 
+  test(
+    'stack introspection reaches neither the port nor SDK functions',
+    () async {
+      // Holds only while the SDK core is strict code: V8 hides `this`, the
+      // function and `.caller` of strict frames and of the frames below them
+      // (a sloppy core exposes `invoke` through `handler.caller`).
+      final session = await engine.start(
+        _load('''
+        const seen = [];
+        Error.prepareStackTrace = (err, frames) => {
+          for (const f of frames) {
+            const self = f.getThis(), fn = f.getFunction();
+            if (self !== undefined && self !== globalThis) seen.push('this:' + String(self));
+            if (fn !== undefined) seen.push('fn:' + (fn.name || 'anonymous'));
+          }
+          return 'stack';
+        };
+        morkva.action('a', function handler() {
+          const caller = String(handler.caller);
+          return morkva.call('unknown.op', {}).catch((e) => {
+            void e.stack;
+            const cyclic = {}; cyclic.c = cyclic;
+            return morkva.call('echo', cyclic).catch((e2) => {
+              void e2.stack;
+              return { seen, caller };
+            });
+          });
+        });
+      '''),
+      );
+      session.messages.listen((m) {
+        if (m is CallFrame) {
+          session.reply(m.id, error: {'code': 'unknown_op', 'message': 'no'});
+        }
+      });
+      await session.ready;
+      final r = await session.invoke('a', null, {}) as Map;
+      expect(r['caller'], 'null');
+      expect(
+        (r['seen'] as List).where((s) => !'$s'.startsWith('fn:handler')),
+        isEmpty,
+      );
+      session.kill('done');
+    },
+  );
+
   test('a non-string frame kills the session abuse', () async {
     final rogue = WebScriptEngine(
       shim:
