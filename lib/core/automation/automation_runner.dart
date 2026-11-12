@@ -191,6 +191,7 @@ final class AutomationRunner implements AutomationRunnerApi {
 
   final _activityChanges = StreamController<RunActivity>.broadcast();
   final _finished = StreamController<RunView>.broadcast();
+  final _started = StreamController<String>.broadcast();
   RunActivity _activity = RunActivity.idle;
 
   // ------------------------------------------------------------- lifecycle
@@ -299,6 +300,7 @@ final class AutomationRunner implements AutomationRunnerApi {
     await reset();
     await _activityChanges.close();
     await _finished.close();
+    await _started.close();
   }
 
   void _arrived(int bit) {
@@ -321,6 +323,10 @@ final class AutomationRunner implements AutomationRunnerApi {
 
   @override
   Stream<RunView> get finished => _finished.stream;
+
+  /// The root commit id of each event run as it is queued (the assistant's
+  /// "Started N automation runs").
+  Stream<String> get runsStarted => _started.stream;
 
   void _notify() {
     // The slot's holder until released, unless it already moved on to
@@ -369,6 +375,7 @@ final class AutomationRunner implements AutomationRunnerApi {
     progress: run.progress,
     summary: run.summary,
     planId: run.planId,
+    commitId: run.commitId,
     error: run.error,
     links: run.links,
   );
@@ -554,12 +561,18 @@ final class AutomationRunner implements AutomationRunnerApi {
           depth: lineage.depth,
           chain: lineage.chain,
           parentRunId: change.origin.runId,
+          // The root commit: a chained run inherits its parent's.
+          commitId:
+              _live[change.origin.runId]?.commitId ?? change.origin.commitId,
           why: fired.why,
           after: fired.after,
           before: fired.before,
         );
         _live[run.id] = run;
         _queue.add(run, manual: false);
+        if (run.commitId case final id? when !_started.isClosed) {
+          _started.add(id);
+        }
         _notify();
         _pump();
         return;
@@ -1106,6 +1119,7 @@ final class AutomationRunner implements AutomationRunnerApi {
       depth: run.depth,
       chain: run.chain,
       parentRunId: run.parentRunId,
+      commitId: run.commitId,
       startedAt: run.startedAt,
       log: RunLog(triggerEval: run.why),
     );
@@ -2141,6 +2155,7 @@ final class _Run {
     this.depth = 1,
     List<String>? chain,
     this.parentRunId,
+    this.commitId,
     this.why,
     this.after,
     this.before,
@@ -2159,6 +2174,7 @@ final class _Run {
   final int depth;
   final List<String> chain;
   final String? parentRunId;
+  final String? commitId;
 
   /// The trigger evaluation line.
   final String? why;

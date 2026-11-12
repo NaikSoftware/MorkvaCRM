@@ -19,6 +19,7 @@ class AssistantPage extends StatelessWidget {
     required this.actions,
     required this.onBack,
     this.onOpenHistory,
+    this.indicator,
     this.autofocus = false,
     this.now = DateTime.now,
   });
@@ -29,6 +30,9 @@ class AssistantPage extends StatelessWidget {
 
   /// Opens `/assistant/history`; the button hides when null.
   final VoidCallback? onOpenHistory;
+
+  /// The automation run indicator, first in the header's actions.
+  final Widget? indicator;
   final bool autofocus;
   final DateTime Function() now;
 
@@ -57,6 +61,7 @@ class AssistantPage extends StatelessWidget {
                       subtitle: state.threadTitle,
                       onBack: onBack,
                       actions: [
+                        ?indicator,
                         if (onOpenHistory != null)
                           IconActionButton(
                             icon: Icons.history_rounded,

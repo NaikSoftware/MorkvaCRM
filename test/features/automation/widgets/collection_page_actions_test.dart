@@ -42,9 +42,13 @@ void main() {
     addTearDown(cubit.close);
     final sync = SyncStatusCubit();
     addTearDown(sync.close);
-    final page = BlocProvider.value(
-      value: cubit,
-      child: CollectionViewsPage(modes: defaultViewModeRegistry()),
+    // The shell mounts the app's one notice host around the page.
+    final page = RunNoticeHost(
+      collectionId: 'deals',
+      child: BlocProvider.value(
+        value: cubit,
+        child: CollectionViewsPage(modes: defaultViewModeRegistry()),
+      ),
     );
     await tester.pumpWidget(
       RepositoryProvider<DataRepository>.value(

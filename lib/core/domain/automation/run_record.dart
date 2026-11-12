@@ -263,6 +263,7 @@ final class RunRecord extends Equatable {
     this.depth = 1,
     this.chain = const [],
     this.parentRunId,
+    this.commitId,
     this.count = 1,
     this.applyStartedAt,
     this.endedAt,
@@ -310,6 +311,7 @@ final class RunRecord extends Equatable {
       depth: readIntOrNull(json, 'depth') ?? 1,
       chain: readStringsOrNull(json, 'chain') ?? const [],
       parentRunId: readStringOrNull(json, 'parentRunId'),
+      commitId: readStringOrNull(json, 'commitId'),
       count: readIntOrNull(json, 'count') ?? 1,
       startedAt: readDate(json, 'startedAt'),
       applyStartedAt: readDateOrNull(json, 'applyStartedAt'),
@@ -366,6 +368,10 @@ final class RunRecord extends Equatable {
   final List<String> chain;
   final String? parentRunId;
 
+  /// The root commit whose writes started it (the assistant's plan id for
+  /// "Started N automation runs"); null for buttons.
+  final String? commitId;
+
   /// Coalesced rows: how many times it was skipped.
   final int count;
   final DateTime startedAt;
@@ -421,6 +427,7 @@ final class RunRecord extends Equatable {
     depth: depth,
     chain: chain,
     parentRunId: parentRunId,
+    commitId: commitId,
     count: count ?? this.count,
     startedAt: startedAt,
     applyStartedAt: applyStartedAt == null
@@ -469,6 +476,7 @@ final class RunRecord extends Equatable {
       'depth': depth,
       'chain': chain,
       'parentRunId': parentRunId,
+      'commitId': commitId,
       'count': count,
       'startedAt': startedAt,
       'applyStartedAt': applyStartedAt,
@@ -525,6 +533,7 @@ final class RunRecord extends Equatable {
     depth,
     chain,
     parentRunId,
+    commitId,
     count,
     startedAt,
     applyStartedAt,

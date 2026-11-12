@@ -145,10 +145,11 @@ void main() {
       tester,
     ) async {
       await pumpApplied(tester, 3);
-      expect(find.text('Started 3 automation runs'), findsOneWidget);
+      expect(find.text('Started 3 automation runs ·'), findsOneWidget);
+      expect(find.text('View'), findsOneWidget);
 
       await pumpApplied(tester, 1);
-      expect(find.text('Started 1 automation run'), findsOneWidget);
+      expect(find.text('Started 1 automation run ·'), findsOneWidget);
 
       await pumpApplied(tester, 0);
       expect(find.textContaining('automation run'), findsNothing);

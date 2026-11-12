@@ -1018,6 +1018,71 @@ void main() {
       expect(rig.engine.sessions, hasLength(2));
     });
 
+    test('runs started by a plan commit carry its id down the chain and '
+        'are announced', () async {
+      await rig.automation(
+        id: 'a_A',
+        trigger: const EventTrigger(
+          kind: TriggerKind.cardUpdated,
+          collectionId: _orders,
+          fields: [OrderFields.status],
+        ),
+        apply: ApplyMode.auto,
+      );
+      await rig.automation(
+        id: 'a_B',
+        trigger: const EventTrigger(
+          kind: TriggerKind.cardUpdated,
+          collectionId: _orders,
+          fields: [OrderFields.item],
+        ),
+        apply: ApplyMode.auto,
+      );
+      await rig.start();
+      final started = <String>[];
+      final sub = rig.runner.runsStarted.listen(started.add);
+      addTearDown(sub.cancel);
+      rig.engine.action = (m, inv) async {
+        if ((inv.ctx['automation']! as Map)['id'] == 'a_A') {
+          await m.call('cards.update', {
+            'collection': 'Orders',
+            'target': {
+              'ids': [target.id],
+            },
+            'set': {'Item': 'Chained'},
+          });
+        }
+        return null;
+      };
+      await rig.repo.saveObject(
+        rig
+            .card(target.id)
+            .copyWith(
+              values: {
+                ...rig.card(target.id).values,
+                OrderFields.status: const SingleSelectFieldValue(
+                  SeedOptions.shipped,
+                ),
+              },
+              updatedAt: DateTime.now(),
+            ),
+        schema: rig.seed.orders,
+        origin: const WriteOrigin(kind: WriteKind.plan, commitId: 'p_chat'),
+      );
+      await until(() async {
+        final docs = await rig.docs();
+        return docs.any(
+          (d) => d.automationId == 'a_B' && d.status == RunStatus.succeeded,
+        );
+      });
+      final docs = await rig.docs();
+      expect(
+        {for (final d in docs) d.automationId: d.commitId},
+        {'a_A': 'p_chat', 'a_B': 'p_chat'},
+      );
+      expect(started, ['p_chat', 'p_chat']);
+    });
+
     Future<void> forged(WriteOrigin origin, int i) => rig.repo.saveObject(
       rig
           .card(target.id)

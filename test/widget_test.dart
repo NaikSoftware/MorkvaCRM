@@ -2,13 +2,20 @@ import 'dart:async';
 
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/api/api.dart';
 import 'package:morkva_crm/api/assistant/assistant_config_repository.dart';
 import 'package:morkva_crm/api/assistant/firestore_thread_repository.dart';
 import 'package:morkva_crm/app/app.dart';
+import 'package:morkva_crm/core/automation/runner_api.dart';
+import 'package:morkva_crm/core/domain/automation/automation.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
+import 'package:morkva_crm/features/automation/bloc/automation_runs_cubit.dart';
+import 'package:morkva_crm/features/automation/bloc/modules_cubit.dart';
+import 'package:morkva_crm/features/automation/bloc/run_log_cubit.dart';
 
+import 'automation/fakes/fake_script_engine.dart';
 import 'automation/fakes/fake_stores.dart';
 
 /// In-memory [AuthRepository] whose auth state is driven by the test via
@@ -48,6 +55,22 @@ class FakeAuthRepository implements AuthRepository {
 class FakeDataRepository implements DataRepository {
   String? initializedWorkspaceId;
 
+  /// Subscriptions in order: `changes+`, `collections-`, `pins+`, …
+  final log = <String>[];
+
+  /// A fresh stream that replays [value] and logs its listen and cancel.
+  Stream<T> _logged<T>(String name, T? value) {
+    late final StreamController<T> controller;
+    controller = StreamController<T>(
+      onListen: () {
+        log.add('$name+');
+        if (value != null) controller.add(value);
+      },
+      onCancel: () => log.add('$name-'),
+    );
+    return controller.stream;
+  }
+
   /// When set, `initialize` waits on this before completing, so a test can
   /// observe the authenticated-but-not-ready loading state.
   Completer<void>? gate;
@@ -68,11 +91,11 @@ class FakeDataRepository implements DataRepository {
       // The real repository always emits the current list (empty included) and
       // replays on subscribe; emit an empty list so the Home collections cubit
       // reaches its ready-empty state instead of hanging on a loading spinner.
-      Stream<List<Collection>>.value(const []);
+      _logged<List<Collection>>('collections', const []);
 
   @override
   Stream<List<String>> watchPinnedCollectionIds() =>
-      Stream<List<String>>.value(const []);
+      _logged<List<String>>('pins', const []);
 
   @override
   Future<void> savePinnedCollectionIds(List<String> ids) async {}
@@ -150,7 +173,7 @@ class FakeDataRepository implements DataRepository {
   }) async => BatchResult(written: [for (final w in writes) w.id]);
 
   @override
-  Stream<CardChange> get changes => const Stream.empty();
+  Stream<CardChange> get changes => _logged<CardChange>('changes', null);
 
   @override
   Future<void> updateCollection(
@@ -181,6 +204,7 @@ MorkvaApp testApp({
     threadRepository: FirestoreThreadRepository(firestore: db),
     assistantConfigRepository: AssistantConfigRepository(firestore: db),
     automationStores: FakeStores().stores,
+    scriptEngine: FakeScriptEngine(),
   );
 }
 
@@ -266,5 +290,41 @@ void main() {
     // Back on the sign-in screen; data repo torn down.
     expect(find.text('Welcome to your workspace'), findsOneWidget);
     expect(data.initializedWorkspaceId, isNull);
+  });
+
+  testWidgets('sign-in: the runner subscribes before the shell mounts, and the '
+      'automation wiring is app-wide', (tester) async {
+    auth.emit(const AuthUser(uid: 'u1', email: 'u1@example.com'));
+    await tester.pumpWidget(buildApp());
+    await tester.pumpAndSettle();
+
+    // The shell's pins listener comes only once the session is ready.
+    expect(data.log, contains('changes+'));
+    expect(data.log.indexOf('changes+'), lessThan(data.log.indexOf('pins+')));
+    final shell = tester.element(find.text('No collections yet'));
+    expect(shell.read<AutomationRunnerApi>(), isNotNull);
+    expect(shell.read<AutomationStores>(), isNotNull);
+    expect(shell.read<ModulesCubit>(), isNotNull);
+    expect(shell.read<AutomationRunsCubit>(), isNotNull);
+    expect(shell.read<RunLogCubit>(), isNotNull);
+    // Built over injected fakes: Firebase was never touched.
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('sign-out resets the runner before the assistant', (
+    tester,
+  ) async {
+    auth.emit(const AuthUser(uid: 'u1', email: 'u1@example.com'));
+    await tester.pumpWidget(buildApp());
+    await tester.pumpAndSettle();
+    data.log.clear();
+
+    auth.emit(null);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Welcome to your workspace'), findsOneWidget);
+    // The runner's card-change listener goes before the cache's schema one.
+    expect(data.log.first, 'changes-');
+    expect(data.log, contains('collections-'));
   });
 }
