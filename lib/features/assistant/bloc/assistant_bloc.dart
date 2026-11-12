@@ -1635,6 +1635,8 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
 
   /// An automation run started from the writes of plan [commitId]: the
   /// thread's applied card for it counts one more.
+  // shortcut: never checkpoints, so a count arriving after the turn's last
+  // save is lost on reload; save the turn here once the runner reports runs.
   void _onRunStarted(String commitId, Emitter<AssistantState> emit) {
     for (final item in state.items.reversed) {
       if (item is AppliedItem && item.receipt.planId == commitId) {
