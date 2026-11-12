@@ -1,9 +1,9 @@
 {
-  "apiVersion": "1.0",
+  "apiVersion": "2.0",
   "ops": [
     {
       "id": "cards.aggregate",
-      "since": "1.0",
+      "since": "2.0",
       "kind": "read",
       "capability": "data:read",
       "summary": "Counts, sums, averages, min or max over matching cards, optionally grouped by a field or date bucket. Use present to show a table or chart.",
@@ -326,7 +326,7 @@
     },
     {
       "id": "cards.create",
-      "since": "1.0",
+      "since": "2.0",
       "kind": "plan",
       "capability": "data:write",
       "summary": "Plans new cards (shown to the user for approval, nothing is written yet). Give a card a \"ref\" like \"@c1\" to link to it from later calls.",
@@ -448,7 +448,7 @@
     },
     {
       "id": "cards.delete",
-      "since": "1.0",
+      "since": "2.0",
       "kind": "plan",
       "capability": "data:delete",
       "summary": "Plans deleting cards (undoable for 10 minutes once applied). Filters and {\"screen\": true} need expectedCount.",
@@ -750,7 +750,7 @@
     },
     {
       "id": "cards.distinct",
-      "since": "1.0",
+      "since": "2.0",
       "kind": "read",
       "capability": "data:read",
       "summary": "The distinct values of one field over matching cards, most frequent first, with counts.",
@@ -952,7 +952,7 @@
     },
     {
       "id": "cards.find",
-      "since": "1.0",
+      "since": "2.0",
       "kind": "read",
       "capability": "data:read",
       "summary": "Searches card titles and text across collections. Without collections it searches the screen's and recently read ones.",
@@ -1045,7 +1045,7 @@
     },
     {
       "id": "cards.get",
-      "since": "1.0",
+      "since": "2.0",
       "kind": "read",
       "capability": "data:read",
       "summary": "Reads cards by id with calculated values and link titles. \"@card\" is the open card, \"@selected\" the selected ones.",
@@ -1190,7 +1190,7 @@
     },
     {
       "id": "cards.page",
-      "since": "1.0",
+      "since": "2.0",
       "kind": "read",
       "capability": "data:read",
       "summary": "The next page of an earlier cards.query result.",
@@ -1327,7 +1327,7 @@
     },
     {
       "id": "cards.query",
-      "since": "1.0",
+      "since": "2.0",
       "kind": "read",
       "capability": "data:read",
       "summary": "Finds cards by filters, search and sort and returns a page of rows plus the total. Use present \"table\" to show the rows to the user.",
@@ -1600,7 +1600,7 @@
     },
     {
       "id": "cards.update",
-      "since": "1.0",
+      "since": "2.0",
       "kind": "plan",
       "capability": "data:write",
       "summary": "Plans changes to cards: set/clear/setFrom/add/remove on a target, or per-card patches. Use setFrom for computed or copied values and add/remove for one tag or link; pass expectedCount for filters.",
@@ -2086,7 +2086,7 @@
     },
     {
       "id": "collections.create",
-      "since": "1.0",
+      "since": "2.0",
       "kind": "plan",
       "capability": "schema:write",
       "summary": "Plans new collections with their fields (and optional seed cards). Give each a ref like \"@suppliers\" so link fields and cards in the same call or turn can name it.",
@@ -2562,7 +2562,7 @@
     },
     {
       "id": "collections.delete",
-      "since": "1.0",
+      "since": "2.0",
       "kind": "plan",
       "capability": "schema:delete",
       "summary": "Plans deleting a whole collection and its cards. Send it on its own, with no other change in the same turn.",
@@ -2632,7 +2632,7 @@
     },
     {
       "id": "collections.get",
-      "since": "1.0",
+      "since": "2.0",
       "kind": "read",
       "capability": "schema:read",
       "summary": "One collection's full schema: every field's config and filter operators, formulas in name form, views and the card count.",
@@ -2718,7 +2718,7 @@
     },
     {
       "id": "collections.update",
-      "since": "1.0",
+      "since": "2.0",
       "kind": "plan",
       "capability": "schema:write",
       "summary": "Plans renaming a collection or changing its description or icon.",
@@ -2824,7 +2824,7 @@
     },
     {
       "id": "fields.add",
-      "since": "1.0",
+      "since": "2.0",
       "kind": "plan",
       "capability": "schema:write",
       "summary": "Plans adding fields to a collection (added to every view). Fill a new field from others with cards.update setFrom.",
@@ -3200,7 +3200,7 @@
     },
     {
       "id": "fields.delete",
-      "since": "1.0",
+      "since": "2.0",
       "kind": "plan",
       "capability": "schema:delete",
       "summary": "Plans deleting fields (and their filters, sort and columns in views). Card values are kept, so undo brings them back.",
@@ -3280,7 +3280,7 @@
     },
     {
       "id": "fields.update",
-      "since": "1.0",
+      "since": "2.0",
       "kind": "plan",
       "capability": "schema:write",
       "summary": "Plans changing a field: name, description, required, settings and options (add, rename, remove). The type is locked: add a new field and fill it with cards.update setFrom instead.",
@@ -3682,7 +3682,7 @@
     },
     {
       "id": "harness.describe",
-      "since": "1.0",
+      "since": "2.0",
       "kind": "read",
       "capability": "schema:read",
       "summary": "Describes the harness API: every op with its JSON Schemas, the error codes, capabilities and event names.",
@@ -3730,6 +3730,9 @@
                     "schema:delete",
                     "views:write",
                     "ui:navigate",
+                    "modules:read",
+                    "modules:write",
+                    "automations:write",
                     "host:commit"
                   ]
                 },
@@ -3794,7 +3797,7 @@
     },
     {
       "id": "journal.restore",
-      "since": "1.0",
+      "since": "2.0",
       "kind": "commit",
       "capability": "host:commit",
       "summary": "Re-validates a mirrored journal entry after a reload and makes it undoable again until its original expiry.",
@@ -3847,7 +3850,7 @@
     },
     {
       "id": "journal.undo",
-      "since": "1.0",
+      "since": "2.0",
       "kind": "commit",
       "capability": "host:commit",
       "summary": "Reverts a commit, skipping what changed since.",
@@ -3919,7 +3922,7 @@
     },
     {
       "id": "plans.commit",
-      "since": "1.0",
+      "since": "2.0",
       "kind": "commit",
       "capability": "host:commit",
       "summary": "Applies the ticked items of an approved plan and journals their undo.",
@@ -4033,7 +4036,7 @@
     },
     {
       "id": "plans.get",
-      "since": "1.0",
+      "since": "2.0",
       "kind": "read",
       "capability": null,
       "exempt": "own plan, or the user",
@@ -4161,7 +4164,7 @@
     },
     {
       "id": "plans.reject",
-      "since": "1.0",
+      "since": "2.0",
       "kind": "commit",
       "capability": "host:commit",
       "summary": "Drops a plan without writing anything.",
@@ -4193,7 +4196,7 @@
     },
     {
       "id": "plans.retryFailed",
-      "since": "1.0",
+      "since": "2.0",
       "kind": "commit",
       "capability": "host:commit",
       "summary": "Retries the failed items of a committed plan.",
@@ -4300,7 +4303,7 @@
     },
     {
       "id": "plans.seal",
-      "since": "1.0",
+      "since": "2.0",
       "kind": "plan",
       "capability": null,
       "exempt": "own turn",
@@ -4428,7 +4431,7 @@
     },
     {
       "id": "ui.open",
-      "since": "1.0",
+      "since": "2.0",
       "kind": "ui",
       "capability": "ui:navigate",
       "summary": "Posts a chip that opens a collection, a view, a card or a filtered list when the user taps it. \"@card\" is the open card.",
@@ -4673,7 +4676,7 @@
     },
     {
       "id": "views.create",
-      "since": "1.0",
+      "since": "2.0",
       "kind": "plan",
       "capability": "views:write",
       "summary": "Plans a new saved view of a collection (a table, board, list, calendar or summary with its own filters and sort).",
@@ -4885,7 +4888,7 @@
     },
     {
       "id": "views.delete",
-      "since": "1.0",
+      "since": "2.0",
       "kind": "plan",
       "capability": "views:write",
       "summary": "Plans deleting a saved view; a collection keeps at least one.",
@@ -4960,7 +4963,7 @@
     },
     {
       "id": "views.update",
-      "since": "1.0",
+      "since": "2.0",
       "kind": "plan",
       "capability": "views:write",
       "summary": "Plans changing a saved view; where replaces its filters, and sort and fields replace its own.",
@@ -5175,7 +5178,7 @@
     },
     {
       "id": "workspace.describe",
-      "since": "1.0",
+      "since": "2.0",
       "kind": "read",
       "capability": "schema:read",
       "summary": "Lists the collections with their fields (type, options, links, formulas) and views. detail \"full\" adds option ids and descriptions.",
@@ -5250,6 +5253,7 @@
     "too_many_files",
     "invalid_extension",
     "invalid_args",
+    "no_change",
     "unsupported_version",
     "unknown_op",
     "not_permitted",
@@ -5285,6 +5289,9 @@
     "schema:delete",
     "views:write",
     "ui:navigate",
+    "modules:read",
+    "modules:write",
+    "automations:write",
     "host:commit"
   ],
   "events": [

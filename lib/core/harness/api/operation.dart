@@ -32,7 +32,7 @@ final class OperationDescriptor {
     required this.resultSchema,
     this.capability,
     this.exemption,
-    this.since = '1.0',
+    this.since = '2.0',
     this.modelVisible = true,
   }) : assert(
          (capability == null) != (exemption == null),

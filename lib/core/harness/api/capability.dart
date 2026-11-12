@@ -16,6 +16,9 @@ enum Capability {
   schemaDelete('schema:delete'),
   viewsWrite('views:write'),
   uiNavigate('ui:navigate'),
+  modulesRead('modules:read'),
+  modulesWrite('modules:write'),
+  automationsWrite('automations:write'),
 
   /// Pseudo-capability of the commit ops. Holding it is not enough: commit
   /// ops also require a user actor, so only the host's user context commits.
@@ -32,6 +35,25 @@ enum Capability {
     return null;
   }
 }
+
+/// What a module manifest may ask for: the eight data and UI capabilities.
+/// Never `host:commit` nor the module/automation capabilities, so a module
+/// cannot install or rebind modules.
+const Set<Capability> kModuleGrantable = {
+  Capability.schemaRead,
+  Capability.dataRead,
+  Capability.dataWrite,
+  Capability.dataDelete,
+  Capability.schemaWrite,
+  Capability.schemaDelete,
+  Capability.viewsWrite,
+  Capability.uiNavigate,
+};
+
+/// The assistant's grants: everything but `host:commit`.
+final Set<Capability> kAssistantCaps = Set.unmodifiable(
+  Capability.values.where((c) => c != Capability.hostCommit),
+);
 
 enum ActorKind { user, agent, plugin }
 
@@ -94,11 +116,13 @@ final class Grants {
       collections = collections == null ? null : Set.unmodifiable(collections);
 
   /// Every capability, every collection the user can access. Includes
-  /// `host:commit`, which is inert without a user actor (spec: an assistant
-  /// plan records `caps: ["*"]`).
+  /// `host:commit`, which is inert without a user actor. Only the user's own
+  /// context holds it.
   factory Grants.all() => Grants(Capability.values);
 
-  /// Parses `{caps: [...] | ["*"], collections: [...] | null}`.
+  /// Parses `{caps: [...] | ["*"], collections: [...] | null}`. `'*'` is
+  /// read only for the user's and the assistant's own records; manifests
+  /// never go through here.
   factory Grants.fromJson(Map<String, Object?> json) {
     final rawCaps = json['caps'];
     final rawCollections = json['collections'];
@@ -141,13 +165,13 @@ final class Grants {
     },
   );
 
+  /// Always the explicit list (never `'*'`), so a stored grant never widens
+  /// when a capability is added.
   Map<String, Object?> toJson() => {
-    'caps': caps.length == Capability.values.length
-        ? const ['*']
-        : [
-            for (final c in Capability.values)
-              if (caps.contains(c)) c.wire,
-          ],
+    'caps': [
+      for (final c in Capability.values)
+        if (caps.contains(c)) c.wire,
+    ],
     'collections': collections == null ? null : (collections!.toList()..sort()),
   };
 

@@ -98,6 +98,7 @@ void main() {
     llm: llm,
     harness: harness,
     workspace: workspace,
+    grants: Grants(kAssistantCaps),
     settings: settings,
     compactor: compactor,
     timeZoneName: 'Europe/Kyiv',
@@ -194,6 +195,33 @@ void main() {
           'fields_add',
           'ui_open',
         ],
+      );
+    });
+
+    test('the assistant grants declare the module and automation tools, '
+        'never a host:commit one', () async {
+      harness = fakeHarness([
+        query,
+        FakeOp('modules.list', capability: Capability.modulesRead),
+        FakeOp(
+          'modules.save',
+          kind: OpKind.plan,
+          capability: Capability.modulesWrite,
+        ),
+        FakeOp(
+          'automations.save',
+          kind: OpKind.plan,
+          capability: Capability.automationsWrite,
+        ),
+        FakeOp('host.peek', capability: Capability.hostCommit),
+      ]);
+      llm.add(const FakeReply(text: ['ok']));
+
+      await runTurn(loopFor(), 'hi');
+
+      expect(
+        [for (final t in llm.requests.single.tools) t.name],
+        ['automations_save', 'cards_query', 'modules_list', 'modules_save'],
       );
     });
 
@@ -705,6 +733,114 @@ void main() {
       });
       expect(responses[1].response['error'], containsPair('expected', 3));
       expect(seal.calls, hasLength(1), reason: 'the overlay is still sealed');
+    });
+
+    group('no_change', () {
+      late FakeOp unchanged;
+
+      setUp(() {
+        unchanged = FakeOp(
+          'cards.set',
+          kind: OpKind.plan,
+          capability: Capability.dataWrite,
+          handler: (args, ctx, req) => {
+            'error': HarnessError(
+              code: ErrorCode.noChange,
+              message: 'Nothing would change. #1042 already Shipped',
+            ),
+          },
+        );
+      });
+
+      test(
+        'keeps the turn\'s plan and its answer, shown as no failure',
+        () async {
+          harness = fakeHarness([update, unchanged, seal]);
+          llm.addAll([
+            FakeReply(calls: [call('cards_update'), call('cards_set')]),
+            const FakeReply(text: ['Done.']),
+          ]);
+
+          final events = await runTurn(
+            loopFor(),
+            'ship',
+            outcome: (_) => receipt,
+          );
+
+          expect(events.whereType<PlanProposed>(), hasLength(1));
+          expect(seal.calls, hasLength(1));
+          final responses = lastResponses(llm.requests[1]);
+          expect(responses[0].response, receipt.toModelJson());
+          expect(
+            responses[1].response['error'],
+            containsPair('code', 'no_change'),
+          );
+          final step = events.whereType<StepFinished>().last;
+          expect(step.ok, isTrue);
+          expect(step.summary, AgentLoop.stepNoChange);
+          expect(events.last, isA<TurnDone>());
+        },
+      );
+
+      test('a round of only no_change neither seals nor errors', () async {
+        harness = fakeHarness([unchanged, seal]);
+        llm.addAll([
+          FakeReply(calls: [call('cards_set'), call('cards_set')]),
+          const FakeReply(text: ['Already shipped.']),
+        ]);
+
+        final events = await runTurn(loopFor(), 'ship');
+
+        expect(seal.calls, isEmpty);
+        expect(events.whereType<PlanProposed>(), isEmpty);
+        expect(events.whereType<StepFinished>().every((s) => s.ok), isTrue);
+        for (final r in lastResponses(llm.requests[1])) {
+          expect(r.response['error'], containsPair('code', 'no_change'));
+        }
+        expect(textOf(events), 'Already shipped.');
+        expect(events.last, isA<TurnDone>());
+      });
+
+      test('next to a real failure, the failure still seals and no_change '
+          'keeps its answer', () async {
+        sealAnswer = (_) => {
+          'errors': [
+            {
+              'callId': 'r1.1',
+              'error': {'code': 'count_mismatch', 'message': 'Expected 3.'},
+            },
+          ],
+        };
+        final failing = FakeOp(
+          'cards.delete',
+          kind: OpKind.plan,
+          capability: Capability.dataDelete,
+          handler: (args, ctx, req) => {
+            'error': HarnessError(
+              code: ErrorCode.countMismatch,
+              message: 'Expected 3.',
+            ),
+          },
+        );
+        harness = fakeHarness([failing, unchanged, seal]);
+        llm.addAll([
+          FakeReply(calls: [call('cards_delete'), call('cards_set')]),
+          const FakeReply(text: ['Let me recount.']),
+        ]);
+
+        await runTurn(loopFor(), 'clean up');
+
+        expect(seal.calls, hasLength(1), reason: 'drops the failed overlay');
+        final responses = lastResponses(llm.requests[1]);
+        expect(
+          responses[0].response['error'],
+          containsPair('code', 'count_mismatch'),
+        );
+        expect(
+          responses[1].response['error'],
+          containsPair('code', 'no_change'),
+        );
+      });
     });
 
     test('a refused seal fails every plan call of the round', () async {

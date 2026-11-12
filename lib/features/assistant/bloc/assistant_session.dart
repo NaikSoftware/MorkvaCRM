@@ -76,7 +76,7 @@ class AssistantSession {
       queries: queries,
       aggregates: aggregates,
       // Read per call: switching threads needs no re-registration.
-      thread: () => bloc.state.threadId ?? '',
+      thread: (_) => bloc.state.threadId ?? '',
     );
     registerUiOps(ops, queries: queries);
     registerPlanOps(ops, services);
@@ -90,6 +90,7 @@ class AssistantSession {
       llm: llm,
       harness: harness,
       workspace: _CacheWorkspace(cache),
+      grants: Grants(kAssistantCaps),
       now: _now,
     );
     bloc = AssistantBloc(

@@ -48,14 +48,21 @@ final class StoredResult {
 }
 
 /// The result handles of a session: an LRU of at most [perThread] per thread
-/// and [capacity] overall. Handles are not persisted (the spec is, on the
-/// chat message), so an evicted handle simply re-runs from its spec.
+/// and two pools that never evict each other: module runs (threads named
+/// `run:<turnId>`) share [runCapacity], every other thread (the chats)
+/// shares [capacity]. Handles are not persisted (the spec is, on the chat
+/// message), so an evicted handle simply re-runs from its spec.
 final class ResultStore {
-  ResultStore({this.perThread = 32, this.capacity = 64})
-    : assert(perThread > 0 && capacity >= perThread);
+  ResultStore({this.perThread = 32, this.capacity = 64, this.runCapacity = 32})
+    : assert(
+        perThread > 0 && capacity >= perThread && runCapacity >= perThread,
+      );
 
   final int perThread;
   final int capacity;
+  final int runCapacity;
+
+  static bool _isRun(String thread) => thread.startsWith('run:');
 
   /// Least recently used first.
   final LinkedHashMap<String, StoredResult> _byHandle = LinkedHashMap();
@@ -125,9 +132,13 @@ final class ResultStore {
     if (owned.length > perThread) {
       owned.take(owned.length - perThread).forEach(_remove);
     }
-    while (_byHandle.length > capacity) {
-      _remove(_byHandle.values.first);
-    }
+    final run = _isRun(thread);
+    final pool = [
+      for (final r in _byHandle.values)
+        if (_isRun(r.thread) == run) r,
+    ];
+    final cap = run ? runCapacity : capacity;
+    if (pool.length > cap) pool.take(pool.length - cap).forEach(_remove);
   }
 
   void _removeWhere(bool Function(StoredResult) test) =>
