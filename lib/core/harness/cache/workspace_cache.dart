@@ -157,7 +157,7 @@ final class WorkspaceCache {
     _entries.clear();
     _derived.clear();
     for (final w in [..._settles]) {
-      w.finish(null);
+      w.fail(reset);
     }
     _derivedKeys.clear();
     _collections = const [];
@@ -263,10 +263,10 @@ final class WorkspaceCache {
   /// is visible to reads: e.g. `card.updatedAt >= written.updatedAt`, or
   /// `card == null` for a delete. Completes with that snapshot, or null when
   /// [timeout] (which also covers leasing a collection the cache does not
-  /// hold yet) passes first, the collection is deleted or the cache is
-  /// reset. Holds a lease while it waits.
+  /// hold yet) passes first. Holds a lease while it waits.
   ///
-  /// Throws [MissingCollectionException] when the collection is unknown.
+  /// Throws [MissingCollectionException] when the collection is unknown or
+  /// deleted meanwhile, and [StateError] when the cache is reset.
   Future<CollectionSnapshot?> settled(
     String collectionId,
     String cardId,
@@ -288,9 +288,7 @@ final class WorkspaceCache {
           }
         },
         onError: (Object error, StackTrace stack) {
-          wait.timer?.cancel();
-          _settles.remove(wait);
-          if (!wait.done.isCompleted) wait.done.completeError(error, stack);
+          wait.fail(error, stack);
         },
       );
     }
@@ -385,7 +383,7 @@ final class WorkspaceCache {
     _derived.remove(e.id);
     _derivedKeys.remove(e.id);
     for (final w in [..._settles]) {
-      if (w.collectionId == e.id) w.finish(null);
+      if (w.collectionId == e.id) w.fail(MissingCollectionException(e.id));
     }
   }
 
@@ -519,10 +517,19 @@ final class _Settle {
   }
 
   void finish(CollectionSnapshot? snapshot) {
-    if (done.isCompleted) return;
+    if (_end()) done.complete(snapshot);
+  }
+
+  void fail(Object error, [StackTrace? stack]) {
+    if (_end()) done.completeError(error, stack);
+  }
+
+  /// Stops waiting; false when it already ended.
+  bool _end() {
+    if (done.isCompleted) return false;
     timer?.cancel();
     lease?.release();
     _remove(this);
-    done.complete(snapshot);
+    return true;
   }
 }

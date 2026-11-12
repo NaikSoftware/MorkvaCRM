@@ -147,8 +147,8 @@ final class LoopGuard {
     return LoopAdmitted(lineage);
   }
 
-  /// A button, Run-again or test run of [automationId]: depth 1, only the
-  /// queue caps apply.
+  /// A button or Run-again run of [automationId] (test runs bypass the
+  /// queue): depth 1, only the queue caps apply.
   LoopVerdict checkManual(
     String automationId, {
     required int queuedOfAutomation,

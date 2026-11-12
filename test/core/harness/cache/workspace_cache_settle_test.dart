@@ -131,26 +131,42 @@ void main() {
       });
     });
 
-    test('reset ends a wait with null', () {
+    test('reset fails a wait with a StateError', () {
       inFakeTime((async, repo, cache) {
-        var done = false;
-        CollectionSnapshot? got = CollectionSnapshot(
-          schema: seed.orders,
-          generation: 0,
-          raw: const [],
-        );
-        cache.settled(_orders, 'b_nope', (c) => c != null).then((s) {
-          got = s;
-          done = true;
+        Object? error;
+        cache.settled(_orders, 'b_nope', (c) => c != null).catchError((
+          Object e,
+        ) {
+          error = e;
+          return null;
         });
         async.flushMicrotasks();
         cache.reset();
         async.flushMicrotasks();
 
-        expect(done, isTrue);
-        expect(got, isNull);
+        expect(error, isStateError);
       });
     });
+
+    test(
+      'deleting the collection mid-wait is a MissingCollectionException',
+      () {
+        inFakeTime((async, repo, cache) {
+          Object? error;
+          cache.settled(_orders, 'b_nope', (c) => c != null).catchError((
+            Object e,
+          ) {
+            error = e;
+            return null;
+          });
+          async.flushMicrotasks();
+          repo.deleteCollection(_orders);
+          async.flushMicrotasks();
+
+          expect(error, isA<MissingCollectionException>());
+        });
+      },
+    );
 
     test('an unknown collection is a MissingCollectionException', () async {
       final cache = WorkspaceCache(seed.repository())..initialize('ws');

@@ -544,6 +544,43 @@ void main() {
     });
   });
 
+  test('a collection deleted while settling is broken', () {
+    fakeAsync((async) {
+      final repo = seed.repository();
+      final cache = WorkspaceCache(repo)..initialize('ws');
+      final evaluator = TriggerEvaluator(cache, now: () => _at);
+      final changes = <CardChange>[];
+      repo.changes.listen(changes.add);
+      final o = seed.card(_orders, SeedCards.order(1013));
+      repo.hiddenFromWatch.add(o.id);
+      repo.saveObject(
+        o.copyWith(
+          values: {...o.values, OrderFields.qty: const NumberFieldValue(8)},
+          updatedAt: _at,
+        ),
+        schema: seed.orders,
+      );
+      async.flushMicrotasks();
+      TriggerOutcome? out;
+      evaluator
+          .evaluate(
+            changes.single,
+            _automation(TriggerKind.cardUpdated),
+            grants: _grants,
+            today: _today,
+          )
+          .then((o) => out = o);
+      async.elapse(const Duration(seconds: 1));
+      repo.deleteCollection(_orders);
+      async.flushMicrotasks();
+
+      expect((out as TriggerSkipped).reason, RunReason.broken);
+      expect(out!.why, 'The collection it watches was deleted');
+      cache.reset();
+      async.flushMicrotasks();
+    });
+  });
+
   group('last checks', () {
     test(
       'every evaluation is noted, newest first, with the card label',

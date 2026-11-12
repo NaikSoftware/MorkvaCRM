@@ -102,7 +102,9 @@ final class TriggerEvaluator {
   /// Evaluates [automation] (one [watches] accepts) for [change] under the
   /// run's effective [grants] and day [today], and records the check.
   ///
-  /// Throws `StateError` when the cache is reset meanwhile.
+  /// Throws (and records nothing) when the cache is reset meanwhile
+  /// (`StateError`) or a collection's stream fails; a deleted collection is
+  /// `broken`.
   Future<TriggerOutcome> evaluate(
     CardChange change,
     AutomationRecord automation, {
@@ -177,12 +179,6 @@ final class TriggerEvaluator {
       timeout: settleTimeout,
     );
     if (settled == null) {
-      if (_cache.workspaceId == null) {
-        throw StateError('WorkspaceCache was reset.');
-      }
-      if (_cache.collection(change.collectionId) == null) {
-        throw MissingCollectionException(change.collectionId);
-      }
       return TriggerSkipped(
         RunReason.notSettled,
         "The change didn't reach this device's data within "
