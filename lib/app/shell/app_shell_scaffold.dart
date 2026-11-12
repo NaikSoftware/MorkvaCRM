@@ -498,6 +498,10 @@ final class SessionAssistantActions implements AssistantActions {
     final spec = item.spec;
     if (spec != null && _ui.openQuery(spec)) onNavigated?.call();
   }
+
+  // shortcut: no code viewer until T12 builds it; T16 opens it here.
+  @override
+  void viewCode(PlanRow row) {}
 }
 
 /// The member's conversations: the panel's history pane, or with [onBack]

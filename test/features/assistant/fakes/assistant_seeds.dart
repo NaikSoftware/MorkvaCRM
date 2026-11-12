@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:morkva_crm/core/agent/agent_event.dart';
+import 'package:morkva_crm/core/harness/api/capability.dart' show Actor;
 import 'package:morkva_crm/features/assistant/bloc/assistant_focus.dart';
 import 'package:morkva_crm/features/assistant/bloc/assistant_state.dart';
 import 'package:morkva_crm/features/assistant/bloc/chat_item.dart';
@@ -368,6 +369,65 @@ abstract final class AssistantSeeds {
       _deleteRow('i5', '1025', 'Test · hoodie L', '1 Nov'),
       _deleteRow('i6', '1024', 'Test · cap', '1 Nov'),
       _deleteRow('i7', '1023', 'Test · tee M', '31 Oct'),
+    ],
+  );
+
+  /// The module-install preview (UX §10): one high-risk `saveModule` item.
+  static const PlanView moduleInstallPlan = PlanView(
+    planId: 'p_module',
+    title: 'Install “Stamp shipped date”',
+    risk: PlanRisk.high,
+    undo: 'none',
+    createdBy: PlanCreatorView(
+      actor: Actor.assistant,
+      caps: ['data:read', 'data:write'],
+    ),
+    warnings: [
+      PlanWarning(
+        'grants_permissions',
+        'Approving installs this module and lets it use these permissions. '
+            'Auto-apply stays off.',
+      ),
+    ],
+    rows: [
+      PlanRow(
+        itemId: 'i1',
+        kind: 'saveModule',
+        label: 'Stamp shipped date',
+        risk: PlanRisk.high,
+        code: '(() => { morkva.action("stamp", async () => {}); })();',
+        changes: [
+          PlanChange(field: 'Create and change cards', afterText: 'Orders'),
+          PlanChange(field: 'Actions', afterText: 'Stamp (on a card)'),
+          PlanChange(field: 'Code', afterText: '2.1 KB · sha256:3fa2…'),
+        ],
+      ),
+    ],
+  );
+
+  /// [moduleInstallPlan] plus an automation that applies without asking.
+  static final PlanView moduleWithAutoPlan = PlanView(
+    planId: 'p_module_auto',
+    title: 'Install “Stamp shipped date” · 2 changes',
+    risk: PlanRisk.high,
+    undo: 'none',
+    warnings: moduleInstallPlan.warnings,
+    rows: [
+      moduleInstallPlan.rows.single,
+      const PlanRow(
+        itemId: 'i2',
+        kind: 'saveAutomation',
+        label: 'Stamp when shipped',
+        collectionId: ordersId,
+        apply: 'auto',
+        changes: [
+          PlanChange(
+            field: 'When a card is updated in Orders',
+            afterText: 'Status starts matching Shipped → Stamp',
+          ),
+          PlanChange(field: 'Applies changes without asking'),
+        ],
+      ),
     ],
   );
 

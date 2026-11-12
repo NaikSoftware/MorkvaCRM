@@ -5,6 +5,7 @@ import '../../bloc/assistant_state.dart';
 import '../../bloc/chat_item.dart';
 import 'assistant_scope.dart';
 import 'object_chip.dart';
+import 'plan_card_scope.dart';
 
 /// How long an applied plan can be undone (D9: the journal keeps inverse
 /// operations for 10 minutes).
@@ -20,15 +21,30 @@ const kUndoWindowMinutes = 10;
 /// - "Approve N changes" follows the selection and is disabled at 0; a
 ///   collection delete also asks for the collection's name.
 ///
+/// - A module install ([PlanView.grantsPermissions]) or an automation enrolled
+///   into auto-apply ([PlanView.autoApplies]) gets the shield header; the
+///   latter also adds "Applies changes without asking".
+///
 /// Settled cards collapse to one line ("Rejected — nothing changed"); an
-/// applied plan renders nothing, its [AppliedItem] follows it.
+/// applied plan renders nothing, its [AppliedItem] follows it. Actions go
+/// through [PlanCardScope].
 class PlanCard extends StatefulWidget {
-  const PlanCard({super.key, required this.item, this.progress});
+  const PlanCard({
+    super.key,
+    required this.item,
+    this.progress,
+    this.provenance,
+  });
 
   final PlanItem item;
 
   /// The apply progress while [PlanStatus.committing].
   final ApplyingPhase? progress;
+
+  /// The module that proposed the plan, when the host shows one (the review
+  /// sheet): always rendered "Module · name (id)", so module-supplied text
+  /// never stands alone.
+  final ({String id, String name})? provenance;
 
   @override
   State<PlanCard> createState() => _PlanCardState();
@@ -84,13 +100,21 @@ class _PlanCardState extends State<PlanCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _Header(plan: plan),
+            _Header(plan: plan, provenance: widget.provenance),
             if (plan.sharedChange != null)
               Padding(
                 padding: const EdgeInsetsDirectional.fromSTEB(52, 0, 14, 10),
                 child: DiffLine(change: plan.sharedChange!),
               ),
-            for (final w in plan.warnings) _WarningLine(warning: w),
+            if (plan.autoApplies)
+              const _WarningLine(
+                message: kAppliesWithoutAsking,
+                icon: Icons.bolt_rounded,
+              ),
+            for (final w in plan.warnings)
+              // The shield header says it as its subtitle.
+              if (!(_shield(plan) && w.code == kGrantsPermissionsWarning))
+                _WarningLine(message: w.message),
             if (!destructive)
               for (final note in plan.notes)
                 Padding(
@@ -221,11 +245,11 @@ class _PlanCardState extends State<PlanCard> {
     } else {
       next.removeAll(ids);
     }
-    AssistantScope.of(context).actions.changePlanSelection(plan.planId, next);
+    PlanCardScope.of(context).actions.changePlanSelection(plan.planId, next);
   }
 
   Future<void> _approve(BuildContext context) async {
-    final actions = AssistantScope.of(context).actions;
+    final actions = PlanCardScope.of(context).actions;
     final collection = plan.rows
         .where((r) => r.kind == 'deleteCollection')
         .firstOrNull;
@@ -264,6 +288,17 @@ String _deleteLabel(PlanView plan) {
       : head;
 }
 
+/// The line a plan that enrols an automation into auto-apply shows.
+const kAppliesWithoutAsking = 'Applies changes without asking';
+
+/// The warning code of a module install (its text is the shield subtitle).
+const kGrantsPermissionsWarning = 'grants_permissions';
+
+/// The shield header: a module install or an auto-apply enrolment that
+/// deletes nothing.
+bool _shield(PlanView plan) =>
+    (plan.grantsPermissions || plan.autoApplies) && !plan.destructive;
+
 /// "Update card", "Add field" — a plan item kind for a mixed plan's group.
 String kindLabel(String kind) {
   final words = kind
@@ -293,9 +328,10 @@ Widget _divided(AssistantColors colors, Widget child) => DecoratedBox(
 );
 
 class _Header extends StatelessWidget {
-  const _Header({required this.plan});
+  const _Header({required this.plan, this.provenance});
 
   final PlanView plan;
+  final ({String id, String name})? provenance;
 
   @override
   Widget build(BuildContext context) {
@@ -303,10 +339,17 @@ class _Header extends StatelessWidget {
     final scheme = theme.colorScheme;
     final colors = AssistantColors.of(context);
     final destructive = plan.destructive;
+    final shield = _shield(plan);
+    final grantsWarning = plan.warnings
+        .where((w) => w.code == kGrantsPermissionsWarning)
+        .firstOrNull;
     final subtitle = destructive
         ? [...plan.notes, _undoSentence(plan, destructive: true)].join(' ')
+        : shield && grantsWarning != null
+        ? grantsWarning.message
         : 'Nothing changes until you approve. '
               '${_undoSentence(plan, destructive: false)}';
+    final source = provenance;
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
       child: Row(
@@ -324,7 +367,11 @@ class _Header extends StatelessWidget {
               borderRadius: BorderRadius.circular(9),
             ),
             child: Icon(
-              destructive ? Icons.delete_outline_rounded : Icons.edit_outlined,
+              destructive
+                  ? Icons.delete_outline_rounded
+                  : shield
+                  ? Icons.shield_outlined
+                  : Icons.edit_outlined,
               size: 16,
               color: destructive
                   ? scheme.onErrorContainer
@@ -342,6 +389,16 @@ class _Header extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
+                if (source != null)
+                  Text(
+                    'Module · ${source.name} (${source.id})',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      letterSpacing: 0,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
@@ -440,9 +497,13 @@ class DiffPill extends StatelessWidget {
 }
 
 class _WarningLine extends StatelessWidget {
-  const _WarningLine({required this.warning});
+  const _WarningLine({
+    required this.message,
+    this.icon = Icons.warning_amber_rounded,
+  });
 
-  final PlanWarning warning;
+  final String message;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
@@ -458,15 +519,11 @@ class _WarningLine extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.warning_amber_rounded,
-            size: 16,
-            color: semantic.onWarningContainer,
-          ),
+          Icon(icon, size: 16, color: semantic.onWarningContainer),
           const SizedBox(width: Spacing.xs),
           Expanded(
             child: Text(
-              warning.message,
+              message,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: semantic.onWarningContainer,
               ),
@@ -624,6 +681,7 @@ class _PlanRowTile extends StatelessWidget {
     // Every change Approve writes is shown: this is the consent surface.
     final diffs = row.changes;
     final detail = row.detail;
+    final code = row.code;
 
     final main = Row(
       children: [
@@ -638,7 +696,7 @@ class _PlanRowTile extends StatelessWidget {
             label: head,
             onTap: row.targetId == null || row.collectionId == null
                 ? null
-                : () => AssistantScope.of(context).actions.openObject(
+                : () => PlanCardScope.of(context).actions.openObject(
                     collectionId: row.collectionId!,
                     cardId: row.targetId,
                   ),
@@ -673,7 +731,7 @@ class _PlanRowTile extends StatelessWidget {
       label: row.label,
       child: _TapRow(
         onTap: onChanged == null ? null : () => onChanged!(!selected),
-        child: diffs.isEmpty || !showDiffs
+        child: (diffs.isEmpty || !showDiffs) && code == null
             ? main
             : Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
@@ -681,13 +739,24 @@ class _PlanRowTile extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     main,
-                    for (final d in diffs)
-                      Padding(
-                        padding: const EdgeInsetsDirectional.only(
-                          start: 28,
-                          bottom: 6,
+                    if (showDiffs)
+                      for (final d in diffs)
+                        Padding(
+                          padding: const EdgeInsetsDirectional.only(
+                            start: 28,
+                            bottom: 6,
+                          ),
+                          child: DiffLine(change: d),
                         ),
-                        child: DiffLine(change: d),
+                    if (code != null)
+                      Padding(
+                        padding: const EdgeInsetsDirectional.only(start: 18),
+                        child: TextActionButton(
+                          label: 'View code',
+                          icon: Icons.code_rounded,
+                          onPressed: () =>
+                              PlanCardScope.of(context).actions.viewCode(row),
+                        ),
                       ),
                   ],
                 ),
@@ -741,7 +810,7 @@ class _Footer extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final colors = AssistantColors.of(context);
-    final actions = AssistantScope.of(context).actions;
+    final actions = PlanCardScope.of(context).actions;
     final plan = item.plan;
     final destructive = plan.destructive;
     final count = item.selected.length;
@@ -749,6 +818,8 @@ class _Footer extends StatelessWidget {
     // While applying the button is a bare spinner: say what it is doing.
     final approveLabel = committing
         ? 'Applying changes'
+        : plan.itemCount == 1 && plan.rows.firstOrNull?.kind == 'saveModule'
+        ? (plan.title.startsWith('Update') ? 'Update module' : 'Install module')
         : destructive && plan.title.startsWith('Delete')
         ? (count != plan.itemCount
               ? 'Delete $count of ${plan.itemCount}'
@@ -968,7 +1039,7 @@ class _ClosedPlanCard extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final colors = AssistantColors.of(context);
-    final actions = AssistantScope.of(context).actions;
+    final actions = PlanCardScope.of(context).actions;
     final message = item.message;
     final (icon, line) = switch (item.status) {
       PlanStatus.rejected => (
