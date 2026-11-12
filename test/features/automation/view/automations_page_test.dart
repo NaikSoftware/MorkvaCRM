@@ -185,6 +185,35 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Stamp date when shipped'), findsNothing);
     });
+
+    // Run detail → "Runs": the page under the detail route was offstage, so
+    // its scrollable tab bar had no viewport when the tab changed.
+    testWidgets('a tab change while coming back from offstage', (tester) async {
+      setWindow(tester, wideWindow);
+      Widget stack(AutomationsTab tab, {bool detail = false}) => rig.wrap(
+        Navigator(
+          pages: [
+            MaterialPage(
+              key: const ValueKey('/automations'),
+              child: AutomationsPage(tab: tab, now: () => fixtureNow),
+            ),
+            if (detail)
+              const MaterialPage(
+                key: ValueKey('/automations/runs/r1'),
+                child: Text('Run detail'),
+              ),
+          ],
+          onDidRemovePage: (_) {},
+        ),
+      );
+      await tester.pumpWidget(stack(AutomationsTab.modules, detail: true));
+      await tester.pumpAndSettle();
+
+      await tester.pumpWidget(stack(AutomationsTab.runs));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.text('No runs yet'), findsOneWidget);
+    });
   });
 
   group('Runs tab', () {

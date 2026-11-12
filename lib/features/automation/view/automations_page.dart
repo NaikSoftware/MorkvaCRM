@@ -282,7 +282,11 @@ class _AutomationsPageState extends State<AutomationsPage>
   void didUpdateWidget(AutomationsPage old) {
     super.didUpdateWidget(old);
     if (old.tab != widget.tab && _tabs.index != widget.tab.index) {
-      _tabs.animateTo(widget.tab.index);
+      // Coming back from a detail route the page was offstage: its tab bar
+      // and view have no viewport until this frame's layout.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _tabs.animateTo(widget.tab.index);
+      });
     }
     if (old.tab != widget.tab ||
         old.cardId != widget.cardId ||
