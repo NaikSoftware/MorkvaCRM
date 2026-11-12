@@ -22,6 +22,9 @@ an approval round-trip (owner preference).
 
 ## Flow
 
+> Where this section and "UI decisions after design critic round 1" below disagree (copy, the
+> automations row, Close while writing, "stalled" wording), the UI decisions and the mockups win.
+
 Settings gets an **Import** section with a "Trello" row ("Boards, lists, cards and checklists").
 It opens a three-step sheet (`showAutomationSheet`: 560 dialog on wide, full-height bottom sheet on
 phone; *my call:* a sheet, not a `/settings/import` route, so the phone back button is not routed to
@@ -75,6 +78,17 @@ https://claude.ai/artifact/VtcEYDWkDHVfygGtoAtwEL, local copies `docs/superpower
   archived toggle.
 - Importing: rows "x of N" per collection; pending = `Icons.schedule`; running = spinner; done = check.
   Stalled/error (desktop mirrors PhoneStalled inside the dialog): warning banner + Close + Retry.
+- Round 2 additions: "Already added" shows as a problem-style row in the boards list (Files) and as
+  an inline note under the Paste field (Paste). Field chips: compact width (< 840) shows the first 6
+  chips + plain text "+N more fields"; wide shows all. Phone uses the desktop strings and the same
+  44 px `SheetHeader`. While writing there is no Close; footer hint "Writing — keep this open" next
+  to a disabled Done; "Imported cards don't start automations." sits under the progress bar.
+  Paused (stall or refused write): warning `AutomationBanner` "Import paused. Morkva couldn't reach
+  the server for 30 seconds. Check your connection, then retry — cards already written won't be added
+  twice. Closing keeps what's already imported." (a refused write says "Morkva couldn't save some
+  cards." instead of the 30-second sentence); paused row marker = warning-container circle with a
+  pause glyph; footer Close + Retry. Frame metrics follow `AutomationSheetFrame` (Spacing.md footer,
+  outlineVariant divider, Radii.md tile).
 - Done: one row per collection with `CollectionGlyph(tintSeed: id)` (icons `cards`/`task`/`note`), Open;
   a note row linking to Automations; Done button.
 

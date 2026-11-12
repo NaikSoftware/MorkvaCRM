@@ -24,7 +24,7 @@ body{margin:0}
     <div role="dialog" aria-modal="true" aria-labelledby="dlg-t" style="width: 560px; box-sizing: border-box; background: #FFFFFF; border-radius: 16px; box-shadow: 0 4px 10px rgba(0,0,0,.14), 0 16px 28px rgba(82,58,34,.10); display: flex; flex-direction: column; overflow: hidden">
 
       <div style="display: flex; align-items: center; gap: 16px; padding: 20px 24px 12px">
-        <span style="width: 44px; height: 44px; flex: 0 0 44px; border-radius: 13px; background: #FFE0C2; color: #4E2A00; display: inline-flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3.5" width="18" height="17" rx="3"/><path d="M8 7.5v8M12 7.5v4.5M16 7.5v6"/></svg></span>
+        <span style="width: 44px; height: 44px; flex: 0 0 44px; border-radius: 12px; background: #FFE0C2; color: #4E2A00; display: inline-flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3.5" width="18" height="17" rx="3"/><path d="M8 7.5v8M12 7.5v4.5M16 7.5v6"/></svg></span>
         <div style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px; min-width: 0">
           <h2 id="dlg-t" style="margin: 0; font: 600 20px/1.25 'Bricolage Grotesque', sans-serif; letter-spacing: -0.3px">Importing from Trello</h2>
           <p style="margin: 0; font-size: 14px; color: #6B5E52">Keep this open until it finishes.</p>
@@ -35,6 +35,7 @@ body{margin:0}
         <div role="progressbar" aria-valuemin="0" aria-valuemax="229" aria-valuenow="128" aria-label="Writing cards" style="display: flex; flex-direction: column; gap: 8px">
           <div style="display: flex; align-items: baseline; justify-content: space-between"><span style="font-weight: 600; font-size: 14px">Writing cards</span><span class="cnt" style="font-size: 14px; color: #6B5E52">128 of 229</span></div>
           <div style="height: 6px; border-radius: 3px; background: #F4EDE3; overflow: hidden"><div style="width: 56%; height: 100%; border-radius: 3px; background: #E8821E"></div></div>
+          <span style="font-size: 12px; color: #6B5E52">Imported cards don't start automations.</span>
         </div>
 
         <div style="border-radius: 12px; box-shadow: inset 0 0 0 1px #F4EDE3; overflow: hidden">
@@ -57,8 +58,8 @@ body{margin:0}
         </div>
       </div>
 
-      <div style="display: flex; align-items: center; gap: 8px; padding: 16px 24px 20px; border-top: 1px solid #F4EDE3">
-        <span style="flex: 1 1 auto; font-size: 13px; color: #6B5E52">Imported cards don't start automations.</span>
+      <div style="display: flex; align-items: center; gap: 8px; padding: 16px; border-top: 1px solid #E0D5C7">
+        <span style="flex: 1 1 auto; font-size: 13px; color: #6B5E52">Writing — keep this open</span>
         <button class="pb" disabled="disabled" style="opacity: .38">Done</button>
       </div>
     </div>

@@ -23,11 +23,11 @@ body{margin:0}
 <div style="width: 1440px; height: 900px; position: relative; overflow: hidden; font-family: 'Hanken Grotesk', sans-serif; color: #2B2018">
   <dc-import name="Main" hint-size="1440px,900px"></dc-import>
   <div style="position: absolute; inset: 0; background: rgba(43,32,24,.32); display: flex; align-items: center; justify-content: center">
-    <div role="dialog" aria-modal="true" aria-labelledby="dlg-t" style="width: 560px; height: 760px; box-sizing: border-box; background: #FFFFFF; border-radius: 16px; box-shadow: 0 4px 10px rgba(0,0,0,.14), 0 16px 28px rgba(82,58,34,.10); display: flex; flex-direction: column; overflow: hidden">
+    <div role="dialog" aria-modal="true" aria-labelledby="dlg-t" style="width: 560px; height: 810px; box-sizing: border-box; background: #FFFFFF; border-radius: 16px; box-shadow: 0 4px 10px rgba(0,0,0,.14), 0 16px 28px rgba(82,58,34,.10); display: flex; flex-direction: column; overflow: hidden">
 
       <!-- SheetHeader + close -->
       <div style="display: flex; align-items: center; gap: 16px; padding: 20px 12px 12px 24px">
-        <span style="width: 44px; height: 44px; flex: 0 0 44px; border-radius: 13px; background: #FFE0C2; color: #4E2A00; display: inline-flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3.5" width="18" height="17" rx="3"/><path d="M8 7.5v8M12 7.5v4.5M16 7.5v6"/></svg></span>
+        <span style="width: 44px; height: 44px; flex: 0 0 44px; border-radius: 12px; background: #FFE0C2; color: #4E2A00; display: inline-flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3.5" width="18" height="17" rx="3"/><path d="M8 7.5v8M12 7.5v4.5M16 7.5v6"/></svg></span>
         <div style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px; min-width: 0">
           <h2 id="dlg-t" style="margin: 0; font: 600 20px/1.25 'Bricolage Grotesque', sans-serif; letter-spacing: -0.3px">Import from Trello</h2>
           <p style="margin: 0; font-size: 14px; color: #6B5E52">Step 1 of 2 · Add boards</p>
@@ -46,7 +46,7 @@ body{margin:0}
         </div>
 
         <!-- File / Paste -->
-        <div role="radiogroup" aria-label="Source" style="display: flex; border-radius: 20px; box-shadow: inset 0 0 0 1px #B6A593; overflow: hidden">
+        <div role="radiogroup" aria-label="Source" style="flex: 0 0 auto; display: flex; border-radius: 20px; box-shadow: inset 0 0 0 1px #B6A593; overflow: hidden">
           <button class="seg" role="radio" aria-checked="false" style="box-shadow: inset -1px 0 0 #B6A593">Files</button>
           <button class="seg" role="radio" aria-checked="true" style="background: #FFE0C2; color: #3A1E00">Paste</button>
         </div>
@@ -68,7 +68,7 @@ body{margin:0}
       </div>
 
       <!-- SheetFooter -->
-      <div style="display: flex; align-items: center; gap: 8px; padding: 16px 24px 20px; border-top: 1px solid #F4EDE3">
+      <div style="display: flex; align-items: center; gap: 8px; padding: 16px; border-top: 1px solid #E0D5C7">
         <span style="flex: 1 1 auto; font-size: 13px; color: #6B5E52">Add at least one board</span>
         <button class="pb" disabled="disabled" style="opacity: .38">Continue</button>
       </div>
