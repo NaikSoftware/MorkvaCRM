@@ -993,6 +993,63 @@ void main() {
       expect(events.last, isA<TurnDone>());
     });
 
+    // Web e2e 2026-11-12: every call failed, and the forced text round
+    // claimed "I saved the module and set up the automation".
+    test('a forced last round with nothing written is told nothing was '
+        'saved', () async {
+      sealAnswer = (_) => {
+        'errors': [
+          {
+            'callId': 'r1.1',
+            'error': {'code': 'invalid_args', 'message': 'Bad field.'},
+          },
+        ],
+      };
+      llm.addAll([
+        FakeReply(calls: [call('cards_update')]),
+        const FakeReply(text: ['Nothing was saved yet.']),
+      ]);
+
+      final events = await runTurn(
+        loopFor(settings: const AgentSettings(rpm: 1000, maxRounds: 2)),
+        'ship them',
+      );
+
+      expect(events.whereType<PlanProposed>(), isEmpty);
+      expect(llm.requests[1].toolMode, LlmToolMode.none);
+      expect(
+        (llm.requests[1].contents.last as LlmUserText).text,
+        AgentLoop.noteNothingSaved,
+      );
+      expect(events.last, isA<TurnDone>());
+    });
+
+    test(
+      'a forced last round after an applied plan gets no such note',
+      () async {
+        llm.addAll([
+          FakeReply(calls: [call('cards_update')]),
+          const FakeReply(text: ['Shipped.']),
+        ]);
+
+        await runTurn(
+          loopFor(settings: const AgentSettings(rpm: 1000, maxRounds: 2)),
+          'ship them',
+          outcome: (_) => const Receipt(
+            planId: 'p_1',
+            applied: ['i1'],
+            summary: 'Updated 1',
+          ),
+        );
+
+        expect(llm.requests, hasLength(2));
+        expect(
+          llm.requests[1].contents.whereType<LlmUserText>().map((c) => c.text),
+          isNot(contains(AgentLoop.noteNothingSaved)),
+        );
+      },
+    );
+
     test('calls on the forced last round are not run; the nudge is sent '
         'in one more text-only round', () async {
       llm.addAll([

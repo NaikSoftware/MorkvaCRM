@@ -130,6 +130,14 @@ final class AgentLoop {
       'That was too many tool calls at once; make fewer calls per response, '
       'or answer in text now.';
 
+  /// Sent before the step limit's forced text round when no change of this
+  /// turn was written: a model whose calls all failed claimed it had saved
+  /// a module and set up an automation (web e2e 2026-11-12).
+  static const String noteNothingSaved =
+      'Step limit reached: answer in text now. Nothing was saved, created '
+      'or changed in this turn. Say plainly what is not done yet; never say '
+      'anything was saved or set up.';
+
   final LlmClient _llm;
   final Harness _harness;
   final AgentWorkspace _workspace;
@@ -289,6 +297,12 @@ final class AgentLoop {
     for (var round = 1; round <= maxRounds; round++) {
       final last = round == maxRounds;
       final mode = last || t.answerOnly ? LlmToolMode.none : LlmToolMode.auto;
+      // The step limit cut the turn short. Every write is an answered plan,
+      // so before one nothing was saved (after one the model holds its
+      // outcome).
+      if (round == _settings.maxRounds && round > 1 && !t.answerOnly) {
+        t.record.add(const LlmUserText(noteNothingSaved));
+      }
       final r = await _request(t, round, mode);
       t.usage += TokenUsage(
         promptTokens: r.promptTokens,
