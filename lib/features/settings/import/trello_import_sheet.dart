@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer' as developer;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -134,8 +135,14 @@ class _AddStepState extends State<_AddStep> {
     final List<TrelloExportFile> files;
     try {
       files = await widget.pickFiles();
-    } on Object {
+    } on Object catch (e, st) {
       // The browser refused to read a picked file (moved, or no access).
+      developer.log(
+        'Trello export pick failed',
+        name: 'import',
+        error: e,
+        stackTrace: st,
+      );
       cubit.addProblem(
         'Files',
         "Couldn't read the chosen files. Choose them again, or paste one.",
@@ -801,7 +808,7 @@ class _BoardGroup extends StatelessWidget {
           if (summary.checklistItems > 0)
             _CheckRow(
               indent: true,
-              value: choice.checklists,
+              value: on && choice.checklists,
               enabled: on,
               onChanged: (v) => onSelect(checklists: v),
               child: _ChildText(
@@ -813,7 +820,7 @@ class _BoardGroup extends StatelessWidget {
           if (summary.comments > 0)
             _CheckRow(
               indent: true,
-              value: choice.comments,
+              value: on && choice.comments,
               enabled: on,
               onChanged: (v) => onSelect(comments: v),
               child: _ChildText(

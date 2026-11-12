@@ -270,6 +270,7 @@ void main() {
       );
       final boxes = tester.widgetList<Checkbox>(find.byType(Checkbox)).toList();
       expect(boxes.map((b) => b.onChanged != null), [true, false, false]);
+      expect(boxes.map((b) => b.value), [false, false, false]);
 
       await tapText(tester, 'Back');
       expect(find.text('Step 1 of 2 · Add boards'), findsOneWidget);
