@@ -134,9 +134,9 @@ final class AgentLoop {
   /// turn was written: a model whose calls all failed claimed it had saved
   /// a module and set up an automation (web e2e 2026-11-12).
   static const String noteNothingSaved =
-      'Step limit reached: answer in text now. Nothing was saved, created '
-      'or changed in this turn. Say plainly what is not done yet; never say '
-      'anything was saved or set up.';
+      'Step limit reached: answer in text now with what you have. Nothing '
+      'was saved, created or changed in this turn, so never say anything '
+      'was saved or set up.';
 
   final LlmClient _llm;
   final Harness _harness;
