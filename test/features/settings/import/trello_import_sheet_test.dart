@@ -298,6 +298,7 @@ void main() {
       await open(tester, sync: const SyncOffline());
       await toChoose(tester);
       expect(find.text("You're offline — connect to import"), findsOneWidget);
+      expect(find.byIcon(Icons.wifi_off_rounded), findsOneWidget);
       expect(primary(tester, 'Import 3 collections').onPressed, isNull);
     });
 

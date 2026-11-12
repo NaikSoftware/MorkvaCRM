@@ -741,6 +741,7 @@ class _ChooseStep extends StatelessWidget {
       ],
       footer: SheetFooter(
         hint: state.importBlockedReason,
+        hintIcon: count > 0 && state.offline ? Icons.wifi_off_rounded : null,
         buttons: [
           TextActionButton(label: 'Back', onPressed: cubit.back),
           PrimaryButton(
@@ -834,7 +835,7 @@ class _BoardGroup extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Icon(
-                              Icons.history_rounded,
+                              Icons.info_outline_rounded,
                               size: 14,
                               color: semantic.onWarningContainer,
                             ),

@@ -48,6 +48,7 @@ Future<T?> showAutomationSheet<T>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
+    backgroundColor: sheetSurface(Theme.of(context)),
     isDismissible: dismissible,
     enableDrag: dismissible,
     showDragHandle: dismissible,
@@ -120,21 +121,34 @@ const sheetSegmentedStyle = ButtonStyle(
 /// A sheet's button row: an optional muted [hint] (a disabled button's
 /// reason) at the left, the [buttons] at the right; stacked when narrow.
 class SheetFooter extends StatelessWidget {
-  const SheetFooter({super.key, this.hint, required this.buttons});
+  const SheetFooter({
+    super.key,
+    this.hint,
+    this.hintIcon,
+    required this.buttons,
+  });
 
   final String? hint;
+
+  /// A glyph before the [hint] (e.g. offline), so the reason is not text only.
+  final IconData? hintIcon;
   final List<Widget> buttons;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final text = hint == null
+    final muted = theme.colorScheme.onSurfaceVariant;
+    final label = hint == null
         ? null
-        : Text(
-            hint!,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+        : Text(hint!, style: theme.textTheme.bodySmall?.copyWith(color: muted));
+    final text = label == null || hintIcon == null
+        ? label
+        : Row(
+            children: [
+              Icon(hintIcon, size: 16, color: muted),
+              const SizedBox(width: Spacing.xs),
+              Flexible(child: label),
+            ],
           );
     final row = Wrap(
       alignment: WrapAlignment.end,
