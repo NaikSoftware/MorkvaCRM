@@ -18,8 +18,38 @@ void main() {
           'schema:delete',
           'views:write',
           'ui:navigate',
+          'modules:read',
+          'modules:write',
+          'automations:write',
           'host:commit',
         ],
+      );
+    });
+
+    test('modules may ask for the eight data and UI capabilities only', () {
+      expect(
+        [for (final c in kModuleGrantable) c.wire],
+        [
+          'schema:read',
+          'data:read',
+          'data:write',
+          'data:delete',
+          'schema:write',
+          'schema:delete',
+          'views:write',
+          'ui:navigate',
+        ],
+      );
+    });
+
+    test('the assistant gets everything but host:commit', () {
+      expect(kAssistantCaps, {
+        ...Capability.values.where((c) => c != Capability.hostCommit),
+      });
+      expect(kAssistantCaps, contains(Capability.automationsWrite));
+      expect(
+        () => kAssistantCaps.add(Capability.hostCommit),
+        throwsUnsupportedError,
       );
     });
   });
@@ -50,9 +80,18 @@ void main() {
       expect(Capability.values.every(grants.allows), isTrue);
       expect(grants.allowsCollection('c_any'), isTrue);
       expect(grants.toJson(), {
-        'caps': ['*'],
+        'caps': [for (final c in Capability.values) c.wire],
         'collections': null,
       });
+    });
+
+    test('toJson is always the explicit list, so a stored grant never widens '
+        'when a capability is added', () {
+      final json = Grants(kAssistantCaps).toJson();
+      expect(json['caps'], isNot(contains('*')));
+      expect(json['caps'], isNot(contains('host:commit')));
+      expect(json['caps'], contains('automations:write'));
+      expect(Grants.fromJson(json).caps, kAssistantCaps);
     });
 
     test('a collection-pinned plugin grant', () {

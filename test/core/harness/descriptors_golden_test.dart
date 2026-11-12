@@ -27,7 +27,7 @@ void main() {
       ops,
       queries: h.p.queries,
       aggregates: AggregateEngine(h.p.queries),
-      thread: () => 't1',
+      thread: (_) => 't1',
     );
     registerUiOps(ops, queries: h.p.queries);
     registerProtocolOps(ops);
@@ -58,7 +58,16 @@ void main() {
       ),
       isTrue,
     );
+    expect(described['apiVersion'], '2.0');
+    expect(described['errorCodes'], contains('no_change'));
+    expect(
+      described['capabilities'],
+      containsAll(['modules:read', 'modules:write', 'automations:write']),
+    );
     for (final o in ops) {
+      // Every op of apiVersion 2 is new in 2.0; an additive op says 2.1 and
+      // bumps kHarnessMinor.
+      expect(o['since'], '2.0', reason: '${o['id']}');
       expect(
         OperationRegistry.toolNamePattern.hasMatch(
           OperationRegistry.toolName(o['id']! as String),

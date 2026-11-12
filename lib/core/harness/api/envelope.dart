@@ -22,6 +22,9 @@ enum ErrorCode {
   invalidExtension('invalid_extension'),
   // Harness codes.
   invalidArgs('invalid_args'),
+
+  /// A plan call that would change nothing: information, not a failure.
+  noChange('no_change'),
   unsupportedVersion('unsupported_version'),
   unknownOp('unknown_op'),
   notPermitted('not_permitted'),

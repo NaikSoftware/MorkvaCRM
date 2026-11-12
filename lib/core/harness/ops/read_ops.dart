@@ -17,15 +17,16 @@ import 'registry.dart';
 /// `cards.query/page/get/find/aggregate/distinct`.
 ///
 /// They read through [queries] and [aggregates] (which share one
-/// `WorkspaceCache` and `ResultStore`). [thread] names the chat thread
-/// whose result handles a call stores and pages; the host reads it per call,
-/// so switching threads needs no re-registration. Every card read takes
+/// `WorkspaceCache` and `ResultStore`). [thread] names, per call context,
+/// the thread whose result handles the call stores and pages (the chat
+/// thread, or `run:<turnId>` for a module run), so switching threads needs
+/// no re-registration. Every card read takes
 /// `from: "@screen"` (the screen's collection, filters, search and sort).
 void registerReadOps(
   OperationRegistry ops, {
   required QueryEngine queries,
   required AggregateEngine aggregates,
-  required String Function() thread,
+  required String Function(HarnessContext ctx) thread,
   WorkspaceDigest digest = const WorkspaceDigest(),
 }) {
   final cache = queries.cache;
@@ -37,17 +38,17 @@ void registerReadOps(
     ),
     _ReadOp(
       _cardsQuery,
-      (args, ctx) => queries.query(args, ctx, thread: thread()),
+      (args, ctx) => queries.query(args, ctx, thread: thread(ctx)),
     ),
     _ReadOp(
       _cardsPage,
-      (args, ctx) => queries.page(args, ctx, thread: thread()),
+      (args, ctx) => queries.page(args, ctx, thread: thread(ctx)),
     ),
     _ReadOp(_cardsGet, queries.get),
     _ReadOp(_cardsFind, (args, ctx) => _find(queries, args, ctx)),
     _ReadOp(
       _cardsAggregate,
-      (args, ctx) => aggregates.aggregate(args, ctx, thread: thread()),
+      (args, ctx) => aggregates.aggregate(args, ctx, thread: thread(ctx)),
     ),
     _ReadOp(_cardsDistinct, aggregates.distinct),
   ]) {

@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
+import 'package:morkva_crm/core/harness/cache/result_store.dart';
 import 'package:morkva_crm/core/harness/harness.dart';
 import 'package:morkva_crm/core/harness/ops/read_ops.dart';
 import 'package:morkva_crm/core/harness/query/result_shaper.dart';
@@ -237,7 +238,7 @@ void main() {
         ops,
         queries: h.q.queries,
         aggregates: h.q.aggregates,
-        thread: () => 't1',
+        thread: (_) => 't1',
         digest: const WorkspaceDigest(shaper: ResultShaper(schemaBudget: 2000)),
       );
       final r = await Harness(ops).call(
@@ -420,6 +421,73 @@ void main() {
         'collection': 'Orders',
       }, grants: Grants([Capability.schemaRead]));
       expect(error.code, ErrorCode.notPermitted);
+    });
+  });
+  group('result threads and pools', () {
+    test('the thread is read from each call\'s context', () async {
+      final ops = OperationRegistry();
+      registerReadOps(
+        ops,
+        queries: h.q.queries,
+        aggregates: h.q.aggregates,
+        thread: (ctx) =>
+            ctx.actor.kind == ActorKind.plugin ? 'run:${ctx.actor.id}' : 't1',
+      );
+      final harness = Harness(ops);
+      Future<String> handleAs(Actor actor) async {
+        final r = await harness.call(
+          const HarnessRequest(
+            op: 'cards.query',
+            args: {'collection': 'Orders'},
+            callId: 'c1',
+          ),
+          HarnessContext(
+            workspaceId: 'w1',
+            actor: actor,
+            grants: Grants(kModuleGrantable),
+            now: DateTime(2026, 11, 10, 14, 30),
+            today: today,
+          ),
+        );
+        return (r as HarnessOk).result['handle']! as String;
+      }
+
+      final chat = await handleAs(Actor.assistant);
+      final run = await handleAs(const Actor.plugin('invoices'));
+
+      expect(h.q.results.get(chat, thread: 't1'), isNotNull);
+      expect(h.q.results.get(run, thread: 'run:invoices'), isNotNull);
+      expect(h.q.results.get(run, thread: 't1'), isNull);
+    });
+
+    test('module runs and chats never evict each other\'s handles', () {
+      final store = ResultStore(perThread: 2, capacity: 3, runCapacity: 2);
+      String put(String thread, int n) => store
+          .put(
+            thread: thread,
+            spec: {'n': n},
+            generations: const {},
+            orderedIds: const [],
+          )
+          .handle;
+
+      final chats = [put('t1', 1), put('t1', 2), put('t2', 3)];
+      final runs = [for (var i = 0; i < 5; i++) put('run:r${i % 3}', i)];
+
+      expect(chats.every((c) => store.get(c) != null), isTrue);
+      expect(
+        [for (final r in runs) store.get(r) != null],
+        [false, false, false, true, true],
+      );
+
+      put('t3', 4);
+      expect(store.get(chats.first), isNull, reason: 'the oldest chat goes');
+      expect(store.get(runs.last), isNotNull);
+      expect(store.length, 5);
+
+      store.dropThread('run:r1');
+      expect(store.get(runs[4]), isNull);
+      expect(store.get(runs[3]), isNotNull);
     });
   });
 }

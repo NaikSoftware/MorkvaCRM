@@ -40,6 +40,11 @@ void main() {
       }
     });
 
+    test('no_change is information: its own code, not retryable', () {
+      expect(ErrorCode.fromWire('no_change'), ErrorCode.noChange);
+      expect(ErrorCode.noChange.retryableByDefault, isFalse);
+    });
+
     test('only offline and conflict are retryable by default', () {
       expect(
         [
@@ -113,7 +118,7 @@ void main() {
 
     test('a request without args gets an empty map', () {
       final request = HarnessRequest.fromJson({
-        'v': 1,
+        'v': 2,
         'op': 'harness.describe',
         'callId': 'h.1',
       });
@@ -128,7 +133,7 @@ void main() {
       );
       expect(
         () => HarnessRequest.fromJson({
-          'v': 1,
+          'v': 2,
           'op': 'x',
           'callId': 'c',
           'args': [],
@@ -136,7 +141,7 @@ void main() {
         throwsFormatException,
       );
       expect(
-        () => HarnessRequest.fromJson({'v': 1, 'callId': 'c'}),
+        () => HarnessRequest.fromJson({'v': 2, 'callId': 'c'}),
         throwsFormatException,
       );
     });

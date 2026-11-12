@@ -74,8 +74,8 @@ final class AgentLoop {
     required LlmClient llm,
     required Harness harness,
     required AgentWorkspace workspace,
+    required Grants grants,
     AgentSettings settings = const AgentSettings(),
-    Grants? grants,
     HistoryCompactor compactor = const HistoryCompactor(),
     String locale = 'en',
     this.timeZoneName = '',
@@ -84,7 +84,7 @@ final class AgentLoop {
        _harness = harness,
        _workspace = workspace,
        _settings = settings,
-       _grants = grants ?? Grants.all(),
+       _grants = grants,
        _compactor = compactor,
        _now = now ?? DateTime.now,
        _model = settings.model,
@@ -105,6 +105,9 @@ final class AgentLoop {
   /// The step summary of a harness error whose message means nothing to
   /// the user; neutral because the model may retry or give up.
   static const String stepFailed = "didn't go through";
+
+  /// The step summary of a plan call that would change nothing.
+  static const String stepNoChange = 'Already up to date';
 
   /// Harness errors whose message says something to the user.
   static const Set<ErrorCode> _userFacing = {
@@ -569,14 +572,27 @@ final class AgentLoop {
     List<Map<String, Object?>?> responses,
   ) async {
     final errors = <String, Map<String, Object?>>{};
+    // `no_change` calls keep that answer; the rest are proposed together.
+    final proposed = <int>[];
     for (final i in plans) {
       final result = await _call(t, ops[i]!.id, calls[i].args, ids[i]);
       _finishStep(t, ids[i], result);
-      if (result is HarnessFailure) errors[ids[i]] = _responseJson(result);
+      if (result case HarnessFailure(:final error)) {
+        if (error.code == ErrorCode.noChange) {
+          responses[i] = _responseJson(result);
+          continue;
+        }
+        errors[ids[i]] = _responseJson(result);
+      }
+      proposed.add(i);
     }
-    final seal = await _call(t, 'plans.seal', {
-      'turnId': t.turnId,
-    }, '${ids.first.split('.').first}.seal');
+    // Every call changed nothing: the overlay stays empty (no_change is
+    // never recorded), so there is nothing to seal or discard.
+    final seal = proposed.isEmpty
+        ? null
+        : await _call(t, 'plans.seal', {
+            'turnId': t.turnId,
+          }, '${ids.first.split('.').first}.seal');
 
     if (t.stopped) {
       final stopped = const Rejection(RejectReason.stopped).toModelJson();
@@ -586,11 +602,13 @@ final class AgentLoop {
       return const TurnStopped();
     }
 
+    if (seal == null) return null;
+
     CompactPlan? plan;
     switch (seal) {
       case HarnessFailure():
         // The merged plan is refused as a whole (e.g. over 500 items).
-        for (final i in plans) {
+        for (final i in proposed) {
           errors.putIfAbsent(ids[i], () => _responseJson(seal));
         }
       case HarnessOk(:final result):
@@ -609,7 +627,7 @@ final class AgentLoop {
     }
 
     if (plan == null) {
-      for (final i in plans) {
+      for (final i in proposed) {
         responses[i] =
             errors[ids[i]] ??
             (errors.isEmpty
@@ -646,7 +664,7 @@ final class AgentLoop {
       t.changed = true;
     }
     final json = outcome.toModelJson();
-    for (final i in plans) {
+    for (final i in proposed) {
       responses[i] = json;
     }
     return switch (outcome) {
@@ -668,6 +686,10 @@ final class AgentLoop {
 
   void _finishStep(_Turn t, String callId, HarnessResponse result) {
     switch (result) {
+      case HarnessFailure(:final error) when error.code == ErrorCode.noChange:
+        // Information, never shown as a failure.
+        t.record.addStep(stepNoChange);
+        _emit(t, StepFinished(callId: callId, summary: stepNoChange, ok: true));
       case HarnessOk(:final result):
         final summary = result['summary'] as String? ?? 'Done';
         t.record.addStep(summary);
