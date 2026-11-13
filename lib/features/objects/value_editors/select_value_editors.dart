@@ -95,7 +95,38 @@ class MultiSelectValueEditor extends FieldValueEditor {
   String get typeId => kMultiSelectFieldType;
 
   @override
-  Widget build(BuildContext context, ValueEditorContext ctx) {
+  Widget build(BuildContext context, ValueEditorContext ctx) =>
+      _MultiSelectChips(ctx);
+}
+
+class _MultiSelectChips extends StatefulWidget {
+  const _MultiSelectChips(this.ctx);
+
+  final ValueEditorContext ctx;
+
+  @override
+  State<_MultiSelectChips> createState() => _MultiSelectChipsState();
+}
+
+class _MultiSelectChipsState extends State<_MultiSelectChips> {
+  final _menu = MenuController();
+
+  /// Opens under the Add button, pinned to the editor's top-left: chips added
+  /// while picking push Add along, but the menu stays under the pointer.
+  void _toggleMenu(BuildContext addContext) {
+    if (_menu.isOpen) return _menu.close();
+    final add = addContext.findRenderObject()! as RenderBox;
+    _menu.open(
+      position: add.localToGlobal(
+        Offset(0, add.size.height),
+        ancestor: context.findRenderObject(),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ctx = widget.ctx;
     final field = ctx.field as MultiSelectFieldDefinition;
     final ids = (ctx.value as MultiSelectFieldValue).optionIds;
     final scheme = Theme.of(context).colorScheme;
@@ -115,41 +146,58 @@ class MultiSelectValueEditor extends FieldValueEditor {
       ),
     );
 
-    return Wrap(
-      spacing: Spacing.xs,
-      runSpacing: Spacing.xxs,
-      crossAxisAlignment: WrapCrossAlignment.center,
+    return Stack(
       children: [
-        for (final id in ids)
-          if (field.options.where((o) => o.id == id).firstOrNull
-              case final option?)
-            RemovableChip(
-              label: option.label,
-              color: _tint(scheme, optionColor(field, id)),
-              shape: const StadiumBorder(),
-              deleteTooltip: 'Remove ${option.label}',
-              onDeleted: ctx.enabled ? () => toggle(id) : null,
-            ),
-        MenuAnchor(
-          menuChildren: [
-            for (final o in field.options)
-              CheckboxMenuButton(
-                value: ids.contains(o.id),
-                closeOnActivate: false,
-                onChanged: (_) => toggle(o.id),
-                child: OptionPill(
-                  label: o.label,
-                  color: optionColor(field, o.id),
+        Wrap(
+          spacing: Spacing.xs,
+          runSpacing: Spacing.xxs,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            for (final id in ids)
+              if (field.options.where((o) => o.id == id).firstOrNull
+                  case final option?)
+                RemovableChip(
+                  label: option.label,
+                  color: _tint(scheme, optionColor(field, id)),
+                  shape: const StadiumBorder(),
+                  deleteTooltip: 'Remove ${option.label}',
+                  onDeleted: ctx.enabled ? () => toggle(id) : null,
+                ),
+            // In the menu's tap group, so a second tap closes rather than
+            // closing-then-reopening.
+            TapRegion(
+              groupId: _menu,
+              child: Builder(
+                builder: (addContext) => AddValueButton(
+                  label: 'Add',
+                  onPressed: ctx.enabled ? () => _toggleMenu(addContext) : null,
                 ),
               ),
-            if (field.options.isEmpty)
-              const MenuItemButton(child: Text('No options yet')),
+            ),
           ],
-          builder: (context, menu, _) => AddValueButton(
-            label: 'Add',
-            onPressed: ctx.enabled
-                ? () => menu.isOpen ? menu.close() : menu.open()
-                : null,
+        ),
+        // A zero-size anchor at the editor's top-left (LTR math, so not
+        // directional): the field around it still dismisses the menu on tap.
+        Positioned(
+          left: 0,
+          top: 0,
+          child: MenuAnchor(
+            controller: _menu,
+            menuChildren: [
+              for (final o in field.options)
+                CheckboxMenuButton(
+                  value: ids.contains(o.id),
+                  closeOnActivate: false,
+                  onChanged: (_) => toggle(o.id),
+                  child: OptionPill(
+                    label: o.label,
+                    color: optionColor(field, o.id),
+                  ),
+                ),
+              if (field.options.isEmpty)
+                const MenuItemButton(child: Text('No options yet')),
+            ],
+            child: const SizedBox.shrink(),
           ),
         ),
       ],
