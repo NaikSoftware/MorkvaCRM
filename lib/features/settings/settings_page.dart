@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../api/auth/auth_cubit.dart';
 import '../../design/design.dart';
+import '../../l10n/l10n.dart';
 import '../automation/widgets/run_indicator.dart';
 import 'import/trello_import_sheet.dart';
 
@@ -19,6 +20,7 @@ class SettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
     final sky = (theme.brightness == Brightness.light
         ? CollectionTints.light
         : CollectionTints.dark)[2];
@@ -41,10 +43,10 @@ class SettingsPage extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const _SectionLabel('Workspace'),
+                    _SectionLabel(l10n.settingsWorkspaceSection),
                     ListTileCard(
-                      title: 'Automations',
-                      subtitle: 'Modules, buttons and runs',
+                      title: l10n.commonAutomations,
+                      subtitle: l10n.settingsAutomationsSubtitle,
                       leading: _Tile(
                         icon: Icons.bolt_rounded,
                         background: scheme.primaryContainer,
@@ -60,12 +62,10 @@ class SettingsPage extends StatelessWidget {
                       onTap: () => context.go('/automations'),
                     ),
                     const SizedBox(height: Spacing.lg),
-                    const _SectionLabel('Import from other apps'),
+                    _SectionLabel(l10n.settingsImportSection),
                     ListTileCard(
                       title: 'Trello',
-                      subtitle:
-                          'Boards become collections — lists, cards, labels, '
-                          'checklists and comments',
+                      subtitle: l10n.settingsTrelloSubtitle,
                       leading: _Tile(
                         icon: Icons.view_kanban_outlined,
                         background: sky.background,
@@ -86,7 +86,7 @@ class SettingsPage extends StatelessWidget {
                   padding: const EdgeInsets.only(top: Spacing.lg),
                   child: Center(
                     child: SecondaryButton(
-                      label: 'Sign out',
+                      label: l10n.settingsSignOut,
                       icon: Icons.logout_rounded,
                       onPressed: () => context.read<AuthCubit>().signOut(),
                     ),

@@ -5,6 +5,7 @@ import '../../api/auth/auth_cubit.dart';
 import '../../app/shell/app_shell.dart';
 import '../../app/shell/brand_wordmark.dart';
 import '../../design/design.dart';
+import '../../l10n/l10n.dart';
 
 /// The first screen a signed-out user sees: brand presence, a one-line value
 /// proposition, and a single prominent "Continue with Google" action.
@@ -77,6 +78,7 @@ class _SignInContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
+    final l10n = context.l10n;
     final scheme = theme.colorScheme;
 
     return BlocBuilder<AuthCubit, AuthState>(
@@ -94,11 +96,10 @@ class _SignInContent extends StatelessWidget {
               child: BrandWordmark(extended: true),
             ),
             const SizedBox(height: Spacing.xl),
-            Text('Welcome to your workspace', style: textTheme.headlineSmall),
+            Text(l10n.authWelcomeTitle, style: textTheme.headlineSmall),
             const SizedBox(height: Spacing.sm),
             Text(
-              'One tidy home for your collections and cards — synced securely '
-              'across every device you sign in on.',
+              l10n.authWelcomeBody,
               style: textTheme.bodyLarge?.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
@@ -111,7 +112,7 @@ class _SignInContent extends StatelessWidget {
             if (loading) ...[
               const SizedBox(height: Spacing.xs),
               TextActionButton(
-                label: 'Cancel',
+                label: l10n.commonCancel,
                 onPressed: () => context.read<AuthCubit>().cancelSignIn(),
               ),
             ],
@@ -121,8 +122,7 @@ class _SignInContent extends StatelessWidget {
             ],
             const SizedBox(height: Spacing.md),
             Text(
-              'We only use your Google account to sign you in. '
-              'Your data stays yours.',
+              l10n.authPrivacyNote,
               style: textTheme.bodySmall,
             ),
           ],
@@ -158,7 +158,7 @@ class _GoogleSignInButton extends StatelessWidget {
       onPressed: enabled
           ? () => context.read<AuthCubit>().signInWithGoogle()
           : null,
-      semanticLabel: 'Continue with Google',
+      semanticLabel: context.l10n.authContinueWithGoogle,
       borderRadius: Radii.mdAll,
       child: Container(
         height: 44,
@@ -180,7 +180,7 @@ class _GoogleSignInButton extends StatelessWidget {
                 const SizedBox(width: Spacing.sm),
                 Flexible(
                   child: Text(
-                    'Continue with Google',
+                    context.l10n.authContinueWithGoogle,
                     style: textStyle?.copyWith(color: fg),
                     overflow: TextOverflow.ellipsis,
                   ),
