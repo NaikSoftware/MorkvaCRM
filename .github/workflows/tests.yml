@@ -1,0 +1,54 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.9
+          cache: true
+
+      - run: flutter pub get
+
+      # lib/firebase_options.dart is gitignored (API keys); tests never call it.
+      - name: Stub firebase_options.dart
+        run: |
+          cat > lib/firebase_options.dart <<'EOF'
+          import 'package:firebase_core/firebase_core.dart';
+
+          class DefaultFirebaseOptions {
+            static FirebaseOptions get currentPlatform =>
+                throw UnsupportedError('CI stub');
+          }
+          EOF
+
+      - run: flutter analyze
+
+      - name: Build QuickJS host library
+        run: |
+          tool/build_qjs_test_lib.sh
+          echo "FLUTTER_QJS_NEXT_LIBRARY=$PWD/build/qjs/libflutter_qjs_next_plugin.so" >> "$GITHUB_ENV"
+
+      # perf: wall-clock budgets tuned for the dev machine, flaky on shared runners.
+      - name: Unit and widget tests
+        run: flutter test --exclude-tags perf
+
+      - name: Browser tests (headless Chrome)
+        run: flutter test --platform chrome $(grep -rl "@TestOn('browser')" test)
