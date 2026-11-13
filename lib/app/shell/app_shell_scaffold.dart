@@ -374,6 +374,15 @@ class _ShellViewState extends State<_ShellView> {
             children: [
               // Phone: hidden while idle.
               if (!wide) const RunIndicatorButton(),
+              // Phone: no sidebar, so All collections carries Jump to.
+              if (!wide &&
+                  place == ShellPlace.allCollections &&
+                  collections.isNotEmpty)
+                IconButton(
+                  tooltip: 'Jump to…',
+                  icon: const Icon(Icons.search_rounded),
+                  onPressed: jumpTo,
+                ),
               ?ask,
               if (!inSettings && !inAutomations) avatar,
             ],
