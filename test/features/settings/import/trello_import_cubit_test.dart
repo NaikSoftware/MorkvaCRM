@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:fake_async/fake_async.dart';
@@ -457,5 +458,45 @@ void main() {
       );
       expect(await repo.getCollections(), hasLength(6));
     });
+
+    test(
+      'slices stay under Firestore\'s 10 MiB commit with long cards',
+      () async {
+        // 450 cards at Trello's 16,384-char description limit, in Cyrillic
+        // (2 bytes a char): ~14 MiB, which one 450-object commit can't carry.
+        final desc = 'ж' * 16384;
+        String id(int i) =>
+            '64a1f0c2b1a2c3d4e5f6${i.toRadixString(16).padLeft(4, '0')}';
+        final board = jsonEncode({
+          'id': '64a1f0c2b1a2c3d4e5f6ffff',
+          'name': 'Long',
+          'lists': [
+            {'id': id(9999), 'name': 'To do'},
+          ],
+          'cards': [
+            for (var i = 0; i < 450; i++)
+              {
+                'id': id(i),
+                'name': 'Card $i',
+                'idList': id(9999),
+                'desc': desc,
+              },
+          ],
+        });
+        final c = cubit()
+          ..addFiles([(name: 'long.json', text: board)])
+          ..next();
+        addTearDown(c.close);
+        final sent = spyBatches();
+
+        await c.startImport();
+
+        expect(c.state.step, TrelloImportStep.done);
+        expect(sent.length, greaterThan(1));
+        expect(sent.expand((s) => s), hasLength(450));
+        const perCard = 16384 * 2;
+        expect(sent.every((s) => s.length * perCard < 10 << 20), isTrue);
+      },
+    );
   });
 }

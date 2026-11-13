@@ -1,6 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:developer' as developer;
-import 'dart:math' show min;
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -224,6 +224,7 @@ class TrelloImportCubit extends Cubit<TrelloImportState> {
     IdGenerator? ids,
     this.sliceTimeout = const Duration(seconds: 30),
     this.sliceSize = 450,
+    this.sliceBytes = 4 << 20,
   }) : _ids = ids ?? IdGenerator(),
        super(const TrelloImportState());
 
@@ -235,6 +236,11 @@ class TrelloImportCubit extends Cubit<TrelloImportState> {
 
   /// Objects per saveObjectsBatch call.
   final int sliceSize;
+
+  /// Most UTF-8 bytes of object JSON per saveObjectsBatch call (at least one
+  /// object goes): Firestore refuses a commit over 10 MiB, and 450 cards with
+  /// Trello's longest descriptions (16,384 chars) reach ~14 MiB in Cyrillic.
+  final int sliceBytes;
 
   final _summaryCache = <(String, bool), TrelloBoardSummary>{};
 
@@ -485,7 +491,7 @@ class TrelloImportCubit extends Cubit<TrelloImportState> {
         _setRow(id, ImportRowStatus.running);
       }
       while (pending.isNotEmpty) {
-        final slice = pending.sublist(0, min(sliceSize, pending.length));
+        final slice = _slice(pending);
         late BatchResult result;
         _unsure.add(id);
         final ok = await _guard(
@@ -513,6 +519,18 @@ class TrelloImportCubit extends Cubit<TrelloImportState> {
       _setRow(id, ImportRowStatus.done);
     }
     _emit(state.copyWith(step: TrelloImportStep.done, running: false));
+  }
+
+  /// The next objects of [pending] that fit [sliceSize] and [sliceBytes].
+  List<MorkvaObject> _slice(List<MorkvaObject> pending) {
+    var n = 0;
+    var bytes = 0;
+    for (final o in pending.take(sliceSize)) {
+      bytes += utf8.encode(jsonEncode(o.toJson())).length;
+      if (n > 0 && bytes > sliceBytes) break;
+      n++;
+    }
+    return pending.sublist(0, n);
   }
 
   /// Runs [write] under the watchdog; on a timeout or error pauses [id]'s
