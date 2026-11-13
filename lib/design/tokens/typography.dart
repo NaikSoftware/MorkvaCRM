@@ -8,31 +8,53 @@ import 'package:google_fonts/google_fonts.dart';
 /// body, labels, and data: quiet, highly legible, with tabular numerals for
 /// number-dense CRM cells.
 ///
+/// Neither family has Cyrillic glyphs, so every style falls back to **Onest**
+/// (a close grotesque that does) for Ukrainian text instead of the platform
+/// default.
+///
 /// Display sizes get negative tracking so large type reads engineered rather
 /// than stretched.
 abstract final class MorkvaTypography {
+  /// Adds the Cyrillic fallback. Uses google_fonts' per-weight family name so
+  /// that exact Onest variant is fetched and registered.
+  static TextStyle _cyrillic(TextStyle style) => style.copyWith(
+    fontFamilyFallback: [
+      GoogleFonts.onest(fontWeight: style.fontWeight).fontFamily!,
+    ],
+  );
+
   static TextTheme textTheme(ColorScheme scheme) {
     final ink = scheme.onSurface;
 
-    TextStyle display(double size, FontWeight weight, double tracking,
-            double height) =>
-        GoogleFonts.bricolageGrotesque(
-          fontSize: size,
-          fontWeight: weight,
-          letterSpacing: tracking,
-          height: height,
-          color: ink,
-        );
+    TextStyle display(
+      double size,
+      FontWeight weight,
+      double tracking,
+      double height,
+    ) => _cyrillic(
+      GoogleFonts.bricolageGrotesque(
+        fontSize: size,
+        fontWeight: weight,
+        letterSpacing: tracking,
+        height: height,
+        color: ink,
+      ),
+    );
 
-    TextStyle text(double size, FontWeight weight,
-            {double height = 1.45, double tracking = 0}) =>
-        GoogleFonts.hankenGrotesk(
-          fontSize: size,
-          fontWeight: weight,
-          height: height,
-          letterSpacing: tracking,
-          color: ink,
-        );
+    TextStyle text(
+      double size,
+      FontWeight weight, {
+      double height = 1.45,
+      double tracking = 0,
+    }) => _cyrillic(
+      GoogleFonts.hankenGrotesk(
+        fontSize: size,
+        fontWeight: weight,
+        height: height,
+        letterSpacing: tracking,
+        color: ink,
+      ),
+    );
 
     return TextTheme(
       displayLarge: display(48, FontWeight.w700, -1.0, 1.04),
@@ -41,36 +63,35 @@ abstract final class MorkvaTypography {
       headlineLarge: display(28, FontWeight.w600, -0.5, 1.16),
       headlineMedium: display(24, FontWeight.w600, -0.4, 1.2),
       headlineSmall: display(20, FontWeight.w600, -0.3, 1.25),
-      titleLarge: GoogleFonts.bricolageGrotesque(
-        fontSize: 18,
-        fontWeight: FontWeight.w600,
-        letterSpacing: -0.2,
-        height: 1.3,
-        color: ink,
-      ),
+      titleLarge: display(18, FontWeight.w600, -0.2, 1.3),
       titleMedium: text(16, FontWeight.w600, height: 1.3),
       titleSmall: text(14, FontWeight.w600, height: 1.3),
       bodyLarge: text(16, FontWeight.w400, height: 1.5),
       bodyMedium: text(14, FontWeight.w400, height: 1.45),
-      bodySmall: text(12, FontWeight.w400, height: 1.4)
-          .copyWith(color: scheme.onSurfaceVariant),
+      bodySmall: text(
+        12,
+        FontWeight.w400,
+        height: 1.4,
+      ).copyWith(color: scheme.onSurfaceVariant),
       labelLarge: text(14, FontWeight.w600, tracking: 0.1),
       labelMedium: text(12, FontWeight.w600, tracking: 0.2),
-      labelSmall: text(11, FontWeight.w600, tracking: 0.4)
-          .copyWith(color: scheme.onSurfaceVariant),
+      labelSmall: text(
+        11,
+        FontWeight.w600,
+        tracking: 0.4,
+      ).copyWith(color: scheme.onSurfaceVariant),
     );
   }
 
   /// Returns [style] with tabular (monospaced) figures — use for prices,
   /// counts, IDs, and any number column so digits align vertically.
-  static TextStyle tabular(TextStyle style) => style.copyWith(
-        fontFeatures: const [FontFeature.tabularFigures()],
-      );
+  static TextStyle tabular(TextStyle style) =>
+      style.copyWith(fontFeatures: const [FontFeature.tabularFigures()]);
 
   /// Returns [style] in a monospace face (code, logs, pasted JSON):
   /// Roboto Mono, since CanvasKit has no generic 'monospace' family and drew
   /// code proportional on web.
   static TextStyle mono(TextStyle style) => GoogleFonts.robotoMono(
-        textStyle: style,
-      ).copyWith(fontFamilyFallback: const ['monospace', 'Courier New']);
+    textStyle: style,
+  ).copyWith(fontFamilyFallback: const ['monospace', 'Courier New']);
 }

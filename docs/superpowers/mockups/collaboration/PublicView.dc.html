@@ -8,37 +8,37 @@
 <body>
 <x-dc>
 <helmet>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&amp;family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&amp;family=Hanken+Grotesk:wght@400;500;600;700&amp;family=Onest:wght@400;500;600;700&amp;display=swap">
 <style>
 body{margin:0;background:#FBF7F2}
 svg{flex:0 0 auto}
 /* ---------- public top bar (no app shell) ---------- */
 .bar{position:relative;z-index:1;height:64px;flex:0 0 auto;display:flex;align-items:center;gap:12px;padding:0 32px;background:#FFFFFF;border-bottom:1px solid #E0D5C7}
-.cap{margin:0;font:700 11px 'Hanken Grotesk',sans-serif;letter-spacing:.9px;text-transform:uppercase;color:#6B5E52}
-.v-title{margin:0;font:600 28px/1.2 'Bricolage Grotesque',sans-serif;letter-spacing:-0.4px;color:#2B2018}
+.cap{margin:0;font:700 11px 'Hanken Grotesk','Onest',sans-serif;letter-spacing:.9px;text-transform:uppercase;color:#6B5E52}
+.v-title{margin:0;font:600 28px/1.2 'Bricolage Grotesque','Onest',sans-serif;letter-spacing:-0.4px;color:#2B2018}
 .search{width:320px;display:flex;align-items:center;gap:8px;height:44px;padding:0 14px;box-sizing:border-box;border-radius:12px;border:1px solid #B6A593;background:#FFFFFF;color:#6B5E52}
-.search input{flex:1 1 auto;min-width:0;height:42px;border:0;outline:0;background:transparent;font:400 14px 'Hanken Grotesk',sans-serif;color:#2B2018}
+.search input{flex:1 1 auto;min-width:0;height:42px;border:0;outline:0;background:transparent;font:400 14px 'Hanken Grotesk','Onest',sans-serif;color:#2B2018}
 .search input::placeholder{color:#6B5E52;opacity:1}
-.state{position:absolute;right:24px;top:84px;z-index:2;display:inline-flex;align-items:center;height:24px;padding:0 10px;margin:0;border-radius:12px;background:#EEE5D8;font:700 11px 'Hanken Grotesk',sans-serif;letter-spacing:.9px;text-transform:uppercase;color:#4A4036}
+.state{position:absolute;right:24px;top:84px;z-index:2;display:inline-flex;align-items:center;height:24px;padding:0 10px;margin:0;border-radius:12px;background:#EEE5D8;font:700 11px 'Hanken Grotesk','Onest',sans-serif;letter-spacing:.9px;text-transform:uppercase;color:#4A4036}
 /* ---------- account + meta ---------- */
 .wrap{position:relative;z-index:1;width:1120px;margin:0 auto}
-.meta{display:flex;align-items:center;gap:8px;font:400 14px 'Hanken Grotesk',sans-serif;color:#6B5E52;font-variant-numeric:tabular-nums}
+.meta{display:flex;align-items:center;gap:8px;font:400 14px 'Hanken Grotesk','Onest',sans-serif;color:#6B5E52;font-variant-numeric:tabular-nums}
 .meta b{font-weight:600;color:#2B2018}
-.acct{display:inline-flex;align-items:center;gap:8px;font:600 12px 'Hanken Grotesk',sans-serif;letter-spacing:.2px;color:#6B5E52;white-space:nowrap}
+.acct{display:inline-flex;align-items:center;gap:8px;font:600 12px 'Hanken Grotesk','Onest',sans-serif;letter-spacing:.2px;color:#6B5E52;white-space:nowrap}
 .acct-av{width:28px;height:28px;flex:0 0 28px;border-radius:50%;background:#D8EEEA;color:#23605A;display:inline-flex;align-items:center;justify-content:center}
-.btn-text{height:44px;flex:0 0 auto;padding:0 12px;border-radius:12px;border:0;background:transparent;color:#8A4708;display:inline-flex;align-items:center;font:600 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;white-space:nowrap;cursor:pointer}
-.hint{margin:0;font:400 12px/1.45 'Hanken Grotesk',sans-serif;color:#6B5E52}
+.btn-text{height:44px;flex:0 0 auto;padding:0 12px;border-radius:12px;border:0;background:transparent;color:#8A4708;display:inline-flex;align-items:center;font:600 14px 'Hanken Grotesk','Onest',sans-serif;letter-spacing:.1px;white-space:nowrap;cursor:pointer}
+.hint{margin:0;font:400 12px/1.45 'Hanken Grotesk','Onest',sans-serif;color:#6B5E52}
 /* ---------- table (same as app: modes/table_mode.dart, header 44, rows 52) ---------- */
 .tbl{border-radius:16px;border:1px solid #E0D5C7;background:#FFFFFF;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.08),0 3px 6px rgba(74,53,32,.06)}
 .tr{display:grid;grid-template-columns:360px 140px 200px 200px minmax(0,1fr);height:52px;border-bottom:1px solid #E0D5C7}
 .tr.th{height:44px;background:#FAF4EC}
-.th>div{display:flex;align-items:center;gap:4px;padding:0 12px;font:600 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;color:#6B5E52}
+.th>div{display:flex;align-items:center;gap:4px;padding:0 12px;font:600 14px 'Hanken Grotesk','Onest',sans-serif;letter-spacing:.1px;color:#6B5E52}
 .th>div:first-child{padding-left:20px}
-.td{display:flex;align-items:center;min-width:0;padding:0 12px;font:400 14px/1.45 'Hanken Grotesk',sans-serif;color:#2B2018;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.td{display:flex;align-items:center;min-width:0;padding:0 12px;font:400 14px/1.45 'Hanken Grotesk','Onest',sans-serif;color:#2B2018;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .td.title{padding-left:20px;font-weight:600}
 .num{justify-content:flex-end !important}
-.tfoot{height:40px;box-sizing:border-box;border-top:1px solid #E0D5C7;display:flex;align-items:center;padding:0 20px;background:#FAF4EC;font:600 12px 'Hanken Grotesk',sans-serif;letter-spacing:.2px;color:#6B5E52;font-variant-numeric:tabular-nums}
-.opt{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;box-sizing:border-box;border-radius:12px;font:600 12px 'Hanken Grotesk',sans-serif;letter-spacing:.2px;color:#2B2018;white-space:nowrap}
+.tfoot{height:40px;box-sizing:border-box;border-top:1px solid #E0D5C7;display:flex;align-items:center;padding:0 20px;background:#FAF4EC;font:600 12px 'Hanken Grotesk','Onest',sans-serif;letter-spacing:.2px;color:#6B5E52;font-variant-numeric:tabular-nums}
+.opt{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;box-sizing:border-box;border-radius:12px;font:600 12px 'Hanken Grotesk','Onest',sans-serif;letter-spacing:.2px;color:#2B2018;white-space:nowrap}
 .opt::before{content:"";width:8px;height:8px;border-radius:4px;background:var(--dot)}
 .o-new{background:#DFEAF1;--dot:#3A7CA5}
 .o-cutting{background:#F8F0DA;--dot:#D4A017}
@@ -46,13 +46,13 @@ svg{flex:0 0 auto}
 .o-ready{background:#E2EADF;--dot:#4C7A34}
 .o-shipped{background:#E7E5E3;--dot:#6B5E52}
 /* ---------- footer ---------- */
-.foot{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:4px;height:64px;flex:0 0 auto;font:400 12px 'Hanken Grotesk',sans-serif;color:#6B5E52}
+.foot{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:4px;height:64px;flex:0 0 auto;font:400 12px 'Hanken Grotesk','Onest',sans-serif;color:#6B5E52}
 .foot a{min-height:44px;display:inline-flex;align-items:center;gap:6px;padding:0 8px;color:#8A4708;font-weight:600;text-decoration:none}
 .foot a.brand{color:#2B2018}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 </style>
 </helmet>
-<div style="position: relative; width: 1440px; height: 900px; display: flex; flex-direction: column; background: #FBF7F2; font-family: 'Hanken Grotesk', sans-serif; color: #2B2018; overflow: hidden">
+<div style="position: relative; width: 1440px; height: 900px; display: flex; flex-direction: column; background: #FBF7F2; font-family: 'Hanken Grotesk','Onest', sans-serif; color: #2B2018; overflow: hidden">
 
   <p class="state">9 · Audience: only people I add (as PublishPeople)</p>
 
@@ -63,8 +63,8 @@ svg{flex:0 0 auto}
         <svg width="24" height="24" viewBox="0.15 -1.9 24 24" aria-hidden="true"><path d="M4.5 19.5c2.6-1 8.3-5.6 10.3-8.6a2.7 2.7 0 0 0-3.7-3.7C8.1 9.2 3.5 14.9 2.5 17.5c-.4 1.1 1 2.4 2 2z" fill="#3A1E00"/><path d="M15.5 6.5l3.5-3.5M17 8.5l4-1.5M13.5 5l1.2-3.5" fill="none" stroke="#3A1E00" stroke-width="1.8" stroke-linecap="round"/></svg>
       </span>
       <span aria-hidden="true" style="display: flex; flex-direction: column">
-        <span style="font: 600 18px/1.1 'Bricolage Grotesque', sans-serif; letter-spacing: -0.2px">Morkva</span>
-        <span style="font: 600 12px 'Hanken Grotesk', sans-serif; color: #6B5E52; letter-spacing: 1.2px">CRM</span>
+        <span style="font: 600 18px/1.1 'Bricolage Grotesque','Onest', sans-serif; letter-spacing: -0.2px">Morkva</span>
+        <span style="font: 600 12px 'Hanken Grotesk','Onest', sans-serif; color: #6B5E52; letter-spacing: 1.2px">CRM</span>
       </span>
     </a>
     <span style="flex: 1 1 auto"></span>
