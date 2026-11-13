@@ -39,7 +39,13 @@ class BrandWordmark extends StatelessWidget {
                   children: [
                     Text(
                       'Morkva',
-                      style: theme.textTheme.titleLarge?.copyWith(height: 1.1),
+                      // Bricolage 700 per the sidebar mockup; displayLarge
+                      // is the theme style that loads the 700 font file.
+                      style: theme.textTheme.displayLarge?.copyWith(
+                        fontSize: 18,
+                        letterSpacing: -0.2,
+                        height: 1.1,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
