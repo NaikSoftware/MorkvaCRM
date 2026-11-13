@@ -46,6 +46,9 @@ Future<T?> showAutomationSheet<T>(
   }
   return showModalBottomSheet<T>(
     context: context,
+    // Above the shell, as the dialog: a route change under the sheet (browser
+    // Back) must not dispose it mid-write. The scrim covers the app bar too.
+    useRootNavigator: true,
     isScrollControlled: true,
     useSafeArea: true,
     backgroundColor: sheetSurface(Theme.of(context)),
