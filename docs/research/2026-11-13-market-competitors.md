@@ -1,5 +1,7 @@
 # Competitor & market research — where MorkvaCRM should go
 
+*Language: English · [Українська](2026-11-13-market-competitors.uk.md).*
+
 *Researched 2026-11-13. Live web sweep (8 researchers) → adversarial re-check of the swept prices
 and load-bearing claims against vendor pages (9 checkers) → completeness critic → red-team of this
 report (strategy skeptic + evidence auditor). Prices are what vendor pages showed on 2026-11-13
