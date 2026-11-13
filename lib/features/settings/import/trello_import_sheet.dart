@@ -1038,10 +1038,8 @@ class _ImportingStep extends StatelessWidget {
           // the label.
           semanticsLabel: '$what, ${_n(written)} of ${_n(total)}',
         ),
-        if (!paused) ...[
-          const SizedBox(height: Spacing.xs),
-          Text("Imported cards don't start automations.", style: _sub(theme)),
-        ],
+        const SizedBox(height: Spacing.xs),
+        Text("Imported cards don't start automations.", style: _sub(theme)),
         const SizedBox(height: Spacing.md),
         _Group(children: [for (final r in state.rows) _ProgressRow(r)]),
       ],

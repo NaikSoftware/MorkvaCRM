@@ -405,6 +405,8 @@ void main() {
       );
       expect(find.text('Close'), findsOneWidget);
       expect(find.byIcon(Icons.pause_rounded), findsOneWidget);
+      // PhoneStalled keeps the note under the bar while paused.
+      expect(find.text("Imported cards don't start automations."), findsOne);
 
       repo.batchNeverCompletes = false;
       await tester.tap(find.text('Retry'));
