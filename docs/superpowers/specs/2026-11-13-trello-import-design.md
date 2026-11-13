@@ -149,3 +149,7 @@ would never resolve). No Firestore rule change is needed.
 Connect Trello account (API key + allowed origins, owner action) for all comments and a board
 picker; workspace ZIP export; attachment bytes; re-import de-duplication; other sources (Asana,
 Notion, CSV).
+
+Comments: a card comments **feed** component is planned (owner, 2026-11-13) but not part of this
+work. Until it exists, comments import as the "<board> · Comments" child collection; when the feed
+lands, re-target `ImportedKind.comments` to feed entries.
