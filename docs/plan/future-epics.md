@@ -39,7 +39,8 @@ separates query/grouping from rendering.
 Designed in [`../superpowers/specs/2026-11-13-team-collaboration-design.md`](../superpowers/specs/2026-11-13-team-collaboration-design.md)
 (mockups: `../superpowers/mockups/collaboration/`): workspace members with Owner/Admin/Editor/Viewer
 roles, invites by email or link, a workspace switcher, teammate links to views, and read-only
-**published copies** of a view for outsiders (by link or email list). Not built yet; five owner
+**published copies** of a view for outsiders (by link or email list). Owner chose the single Share
+button (UI-1) and copies only for outsiders (no live public view). Not built yet; five owner
 decisions open (Spark vs Blaze first). What stays future beyond that design: presence, real-time
 merge (CRDT/OT), comments + a Commenter role, per-collection guests, audit log.
 

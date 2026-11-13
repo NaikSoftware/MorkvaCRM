@@ -62,7 +62,14 @@ Collection **Orders**; views "All orders", "Open orders" (board by Status), "For
 
 ---
 
-## 2. Owner decisions needed
+## 2. Owner decisions
+
+**Decided by the owner (2026-11-13, after review of PR #39):**
+- **Outsiders never get a live view.** "I don't need live mode for external users." Outsiders only
+  ever see a published read-only **copy** (Approach B); a live public view is out of scope for good,
+  on Spark and on Blaze. Approach D below is reduced to server-side extras that keep the copy model.
+- **Share surface = UI-1 "One Share button"** (§6). UI-2 and UI-3 stay on the canvas as rejected
+  alternatives only; the build draws nothing from them.
 
 Everything else in this doc is decided. These five change cost, exposure or scope, so they are the
 owner's. Each has my recommendation; the build can start on the recommendation and switch later.
@@ -72,10 +79,11 @@ owner's. Each has my recommendation; the build can start on the recommendation a
    - Spark (recommended): published copies are refreshed by members' open apps (stale when nobody
      on the team has Morkva open), Morkva sends no emails (invites go through the sender's own email
      app / share sheet), roles are read from Firestore in rules (one billed read per checked request).
-   - Blaze: add W6 (Approach D) — a callable `getSharedView(token)` renders the view live, a
-     Firestore-triggered function emails invites over SMTP, custom claims carry roles. UI unchanged;
-     the client refresher (§10.8) and its lease are deleted. ~$0–5/month at small-team scale + budget
-     alerts (they do not cap spend).
+   - Blaze: add W6 (Approach D) — a Firestore-triggered function rebuilds the **same copy**
+     (`gens`/`chunks`) on the server, so it is fresh even when nobody on the team is online; a second
+     function emails invites over SMTP; custom claims carry roles. Outsiders still read a copy, never
+     live data (owner decision above). UI unchanged; the client refresher (§10.8) and its lease are
+     deleted. ~$0–5/month at small-team scale + budget alerts (they do not cap spend).
 2. **Allow anonymous "Anyone with the link" at all?** Context first: the Spark read quota (50k
    reads/day, project-wide) can **already** be exhausted by any Google user, whatever the answer —
    every account that signs in owns a personal workspace and can loop reads on it, and even reads
@@ -205,25 +213,28 @@ live data or a copy, and who computes the copy (client vs server).
   existing `readsUngranted` (`query_engine.dart:910-930`), chips as "Restricted card", and refuse a
   scope that excludes a dependency (`Derivation.sourcesOf`).
 
-### D — Blaze + Cloud Functions (upgrade path)
-- Callable `getSharedView(token)`: Admin SDK reads the live collection, applies the view (shared Dart
+### D — Blaze + Cloud Functions (upgrade path; copies only)
+- **No live public view** — the owner ruled it out (§2). Outsiders keep reading the published copy.
+- A function on card writes (debounced per share) rebuilds the copy server-side with the Admin SDK:
+  same frozen definition, same `gens`/`chunks` layout, same outsider page and rules (shared view
   logic ported to TS, or the snapshot builder compiled for Node — *my call:* port `applyView` +
-  projection, ~400 lines, with golden fixtures shared between both implementations), returns only
-  the projected rows. No staleness, no chunks, no client refresher, App Check on the callable,
-  per-IP rate limiting.
+  projection, ~400 lines, with golden fixtures shared between both implementations). The copy stops
+  going stale when nobody on the team is online; the client `PublishRefresher` and its lease are
+  deleted. Hiding no longer depends on a member's client being honest.
 - `onCreate(invites/{id})` sends the invite email over SMTP (one small function; **not** the Trigger
   Email extension — Firebase Extensions shut down 2027-03-31 [V]).
 - Custom claims `{w: {wid: role}}` (≤1000 bytes) → rules check claims instead of `get()`; cheaper,
   no 20-access batch ceiling. Claims lag one token refresh (≤1 h or forced `getIdToken(true)`).
-- Same UI; Shared links loses "Update now" and "Updated 3 min ago". Cost ~$0–5/month for 10 users
+- Same UI; "Updated 3 min ago" stays (it is still a copy), "Update now" becomes rarely needed. Cost ~$0–5/month for 10 users
   (≈200k reads/day → ≈$1.5/month reads; functions within the free 2M invocations).
 
 ### Recommendation
-**A → B now on Spark; D as the upgrade when Blaze arrives; C deferred.** A is the foundation every
+**A → B now on Spark; D (server-built copies + emails) as the upgrade when Blaze arrives; C
+deferred.** Outsiders get copies only, in every phase (owner, §2). A is the foundation every
 other approach needs and maps onto the rules swap already planned. B is the only Spark-feasible way to
 give outsiders a real slice. C costs a wave, degrades the core experience (blank aggregates, empty
 pickers), and still cannot hide fields. D removes B's two weak spots (staleness, emails) at a small
-bill and is additive.
+bill and is additive — without changing what outsiders get.
 
 ---
 
@@ -239,7 +250,7 @@ with `persist:false` + 5 s (memory "Snackbar persist trap"). Sentence case, ≥4
 
 ### Share-surface variants
 
-| | UI-1 "One Share button" (**recommended**) | UI-2 "Two doors" | UI-3 "Minimal" |
+| | UI-1 "One Share button" (**chosen by the owner**) | UI-2 "Two doors" | UI-3 "Minimal" |
 |---|---|---|---|
 | Artboard | `Main` | `VariantTwoDoors` | `VariantMinimal` |
 | Entry | OutlinedButton `person_add` "Share" in the collection header between "Customize" and "+ New order", with a 3-avatar facepile before it | Same header button | No header button; "Copy link for teammates" and "Publish view…" in the active view tab's ⋯ menu (`view_tabs.dart:123-139`) |
@@ -248,7 +259,7 @@ with `persist:false` + 5 s (memory "Snackbar persist trap"). Sentence case, ≥4
 | Pros | One place for who has access and what the link does | Clear split between live access and public copy; room for settings; a workspace invite can't be mistaken for sharing this view | Least UI, no header clutter, nothing to learn until needed; no path from a client-facing view to a workspace invite |
 | Cons | Dense popover; two kinds of email entry with different reach (workspace vs this copy) — must be separated visually; the teammate link must stay copyable while published | Extra click to see members; two surfaces to learn | Sharing is undiscoverable; inviting from a view impossible |
 
-*my call:* **UI-1, conditional on the invite fix.** Prior art is split: Notion/Drive invite to the
+**Owner picked UI-1 (2026-11-13).** My original reasoning, kept for the record: UI-1, conditional on the invite fix. Prior art is split: Notion/Drive invite to the
 page itself, while Airtable — the closest model — keeps base collaborators ("Share") apart from a
 view's share link ([`2026-11-13-team-collaboration-research/product.md`](2026-11-13-team-collaboration-research/product.md) §1). In Morkva an email typed into Share would grant the **whole
 workspace**, so UI-1 keeps one Share button but takes the workspace invite out of the popover's
@@ -627,7 +638,7 @@ fixture, Viewer default, client-domain warning, Leave), `ViewerMode`, `Switcher`
 WORKSPACES", Home invitation banner), `SharedLinks` ("Stale · 26 h"), `PhoneInvitation` (was
 `PhoneJoin`: the Home invitation banner) and a new `PhoneJoin` (phone `/join` landing, Ready state).
 `VariantTwoDoors` and `VariantMinimal` were refreshed to the reviewed fixture and copy as the
-**alternatives** UI-2 / UI-3 (the owner may still pick one); they are parity targets only if chosen.
+**alternatives** UI-2 / UI-3; the owner picked UI-1, so they are rejected and never parity targets.
 
 States the canvas does not draw (this doc's copy is the source): the non-admin share popover ("4
 members" without a pending count), the Shared links "Unpublishing… Retry" row, and the Leave
@@ -1897,7 +1908,7 @@ Hosting block for T15:
 ```
 
 **Owner steps** (the agent cannot do these — production deploys are blocked for it):
-1. Answer the five owner decisions (or accept the recommendations).
+1. Answer the five open owner decisions in §2 (or accept the recommendations).
 2. `firebase deploy --only firestore:rules,firestore:indexes --project morkvacrm` after the rules suite
    is green (CG index builds take minutes; queries fail until they finish).
 3. Hosting: choose the origin, `flutter build web --release` + `firebase deploy --only hosting
@@ -1906,7 +1917,8 @@ Hosting block for T15:
    AASA file.
 5. App Check: register Android + iOS, ship builds that send tokens, then enforce on Firestore; only
    then flip `kAnonymousLinks` (decision 2).
-6. Blaze (decision 1) when Storage is enabled → schedule Approach D.
+6. Blaze (decision 1) when Storage is enabled → schedule Approach D (server-built copies + invite
+   emails; never a live public view).
 
 ---
 
@@ -1926,7 +1938,8 @@ Hosting block for T15:
 - **Passwords on published links**, embeds (needs `frame-ancestors` decisions), live public editing,
   forms.
 - **Person field type** (assign a card to a member) — natural follow-up; Trello members would map to it.
-- **Approach D** (Blaze functions: live public views, invite emails, custom claims).
+- **Approach D** (Blaze functions: server-built copies, invite emails, custom claims).
+- **Live views for outsiders** — ruled out by the owner (2026-11-13), not just deferred.
 
 ---
 
