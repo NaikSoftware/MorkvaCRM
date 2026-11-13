@@ -1,0 +1,139 @@
+add	add,add_rounded	plus; create a new item	
+addCircle	add_circle_outline	plus inside a circle; add a row/condition	
+addBox	add_box_outlined	plus inside a rounded square; add a block/section	
+close	close,close_rounded,clear	X; dismiss, close, clear	
+bolt	bolt_rounded,bolt_outlined,bolt	lightning bolt; automations, action buttons	
+warning	warning_amber_rounded	triangle with exclamation; warning	
+error	error_outline,error_outline_rounded	circle with exclamation; error	
+info	info_outline,info_outline_rounded	circle with i; info	
+help	help_outline_rounded,help_outline	circle with question mark; help	
+priority	priority_high_rounded	single exclamation mark; high priority	
+edit	edit_outlined	pencil; edit	
+compose	edit_square	pencil over a square; new chat / compose	
+chevronRight	chevron_right,chevron_right_rounded	small right chevron; navigate in / next	rtl
+chevronLeft	chevron_left	small left chevron; previous	rtl
+expandMore	expand_more,expand_more_rounded,arrow_drop_down	down chevron; expand / open dropdown	
+expandLess	expand_less,expand_less_rounded	up chevron; collapse	
+unfoldMore	unfold_more	up+down chevrons stacked; expand all / select	
+unfoldLess	unfold_less,unfold_less_outlined	chevrons pointing inward; collapse all	
+arrowBack	arrow_back,arrow_back_rounded	left arrow; back	rtl
+arrowForward	arrow_forward_rounded	right arrow; forward / go	rtl
+arrowUp	arrow_upward,arrow_upward_rounded	up arrow; sort ascending / move up	
+arrowDown	arrow_downward,arrow_downward_rounded	down arrow; sort descending / move down	
+arrowOutward	call_made	diagonal arrow up-right; outgoing reference	
+arrowInward	call_received	diagonal arrow down-left; incoming reference	
+subdirectory	subdirectory_arrow_right	L-shaped arrow down then right; nested / child item	rtl
+swapVert	swap_vert	two vertical arrows opposite; reorder / sort	
+swapHoriz	swap_horiz	two horizontal arrows opposite; swap	
+openInNew	open_in_new	square with arrow leaving top-right; open in new tab	
+check	check,check_rounded	checkmark; done / selected	
+checkCircle	check_circle_outline	checkmark in a circle outline; success	
+checkCircleFilled	check_circle	solid filled circle with checkmark knocked out; completed	filled
+radioOff	radio_button_unchecked	empty circle ring; not done	
+checklist	checklist_outlined,checklist	list lines with checkmarks; tasks / checklist	
+selectAll	select_all	dashed square with inner square; select all / whole collection	
+cancel	cancel_outlined	X in a circle; cancel	
+block	block_rounded,block,do_not_disturb_alt	circle with diagonal slash; none / blocked / disabled	
+removeCircle	remove_circle_outline	minus in a circle; remove	
+delete	delete_outline,delete_outline_rounded	trash can; delete	
+deleteForever	delete_forever_outlined	trash can with X; delete permanently	
+tune	tune,tune_rounded	slider controls (horizontal sliders with knobs); settings / filters	
+filterOff	filter_alt_off_outlined	funnel with slash; clear filters	
+search	search_rounded,search	magnifier; search	
+searchOff	search_off_outlined	magnifier with X/slash; no results	
+manageSearch	manage_search	magnifier with list lines; browse / pick from list	
+moreVert	more_vert	three vertical dots; more menu	
+moreHoriz	more_horiz,more_horiz_rounded	three horizontal dots; more menu	
+dragHandle	drag_indicator,drag_indicator_rounded	2x3 grip dots; drag to reorder	
+refresh	refresh,refresh_rounded	circular arrow; reload / retry	
+sync	sync	two circular arrows; syncing	
+syncProblem	sync_problem_rounded	circular arrows with exclamation; sync failed	
+undo	undo,undo_rounded	curved arrow back-left; undo	
+redo	redo_rounded	curved arrow forward-right; redo	
+history	history_rounded,history	clock with counter-clockwise arrow; history / versions	
+update	update	clock with clockwise arrow; recently updated	
+schedule	schedule_rounded,schedule	clock; time / scheduled	
+hourglass	hourglass_bottom_rounded	hourglass; waiting / pending	
+hourglassOff	hourglass_disabled_outlined	hourglass with slash; no timeout	
+timerOff	timer_off_outlined	stopwatch with slash; no time limit	
+event	event_outlined	calendar page with a marked day; date field	
+calendarDay	calendar_today_outlined	plain calendar page; today / date	
+calendarMonth	calendar_month_outlined	calendar page with grid of days; calendar view	
+eventBusy	event_busy_outlined	calendar with X; no date / overdue	
+play	play_arrow_outlined,play_arrow	play triangle; run	
+pause	pause_rounded	two bars; pause	
+pauseCircle	pause_circle_outline	pause bars in a circle; paused	
+stop	stop_rounded	rounded square; stop	
+stopCircle	stop_circle_outlined	square in a circle; stop running	
+sparkle	auto_awesome_outlined,auto_awesome	cluster of 2-3 sparkle stars; AI assistant	
+autoMode	auto_mode_rounded	circular arrow with sparkle; automations menu	
+science	science_outlined	lab flask; test run	
+code	code,code_rounded	angle brackets < >; code / module source	
+formula	functions	sigma / function symbol; calculated field	
+numbers	numbers,pin_outlined	hash-like number symbol or 123; number field	
+hashtag	tag	# symbol; tag / label	
+textFields	text_fields	letter T with small t; text field	
+notes	notes	several left-aligned text lines of varied length; long text / notes	
+toggle	toggle_on_outlined	toggle switch; boolean field	
+dropdownField	arrow_drop_down_circle_outlined	circle with small down caret; choice / select field	
+link	link	two chain links; link / reference	
+attach	attach_file	paperclip; attachment / file field	
+file	insert_drive_file_outlined	document page with folded corner; file	
+description	description_outlined	document page with text lines; description / document	
+uploadFile	upload_file_outlined	document with up arrow; upload a file / import	
+upload	upload_outlined	up arrow over a tray line; upload / export	
+download	download_outlined	down arrow onto a tray line; download	
+save	save_outlined	floppy disk; save	
+copy	copy_outlined,content_copy_outlined	two overlapping sheets; copy / duplicate	
+folder	folder_outlined	folder; documents	
+folderOpen	folder_open_outlined	open folder; open	
+photos	photo_library_outlined	stacked photos with mountain; images	
+visibility	visibility_outlined	eye; show / preview	
+lock	lock_outline	padlock; locked / private	
+shield	shield_outlined	shield; permissions / safety	
+logout	logout_rounded	door with arrow leaving; sign out	rtl
+cloudOff	cloud_off_outlined	cloud with slash; offline	
+cloudDone	cloud_done_outlined	cloud with check; synced	
+wifiOff	wifi_off_rounded	wifi waves with slash; no connection	
+pin	push_pin_outlined	push pin outline; pin	
+pinFilled	push_pin	solid filled push pin; pinned	filled
+star	star_outline	star outline; favorite	
+flag	flag_outlined	flag; priority	
+bookmarkAdd	bookmark_add_outlined	bookmark ribbon with plus; save view	
+viewBoard	view_kanban_outlined	board of 3 columns with cards of varied height; kanban board view	
+viewColumns	view_column_outlined	three equal vertical columns in a frame; columns	
+viewCards	view_agenda_outlined	two stacked wide rounded cards; card list view	
+viewList	view_list_outlined	list rows with bullets; list view	
+table	table_chart_outlined	table grid with header; table view	
+tableRows	table_rows_outlined	frame split into horizontal rows; rows	
+gridView	grid_view_rounded	2x2 squares; grid / gallery	
+mosaic	auto_awesome_mosaic_outlined	asymmetric tiles mosaic; gallery / layout	
+dashboard	dashboard_customize_outlined	3 squares plus a plus sign; customize / grid collection	
+spaceDashboard	space_dashboard_outlined	frame with 1 tall + 2 small panels; layout	
+cards	style_outlined	fanned stack of cards; collection of cards (default collection icon)	
+smartButton	smart_button_outlined	button pill with cursor/sparkle; action button	
+extension	extension_outlined	puzzle piece; module / plugin	
+extensionOff	extension_off_outlined	puzzle piece with slash; module disabled	
+accountTree	account_tree_outlined	connected boxes tree; structure / plan	
+cube	view_in_ar_outlined	3D cube; object / whole card focus	
+barChart	bar_chart_rounded,bar_chart	vertical bars of different height; statistics	
+colorReset	format_color_reset_outlined	ink drop with slash; no color	
+review	rate_review_outlined	speech bubble with pencil; comment / review	
+forum	forum_outlined	two overlapping speech bubbles; conversation	
+person	person_outline	single person bust; contact	
+groups	groups_outlined	three people; team / people	
+home	home_outlined	house; home / properties	
+apartment	apartment_outlined	office building; company	
+store	storefront_outlined	shop front with awning; store	
+cart	shopping_cart_outlined	shopping cart; orders	
+bag	shopping_bag_outlined	shopping bag; products	
+sell	sell_outlined	price tag with hole; pricing	
+payments	payments_outlined	banknote / cash; finance	
+receipt	receipt_long_outlined	long receipt with zigzag edge; invoices	
+inventory	inventory_2_outlined	storage box; inventory	
+shipping	local_shipping_outlined	delivery truck; shipping	
+car	directions_car_outlined	car front/side; vehicles	
+build	build_outlined	wrench; services / tools	
+pets	pets_outlined	paw print; pets	
+restaurant	restaurant_outlined	fork and knife; menu / food	
+stickyNote	sticky_note_2_outlined	sticky note with folded corner; notes	
