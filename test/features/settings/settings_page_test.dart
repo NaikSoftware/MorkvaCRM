@@ -37,7 +37,8 @@ void main() {
     });
   }
 
-  testWidgets('a tall window keeps Sign out at the bottom', (tester) async {
+  testWidgets('a tall window lines everything up on the title edge and '
+      'keeps Sign out under the sections', (tester) async {
     setWindow(tester, const Size(1440, 900));
     await tester.pumpWidget(
       MaterialApp(
@@ -46,7 +47,20 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(tester.getBottomLeft(find.text('Sign out')).dy, greaterThan(800));
+    // The shell header's title sits on the md gutter; so do labels, cards
+    // and Sign out (it was centred at the window bottom).
+    for (final finder in [
+      find.text('WORKSPACE'),
+      find.text('ACCOUNT'),
+      find.byType(ListTileCard).first,
+      find.byType(SecondaryButton),
+    ]) {
+      expect(tester.getTopLeft(finder).dx, Spacing.md);
+    }
+    expect(
+      tester.getTopLeft(find.byType(SecondaryButton)).dy,
+      lessThan(tester.getBottomLeft(find.text('ACCOUNT')).dy + Spacing.md),
+    );
   });
 
   for (final (name, size) in [('wide', wideWindow), ('phone', phoneWindow)]) {
@@ -96,9 +110,8 @@ void main() {
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byType(TextField),
-        File(
-          'test/core/import/trello/fixtures/sample_board.json',
-        ).readAsStringSync(),
+        File('test/core/import/trello/fixtures/sample_board.json')
+            .readAsStringSync(),
       );
       await tester.pump();
       await tester.ensureVisible(find.text('Add board'));
