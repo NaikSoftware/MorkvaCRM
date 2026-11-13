@@ -97,7 +97,7 @@ void main() {
     store.fail('a.png');
     await done;
     expect(c.state.uploads, isEmpty);
-    expect(c.state.uploadErrors, {'files': "Couldn't upload a.png"});
+    expect(c.state.uploadErrors, {'files': (file: 'a.png', tooLarge: false)});
     expect(valueOf(c, 'files').attachments, isEmpty);
     expect(c.state.draft, isEmpty);
 
@@ -113,7 +113,7 @@ void main() {
     final c = await edit();
     await c.upload('files', [picked('huge.mov', 25 * 1024 * 1024)]);
     expect(store.pending, isEmpty);
-    expect(c.state.uploadErrors['files'], contains('under 25 MB'));
+    expect(c.state.uploadErrors['files']?.tooLarge, isTrue);
   });
 
   test('a single-file field replaces its file and takes one pick', () async {

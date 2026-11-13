@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/domain/domain.dart';
 import '../../../../design/design.dart';
+import '../../../../l10n/l10n.dart';
 import '../object_card.dart';
 import '../view_labels.dart';
 import 'board_card_draggable.dart';
@@ -473,9 +474,10 @@ class _Header extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: Semantics(
                   button: true,
-                  label:
-                      '${group.label}, ${group.objects.length}. '
-                      'Jump to column',
+                  label: context.l10n.viewWidgetsJumpToColumn(
+                    group.label,
+                    group.objects.length,
+                  ),
                   excludeSemantics: true,
                   child: Material(
                     type: MaterialType.transparency,
@@ -493,7 +495,10 @@ class _Header extends StatelessWidget {
           ),
           IconButton(
             style: _square44,
-            tooltip: 'New $itemLabel in ${group.label}',
+            tooltip: context.l10n.viewWidgetsNewItemInColumn(
+              itemLabel,
+              group.label,
+            ),
             onPressed: onAdd,
             icon: const Icon(Icons.add, size: 20),
             color: scheme.onSurfaceVariant,
@@ -501,7 +506,7 @@ class _Header extends StatelessWidget {
           if (onCollapse case final collapse?)
             IconButton(
               style: _square44,
-              tooltip: 'Collapse ${group.label}',
+              tooltip: context.l10n.viewWidgetsCollapseColumn(group.label),
               onPressed: collapse,
               icon: const RotatedBox(
                 quarterTurns: 1,
@@ -526,8 +531,8 @@ class _EmptyZone extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final text = widget.group.key == null
-        ? 'Drop here to clear ${widget.field.name}'
-        : 'No ${widget.itemsLabel}';
+        ? context.l10n.viewWidgetsDropToClearField(widget.field.name)
+        : context.l10n.viewWidgetsNoItems(widget.itemsLabel);
     return Padding(
       padding: const EdgeInsets.only(bottom: BoardColumn.cardGap),
       child: DashedRRect(
@@ -605,14 +610,14 @@ class _CollapsedStrip extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final count = group.objects.length;
-    final summary = switch (count) {
-      0 => 'No $itemsLabel',
-      1 => '1 $itemLabel',
-      _ => '$count $itemsLabel',
-    };
     return Semantics(
       button: true,
-      label: 'Expand ${group.label}, $summary',
+      label: context.l10n.viewWidgetsExpandColumn(
+        group.label,
+        count,
+        itemLabel,
+        itemsLabel,
+      ),
       // Excluding the InkWell's semantics drops its tap: re-add it.
       onTap: onExpand,
       excludeSemantics: true,

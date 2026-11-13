@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../api/auth/auth_cubit.dart';
+import '../../api/auth/auth_repository.dart' show AuthFailure;
 import '../../app/shell/app_shell.dart';
 import '../../app/shell/brand_wordmark.dart';
 import '../../design/design.dart';
@@ -84,7 +85,7 @@ class _SignInContent extends StatelessWidget {
     return BlocBuilder<AuthCubit, AuthState>(
       builder: (context, state) {
         final loading = state is AuthLoading;
-        final errorMessage = state is AuthError ? state.message : null;
+        final error = state is AuthError ? state : null;
 
         return Column(
           mainAxisSize: MainAxisSize.min,
@@ -116,9 +117,12 @@ class _SignInContent extends StatelessWidget {
                 onPressed: () => context.read<AuthCubit>().cancelSignIn(),
               ),
             ],
-            if (errorMessage != null) ...[
+            if (error != null) ...[
               const SizedBox(height: Spacing.md),
-              _InlineError(message: errorMessage),
+              _InlineError(
+                message: _failureText(l10n, error.failure),
+                detail: error.detail,
+              ),
             ],
             const SizedBox(height: Spacing.md),
             Text(
@@ -276,14 +280,24 @@ class _GoogleGlyphPainter extends CustomPainter {
   bool shouldRepaint(covariant _GoogleGlyphPainter oldDelegate) => false;
 }
 
+String _failureText(AppLocalizations l10n, AuthFailure failure) =>
+    switch (failure) {
+      AuthFailure.signInFailed => l10n.authErrorSignInFailed,
+      AuthFailure.noUser => l10n.authErrorNoUser,
+      AuthFailure.unsupportedPlatform => l10n.authErrorUnsupportedPlatform,
+      AuthFailure.noIdToken => l10n.authErrorNoIdToken,
+      AuthFailure.signOutFailed => l10n.authErrorSignOutFailed,
+    };
+
 /// A quiet, non-blocking inline error: a warning-tinted rounded strip with a
-/// small icon and the failure [message]. Uses the semantic `warning` role (an
-/// auth failure is recoverable guidance, not a hard system error) so it reads
-/// as "try again", never as an alarm.
+/// small icon, the failure [message] and the provider's raw [detail]. Uses the
+/// semantic `warning` role (an auth failure is recoverable guidance, not a hard
+/// system error) so it reads as "try again", never as an alarm.
 class _InlineError extends StatelessWidget {
-  const _InlineError({required this.message});
+  const _InlineError({required this.message, this.detail});
 
   final String message;
+  final String? detail;
 
   @override
   Widget build(BuildContext context) {
@@ -310,9 +324,19 @@ class _InlineError extends StatelessWidget {
             Icon(Icons.error_outline_rounded, size: 18, color: fg),
             const SizedBox(width: Spacing.xs),
             Expanded(
-              child: Text(
-                message,
-                style: theme.textTheme.bodyMedium?.copyWith(color: fg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    message,
+                    style: theme.textTheme.bodyMedium?.copyWith(color: fg),
+                  ),
+                  if (detail case final detail?)
+                    Text(
+                      detail,
+                      style: theme.textTheme.bodySmall?.copyWith(color: fg),
+                    ),
+                ],
               ),
             ),
           ],

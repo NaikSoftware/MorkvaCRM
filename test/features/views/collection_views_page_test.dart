@@ -9,6 +9,7 @@ import 'package:morkva_crm/features/objects/object_editor.dart';
 import 'package:morkva_crm/features/objects/object_editor_cubit.dart';
 import 'package:morkva_crm/features/views/views.dart';
 import 'package:morkva_crm/features/views/widgets/no_matches_notice.dart';
+import 'package:morkva_crm/l10n/l10n.dart';
 
 import 'views_fixtures.dart';
 import 'work_page_harness.dart';
@@ -515,7 +516,10 @@ void main() {
       await tester.tap(find.text('Globex pilot'));
       await tester.pumpAndSettle();
       final editor = tester.element(find.byType(ObjectEditor));
-      expect(editor.read<ObjectEditorCubit>().state.title, 'Globex pilot');
+      expect(
+        editor.read<ObjectEditorCubit>().state.title(editor.l10n),
+        'Globex pilot',
+      );
     });
 
     testWidgets('New deal → editor → Save → a new row', (tester) async {

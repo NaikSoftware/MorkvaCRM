@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/domain/domain.dart';
 import '../../templates/template_picker.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../pins/pinned_collections_cubit.dart';
 import 'collection_card.dart';
 import 'collections_list_cubit.dart';
@@ -35,8 +36,8 @@ class CollectionsListView extends StatelessWidget {
     return BlocBuilder<CollectionsListCubit, CollectionsListState>(
       builder: (context, state) {
         return switch (state) {
-          CollectionsListLoading() => const LoadingIndicator(
-            message: 'Loading your collections…',
+          CollectionsListLoading() => LoadingIndicator(
+            message: context.l10n.collectionsLoading,
           ),
           CollectionsListError(:final message) => _ErrorState(message: message),
           CollectionsListReady(:final collections) =>
@@ -54,12 +55,14 @@ class CollectionsListView extends StatelessWidget {
   static Future<void> _create(BuildContext context) async {
     final cubit = context.read<CollectionsListCubit>();
     final router = GoRouter.of(context);
+    final l10n = context.l10n;
     final result = await CollectionFormDialog.create(context);
     if (result == null || !context.mounted) return;
     final id = await cubit.createCollection(
       result.name,
       description: result.description,
       icon: result.icon,
+      titleField: l10n.collectionsTitleFieldName,
     );
     router.go('/collections/$id/edit');
   }
@@ -69,13 +72,16 @@ class CollectionsListView extends StatelessWidget {
     final cubit = context.read<CollectionsListCubit>();
     final router = GoRouter.of(context);
     final messenger = ScaffoldMessenger.maybeOf(context);
+    final l10n = context.l10n;
     String? first;
     final added = await showTemplatePicker(
       context,
       onAdd: (template) async => first = await cubit.importTemplate(template),
     );
     if (added == null || first == null) return;
-    messenger?.showSnackBar(SnackBar(content: Text('Added ${added.name}')));
+    messenger?.showSnackBar(
+      SnackBar(content: Text(l10n.collectionsTemplateAdded(added.name))),
+    );
     router.go('/collections/$first');
   }
 }
@@ -98,6 +104,7 @@ class _CollectionsContentState extends State<_CollectionsContent> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
     final pins = context.watch<PinnedCollectionsCubit>().state;
     final all = widget.collections;
     final pinned = pinnedCollections(pins, all);
@@ -117,12 +124,12 @@ class _CollectionsContentState extends State<_CollectionsContent> {
         // Title, filter and both buttons on one line need room.
         final inlineActions = constraints.maxWidth >= 1000;
         final filter = SearchField(
-          hintText: 'Filter collections',
+          hintText: l10n.collectionsFilterHint,
           onChanged: (v) => setState(() => _filter = v),
         );
-        final count =
-            '${all.length} ${all.length == 1 ? 'collection' : 'collections'}'
-            '${pinned.isEmpty ? '' : ' · ${pinned.length} pinned to the sidebar'}';
+        final count = pinned.isEmpty
+            ? l10n.collectionsCount(all.length)
+            : l10n.collectionsCountWithPinned(all.length, pinned.length);
 
         Widget caption(String text, {IconData? icon}) => SliverToBoxAdapter(
           child: Padding(
@@ -200,7 +207,7 @@ class _CollectionsContentState extends State<_CollectionsContent> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'All collections',
+                                  l10n.shellAllCollections,
                                   style: theme.textTheme.headlineMedium,
                                 ),
                                 const SizedBox(height: Spacing.xxs),
@@ -217,14 +224,14 @@ class _CollectionsContentState extends State<_CollectionsContent> {
                             SizedBox(width: 260, child: filter),
                             const SizedBox(width: Spacing.sm),
                             SecondaryButton(
-                              label: 'From template',
+                              label: l10n.collectionsFromTemplate,
                               icon: Icons.auto_awesome_mosaic_outlined,
                               onPressed: () =>
                                   CollectionsListView._fromTemplate(context),
                             ),
                             const SizedBox(width: Spacing.xs),
                             PrimaryButton(
-                              label: 'New collection',
+                              label: l10n.collectionsNewCollection,
                               icon: Icons.add,
                               onPressed: () =>
                                   CollectionsListView._create(context),
@@ -239,7 +246,7 @@ class _CollectionsContentState extends State<_CollectionsContent> {
                           Expanded(child: filter),
                           const SizedBox(width: Spacing.xs),
                           IconButton.outlined(
-                            tooltip: 'From template',
+                            tooltip: l10n.collectionsFromTemplate,
                             icon: const Icon(
                               Icons.auto_awesome_mosaic_outlined,
                             ),
@@ -247,7 +254,7 @@ class _CollectionsContentState extends State<_CollectionsContent> {
                                 CollectionsListView._fromTemplate(context),
                           ),
                           IconButton.filled(
-                            tooltip: 'New collection',
+                            tooltip: l10n.collectionsNewCollection,
                             icon: const Icon(Icons.add),
                             onPressed: () =>
                                 CollectionsListView._create(context),
@@ -260,11 +267,15 @@ class _CollectionsContentState extends State<_CollectionsContent> {
               ),
             ),
             if (shownPinned.isNotEmpty) ...[
-              caption('PINNED', icon: Icons.push_pin),
+              caption(l10n.shellPinnedHeader, icon: Icons.push_pin),
               grid(shownPinned),
             ],
             if (others.isNotEmpty) ...[
-              caption(pinned.isEmpty ? 'COLLECTIONS' : 'EVERYTHING ELSE'),
+              caption(
+                pinned.isEmpty
+                    ? l10n.collectionsHeaderAll
+                    : l10n.collectionsHeaderOthers,
+              ),
               grid(others),
             ],
             if (shownPinned.isEmpty && others.isEmpty)
@@ -272,7 +283,7 @@ class _CollectionsContentState extends State<_CollectionsContent> {
                 child: Padding(
                   padding: const EdgeInsets.all(Spacing.xl),
                   child: Text(
-                    'No collection matches "${_filter.trim()}"',
+                    l10n.collectionsNoMatch(_filter.trim()),
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: scheme.onSurfaceVariant,
@@ -335,11 +346,9 @@ class _CollectionsContentState extends State<_CollectionsContent> {
   Future<bool?> _confirmDelete(BuildContext context, String name) {
     return MorkvaConfirmDialog.show(
       context,
-      title: 'Delete collection?',
-      message:
-          'This permanently deletes "$name" and its schema. '
-          'Objects in it are no longer reachable. This cannot be undone.',
-      confirmLabel: 'Delete',
+      title: context.l10n.collectionsDeleteTitle,
+      message: context.l10n.collectionsDeleteMessage(name),
+      confirmLabel: context.l10n.commonDelete,
       destructive: true,
     );
   }
@@ -356,22 +365,20 @@ class _EmptyCollections extends StatelessWidget {
   Widget build(BuildContext context) {
     return EmptyState(
       icon: Icons.dashboard_customize_outlined,
-      title: 'No collections yet',
-      message:
-          'Collections hold your cards — orders, clients, inventory, anything. '
-          'Create your first one to start organizing your work.',
+      title: context.l10n.collectionsEmptyTitle,
+      message: context.l10n.collectionsEmptyMessage,
       action: Wrap(
         alignment: WrapAlignment.center,
         spacing: Spacing.xs,
         runSpacing: Spacing.xs,
         children: [
           SecondaryButton(
-            label: 'Start from a template',
+            label: context.l10n.collectionsStartFromTemplate,
             icon: Icons.auto_awesome_mosaic_outlined,
             onPressed: onTemplate,
           ),
           PrimaryButton(
-            label: 'New collection',
+            label: context.l10n.collectionsNewCollection,
             icon: Icons.add,
             onPressed: onCreate,
           ),
@@ -391,10 +398,10 @@ class _ErrorState extends StatelessWidget {
   Widget build(BuildContext context) {
     return EmptyState(
       icon: Icons.cloud_off_outlined,
-      title: "Couldn't load collections",
-      message: message,
+      title: context.l10n.collectionsLoadErrorTitle,
+      message: context.l10n.collectionsLoadFailed(message),
       action: SecondaryButton(
-        label: 'Retry',
+        label: context.l10n.commonRetry,
         icon: Icons.refresh,
         onPressed: () => context.read<CollectionsListCubit>().initialize(),
       ),

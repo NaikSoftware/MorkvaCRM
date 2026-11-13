@@ -31,16 +31,40 @@ final class LoadedBoard extends Equatable {
   List<Object?> get props => [fileName, board];
 }
 
+/// Why an added file was not taken.
+enum ImportProblemKind {
+  /// Not a Trello board export.
+  notABoard,
+
+  /// The same board is already in the list.
+  alreadyAdded,
+
+  /// The browser couldn't read the chosen files.
+  unreadable,
+}
+
+/// Why the import step can't start yet.
+enum ImportBlockedReason { nothingChosen, offline }
+
+/// Why a running import paused.
+enum ImportFailure {
+  /// A write never acknowledged within the watchdog.
+  stalled,
+
+  /// The server refused a write.
+  refused,
+}
+
 /// An inline row on the add step: a file that is not a board, or a board
 /// added twice.
 final class ImportProblem extends Equatable {
-  const ImportProblem({required this.name, required this.message});
+  const ImportProblem({required this.name, required this.kind});
 
   final String name;
-  final String message;
+  final ImportProblemKind kind;
 
   @override
-  List<Object?> get props => [name, message];
+  List<Object?> get props => [name, kind];
 }
 
 /// What to import from one board. The children count only while [board] is
@@ -137,7 +161,7 @@ final class TrelloImportState extends Equatable {
   final bool running;
 
   /// Why the import is paused (shown with Retry); null while it is not.
-  final String? failure;
+  final ImportFailure? failure;
 
   /// The pause is a slice that never acked, not a refused write.
   final bool stalled;
@@ -156,10 +180,10 @@ final class TrelloImportState extends Equatable {
         (choice.comments && summary.comments > 0 ? 1 : 0);
   });
 
-  String? get importBlockedReason => selectedCollectionCount == 0
-      ? 'Choose at least one collection'
+  ImportBlockedReason? get importBlockedReason => selectedCollectionCount == 0
+      ? ImportBlockedReason.nothingChosen
       : offline
-      ? "You're offline — connect to import"
+      ? ImportBlockedReason.offline
       : null;
 
   bool get canImport => importBlockedReason == null;
@@ -183,7 +207,7 @@ final class TrelloImportState extends Equatable {
     bool? offline,
     List<ImportProgressRow>? rows,
     bool? running,
-    String? Function()? failure,
+    ImportFailure? Function()? failure,
     bool? stalled,
   }) => TrelloImportState(
     step: step ?? this.step,
@@ -259,18 +283,6 @@ class TrelloImportCubit extends Cubit<TrelloImportState> {
 
   static const _origin = WriteOrigin(kind: WriteKind.template);
 
-  static const _paused =
-      " Check your connection, then retry — cards already written won't be "
-      "added twice. Closing keeps what's already imported.";
-
-  /// [TrelloImportState.failure] when a write never acked (the paused
-  /// banner's body, after "Import paused.").
-  static const stalledMessage =
-      "Morkva couldn't reach the server for 30 seconds.$_paused";
-
-  /// [TrelloImportState.failure] when a write was refused.
-  static const refusedMessage = "Morkva couldn't save some cards.$_paused";
-
   /// Past the choose step the plan is fixed: edits are no-ops.
   bool get _locked => state.step.index >= TrelloImportStep.importing.index;
 
@@ -291,20 +303,20 @@ class TrelloImportCubit extends Cubit<TrelloImportState> {
   /// The [ImportProblem.name] of a pasted export's problem.
   static const pastedName = 'Pasted text';
 
-  /// Shows [message] as a problem row for [name] (e.g. a file the browser
+  /// Shows a [kind] problem row for [name] (e.g. a file the browser
   /// couldn't read).
-  void addProblem(String name, String message) => _problem(name, message);
+  void addProblem(String name, ImportProblemKind kind) => _problem(name, kind);
 
   bool _add(String name, String text) {
     final TrelloBoard board;
     try {
       board = TrelloBoard.parse(text);
-    } on TrelloFormatException catch (e) {
-      _problem(name, e.message);
+    } on TrelloFormatException {
+      _problem(name, ImportProblemKind.notABoard);
       return false;
     }
     if (state.boards.any((b) => b.board.id == board.id)) {
-      _problem(name, 'Already added');
+      _problem(name, ImportProblemKind.alreadyAdded);
       return false;
     }
     _emit(
@@ -321,11 +333,11 @@ class TrelloImportCubit extends Cubit<TrelloImportState> {
     return true;
   }
 
-  void _problem(String name, String message) => _emit(
+  void _problem(String name, ImportProblemKind kind) => _emit(
     state.copyWith(
       problems: [
         ...state.problems,
-        ImportProblem(name: name, message: message),
+        ImportProblem(name: name, kind: kind),
       ],
     ),
   );
@@ -518,7 +530,7 @@ class TrelloImportCubit extends Cubit<TrelloImportState> {
             'Trello import: ${result.failed.length} cards refused',
             name: 'import',
           );
-          _pause(id, refusedMessage);
+          _pause(id, ImportFailure.refused);
           return;
         }
         _unsure.remove(id);
@@ -547,7 +559,7 @@ class TrelloImportCubit extends Cubit<TrelloImportState> {
     try {
       await write().timeout(sliceTimeout);
     } on TimeoutException {
-      _pause(id, stalledMessage, stalled: true);
+      _pause(id, ImportFailure.stalled);
       return false;
     } catch (e, st) {
       developer.log(
@@ -556,16 +568,20 @@ class TrelloImportCubit extends Cubit<TrelloImportState> {
         error: e,
         stackTrace: st,
       );
-      _pause(id, refusedMessage);
+      _pause(id, ImportFailure.refused);
       return false;
     }
     return !isClosed;
   }
 
-  void _pause(String id, String message, {bool stalled = false}) {
+  void _pause(String id, ImportFailure failure) {
     _setRow(id, ImportRowStatus.paused);
     _emit(
-      state.copyWith(running: false, failure: () => message, stalled: stalled),
+      state.copyWith(
+        running: false,
+        failure: () => failure,
+        stalled: failure == ImportFailure.stalled,
+      ),
     );
   }
 

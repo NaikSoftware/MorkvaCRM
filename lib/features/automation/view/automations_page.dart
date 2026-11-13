@@ -10,6 +10,7 @@ import '../../../core/automation/runner_api.dart';
 import '../../../core/domain/automation/automation.dart';
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../../collections/collections.dart';
 import '../../views/widgets/option_pill.dart';
 import '../../views/widgets/view_labels.dart';
@@ -108,35 +109,17 @@ List<Collection> automationCollections(
 };
 
 /// "just now", "2 min ago", "3 h ago", "Yesterday", else "12 Nov".
-String agoLabel(DateTime t, DateTime now) {
+String agoLabel(AppLocalizations l10n, DateTime t, DateTime now) {
   final d = now.difference(t);
-  if (d.inMinutes < 1) return 'just now';
-  if (d.inHours < 1) return '${d.inMinutes} min ago';
-  if (d.inDays < 1) return '${d.inHours} h ago';
-  if (d.inDays < 2) return 'Yesterday';
+  if (d.inMinutes < 1) return l10n.automationJustNow;
+  if (d.inHours < 1) return l10n.automationMinutesAgo(d.inMinutes);
+  if (d.inDays < 1) return l10n.automationHoursAgo(d.inHours);
+  if (d.inDays < 2) return l10n.commonYesterday;
   return dayMonth(t);
 }
 
-const _months = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
-
-/// "12 Nov" (local).
-String dayMonth(DateTime t) {
-  final l = t.toLocal();
-  return '${l.day} ${_months[l.month - 1]}';
-}
+/// "12 Nov" (local, in `Intl.defaultLocale`).
+String dayMonth(DateTime t) => localDateFormat('d MMM').format(t.toLocal());
 
 /// "12:04" (local).
 String clock(DateTime t) {
@@ -146,8 +129,9 @@ String clock(DateTime t) {
 }
 
 /// "2.1 KB".
-String kbLabel(int bytes) =>
-    bytes < 1024 ? '$bytes B' : '${(bytes / 1024).toStringAsFixed(1)} KB';
+String kbLabel(AppLocalizations l10n, int bytes) => bytes < 1024
+    ? l10n.automationSizeBytes(bytes)
+    : l10n.automationSizeKb((bytes / 1024).toStringAsFixed(1));
 
 /// "sha256:3fa2…c91".
 String shortHash(String hash) {
@@ -158,44 +142,61 @@ String shortHash(String hash) {
 }
 
 /// "412 ms" / "20 s"; "—" when unknown.
-String durationLabel(int? ms) => ms == null
+String durationLabel(AppLocalizations l10n, int? ms) => ms == null
     ? '—'
     : ms < 1000
-    ? '$ms ms'
-    : '${(ms / 1000).round()} s';
+    ? l10n.automationDurationMs(ms)
+    : l10n.automationDurationS((ms / 1000).round());
 
 Collection? collectionOf(List<Collection> all, String id) =>
     all.where((c) => c.id == id).firstOrNull;
 
 /// "In Orders, Clients" / "In all collections".
-String scopeLine(List<String>? collections, List<Collection> all) =>
-    collections == null
-    ? 'In all collections'
-    : 'In ${[for (final id in collections) collectionOf(all, id)?.name ?? 'a removed collection'].join(', ')}';
+String scopeLine(
+  AppLocalizations l10n,
+  List<String>? collections,
+  List<Collection> all,
+) => collections == null
+    ? l10n.automationScopeAll
+    : l10n.automationScopeIn(collections.length, [
+        for (final id in collections)
+          collectionOf(all, id)?.name ??
+              l10n.automationRemovedCollectionInline,
+      ].join(', '));
 
 /// The module card's permission line: titles, then where.
-String permissionSummary(ModuleEntry entry, List<Collection> all) {
+String permissionSummary(
+  AppLocalizations l10n,
+  ModuleEntry entry,
+  List<Collection> all,
+) {
   final titles = [
-    for (final cap in entry.caps) kCapabilityCopy[cap]?.title ?? cap,
+    for (final cap in entry.caps) l10n.capabilityTitle(cap),
   ].join(' · ');
   final consent = entry.consent;
   return consent == null
-      ? 'Will ask for: $titles'
-      : '$titles · ${scopeLine(consent.collections, all)}';
+      ? l10n.automationWillAskFor(titles)
+      : '$titles · ${scopeLine(l10n, consent.collections, all)}';
 }
 
 /// "Button on a card", "When a card is updated · Status is Shipped", …
-String whenLine(TriggerSpec trigger, Collection? collection) {
+String whenLine(
+  AppLocalizations l10n,
+  TriggerSpec trigger,
+  Collection? collection,
+) {
   switch (trigger) {
     case ButtonTrigger(:final scope):
       return scope == ButtonScope.card
-          ? 'Button on a card'
-          : 'Button on ${collection?.name ?? 'a collection'}';
+          ? l10n.automationWhenButtonCard
+          : collection == null
+          ? l10n.automationWhenButtonCollection
+          : l10n.automationWhenButtonOn(collection.name);
     case EventTrigger(:final kind, :final where, :final mode, :final fields):
       final head = switch (kind) {
-        TriggerKind.cardCreated => 'When a card is created',
-        TriggerKind.cardDeleted => 'When a card is deleted',
-        _ => 'When a card is updated',
+        TriggerKind.cardCreated => l10n.automationWhenCreated,
+        TriggerKind.cardDeleted => l10n.automationWhenDeleted,
+        _ => l10n.automationWhenUpdated,
       };
       final conditions = [
         for (final c in where)
@@ -203,10 +204,14 @@ String whenLine(TriggerSpec trigger, Collection? collection) {
             (final f?, final col?) => filterLabel(f, col),
             _ => '${c['field']} ${c['op']} ${c['relative'] ?? c['value']}',
           },
-      ].join(' and ');
+      ].join(l10n.automationListAnd);
       final watched = fields == null || fields.isEmpty
           ? null
-          : 'when ${[for (final id in fields) collection?.fieldById(id)?.name ?? id].join(' or ')} changes';
+          : l10n.automationWhenFieldsChange(
+              [
+                for (final id in fields) collection?.fieldById(id)?.name ?? id,
+              ].join(l10n.automationListOr),
+            );
       // One condition reads 'Status starts matching "is Shipped"'.
       final field = where.length == 1
           ? collection?.fieldById('${where.single['field']}')?.name
@@ -218,8 +223,11 @@ String whenLine(TriggerSpec trigger, Collection? collection) {
               mode == TriggerMode.enters) {
             false => conditions,
             true when field != null && conditions.startsWith('$field ') =>
-              '$field starts matching "${conditions.substring(field.length + 1)}"',
-            true => 'starts matching "$conditions"',
+              l10n.automationStartsMatchingField(
+                field,
+                conditions.substring(field.length + 1),
+              ),
+            true => l10n.automationStartsMatching(conditions),
           },
         ?watched,
       ].join(' · ');
@@ -227,9 +235,11 @@ String whenLine(TriggerSpec trigger, Collection? collection) {
 }
 
 /// "Do: Stamp shipped date › Stamp".
-String doLine(AutomationEntry entry) =>
-    'Do: ${entry.module?.module.name ?? 'a removed module'} › '
-    '${entry.action?.label ?? entry.automation.actionId}';
+String doLine(AppLocalizations l10n, AutomationEntry entry) =>
+    l10n.automationDoLine(
+      entry.module?.module.name ?? l10n.automationRemovedModuleInline,
+      entry.action?.label ?? entry.automation.actionId,
+    );
 
 /// The `/automations` page: Modules · Automations · Runs. The query
 /// parameters are its state: a tab tap or a chip clear asks the host to
@@ -347,11 +357,14 @@ class _AutomationsPageState extends State<AutomationsPage>
         replacing: preview.replacing?.consent,
       ),
       mode: ConsentMode.install,
-      source: 'Imported',
+      source: context.l10n.automationSourceImported,
     );
     if (scope == null || !mounted) return;
     if (await modules.install(bundle, scope) && mounted) {
-      showAutomationSnack(context, 'Installed ${bundle.manifest.name}');
+      showAutomationSnack(
+        context,
+        context.l10n.automationInstalledSnack(bundle.manifest.name),
+      );
     }
   }
 
@@ -365,6 +378,7 @@ class _AutomationsPageState extends State<AutomationsPage>
     final expanded = automationsExpanded(context);
     final host = _host;
     final ask = host.askMorkva;
+    final l10n = context.l10n;
 
     // Wide: in the header. Phone: the first row of the tab's list, so the
     // tab bar sits under the app bar on every tab.
@@ -376,12 +390,14 @@ class _AutomationsPageState extends State<AutomationsPage>
         children: [
           if (ask != null)
             TextActionButton(
-              label: expanded ? 'Ask Morkva to write one' : 'Ask Morkva',
+              label: expanded
+                  ? l10n.automationAskMorkvaToWrite
+                  : l10n.automationAskMorkva,
               icon: Icons.auto_awesome_outlined,
-              onPressed: () => ask('Write a module that '),
+              onPressed: () => ask(l10n.automationAskPrefill),
             ),
           SecondaryButton(
-            label: 'Import module',
+            label: l10n.automationImportModule,
             icon: Icons.upload_outlined,
             onPressed: _import,
           ),
@@ -437,12 +453,11 @@ class _AutomationsPageState extends State<AutomationsPage>
                         expanded ? Spacing.xxl : Spacing.md,
                         0,
                       ),
-                      child: const AutomationBanner(
+                      child: AutomationBanner(
                         tone: CopyTone.warning,
                         icon: Icons.warning_amber_rounded,
-                        title:
-                            "Automations can't run on this device right now.",
-                        body: 'Runs are skipped and logged.',
+                        title: l10n.automationEngineDownTitle,
+                        body: l10n.automationEngineDownBody,
                       ),
                     ),
                   Expanded(
@@ -506,10 +521,13 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final title = Text('Automations', style: theme.textTheme.headlineSmall);
+    final l10n = context.l10n;
+    final title = Text(
+      l10n.commonAutomations,
+      style: theme.textTheme.headlineSmall,
+    );
     final subtitle = Text(
-      'Modules add actions. Automations put them on buttons or '
-      'run them when cards change.',
+      l10n.automationPageSubtitle,
       style: theme.textTheme.bodyMedium?.copyWith(
         color: theme.colorScheme.onSurfaceVariant,
       ),
@@ -588,8 +606,9 @@ class _NewAutomationAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final hint = context.l10n.automationInstallModuleFirst;
     final button = PrimaryButton(
-      label: 'New automation',
+      label: context.l10n.automationNewAutomation,
       icon: Icons.add,
       onPressed: enabled ? onPressed : null,
     );
@@ -600,14 +619,14 @@ class _NewAutomationAction extends StatelessWidget {
         // Flexible: the header gives the action ≤ 480 px (less on a phone).
         Flexible(
           child: Text(
-            'Install a module first',
+            hint,
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
         ),
         const SizedBox(width: Spacing.sm),
-        Semantics(hint: 'Install a module first', child: button),
+        Semantics(hint: hint, child: button),
       ],
     );
   }
@@ -674,9 +693,9 @@ class _Tabs extends StatelessWidget {
         splashBorderRadius: Radii.smAll,
         onTap: (i) => onSelect(AutomationsTab.values[i]),
         tabs: [
-          tab('Modules', modules),
-          tab('Automations', automations),
-          tab('Runs', reviews, amber: true),
+          tab(context.l10n.automationTabModules, modules),
+          tab(context.l10n.commonAutomations, automations),
+          tab(context.l10n.automationTabRuns, reviews, amber: true),
         ],
       ),
     );
@@ -764,9 +783,9 @@ class AutomationLoadError extends StatelessWidget {
   Widget build(BuildContext context) => EmptyState(
     icon: Icons.cloud_off_outlined,
     title: title,
-    message: 'Check your connection and try again.',
+    message: context.l10n.automationLoadErrorMessage,
     action: SecondaryButton(
-      label: 'Retry',
+      label: context.l10n.commonRetry,
       icon: Icons.refresh,
       onPressed: onRetry,
     ),
@@ -991,19 +1010,18 @@ class _ModulesTab extends StatelessWidget {
     if (state.loading) return const Center(child: LoadingIndicator());
     if (state.loadFailed) {
       return AutomationLoadError(
-        title: "Couldn't load modules",
+        title: context.l10n.automationLoadModulesFailed,
         onRetry: context.read<ModulesCubit>().retry,
       );
     }
     final host = context.read<AutomationsHost>();
     final ask = host.askMorkva;
+    final l10n = context.l10n;
     if (state.modules.isEmpty) {
       return EmptyState(
         icon: Icons.extension_outlined,
-        title: 'No modules yet',
-        message:
-            'Modules add actions to Morkva — like stamping a date or flagging '
-            'low stock. Ask Morkva to write one, or import a .morkva.json file.',
+        title: l10n.automationNoModulesTitle,
+        message: l10n.automationNoModulesMessage,
         action: Wrap(
           spacing: Spacing.sm,
           runSpacing: Spacing.sm,
@@ -1011,12 +1029,12 @@ class _ModulesTab extends StatelessWidget {
           children: [
             if (ask != null)
               PrimaryButton(
-                label: 'Ask Morkva',
+                label: l10n.automationAskMorkva,
                 icon: Icons.auto_awesome_outlined,
-                onPressed: () => ask('Write a module that '),
+                onPressed: () => ask(l10n.automationAskPrefill),
               ),
             SecondaryButton(
-              label: 'Import module',
+              label: l10n.automationImportModule,
               icon: Icons.upload_outlined,
               onPressed: onImport,
             ),
@@ -1107,6 +1125,7 @@ class _ModuleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     final module = entry.module;
     final n = entry.automations;
     final description = module.manifest?.description;
@@ -1153,16 +1172,19 @@ class _ModuleCard extends StatelessWidget {
                 const SizedBox(height: Spacing.sm),
                 MetaLine(
                   icon: Icons.shield_outlined,
-                  text: permissionSummary(entry, collections),
+                  text: permissionSummary(l10n, entry, collections),
                 ),
                 const SizedBox(height: Spacing.xxs),
                 MetaLine(
                   icon: module.source == ModuleSource.assistant
                       ? Icons.auto_awesome_outlined
                       : Icons.download_outlined,
-                  text:
-                      '${module.source == ModuleSource.assistant ? 'Made by Ask Morkva' : 'Imported'}'
-                      ' · ${n == 1 ? '1 automation' : '$n automations'}',
+                  text: [
+                    module.source == ModuleSource.assistant
+                        ? l10n.automationSourceAssistant
+                        : l10n.automationSourceImported,
+                    l10n.automationCount(n),
+                  ].join(' · '),
                 ),
               ],
             ),
@@ -1189,11 +1211,12 @@ class _AutomationsTab extends StatelessWidget {
     if (state.loading) return const Center(child: LoadingIndicator());
     if (state.loadFailed) {
       return AutomationLoadError(
-        title: "Couldn't load automations",
+        title: context.l10n.automationLoadAutomationsFailed,
         onRetry: context.read<ModulesCubit>().retry,
       );
     }
     final host = context.read<AutomationsHost>();
+    final l10n = context.l10n;
     final collections = automationCollections(context);
     final pad = automationsExpanded(context) ? Spacing.xxl : Spacing.md;
     final filtered = collectionId == null
@@ -1210,7 +1233,7 @@ class _AutomationsTab extends StatelessWidget {
             child: FilterChipButton(
               label:
                   collectionOf(collections, collectionId!)?.name ??
-                  'This collection',
+                  l10n.automationThisCollection,
               selected: true,
               onClear: () =>
                   host.openAutomations(tab: AutomationsTab.automations),
@@ -1240,14 +1263,12 @@ class _AutomationsTab extends StatelessWidget {
           Expanded(
             child: EmptyState(
               icon: Icons.bolt_outlined,
-              title: 'No automations yet',
-              message:
-                  "Put a module's action on a button, or run it when cards are "
-                  'created, changed or deleted.',
+              title: l10n.automationNoAutomationsTitle,
+              message: l10n.automationNoAutomationsMessage,
               action: noModules
                   ? null
                   : PrimaryButton(
-                      label: 'New automation',
+                      label: l10n.automationNewAutomation,
                       icon: Icons.add,
                       onPressed: () =>
                           host.newAutomation(collectionId: collectionId),
@@ -1276,7 +1297,8 @@ class _AutomationsTab extends StatelessWidget {
                 ),
                 const SizedBox(width: Spacing.xs),
                 Text(
-                  collectionOf(collections, id)?.name ?? 'Removed collection',
+                  collectionOf(collections, id)?.name ??
+                      l10n.automationRemovedCollection,
                   style: theme.textTheme.titleSmall,
                 ),
                 const SizedBox(width: Spacing.xs),
@@ -1374,6 +1396,7 @@ class AutomationRowTile extends StatelessWidget {
 
   Widget _build(BuildContext context, {required bool inline}) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     final host = context.read<AutomationsHost>();
     final modules = context.read<ModulesCubit>();
     final a = entry.automation;
@@ -1422,14 +1445,14 @@ class AutomationRowTile extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
         ),
         Text(
-          whenLine(a.trigger, collection),
+          whenLine(l10n, a.trigger, collection),
           style: muted,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
         if (!compact)
           Text(
-            doLine(entry),
+            doLine(l10n, entry),
             style: muted,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -1452,7 +1475,7 @@ class AutomationRowTile extends StatelessWidget {
         if (inline) ...[const SizedBox(width: Spacing.sm), ...chips],
         const SizedBox(width: Spacing.sm),
         Semantics(
-          label: '${a.name} enabled',
+          label: l10n.automationEnabledSemantics(a.name),
           child: Switch(
             value: a.enabled,
             onChanged: (on) => modules.setEnabled(a.id, on),
@@ -1545,7 +1568,9 @@ class FilterChipButton extends StatelessWidget {
     );
     return PressableScale(
       onPressed: onClear ?? onTap,
-      semanticLabel: onClear == null ? label : 'Clear $label',
+      semanticLabel: onClear == null
+          ? label
+          : context.l10n.automationClearFilter(label),
       borderRadius: Radii.smAll,
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: 44),
@@ -1570,9 +1595,10 @@ class _RunsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     if (state.loading) return const Center(child: LoadingIndicator());
     final runLog = context.read<RunLogCubit>();
+    final l10n = context.l10n;
     if (state.loadFailed) {
       return AutomationLoadError(
-        title: "Couldn't load runs",
+        title: l10n.automationLoadRunsFailed,
         onRetry: runLog.retry,
       );
     }
@@ -1596,7 +1622,7 @@ class _RunsTab extends StatelessWidget {
                   ?.run
                   .trigger
                   .cardLabel ??
-              'This card';
+              l10n.automationThisCard;
     final moduleName = filter.moduleId == null
         ? null
         : state.rows
@@ -1604,34 +1630,34 @@ class _RunsTab extends StatelessWidget {
                   .firstOrNull
                   ?.run
                   .moduleName ??
-              'This module';
+              l10n.automationThisModule;
     final chips = SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: EdgeInsets.symmetric(horizontal: pad),
       child: Row(
         children: [
           FilterChipButton(
-            label: 'All',
+            label: l10n.automationFilterAll,
             selected: filter.kind == RunFilterKind.all,
             onTap: () => go(RunFilterKind.all),
           ),
           const SizedBox(width: Spacing.xs),
           FilterChipButton(
-            label: 'Needs review',
+            label: l10n.automationFilterNeedsReview,
             count: state.needsReview,
             selected: filter.kind == RunFilterKind.review,
             onTap: () => go(RunFilterKind.review),
           ),
           const SizedBox(width: Spacing.xs),
           FilterChipButton(
-            label: 'Failed',
+            label: l10n.automationFilterFailed,
             selected: filter.kind == RunFilterKind.failed,
             onTap: () => go(RunFilterKind.failed),
           ),
           const SizedBox(width: Spacing.xs),
           // '' = any: a null value reads as a cancelled menu.
           PopupMenuButton<String>(
-            tooltip: 'Filter by automation',
+            tooltip: l10n.automationFilterByAutomation,
             onSelected: (id) => runLog.setFilter(
               RunFilter(
                 kind: filter.kind,
@@ -1641,7 +1667,10 @@ class _RunsTab extends StatelessWidget {
               ),
             ),
             itemBuilder: (_) => [
-              const PopupMenuItem(value: '', child: Text('Any automation')),
+              PopupMenuItem(
+                value: '',
+                child: Text(l10n.automationAnyAutomation),
+              ),
               for (final a in automations)
                 PopupMenuItem(
                   value: a.automation.id,
@@ -1658,7 +1687,7 @@ class _RunsTab extends StatelessWidget {
                     const Icon(Icons.bolt_outlined, size: 18),
                     const SizedBox(width: Spacing.xxs),
                     Text(
-                      picked?.automation.name ?? 'Any automation',
+                      picked?.automation.name ?? l10n.automationAnyAutomation,
                       style: Theme.of(context).textTheme.labelLarge,
                     ),
                     const Icon(Icons.expand_more, size: 18),
@@ -1705,7 +1734,7 @@ class _RunsTab extends StatelessWidget {
           Padding(
             padding: EdgeInsets.fromLTRB(pad, 0, pad, Spacing.md),
             child: AutomationSection(
-              title: 'Running now',
+              title: l10n.automationRunningNow,
               dense: true,
               children: [
                 for (final r in live)
@@ -1714,14 +1743,12 @@ class _RunsTab extends StatelessWidget {
             ),
           ),
         if (entries.isEmpty && live.isEmpty)
-          const Padding(
-            padding: EdgeInsets.only(top: Spacing.xl),
+          Padding(
+            padding: const EdgeInsets.only(top: Spacing.xl),
             child: EmptyState(
               icon: Icons.history,
-              title: 'No runs yet',
-              message:
-                  'When an automation runs, its log shows up here — what '
-                  'triggered it, what it read, what it changed.',
+              title: l10n.automationNoRunsTitle,
+              message: l10n.automationNoRunsMessage,
             ),
           )
         else if (entries.isNotEmpty)
@@ -1774,13 +1801,19 @@ class _GroupRow extends StatelessWidget {
           const SizedBox(width: Spacing.sm),
           Expanded(
             child: Text(
-              '${group.count} skipped · ${group.rows.first.copy.row}',
+              context.l10n.automationSkippedGroup(
+                group.count,
+                group.rows.first.copy.row,
+              ),
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ),
-          TextActionButton(label: 'Show', onPressed: onShow),
+          TextActionButton(
+            label: context.l10n.automationShow,
+            onPressed: onShow,
+          ),
         ],
       ),
     );
@@ -1869,11 +1902,13 @@ class LiveRunTile extends StatelessWidget {
     final title = name == null || name == run.label
         ? run.label
         : '$name · ${run.label}';
+    final l10n = context.l10n;
+    final ahead = run.queuedAhead;
     final second = switch (run.status) {
-      RunStatus.queued =>
-        'Queued${run.queuedAhead == null ? '' : ' · ${run.queuedAhead} ahead'}',
-      RunStatus.applying => 'Applying…',
-      _ => 'Running',
+      RunStatus.queued when ahead != null => l10n.automationQueuedAhead(ahead),
+      RunStatus.queued => l10n.automationQueued,
+      RunStatus.applying => l10n.automationApplyingEllipsis,
+      _ => l10n.automationRunning,
     };
     return Padding(
       padding: const EdgeInsets.only(left: Spacing.md, right: Spacing.xs),
@@ -1905,7 +1940,7 @@ class LiveRunTile extends StatelessWidget {
             ),
           ),
           if (run.status != RunStatus.applying)
-            TextActionButton(label: 'Stop', onPressed: onStop),
+            TextActionButton(label: l10n.automationStop, onPressed: onStop),
         ],
       ),
     );
@@ -1934,6 +1969,7 @@ class RunRowTile extends StatelessWidget {
 
   Widget _build(BuildContext context, double width) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     final host = context.read<AutomationsHost>();
     final runLog = context.read<RunLogCubit>();
     final offline = automationsOffline(context);
@@ -1962,17 +1998,23 @@ class RunRowTile extends StatelessWidget {
     final cardColumn = table || (compact && width >= 420);
     final notHere = row.display == RunDisplay.reviewNotHere;
     final what = switch (run) {
-      _ when run.count > 1 => 'Skipped ${run.count} times · ${row.copy.row}',
+      _ when run.count > 1 => l10n.automationSkippedTimes(
+        run.count,
+        row.copy.row,
+      ),
       RunRecord(status: RunStatus.succeeded) when run.undoneAt != null => [
-        'Undone',
-        ?run.summary,
+        l10n.automationUndone,
+        if (run.summary case final s?) runSummary(l10n, s),
       ].join(' · '),
-      RunRecord(status: RunStatus.succeeded, :final summary?) => summary,
+      RunRecord(status: RunStatus.succeeded, :final summary?) => runSummary(
+        l10n,
+        summary,
+      ),
       _ when notHere => '${row.copy.row} — ${_clause(row.copy.detail)}',
       // "Needs your review · 1 change" (run detail has the plan title).
       RunRecord(status: RunStatus.awaitingReview, :final log)
           when log.plan.isNotEmpty =>
-        '${row.copy.row} · ${changeCount(log)}',
+        '${row.copy.row} · ${changeCount(l10n, log)}',
       RunRecord(status: RunStatus.awaitingReview, :final planTitle?) =>
         '${row.copy.row} · $planTitle',
       _ => row.copy.row,
@@ -1982,30 +2024,30 @@ class RunRowTile extends StatelessWidget {
       if (!cardColumn && where != null && !what.contains(where)) where,
       if (changedAt != null &&
           run.startedAt.difference(changedAt).inMinutes >= 1)
-        'Changed offline ${clock(changedAt)} · ran ${clock(run.startedAt)}',
+        l10n.automationChangedOffline(clock(changedAt), clock(run.startedAt)),
     ].join(' · ');
     final action = switch (row.action) {
       RunRowAction.none => null,
       RunRowAction.review => SecondaryButton(
-        label: 'Review',
+        label: l10n.automationReview,
         onPressed: () => host.review(run.id),
       ),
       RunRowAction.runAgain => _RunAgain(
         // The table shows the card a column away; "Run again on Order
         // #1047" truncated in its 200 px slot.
         label: card == null || notHere || table
-            ? 'Run again'
-            : 'Run again on $card',
+            ? l10n.automationRunAgain
+            : l10n.automationRunAgainOn(card),
         offline: offline,
         onPressed: () => runLog.runAgain(run.id),
       ),
       RunRowAction.reviewPermissions => TextActionButton(
-        label: 'Review permissions',
+        label: l10n.automationReviewPermissions,
         icon: Icons.shield_outlined,
         onPressed: () => host.openModule(run.moduleId),
       ),
       RunRowAction.editAutomation => TextActionButton(
-        label: 'Edit automation',
+        label: l10n.automationEditAutomation,
         icon: Icons.edit_outlined,
         onPressed: () => host.editAutomation(run.automationId!),
       ),
@@ -2060,8 +2102,8 @@ class RunRowTile extends StatelessWidget {
             children: [
               cardText,
               Text(
-                '${agoLabel(run.startedAt, now)} · '
-                '${durationLabel(run.durationMs)}',
+                '${agoLabel(l10n, run.startedAt, now)} · '
+                '${durationLabel(l10n, run.durationMs)}',
                 style: muted,
               ),
             ],
@@ -2079,11 +2121,11 @@ class RunRowTile extends StatelessWidget {
           SizedBox(width: 104, child: cardText),
           SizedBox(
             width: 96,
-            child: Text(agoLabel(run.startedAt, now), style: muted),
+            child: Text(agoLabel(l10n, run.startedAt, now), style: muted),
           ),
           SizedBox(
             width: 64,
-            child: Text(durationLabel(run.durationMs), style: muted),
+            child: Text(durationLabel(l10n, run.durationMs), style: muted),
           ),
           SizedBox(
             width: 200,
@@ -2105,8 +2147,8 @@ class RunRowTile extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(agoLabel(run.startedAt, now), style: muted),
-                  Text(durationLabel(run.durationMs), style: muted),
+                  Text(agoLabel(l10n, run.startedAt, now), style: muted),
+                  Text(durationLabel(l10n, run.durationMs), style: muted),
                 ],
               ),
             ],
@@ -2136,10 +2178,13 @@ class RunRowTile extends StatelessWidget {
 
 /// "1 change", "200 changes": the plan's rows, those past the log's row cap
 /// too.
-String changeCount(RunLog log) {
-  final n = log.plan.length + log.dropped.plan;
-  return '$n ${n == 1 ? 'change' : 'changes'}';
-}
+String changeCount(AppLocalizations l10n, RunLog log) =>
+    l10n.automationChangeCount(log.plan.length + log.dropped.plan);
+
+/// A run's stored summary: the engine's own "No changes" (the module gave
+/// none) is worded here; a module's summary shows as written.
+String runSummary(AppLocalizations l10n, String summary) =>
+    summary == 'No changes' ? l10n.automationNoChanges : summary;
 
 /// "It was opened in another window." → "it was opened in another window".
 String _clause(String sentence) {
@@ -2194,15 +2239,16 @@ class _RunAgain extends StatelessWidget {
     );
     if (!offline) return button;
     final theme = Theme.of(context);
+    final reason = context.l10n.automationNeedsConnection;
     return Semantics(
-      hint: 'Needs a connection',
+      hint: reason,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         mainAxisSize: MainAxisSize.min,
         children: [
           button,
           Text(
-            'Needs a connection',
+            reason,
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),

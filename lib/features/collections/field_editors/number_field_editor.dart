@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/domain/domain.dart';
+import '../../../l10n/l10n.dart';
 import 'field_editor.dart';
 import 'widgets/config_controls.dart';
 import 'widgets/preview_affordances.dart';
@@ -13,10 +14,11 @@ class NumberFieldEditor extends FieldEditor {
   String get typeId => kNumberFieldType;
 
   @override
-  String get displayLabel => 'Number';
+  String label(AppLocalizations l10n) => l10n.collectionsTypeNumber;
 
   @override
-  String get description => 'A numeric value, optionally bounded.';
+  String description(AppLocalizations l10n) =>
+      l10n.collectionsTypeNumberDescription;
 
   @override
   IconData get icon => Icons.numbers;
@@ -53,36 +55,37 @@ class NumberFieldEditor extends FieldEditor {
       max: max == null ? field.max : max(),
     );
 
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ConfigTextField(
-          label: 'Decimal places',
-          hint: 'Whole number',
+          label: l10n.collectionsDecimalPlaces,
+          hint: l10n.collectionsWholeNumber,
           value: field.decimalPlaces?.toString() ?? '',
           keyboardType: TextInputType.number,
           onChanged: (text) =>
               onChanged(update(decimalPlaces: () => parseOptionalInt(text))),
         ),
         ConfigTextField(
-          label: 'Unit label',
-          hint: 'e.g. kg, \$',
+          label: l10n.collectionsUnitLabel,
+          hint: l10n.collectionsUnitLabelHint,
           value: field.unitLabel ?? '',
           onChanged: (text) => onChanged(
             update(unitLabel: () => text.trim().isEmpty ? null : text.trim()),
           ),
         ),
         ConfigTextField(
-          label: 'Minimum',
-          hint: 'No minimum',
+          label: l10n.collectionsMinimum,
+          hint: l10n.collectionsNoMinimum,
           value: field.min?.toString() ?? '',
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           onChanged: (text) =>
               onChanged(update(min: () => parseOptionalNum(text))),
         ),
         ConfigTextField(
-          label: 'Maximum',
-          hint: 'No maximum',
+          label: l10n.collectionsMaximum,
+          hint: l10n.collectionsNoMaximum,
           value: field.max?.toString() ?? '',
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           onChanged: (text) =>
@@ -94,13 +97,15 @@ class NumberFieldEditor extends FieldEditor {
 
   @override
   String summarize(
+    AppLocalizations l10n,
     FieldDefinition definition, {
     List<Collection> collections = const [],
   }) {
     final field = definition as NumberFieldDefinition;
     final parts = <String>[
       if (field.unitLabel != null) field.unitLabel!,
-      if (field.decimalPlaces != null) '${field.decimalPlaces} dp',
+      if (field.decimalPlaces case final places?)
+        l10n.collectionsSummaryDecimals(places),
       if (field.min != null || field.max != null)
         '${field.min ?? '–'}…${field.max ?? '–'}',
     ];

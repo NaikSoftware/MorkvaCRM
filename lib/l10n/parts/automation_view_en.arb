@@ -1,0 +1,879 @@
+{
+  "automationJustNow": "just now",
+  "automationMinutesAgo": "{count} min ago",
+  "@automationMinutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "automationHoursAgo": "{count} h ago",
+  "@automationHoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "automationSizeBytes": "{bytes} B",
+  "@automationSizeBytes": {
+    "placeholders": {
+      "bytes": {
+        "type": "int"
+      }
+    }
+  },
+  "automationSizeKb": "{kb} KB",
+  "@automationSizeKb": {
+    "placeholders": {
+      "kb": {
+        "type": "String"
+      }
+    }
+  },
+  "automationDurationMs": "{ms} ms",
+  "@automationDurationMs": {
+    "placeholders": {
+      "ms": {
+        "type": "int"
+      }
+    }
+  },
+  "automationDurationS": "{s} s",
+  "@automationDurationS": {
+    "placeholders": {
+      "s": {
+        "type": "int"
+      }
+    }
+  },
+  "automationScopeAll": "In all collections",
+  "automationScopeIn": "{count, plural, =1{In {names}} other{In {names}}}",
+  "@automationScopeIn": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "automationRemovedCollectionInline": "a removed collection",
+  "automationWillAskFor": "Will ask for: {titles}",
+  "@automationWillAskFor": {
+    "placeholders": {
+      "titles": {
+        "type": "String"
+      }
+    }
+  },
+  "automationWhenButtonCard": "Button on a card",
+  "automationWhenButtonCollection": "Button on a collection",
+  "automationWhenButtonOn": "Button on {collection}",
+  "@automationWhenButtonOn": {
+    "placeholders": {
+      "collection": {
+        "type": "String"
+      }
+    }
+  },
+  "automationWhenCreated": "When a card is created",
+  "automationWhenUpdated": "When a card is updated",
+  "automationWhenDeleted": "When a card is deleted",
+  "automationListAnd": " and ",
+  "automationListOr": " or ",
+  "automationWhenFieldsChange": "when {fields} changes",
+  "@automationWhenFieldsChange": {
+    "placeholders": {
+      "fields": {
+        "type": "String"
+      }
+    }
+  },
+  "automationStartsMatchingField": "{field} starts matching \"{condition}\"",
+  "@automationStartsMatchingField": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      },
+      "condition": {
+        "type": "String"
+      }
+    }
+  },
+  "automationStartsMatching": "starts matching \"{condition}\"",
+  "@automationStartsMatching": {
+    "placeholders": {
+      "condition": {
+        "type": "String"
+      }
+    }
+  },
+  "automationDoLine": "Do: {module} › {action}",
+  "@automationDoLine": {
+    "placeholders": {
+      "module": {
+        "type": "String"
+      },
+      "action": {
+        "type": "String"
+      }
+    }
+  },
+  "automationRemovedModuleInline": "a removed module",
+  "automationSourceImported": "Imported",
+  "automationSourceAssistant": "Made by Ask Morkva",
+  "automationInstalledSnack": "Installed {name}",
+  "@automationInstalledSnack": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "automationAskMorkva": "Ask Morkva",
+  "automationAskMorkvaToWrite": "Ask Morkva to write one",
+  "automationAskPrefill": "Write a module that ",
+  "automationImportModule": "Import module",
+  "automationEngineDownTitle": "Automations can't run on this device right now.",
+  "automationEngineDownBody": "Runs are skipped and logged.",
+  "automationPageSubtitle": "Modules add actions. Automations put them on buttons or run them when cards change.",
+  "automationNewAutomation": "New automation",
+  "automationInstallModuleFirst": "Install a module first",
+  "automationTabModules": "Modules",
+  "automationTabRuns": "Runs",
+  "automationLoadErrorMessage": "Check your connection and try again.",
+  "automationLoadModulesFailed": "Couldn't load modules",
+  "automationLoadAutomationsFailed": "Couldn't load automations",
+  "automationLoadRunsFailed": "Couldn't load runs",
+  "automationNoModulesTitle": "No modules yet",
+  "automationNoModulesMessage": "Modules add actions to Morkva — like stamping a date or flagging low stock. Ask Morkva to write one, or import a .morkva.json file.",
+  "automationCount": "{count, plural, =1{1 automation} other{{count} automations}}",
+  "@automationCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "automationThisCollection": "This collection",
+  "automationNoAutomationsTitle": "No automations yet",
+  "automationNoAutomationsMessage": "Put a module's action on a button, or run it when cards are created, changed or deleted.",
+  "automationRemovedCollection": "Removed collection",
+  "automationEnabledSemantics": "{name} enabled",
+  "@automationEnabledSemantics": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "automationClearFilter": "Clear {label}",
+  "@automationClearFilter": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "automationThisCard": "This card",
+  "automationThisModule": "This module",
+  "automationFilterAll": "All",
+  "automationFilterNeedsReview": "Needs review",
+  "automationFilterFailed": "Failed",
+  "automationFilterByAutomation": "Filter by automation",
+  "automationAnyAutomation": "Any automation",
+  "automationRunningNow": "Running now",
+  "automationNoRunsTitle": "No runs yet",
+  "automationNoRunsMessage": "When an automation runs, its log shows up here — what triggered it, what it read, what it changed.",
+  "automationSkippedGroup": "{count} skipped · {reason}",
+  "@automationSkippedGroup": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "automationShow": "Show",
+  "automationQueued": "Queued",
+  "automationQueuedAhead": "Queued · {count} ahead",
+  "@automationQueuedAhead": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "automationApplyingEllipsis": "Applying…",
+  "automationRunning": "Running",
+  "automationStop": "Stop",
+  "automationSkippedTimes": "{count, plural, =1{Skipped 1 time · {reason}} other{Skipped {count} times · {reason}}}",
+  "@automationSkippedTimes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "automationUndone": "Undone",
+  "automationChangedOffline": "Changed offline {changed} · ran {ran}",
+  "@automationChangedOffline": {
+    "placeholders": {
+      "changed": {
+        "type": "String"
+      },
+      "ran": {
+        "type": "String"
+      }
+    }
+  },
+  "automationReview": "Review",
+  "automationRunAgain": "Run again",
+  "automationRunAgainOn": "Run again on {card}",
+  "@automationRunAgainOn": {
+    "placeholders": {
+      "card": {
+        "type": "String"
+      }
+    }
+  },
+  "automationReviewPermissions": "Review permissions",
+  "automationEditAutomation": "Edit automation",
+  "automationChangeCount": "{count, plural, =1{1 change} other{{count} changes}}",
+  "@automationChangeCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "automationNeedsConnection": "Needs a connection",
+  "automationImportUnreadable": "Couldn't read that file. Choose it again, or paste it.",
+  "automationImportChooseFileHint": "Choose a .morkva.json file",
+  "automationImportChooseFile": "Choose file",
+  "automationImportPasteHint": "Paste the module file (JSON)",
+  "automationImportSourceFile": "File",
+  "automationImportSourcePaste": "Paste",
+  "automationImportSameVersion": "This version (v{version}) is already installed.",
+  "@automationImportSameVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "automationImportReplacingTitle": "A module with this id is installed (v{version}).",
+  "@automationImportReplacingTitle": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "automationImportReplacingBody": "{count, plural, =1{Allowing replaces it with v{version} for its 1 automation.} other{Allowing replaces it with v{version} for its {count} automations.}}",
+  "@automationImportReplacingBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "automationScopeTagCard": "On a card",
+  "automationScopeTagCollection": "On a collection",
+  "automationScopeTagAny": "Card or collection",
+  "automationConsentCodeChanged": "Code changed: v{fromVersion} → v{toVersion} · {fromSize} → {toSize}",
+  "@automationConsentCodeChanged": {
+    "placeholders": {
+      "fromVersion": {
+        "type": "String"
+      },
+      "toVersion": {
+        "type": "String"
+      },
+      "fromSize": {
+        "type": "String"
+      },
+      "toSize": {
+        "type": "String"
+      }
+    }
+  },
+  "automationConsentSameVersion": "This version is already installed.",
+  "automationConsentAutoApplyOffNew": "Auto-apply turns off for the new version. Turn it on again in module details.",
+  "automationConsentAutoApplyOffAgain": "Auto-apply turns off when you install it again. Turn it on again in module details.",
+  "automationConsentItCan": "It can:",
+  "automationConsentCapNew": "New",
+  "automationConsentCapRemoved": "Removed",
+  "automationConsentActions": "Actions:",
+  "automationViewCode": "View code",
+  "automationConsentWhere": "Where",
+  "automationConsentAllCollections": "All collections",
+  "automationConsentAllCollectionsHint": "Every collection, including new ones.",
+  "automationOnlyThese": "Only these",
+  "automationConsentOnlyTheseHint": "Pick the collections it may read and change.",
+  "automationConsentSandboxNote": "Modules can't reach the internet, your account or other apps. You can change or revoke this later in module details.",
+  "automationConsentAllowAndInstall": "Allow and install",
+  "automationConsentAllow": "Allow",
+  "automationConsentChangeAccessTitle": "Change access for \"{name}\"",
+  "@automationConsentChangeAccessTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "automationConsentAllowTitle": "Allow \"{name}\"?",
+  "@automationConsentAllowTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "automationConsentPickWhere": "Choose where it can work",
+  "automationLoadModuleFailed": "Couldn't load this module",
+  "automationModuleNotInstalledTitle": "This module isn't installed",
+  "automationModuleNotInstalledMessage": "It was uninstalled, or the link is out of date.",
+  "automationModuleAllowTitle": "Allow this module to run.",
+  "automationModuleAllowBody": "Review what it can do before its actions can run.",
+  "automationModuleChangedTitle": "This module changed (v{fromVersion} → v{toVersion}).",
+  "@automationModuleChangedTitle": {
+    "placeholders": {
+      "fromVersion": {
+        "type": "String"
+      },
+      "toVersion": {
+        "type": "String"
+      }
+    }
+  },
+  "automationModuleChangedBody": "Its automations are paused until you allow the new version.",
+  "automationReviewChanges": "Review changes",
+  "automationModuleBrokenTitle": "This module's file is no longer valid.",
+  "automationModuleBrokenBody": "Import it again.",
+  "automationExportedSnack": "Exported {fileName}",
+  "@automationExportedSnack": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "automationUninstallTitle": "Uninstall \"{name}\"?",
+  "@automationUninstallTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "automationUninstallMessageNone": "Its pending reviews are dropped and its permissions are removed. The run history stays.",
+  "automationUninstallMessageOne": "Its automation and its button are deleted, its pending reviews are dropped and its permissions are removed. The run history stays.",
+  "automationUninstallMessageMany": "{count, plural, =1{Its 1 automation and its button are deleted, its pending reviews are dropped and its permissions are removed. The run history stays.} other{Its {count} automations and their buttons are deleted, its pending reviews are dropped and its permissions are removed. The run history stays.}}",
+  "@automationUninstallMessageMany": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "automationUninstall": "Uninstall",
+  "automationUninstalledSnack": "Uninstalled {name}",
+  "@automationUninstalledSnack": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "automationModuleAuthor": "Author: {author} (from the file)",
+  "@automationModuleAuthor": {
+    "placeholders": {
+      "author": {
+        "type": "String"
+      }
+    }
+  },
+  "automationExport": "Export",
+  "automationModuleAbout": "About",
+  "automationRevokeTitle": "Revoke access for \"{name}\"?",
+  "@automationRevokeTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "automationRevokeMessage": "Its automations stop running and pending reviews are dropped until you allow it again.",
+  "automationRevoke": "Revoke",
+  "automationWhatItCanDo": "What it can do",
+  "automationChangeAccess": "Change access",
+  "automationModuleSandboxNote": "Modules can't reach the internet, your account or other apps. Every change goes through a preview unless you turn on auto-apply below.",
+  "automationWillAskForLabel": "Will ask for:",
+  "automationAutoApplyTitle": "Apply changes automatically",
+  "automationAutoApplyNotOffered": "This module can delete or change structure, so its changes always wait for your review.",
+  "automationAllowModuleFirst": "Allow this module first",
+  "automationAutoApplyExplanation": "Small card creates and edits from this module — up to 20 cards, nothing cleared — are applied without asking. Bigger changes, deletes and structure changes always wait for you. You can undo an applied run until you reload Morkva.",
+  "automationInputField": "a field picker",
+  "automationInputCollection": "a collection picker",
+  "automationInputChoice": "a choice",
+  "automationInputOnOff": "on or off",
+  "automationInputNumber": "a number",
+  "automationInputText": "text",
+  "automationActions": "Actions",
+  "automationTestRun": "Test run",
+  "automationAddToButton": "Add to a button",
+  "automationUsingIt": "Automations using it",
+  "automationUsingItNone": "No automations use it yet.",
+  "automationCode": "Code",
+  "automationRecentRuns": "Recent runs",
+  "automationAllRuns": "All runs",
+  "automationNoRunsShort": "No runs yet.",
+  "automationNoChanges": "No changes",
+  "automationLoadRunFailed": "Couldn't load this run",
+  "automationRunNotInLogTitle": "This run isn't in the log",
+  "automationRunNotInLogMessage": "It may have been removed with older runs.",
+  "automationStatusApplying": "Applying",
+  "automationStatusNeedsReview": "Needs review",
+  "automationStatusSucceeded": "Succeeded",
+  "automationStatusFailed": "Failed",
+  "automationStatusTimedOut": "Timed out",
+  "automationStatusSkipped": "Skipped",
+  "automationStatusRejected": "Rejected",
+  "automationStatusExpired": "Expired",
+  "automationAhead": "{count} ahead",
+  "@automationAhead": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "automationApplyAuto": "Auto",
+  "automationApplyAskFirst": "Ask first",
+  "automationOnDevice": "on {device}",
+  "@automationOnDevice": {
+    "placeholders": {
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "automationUndoWithTime": "Undo · {timeLeft}",
+  "@automationUndoWithTime": {
+    "placeholders": {
+      "timeLeft": {
+        "type": "String"
+      }
+    }
+  },
+  "automationMinutesLeft": "{count} min left",
+  "@automationMinutesLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "automationSecondsLeft": "{count} s left",
+  "@automationSecondsLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "automationOpenCard": "Open card",
+  "automationCopiedRunLog": "Copied the run log",
+  "automationCopyLog": "Copy log",
+  "automationStepTrigger": "Trigger",
+  "automationAnAutomation": "An automation",
+  "automationThisRun": "{name} (this run)",
+  "@automationThisRun": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "automationPreviousRun": "Previous run",
+  "automationStepInputs": "Inputs",
+  "automationStepCalls": "Calls",
+  "automationNoCalls": "No calls",
+  "automationCallsDropped": "{count, plural, =1{+1 call dropped} other{+{count} calls dropped}}",
+  "@automationCallsDropped": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "automationStepConsole": "Console",
+  "automationLinesDropped": "{count, plural, =1{+1 line dropped} other{+{count} lines dropped}}",
+  "@automationLinesDropped": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "automationStepPlan": "Plan",
+  "automationApprovedAt": "approved by you at {time}",
+  "@automationApprovedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "automationStepLinks": "Links",
+  "automationOpenLink": "Open {label}",
+  "@automationOpenLink": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "automationStepOutcome": "Outcome",
+  "automationRetryFailed": "Retry failed",
+  "automationReviewElsewhere": "Review elsewhere",
+  "automationTriggerButtonCollection": "{count, plural, =1{Button pressed on {collection} · 1 card} other{Button pressed on {collection} · {count} cards}}",
+  "@automationTriggerButtonCollection": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "collection": {
+        "type": "String"
+      }
+    }
+  },
+  "automationTriggerButtonSomeCollection": "{count, plural, =1{Button pressed on a collection · 1 card} other{Button pressed on a collection · {count} cards}}",
+  "@automationTriggerButtonSomeCollection": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "automationTriggerButtonCard": "Button pressed on {card}",
+  "@automationTriggerButtonCard": {
+    "placeholders": {
+      "card": {
+        "type": "String"
+      }
+    }
+  },
+  "automationTriggerButtonSomeCard": "Button pressed on a card",
+  "automationTriggerCreated": "Created {card}",
+  "@automationTriggerCreated": {
+    "placeholders": {
+      "card": {
+        "type": "String"
+      }
+    }
+  },
+  "automationTriggerCreatedSomeCard": "Created a card",
+  "automationTriggerDeleted": "Deleted {card}",
+  "@automationTriggerDeleted": {
+    "placeholders": {
+      "card": {
+        "type": "String"
+      }
+    }
+  },
+  "automationTriggerDeletedSomeCard": "Deleted a card",
+  "automationTriggerUpdated": "Updated {card}",
+  "@automationTriggerUpdated": {
+    "placeholders": {
+      "card": {
+        "type": "String"
+      }
+    }
+  },
+  "automationTriggerUpdatedSomeCard": "Updated a card",
+  "automationTriggerFieldsChanged": "{fields} changed on {card}",
+  "@automationTriggerFieldsChanged": {
+    "placeholders": {
+      "fields": {
+        "type": "String"
+      },
+      "card": {
+        "type": "String"
+      }
+    }
+  },
+  "automationTriggerFieldsChangedSomeCard": "{fields} changed on a card",
+  "@automationTriggerFieldsChangedSomeCard": {
+    "placeholders": {
+      "fields": {
+        "type": "String"
+      }
+    }
+  },
+  "automationUpdatedFailed": "Updated {applied}, {failed} failed",
+  "@automationUpdatedFailed": {
+    "placeholders": {
+      "applied": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
+  "automationAppliedChanges": "{count, plural, =1{Applied 1 change} other{Applied {count} changes}}",
+  "@automationAppliedChanges": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "automationUndoExpired": "Undo expired",
+  "automationUndoAfterReload": "Undo isn't available after a reload",
+  "automationReverted": "Reverted · {time}",
+  "@automationReverted": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "automationAskFixPrefill": "Fix the module \"{name}\": {problem}",
+  "@automationAskFixPrefill": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "problem": {
+        "type": "String"
+      }
+    }
+  },
+  "automationDecideLater": "Decide later",
+  "automationSavedForReview": "Saved for review",
+  "automationButtonPressed": "Button pressed",
+  "automationBecauseCreated": "Because {card} was created",
+  "@automationBecauseCreated": {
+    "placeholders": {
+      "card": {
+        "type": "String"
+      }
+    }
+  },
+  "automationBecauseCreatedSomeCard": "Because a card was created",
+  "automationBecauseDeleted": "Because {card} was deleted",
+  "@automationBecauseDeleted": {
+    "placeholders": {
+      "card": {
+        "type": "String"
+      }
+    }
+  },
+  "automationBecauseDeletedSomeCard": "Because a card was deleted",
+  "automationBecauseUpdated": "Because {card} was updated",
+  "@automationBecauseUpdated": {
+    "placeholders": {
+      "card": {
+        "type": "String"
+      }
+    }
+  },
+  "automationBecauseUpdatedSomeCard": "Because a card was updated",
+  "automationReviewExpiredTitle": "This review expired.",
+  "automationReviewExpiredBody": "Previews are kept only while Morkva is open. Run it again to get a fresh preview on the current data.",
+  "automationUndoneSentence": "Undone.",
+  "automationDoneSentence": "Done.",
+  "automationNextReview": "Next review ({count} left)",
+  "@automationNextReview": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "automationTestRunNote": "Test runs never change data — you'll see what would change.",
+  "automationTestRunCollection": "Collection",
+  "automationTestRunCard": "Card",
+  "automationTestRunCardOptional": "Card (optional)",
+  "automationSearchCards": "Search cards",
+  "automationLoadCardsFailed": "Couldn't load cards",
+  "automationTestRunTitle": "Test \"{action}\"",
+  "@automationTestRunTitle": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
+  "automationTestRunNeedsAllow": "Allow the module to test it",
+  "automationRunTest": "Run test",
+  "automationWouldChangeCards": "{count, plural, =1{Would change 1 card} other{Would change {count} cards}}",
+  "@automationWouldChangeCards": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "automationTestRunFailed": "Failed: {reason}",
+  "@automationTestRunFailed": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "automationCallsCount": "Calls ({count})",
+  "@automationCallsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "automationConsoleCount": "Console ({count})",
+  "@automationConsoleCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "automationCloseEditor": "Close editor",
+  "automationDeleteTitle": "Delete \"{name}\"?",
+  "@automationDeleteTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "automationDeleteMessage": "Its button disappears. Run history stays.",
+  "automationEditorName": "Name",
+  "automationEditorNameHint": "Stamp when shipped",
+  "automationEditorWhen": "When",
+  "automationEditorIn": "In",
+  "automationEditorDo": "Do",
+  "automationEditorButton": "Button",
+  "automationEditorApply": "Apply",
+  "automationEditorEnabled": "Enabled",
+  "automationPausedBroken": "This automation is paused.",
+  "automationPausedLoopTitle": "Paused: it ran too often in a minute,",
+  "automationPausedLoopMessage": "which looks like a loop (it may be changing the cards it watches).",
+  "automationPausedCrashedTitle": "Paused: Morkva stopped while this ran",
+  "automationPausedCrashedMessage": "(probably out of memory).",
+  "automationResume": "Resume",
+  "automationKindCardButtonHint": "Shows in the card's header.",
+  "automationKindCollectionButtonHint": "Shows in the collection's Actions menu.",
+  "automationPickCollection": "Pick a collection",
+  "automationNotAllowedNote": "Not allowed for this module",
+  "automationNotAllowedForModule": "{count, plural, =1{{names} isn't allowed for this module.} other{{names} aren't allowed for this module.}}",
+  "@automationNotAllowedForModule": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "automationAddCondition": "Add condition",
+  "automationEditCondition": "Edit condition",
+  "automationEditorIf": "If",
+  "automationCondition": "Condition",
+  "automationRunOnAnyChange": "Run on any change",
+  "automationOnlyWhenFieldsChange": "Only when these fields change",
+  "automationLeaveEmptyAnyChange": "Leave empty to react to any change.",
+  "automationEditorRun": "Run",
+  "automationModeEnters": "Once, when the card starts matching",
+  "automationModeEntersHint": "Won't run again while it keeps matching.",
+  "automationModeMatches": "Every time it's updated and matches",
+  "automationEventHelp": "Runs on the device where the change is made, while Morkva is open there. Offline changes run when they sync. Calculated values don't trigger on their own.",
+  "automationLastChecked": "Last checked",
+  "automationFieldFallback": "Field",
+  "automationRemoveCondition": "Remove {label}",
+  "@automationRemoveCondition": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "automationPickModule": "Pick a module",
+  "automationPickAction": "Pick an action",
+  "automationActionRunsOnCollection": "{action} · Runs on a collection",
+  "@automationActionRunsOnCollection": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
+  "automationActionRunsOnCard": "{action} · Runs on a card",
+  "@automationActionRunsOnCard": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
+  "automationModule": "Module",
+  "automationAction": "Action",
+  "automationFieldsOf": "Fields of {collection}.",
+  "@automationFieldsOf": {
+    "placeholders": {
+      "collection": {
+        "type": "String"
+      }
+    }
+  },
+  "automationButtonLabel": "Label",
+  "automationButtonIcon": "Icon",
+  "automationButtonColor": "Color",
+  "automationButtonPreview": "Preview",
+  "automationAskFirstButtonHint": "You review each change in a preview.",
+  "automationAskFirstEventHint": "Each card waits in Needs review.",
+  "automationApplyAutomatically": "Apply automatically",
+  "automationApplyAutomaticallyHint": "Small card creates and edits apply without asking. Bigger changes, deletes and structure changes still wait.",
+  "automationAlwaysAsks": "This module can delete or change structure, so it always asks.",
+  "automationTurnOnAutoApplyFirst": "Turn on auto-apply for this module first.",
+  "automationModuleDetails": "Module details",
+  "automationScopeSameAsModuleSummary": "Collections it may touch: same as the module's access",
+  "automationScopeCountSummary": "Collections it may touch: {count}",
+  "@automationScopeCountSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "automationAdvanced": "Advanced",
+  "automationScopeSameAsModule": "Same as the module's access",
+  "automationCallDone": "Done",
+  "automationCallNoChange": "Already up to date",
+  "automationErrorCrashed": "The page stopped while this ran — probably out of memory",
+  "automationErrorInterrupted": "Interrupted — may be partly applied, check the cards.",
+  "automationTintCarrot": "carrot",
+  "automationTintLeaf": "leaf",
+  "automationTintSky": "sky",
+  "automationTintPlum": "plum",
+  "automationTintSand": "sand",
+  "automationTintRose": "rose",
+  "automationTintSlate": "slate",
+  "automationTintTeal": "teal"
+}

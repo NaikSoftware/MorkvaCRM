@@ -23,19 +23,41 @@ abstract interface class AuthRepository {
   Future<void> signOut();
 }
 
+/// What went wrong with sign-in or sign-out; the UI words it.
+enum AuthFailure {
+  /// The Google sign-in failed (provider error, network, cancelled popup).
+  signInFailed,
+
+  /// Sign-in succeeded but returned no user.
+  noUser,
+
+  /// Google sign-in is not available on this platform.
+  unsupportedPlatform,
+
+  /// Google returned no ID token to exchange with Firebase.
+  noIdToken,
+
+  /// Signing out failed.
+  signOutFailed,
+}
+
 /// Error raised by an [AuthRepository] when authentication fails.
 class AuthException implements Exception {
-  /// Creates an [AuthException] with a human-readable [message] and an optional
-  /// underlying [cause].
-  const AuthException(this.message, {this.cause});
+  /// Creates an [AuthException] of [failure], with an optional raw provider
+  /// [detail] (shown as is) and underlying [cause].
+  const AuthException(this.failure, {this.detail, this.cause});
 
-  /// Human-readable description of what went wrong.
-  final String message;
+  /// What went wrong.
+  final AuthFailure failure;
+
+  /// The provider's own message (e.g. `FirebaseAuthException.message`), if any.
+  final String? detail;
 
   /// The underlying error, if any (e.g. a `FirebaseAuthException`).
   final Object? cause;
 
   @override
   String toString() =>
-      'AuthException: $message${cause != null ? ' ($cause)' : ''}';
+      'AuthException: ${failure.name}${detail != null ? ': $detail' : ''}'
+      '${cause != null ? ' ($cause)' : ''}';
 }

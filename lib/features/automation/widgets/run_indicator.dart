@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../bloc/automation_runs_cubit.dart';
 import 'action_buttons.dart';
 
@@ -45,39 +46,40 @@ final class IndicatorView {
   );
 
   /// The short pill words (the 272 px sidebar row).
-  String? get pill => switch (primary) {
-    IndicatorState.running => 'Running · $running',
-    IndicatorState.needsReview =>
-      needsReview == 1 ? '1 needs review' : '$needsReview need review',
+  String? pill(AppLocalizations l10n) => switch (primary) {
+    IndicatorState.running => l10n.automationWidgetsPillRunning(running),
+    IndicatorState.needsReview => l10n.automationWidgetsNeedReviewCount(
+      needsReview,
+    ),
     IndicatorState.attention =>
-      failed > 0 ? '$failed failed' : "$didntRun didn't run",
+      failed > 0
+          ? l10n.automationWidgetsPillFailed(failed)
+          : l10n.automationWidgetsPillDidntRun(didntRun),
     _ => null,
   };
 
   /// The full sentence: tooltip, semantics and the polite announcement.
-  String get sentence {
+  String sentence(AppLocalizations l10n) {
     final main = switch (primary) {
-      IndicatorState.running =>
-        '${_n(running, 'automation')} running'
-            '${needsReview > 0 ? ', $needsReview need review' : ''}',
-      IndicatorState.needsReview =>
-        needsReview == 1
-            ? '1 automation needs review'
-            : '$needsReview automations need review',
+      IndicatorState.running => [
+        l10n.automationWidgetsSentenceRunning(running),
+        if (needsReview > 0)
+          l10n.automationWidgetsSentenceAlsoNeedReview(needsReview),
+      ].join(', '),
+      IndicatorState.needsReview => l10n.automationWidgetsSentenceNeedsReview(
+        needsReview,
+      ),
       IndicatorState.attention => [
-        if (failed > 0) '$failed failed',
-        if (didntRun > 0) "${_n(didntRun, 'automation')} didn't run",
+        if (failed > 0) l10n.automationWidgetsSentenceFailed(failed),
+        if (didntRun > 0) l10n.automationWidgetsSentenceDidntRun(didntRun),
       ].join(', '),
       IndicatorState.reviewsExpired =>
-        '${_n(expired, 'review')} expired · View',
-      IndicatorState.engineUnavailable =>
-        "Automations can't run on this device",
-      IndicatorState.idle => 'Automations',
+        l10n.automationWidgetsSentenceReviewsExpired(expired),
+      IndicatorState.engineUnavailable => l10n.automationWidgetsCantRunOnDevice,
+      IndicatorState.idle => l10n.commonAutomations,
     };
-    return autoPaused ? '$main · Auto-apply paused for 10 min' : main;
+    return autoPaused ? l10n.automationWidgetsAutoApplyPaused(main) : main;
   }
-
-  static String _n(int n, String noun) => n == 1 ? '1 $noun' : '$n ${noun}s';
 }
 
 IndicatorView _viewOf(AutomationRunsCubit cubit, AutomationRunsState s) =>
@@ -113,7 +115,9 @@ class RunIndicatorPill extends StatelessWidget {
       final theme = Theme.of(context);
       final scheme = theme.colorScheme;
       final semantic = theme.extension<MorkvaSemanticColors>()!;
-      final pill = v.pill;
+      final l10n = context.l10n;
+      final pill = v.pill(l10n);
+      final sentence = v.sentence(l10n);
       final (Color bg, Color fg) = switch (v.primary) {
         IndicatorState.running => (
           semantic.info.withValues(alpha: 0.12),
@@ -133,10 +137,10 @@ class RunIndicatorPill extends StatelessWidget {
       };
       return Semantics(
         liveRegion: true,
-        label: v.sentence,
+        label: sentence,
         excludeSemantics: true,
         child: Tooltip(
-          message: v.sentence,
+          message: sentence,
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -199,15 +203,20 @@ class RunIndicatorRailIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) => _IndicatorBuilder(
     orElse: Icon(Icons.bolt_rounded, color: color),
-    builder: (context, v) => Tooltip(
-      message: v.idle ? 'Automations' : 'Automations · ${v.sentence}',
-      child: Semantics(
-        liveRegion: !v.idle,
-        label: v.idle ? 'Automations' : 'Automations, ${v.sentence}',
-        excludeSemantics: true,
-        child: _Bolt(view: v, color: color, badge: _RailBadge.containerCount),
-      ),
-    ),
+    builder: (context, v) {
+      final l10n = context.l10n;
+      final name = l10n.commonAutomations;
+      final sentence = v.sentence(l10n);
+      return Tooltip(
+        message: v.idle ? name : '$name · $sentence',
+        child: Semantics(
+          liveRegion: !v.idle,
+          label: v.idle ? name : '$name, $sentence',
+          excludeSemantics: true,
+          child: _Bolt(view: v, color: color, badge: _RailBadge.containerCount),
+        ),
+      );
+    },
   );
 }
 
@@ -224,12 +233,14 @@ class RunIndicatorButton extends StatelessWidget {
     orElse: idle,
     builder: (context, v) {
       if (v.idle) return idle ?? const SizedBox.shrink();
+      final l10n = context.l10n;
+      final sentence = v.sentence(l10n);
       return Tooltip(
-        message: v.sentence,
+        message: sentence,
         child: Semantics(
           liveRegion: true,
           button: true,
-          label: 'Automations, ${v.sentence}',
+          label: '${l10n.commonAutomations}, $sentence',
           excludeSemantics: true,
           onTap: () => GoRouter.maybeOf(context)?.go(v.path),
           child: PressableScale(

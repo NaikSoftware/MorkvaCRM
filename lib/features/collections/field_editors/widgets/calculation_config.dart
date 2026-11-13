@@ -106,7 +106,7 @@ class _CalculationConfigState extends State<CalculationConfig> {
       case _Mode.aggregate:
         final a =
             _stashedAggregate ??
-            _sourceOptions().firstOrNull?.aggregation ??
+            _sourceOptions(context.l10n).firstOrNull?.aggregation ??
             Aggregation(
               source: AggregateSource.all,
               collectionId: widget.editingCollectionId,
@@ -233,7 +233,7 @@ class _CalculationConfigState extends State<CalculationConfig> {
       ? _owner
       : widget.collections.where((c) => c.id == id).firstOrNull;
 
-  List<_SourceOption> _sourceOptions() {
+  List<_SourceOption> _sourceOptions(AppLocalizations l10n) {
     final owner = _owner;
     final options = <_SourceOption>[];
     for (final c in widget.collections) {
@@ -247,9 +247,9 @@ class _CalculationConfigState extends State<CalculationConfig> {
               referenceFieldId: r.id,
             ),
             c.id == owner.id
-                ? '${c.name} linking to this one'
-                : '${c.name} linking here',
-            'via ${r.name}',
+                ? l10n.collectionsSourceLinkingToThis(c.name)
+                : l10n.collectionsSourceLinkingHere(c.name),
+            l10n.collectionsSourceVia(r.name),
             Icons.call_received,
           ),
         );
@@ -265,8 +265,8 @@ class _CalculationConfigState extends State<CalculationConfig> {
             collectionId: target.id,
             referenceFieldId: r.id,
           ),
-          'Linked ${target.name}',
-          'in ${r.name}',
+          l10n.collectionsSourceLinked(target.name),
+          l10n.collectionsSourceIn(r.name),
           Icons.call_made,
         ),
       );
@@ -275,8 +275,8 @@ class _CalculationConfigState extends State<CalculationConfig> {
       options.add(
         _SourceOption(
           Aggregation(source: AggregateSource.all, collectionId: c.id),
-          'All ${c.name}',
-          'every item',
+          l10n.collectionsSourceAll(c.name),
+          l10n.collectionsSourceEveryItem,
           Icons.select_all,
         ),
       );
@@ -352,7 +352,9 @@ class _CalculationConfigState extends State<CalculationConfig> {
       context,
       compact: compact || box == null,
       anchor: anchor,
-      label: index == null ? 'Add condition' : 'Edit condition',
+      label: index == null
+          ? context.l10n.collectionsAddCondition
+          : context.l10n.collectionsEditCondition,
       builder: (popover) => FilterBuilder(
         collection: source,
         initial: index == null ? null : a.filters.elementAtOrNull(index),
@@ -378,26 +380,27 @@ class _CalculationConfigState extends State<CalculationConfig> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final mode = _mode;
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SegmentedButton<_Mode>(
           showSelectedIcon: false,
-          segments: const [
+          segments: [
             ButtonSegment(
               value: _Mode.formula,
-              icon: Icon(Icons.functions),
-              label: Text('Formula'),
+              icon: const Icon(Icons.functions),
+              label: Text(l10n.collectionsModeFormula),
             ),
             ButtonSegment(
               value: _Mode.aggregate,
-              icon: Icon(Icons.bar_chart),
-              label: Text('Aggregate'),
+              icon: const Icon(Icons.bar_chart),
+              label: Text(l10n.collectionsModeAggregate),
             ),
             ButtonSegment(
               value: _Mode.lookup,
-              icon: Icon(Icons.manage_search),
-              label: Text('Lookup'),
+              icon: const Icon(Icons.manage_search),
+              label: Text(l10n.collectionsModeLookup),
             ),
           ],
           selected: {mode},
@@ -406,10 +409,9 @@ class _CalculationConfigState extends State<CalculationConfig> {
         const SizedBox(height: Spacing.xs),
         Text(
           switch (mode) {
-            _Mode.aggregate =>
-              'Totals values from other items, like SUMIF in a spreadsheet.',
-            _Mode.lookup => 'Shows a field of the linked item, like VLOOKUP.',
-            _Mode.formula => "Computes from this item's own fields.",
+            _Mode.aggregate => l10n.collectionsModeAggregateHint,
+            _Mode.lookup => l10n.collectionsModeLookupHint,
+            _Mode.formula => l10n.collectionsModeFormulaHint,
           },
           style: theme.textTheme.bodySmall?.copyWith(
             color: scheme.onSurfaceVariant,
@@ -431,8 +433,8 @@ class _CalculationConfigState extends State<CalculationConfig> {
               Expanded(
                 child: ConfigTextField(
                   key: ValueKey('decimals_${_field.id}'),
-                  label: 'Decimals',
-                  hint: 'auto',
+                  label: l10n.collectionsDecimals,
+                  hint: l10n.collectionsDecimalsAuto,
                   value: _field.decimalPlaces?.toString() ?? '',
                   keyboardType: TextInputType.number,
                   onChanged: (t) {
@@ -445,8 +447,8 @@ class _CalculationConfigState extends State<CalculationConfig> {
               Expanded(
                 child: ConfigTextField(
                   key: ValueKey('unit_${_field.id}'),
-                  label: 'Unit',
-                  hint: 'e.g. ₴, kg',
+                  label: l10n.collectionsUnit,
+                  hint: l10n.collectionsUnitHint,
                   value: _field.unitLabel ?? '',
                   onChanged: (t) => _emit(
                     _field.copyWith(unitLabel: t.trim().isEmpty ? null : t),
@@ -464,15 +466,16 @@ class _CalculationConfigState extends State<CalculationConfig> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final semantic = theme.extension<MorkvaSemanticColors>()!;
+    final l10n = context.l10n;
     final compiled = _compile(_field.expression);
     final cycle = compiled.formula == null
         ? null
         : formulaCycle(_owner, _field.id);
     final error = cycle != null
-        ? 'Circular: ${cycle.join(' → ')}'
+        ? l10n.collectionsFormulaCircular(cycle.join(' → '))
         : switch (compiled.error) {
             final e? when _field.expression != null =>
-              context.l10n.formulaErrorMessage(e),
+              l10n.formulaErrorMessage(e),
             _ => null,
           };
     final insertable = [
@@ -487,7 +490,7 @@ class _CalculationConfigState extends State<CalculationConfig> {
       ),
     );
     return [
-      Text('Formula', style: _labelStyle(theme)),
+      Text(l10n.collectionsModeFormula, style: _labelStyle(theme)),
       const SizedBox(height: Spacing.xxs),
       TextField(
         key: ValueKey('formula_${_field.id}'),
@@ -499,7 +502,7 @@ class _CalculationConfigState extends State<CalculationConfig> {
         keyboardType: TextInputType.multiline,
         inputFormatters: [FilteringTextInputFormatter.deny(RegExp('\t'))],
         decoration: InputDecoration(
-          hintText: 'e.g. {Price} * {Quantity}',
+          hintText: l10n.collectionsFormulaExample('{', '}'),
           errorText: error,
           errorMaxLines: 3,
         ),
@@ -512,8 +515,9 @@ class _CalculationConfigState extends State<CalculationConfig> {
             Icon(Icons.check_circle, size: 16, color: semantic.success),
             const SizedBox(width: Spacing.xxs),
             Text(
-              'Result: '
-              '${context.l10n.formulaTypeLabel(compiled.formula!.type)}',
+              l10n.collectionsFormulaResult(
+                l10n.formulaTypeLabel(compiled.formula!.type),
+              ),
               style: theme.textTheme.labelMedium?.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
@@ -523,7 +527,7 @@ class _CalculationConfigState extends State<CalculationConfig> {
       ],
       const SizedBox(height: Spacing.md),
       if (insertable.isNotEmpty) ...[
-        Text('Insert field', style: _labelStyle(theme)),
+        Text(l10n.collectionsInsertField, style: _labelStyle(theme)),
         const SizedBox(height: Spacing.xs),
         Wrap(
           spacing: Spacing.xs,
@@ -539,7 +543,7 @@ class _CalculationConfigState extends State<CalculationConfig> {
         ),
         const SizedBox(height: Spacing.md),
       ],
-      Text('Functions', style: _labelStyle(theme)),
+      Text(l10n.collectionsFunctions, style: _labelStyle(theme)),
       const SizedBox(height: Spacing.xs),
       Wrap(
         spacing: Spacing.xs,
@@ -549,12 +553,12 @@ class _CalculationConfigState extends State<CalculationConfig> {
           for (final name in _quickFunctions)
             _FunctionChip(
               function: formulaFunctions[name]!,
-              l10n: context.l10n,
+              l10n: l10n,
               onPressed: () => _insertFunction(formulaFunctions[name]!),
             ),
           _FunctionChip.text(
-            label: '& join',
-            tooltip: 'Joins text: {First} & " " & {Last}',
+            label: l10n.collectionsJoinChip,
+            tooltip: l10n.collectionsJoinTooltip('{', '}'),
             onPressed: () => _insert(' & '),
           ),
           MenuAnchor(
@@ -569,11 +573,11 @@ class _CalculationConfigState extends State<CalculationConfig> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          context.l10n.formulaUsage(f),
+                          l10n.formulaUsage(f),
                           style: mono.copyWith(fontSize: 13),
                         ),
                         Text(
-                          context.l10n.formulaSummary(f),
+                          l10n.formulaSummary(f),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: scheme.onSurfaceVariant,
                           ),
@@ -584,8 +588,8 @@ class _CalculationConfigState extends State<CalculationConfig> {
                 ),
             ],
             builder: (context, controller, _) => _FunctionChip.text(
-              label: 'All functions',
-              tooltip: 'Every function with how to use it',
+              label: l10n.collectionsAllFunctions,
+              tooltip: l10n.collectionsAllFunctionsTooltip,
               onPressed: () =>
                   controller.isOpen ? controller.close() : controller.open(),
             ),
@@ -601,19 +605,20 @@ class _CalculationConfigState extends State<CalculationConfig> {
   List<Widget> _aggregateControls(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
     final a = _field.aggregate!;
-    final options = _sourceOptions();
+    final options = _sourceOptions(l10n);
     final selected = options.indexWhere((o) => _sameSource(o.aggregation, a));
     final source = _collection(_sourceIdOf(a));
     final foldable = _foldable(source, a.op);
     return [
-      Text('Summarize', style: _labelStyle(theme)),
+      Text(l10n.collectionsSummarize, style: _labelStyle(theme)),
       const SizedBox(height: Spacing.xxs),
       DropdownButtonFormField<int>(
         key: ValueKey('source_${_field.id}'),
         initialValue: selected < 0 ? null : selected,
         isExpanded: true,
-        hint: const Text('Pick what to summarize'),
+        hint: Text(l10n.collectionsPickSource),
         items: [
           for (final (i, o) in options.indexed)
             DropdownMenuItem(
@@ -658,12 +663,12 @@ class _CalculationConfigState extends State<CalculationConfig> {
         Padding(
           padding: const EdgeInsets.only(top: Spacing.xxs),
           child: Text(
-            'Add a Reference field to link items, or summarize a whole collection.',
+            l10n.collectionsNoSources,
             style: theme.textTheme.bodySmall,
           ),
         ),
       const SizedBox(height: Spacing.md),
-      Text('Calculate', style: _labelStyle(theme)),
+      Text(l10n.collectionsCalculate, style: _labelStyle(theme)),
       const SizedBox(height: Spacing.xs),
       Wrap(
         spacing: Spacing.xs,
@@ -671,7 +676,7 @@ class _CalculationConfigState extends State<CalculationConfig> {
         children: [
           for (final op in AggregateOp.values)
             ChoiceChip(
-              label: Text(context.l10n.aggregateOpLabel(op)),
+              label: Text(l10n.aggregateOpLabel(op)),
               selected: a.op == op,
               onSelected: (_) => _setAggregation(a.copyWith(op: op)),
             ),
@@ -679,13 +684,15 @@ class _CalculationConfigState extends State<CalculationConfig> {
       ),
       if (a.op.needsField) ...[
         const SizedBox(height: Spacing.md),
-        Text('Of', style: _labelStyle(theme)),
+        Text(l10n.collectionsAggregateOf, style: _labelStyle(theme)),
         const SizedBox(height: Spacing.xxs),
         if (foldable.isEmpty)
           Text(
             source == null
-                ? 'Pick what to summarize first.'
-                : '${source.name} has no ${a.op.index >= AggregateOp.min.index ? 'number or date' : 'number'} fields.',
+                ? l10n.collectionsPickSourceFirst
+                : a.op.index >= AggregateOp.min.index
+                ? l10n.collectionsNoNumberOrDateFields(source.name)
+                : l10n.collectionsNoNumberFields(source.name),
             style: theme.textTheme.bodyMedium?.copyWith(color: scheme.error),
           )
         else
@@ -715,7 +722,7 @@ class _CalculationConfigState extends State<CalculationConfig> {
       ],
       if (source != null) ...[
         const SizedBox(height: Spacing.md),
-        Text('Only where', style: _labelStyle(theme)),
+        Text(l10n.collectionsOnlyWhere, style: _labelStyle(theme)),
         const SizedBox(height: Spacing.xs),
         Wrap(
           spacing: Spacing.xs,
@@ -724,18 +731,24 @@ class _CalculationConfigState extends State<CalculationConfig> {
             for (final (i, f) in a.filters.indexed)
               Builder(
                 builder: (chipContext) => InputChip(
-                  label: Text(filterLabel(f, source)),
+                  label: Text(
+                    filterLabel(f, source, l10n: chipContext.l10n),
+                  ),
                   onPressed: () => _editCondition(chipContext, source, i),
                   onDeleted: () => _setAggregation(
                     a.copyWith(filters: [...a.filters]..removeAt(i)),
                   ),
-                  deleteButtonTooltipMessage: 'Remove condition',
+                  deleteButtonTooltipMessage: l10n.collectionsRemoveCondition,
                 ),
               ),
             Builder(
               builder: (buttonContext) => ActionChip(
                 avatar: const Icon(Icons.add, size: 18),
-                label: Text(a.filters.isEmpty ? 'Add condition' : 'And…'),
+                label: Text(
+                  a.filters.isEmpty
+                      ? l10n.collectionsAddCondition
+                      : l10n.collectionsAndCondition,
+                ),
                 onPressed: () => _editCondition(buttonContext, source),
               ),
             ),
@@ -743,7 +756,14 @@ class _CalculationConfigState extends State<CalculationConfig> {
         ),
       ],
       const SizedBox(height: Spacing.md),
-      _InWords(text: calculationSummary(_field, _owner, widget.collections)),
+      _InWords(
+        text: calculationSummary(
+          _field,
+          _owner,
+          widget.collections,
+          l10n: context.l10n,
+        ),
+      ),
     ];
   }
 
@@ -755,12 +775,13 @@ class _CalculationConfigState extends State<CalculationConfig> {
     final ref = refs.where((r) => r.id == lookup.referenceFieldId).firstOrNull;
     final shown = _shownFields(ref);
     final target = _collection(ref?.targetCollectionId);
+    final l10n = context.l10n;
     return [
-      Text('Through', style: _labelStyle(theme)),
+      Text(l10n.collectionsThrough, style: _labelStyle(theme)),
       const SizedBox(height: Spacing.xxs),
       if (refs.isEmpty)
         Text(
-          'Add a Reference field (one linked item) to look up its fields.',
+          l10n.collectionsNoLookupReferences,
           style: theme.textTheme.bodyMedium?.copyWith(color: scheme.error),
         )
       else
@@ -768,7 +789,7 @@ class _CalculationConfigState extends State<CalculationConfig> {
           key: ValueKey('through_${_field.id}'),
           initialValue: ref?.id,
           isExpanded: true,
-          hint: const Text('Pick a reference'),
+          hint: Text(l10n.collectionsPickReference),
           items: [
             for (final r in refs)
               DropdownMenuItem(
@@ -788,7 +809,7 @@ class _CalculationConfigState extends State<CalculationConfig> {
                           children: [
                             TextSpan(
                               text:
-                                  '  links to ${_collection(r.targetCollectionId)?.name ?? '…'}',
+                                  '  ${l10n.collectionsLinksTo(_collection(r.targetCollectionId)?.name ?? '…')}',
                               style: TextStyle(color: scheme.onSurfaceVariant),
                             ),
                           ],
@@ -807,11 +828,13 @@ class _CalculationConfigState extends State<CalculationConfig> {
         ),
       if (ref != null) ...[
         const SizedBox(height: Spacing.md),
-        Text('Show', style: _labelStyle(theme)),
+        Text(l10n.collectionsShow, style: _labelStyle(theme)),
         const SizedBox(height: Spacing.xxs),
         if (shown.isEmpty)
           Text(
-            '${target?.name ?? 'That collection'} has no fields to show.',
+            target == null
+                ? l10n.collectionsThatCollectionNoFields
+                : l10n.collectionsNoFieldsToShow(target.name),
             style: theme.textTheme.bodyMedium?.copyWith(color: scheme.error),
           )
         else
@@ -821,7 +844,7 @@ class _CalculationConfigState extends State<CalculationConfig> {
                 ? lookup.fieldId
                 : null,
             isExpanded: true,
-            hint: const Text('Pick a field'),
+            hint: Text(l10n.collectionsPickField),
             items: [
               for (final f in shown)
                 DropdownMenuItem(
@@ -842,15 +865,21 @@ class _CalculationConfigState extends State<CalculationConfig> {
           ),
         const SizedBox(height: Spacing.xxs),
         Text(
-          'Keeps its type: a select stays a select, so filters and totals '
-          'can use its options.',
+          l10n.collectionsLookupKeepsType,
           style: theme.textTheme.bodySmall?.copyWith(
             color: scheme.onSurfaceVariant,
           ),
         ),
       ],
       const SizedBox(height: Spacing.md),
-      _InWords(text: calculationSummary(_field, _owner, widget.collections)),
+      _InWords(
+        text: calculationSummary(
+          _field,
+          _owner,
+          widget.collections,
+          l10n: context.l10n,
+        ),
+      ),
     ];
   }
 
@@ -878,7 +907,7 @@ class _InWords extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'IN WORDS',
+            context.l10n.collectionsInWords,
             style: theme.textTheme.labelSmall?.copyWith(
               color: scheme.onSurfaceVariant,
               letterSpacing: 0.4,

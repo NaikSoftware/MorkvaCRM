@@ -1,14 +1,18 @@
 import 'dart:async';
 
 import 'package:bloc_test/bloc_test.dart';
+import 'package:flutter/widgets.dart' show Locale;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/api/data/data_repository.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/features/collections/util/id_generator.dart';
 import 'package:morkva_crm/features/objects/object_editor_cubit.dart';
+import 'package:morkva_crm/l10n/l10n.dart';
 
 import '../collections/fake_data_repository.dart';
 import '../views/views_fixtures.dart';
+
+final _en = lookupAppLocalizations(const Locale('en'));
 
 /// Records what [saveObject] was given (before the fake merges it).
 class _RecordingRepo extends FakeDataRepository {
@@ -129,7 +133,7 @@ void main() {
     test('shows stored values, title and reference labels', () async {
       final c = await edit();
       expect(c.state.isCreate, isFalse);
-      expect(c.state.title, 'Acme renewal');
+      expect(c.state.title(_en), 'Acme renewal');
       expect(
         c.state.valueOf(_strict.fieldById('amount')!),
         const NumberFieldValue(1200),
@@ -293,7 +297,7 @@ void main() {
           prefill: {'stage': const SingleSelectFieldValue('lead')},
         );
         expect(c.state.isCreate, isTrue);
-        expect(c.state.title, 'New deal');
+        expect(c.state.title(_en), 'New deal');
         expect(c.state.hasUnsavedChanges, isFalse);
         c.change('name', const TextFieldValue('Hooli'));
         expect(await c.save(), isTrue);

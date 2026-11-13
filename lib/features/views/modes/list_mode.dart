@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../app/shell/app_shell.dart';
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../collection_views_cubit.dart';
 import '../collection_views_state.dart';
 import '../widgets/list_parts.dart';
@@ -22,13 +23,13 @@ class ListMode extends ViewMode {
   String get id => ViewModeIds.list;
 
   @override
-  String get label => 'List';
+  String get label => l10n.viewsModeList;
 
   @override
   IconData get icon => Icons.view_list_outlined;
 
   @override
-  String get description => 'Compact rows, optionally in sections.';
+  String get description => l10n.viewsModeListDescription;
 
   @override
   bool acceptsLayoutField(FieldDefinition field) => isGroupable(field);
@@ -53,7 +54,9 @@ class ListMode extends ViewMode {
     return Builder(
       builder: (context) => ToolbarButton(
         icon: Icons.view_agenda_outlined,
-        label: 'Group: ${current != null ? current.name : 'None'}',
+        label: current != null
+            ? context.l10n.viewsGroupChip(current.name)
+            : context.l10n.viewsGroupChipNone,
         onPressed: () async {
           final box = context.findRenderObject() as RenderBox;
           final overlay =
@@ -71,7 +74,7 @@ class ListMode extends ViewMode {
               CheckedPopupMenuItem(
                 value: '',
                 checked: current == null,
-                child: const Text('None'),
+                child: Text(context.l10n.commonNone),
               ),
               for (final f in fields)
                 CheckedPopupMenuItem(
@@ -236,7 +239,7 @@ class _ViewListState extends State<ViewList> {
     if (groups == null) {
       final undo = cubit.reorder(moved.object.id, beforeId: beforeId);
       if (undo != null) {
-        data.notify('Order changed', undo: undo);
+        data.notify(context.l10n.viewsOrderChanged, undo: undo);
       }
       return;
     }
@@ -270,8 +273,8 @@ class _ViewListState extends State<ViewList> {
     if (undo != null) {
       data.notify(
         before?.key == header.group.key
-            ? 'Order changed'
-            : 'Moved to ${header.group.label}',
+            ? context.l10n.viewsOrderChanged
+            : context.l10n.viewsMovedTo(header.group.label),
         undo: undo,
       );
     }
@@ -319,7 +322,7 @@ class _ViewListState extends State<ViewList> {
                   ),
                   _AddItem(:final groupKey) => _AddRow(
                     key: ValueKey(item.key),
-                    label: 'New ${data.itemLabel}',
+                    label: context.l10n.viewsNewItem(data.itemLabel),
                     onTap: () => data.quickAdd(groupKey: groupKey),
                   ),
                   _RowItem(:final object) => _ObjectRow(
@@ -467,7 +470,7 @@ class _ObjectRowState extends State<_ObjectRow> {
                 child: Icon(
                   Icons.drag_indicator,
                   size: 20,
-                  semanticLabel: 'Drag to reorder',
+                  semanticLabel: context.l10n.viewsDragToReorder,
                   color: scheme.onSurfaceVariant.withValues(
                     alpha: _hovered || _focused ? 1 : 0.7,
                   ),

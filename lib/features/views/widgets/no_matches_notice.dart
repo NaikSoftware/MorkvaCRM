@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 
 /// Filters hide every object: an inline banner with a way out, above the
 /// mode's own frame (Board columns, the Table header) which stays visible.
@@ -29,13 +30,16 @@ class NoMatchesNotice extends StatelessWidget {
           const SizedBox(width: Spacing.xs),
           Expanded(
             child: Text(
-              'Nothing matches these filters',
+              context.l10n.viewWidgetsNothingMatchesFilters,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
             ),
           ),
-          TextActionButton(label: 'Clear filters', onPressed: onClear),
+          TextActionButton(
+            label: context.l10n.viewWidgetsClearFilters,
+            onPressed: onClear,
+          ),
         ],
       ),
     );

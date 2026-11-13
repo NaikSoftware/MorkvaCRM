@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import 'view_labels.dart';
 
 /// Picks the view's one sort: a field (plus "Created" / "Updated") and a
@@ -55,14 +56,16 @@ class _SortMenuState extends State<SortMenu> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     final selected = _sort?.fieldId;
     final rows = <(String?, String, IconData)>[
-      if (widget.allowManual) (null, 'Manual', Icons.drag_indicator),
+      if (widget.allowManual)
+        (null, l10n.viewWidgetsSortManual, Icons.drag_indicator),
       for (final f in widget.collection.fields)
         // Files have no meaningful order (only their count would sort).
         if (f is! FileFieldDefinition) (f.id, f.name, fieldTypeIcon(f)),
-      (ViewSort.createdAt, 'Created', Icons.schedule),
-      (ViewSort.updatedAt, 'Updated', Icons.update),
+      (ViewSort.createdAt, l10n.viewWidgetsSortCreated, Icons.schedule),
+      (ViewSort.updatedAt, l10n.viewWidgetsSortUpdated, Icons.update),
     ];
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -78,23 +81,26 @@ class _SortMenuState extends State<SortMenu> {
           child: Row(
             children: [
               Expanded(
-                child: Text('Sort by', style: theme.textTheme.titleSmall),
+                child: Text(
+                  l10n.viewWidgetsSortBy,
+                  style: theme.textTheme.titleSmall,
+                ),
               ),
               SegmentedButton<bool>(
                 showSelectedIcon: false,
                 style: const ButtonStyle(visualDensity: VisualDensity.compact),
-                segments: const [
+                segments: [
                   ButtonSegment(
                     value: true,
-                    icon: Icon(Icons.arrow_upward, size: 18),
-                    label: Text('Asc'),
-                    tooltip: 'Ascending',
+                    icon: const Icon(Icons.arrow_upward, size: 18),
+                    label: Text(l10n.viewWidgetsSortAsc),
+                    tooltip: l10n.viewWidgetsSortAscending,
                   ),
                   ButtonSegment(
                     value: false,
-                    icon: Icon(Icons.arrow_downward, size: 18),
-                    label: Text('Desc'),
-                    tooltip: 'Descending',
+                    icon: const Icon(Icons.arrow_downward, size: 18),
+                    label: Text(l10n.viewWidgetsSortDesc),
+                    tooltip: l10n.viewWidgetsSortDescending,
                   ),
                 ],
                 selected: {_ascending},

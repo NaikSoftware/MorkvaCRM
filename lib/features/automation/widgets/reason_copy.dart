@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart' show IconData, Icons;
 
 import '../../../core/domain/automation/automation.dart';
+import '../../../l10n/l10n.dart';
+import '../../assistant/bloc/assistant_bloc.dart' show currentAppStrings;
 
 /// How a chip, row or banner is coloured (the widget picks the tokens).
 enum CopyTone {
@@ -25,16 +27,24 @@ enum CopyTone {
 
 /// The button a "what to do" line offers.
 enum RunFix {
-  reviewPermissions('Review permissions'),
-  editAutomation('Edit automation'),
-  resume('Resume'),
-  runAgain('Run again'),
-  changeAccess('Change access'),
-  askMorkva('Ask Morkva to fix it');
+  reviewPermissions,
+  editAutomation,
+  resume,
+  runAgain,
+  changeAccess,
+  askMorkva;
 
-  const RunFix(this.label);
+  /// The button's words in the app's language.
+  String get label => labelIn(currentAppStrings());
 
-  final String label;
+  String labelIn(AppLocalizations l10n) => switch (this) {
+    reviewPermissions => l10n.automationWidgetsFixReviewPermissions,
+    editAutomation => l10n.automationWidgetsFixEditAutomation,
+    resume => l10n.automationWidgetsFixResume,
+    runAgain => l10n.automationWidgetsFixRunAgain,
+    changeAccess => l10n.automationWidgetsFixChangeAccess,
+    askMorkva => l10n.automationWidgetsFixAskMorkva,
+  };
 }
 
 /// "What to do": a sentence, an action button, or both.
@@ -56,19 +66,20 @@ final class RunCopy {
   final RunAdvice? advice;
 }
 
-RunAdvice _fix(RunFix fix, [String? text]) =>
-    (text: text ?? fix.label, fix: fix);
-
-RunAdvice _say(String text) => (text: text, fix: null);
-
 /// The copy of a run in [status] for [reason]. [timeoutSeconds] fills
-/// "Timed out after N s"; [error] the module's own message.
+/// "Timed out after N s"; [error] the module's own message. [l10n] defaults
+/// to the app's language (cubits have no context).
 RunCopy runCopy(
   RunStatus status,
   RunReason? reason, {
   int timeoutSeconds = 20,
   RunError? error,
+  AppLocalizations? l10n,
 }) {
+  final t = l10n ?? currentAppStrings();
+  RunAdvice fix(RunFix fix, [String? text]) =>
+      (text: text ?? fix.labelIn(t), fix: fix);
+  RunAdvice say(String text) => (text: text, fix: null);
   final tone = switch (status) {
     RunStatus.queued ||
     RunStatus.running ||
@@ -84,39 +95,41 @@ RunCopy runCopy(
   switch (status) {
     case RunStatus.queued:
       return RunCopy(
-        row: 'Queued',
-        detail: 'Waiting for its turn.',
+        row: t.automationWidgetsRunQueued,
+        detail: t.automationWidgetsRunQueuedDetail,
         tone: tone,
       );
     case RunStatus.running:
     case RunStatus.sealing:
       return RunCopy(
-        row: 'Running…',
-        detail: 'The action is running.',
+        row: t.automationWidgetsRunRunning,
+        detail: t.automationWidgetsRunRunningDetail,
         tone: tone,
       );
     case RunStatus.applying:
       return RunCopy(
-        row: 'Applying…',
-        detail: 'Applying the changes.',
+        row: t.automationWidgetsRunApplying,
+        detail: t.automationWidgetsRunApplyingDetail,
         tone: tone,
       );
     case RunStatus.awaitingReview:
       return RunCopy(
-        row: 'Needs your review',
-        detail: 'The changes wait for you in a preview.',
+        row: t.automationWidgetsRunAwaitingReview,
+        detail: t.automationWidgetsRunAwaitingReviewDetail,
         tone: tone,
       );
     case RunStatus.succeeded:
-      return RunCopy(row: 'Done', detail: 'The action finished.', tone: tone);
+      return RunCopy(
+        row: t.commonDone,
+        detail: t.automationWidgetsRunDoneDetail,
+        tone: tone,
+      );
     case RunStatus.timedOut:
       return RunCopy(
-        row: 'Timed out after $timeoutSeconds s',
-        detail:
-            'The action took longer than $timeoutSeconds s and was stopped. '
-            'Nothing was changed.',
+        row: t.automationWidgetsRunTimedOut(timeoutSeconds),
+        detail: t.automationWidgetsRunTimedOutDetail(timeoutSeconds),
         tone: tone,
-        advice: _fix(RunFix.runAgain),
+        advice: fix(RunFix.runAgain),
       );
     case RunStatus.skipped:
     case RunStatus.failed:
@@ -127,262 +140,283 @@ RunCopy runCopy(
   if (reason == null) {
     return switch (status) {
       RunStatus.rejected => RunCopy(
-        row: 'Rejected',
-        detail: 'You rejected the preview.',
+        row: t.automationWidgetsRunRejected,
+        detail: t.automationWidgetsRunRejectedDetail,
         tone: tone,
       ),
       RunStatus.expired => RunCopy(
-        row: 'Expired',
-        detail: 'The preview was kept only while Morkva was open.',
+        row: t.automationWidgetsRunExpired,
+        detail: t.automationWidgetsRunExpiredDetail,
         tone: tone,
-        advice: _fix(RunFix.runAgain),
+        advice: fix(RunFix.runAgain),
       ),
       RunStatus.skipped => RunCopy(
-        row: 'Didn\'t run',
-        detail: 'Morkva didn\'t run this action.',
+        row: t.automationWidgetsRunSkipped,
+        detail: t.automationWidgetsRunSkippedDetail,
         tone: tone,
       ),
       _ => RunCopy(
-        row: 'Failed',
-        detail: 'The run failed.',
+        row: t.automationWidgetsRunFailed,
+        detail: t.automationWidgetsRunFailedDetail,
         tone: tone,
-        advice: _fix(RunFix.runAgain),
+        advice: fix(RunFix.runAgain),
       ),
     };
   }
-  RunCopy copy(String row, String detail, [RunAdvice? advice, CopyTone? t]) =>
-      RunCopy(row: row, detail: detail, tone: t ?? tone, advice: advice);
+  RunCopy copy(String row, String detail, [RunAdvice? advice, CopyTone? c]) =>
+      RunCopy(row: row, detail: detail, tone: c ?? tone, advice: advice);
   return switch (reason) {
     RunReason.needsConsent => copy(
-      'Needs consent',
-      'The module changed or isn\'t allowed yet.',
-      _fix(RunFix.reviewPermissions),
+      t.automationWidgetsNeedsConsent,
+      t.automationWidgetsReasonNeedsConsentDetail,
+      fix(RunFix.reviewPermissions),
     ),
     RunReason.broken => copy(
-      'Automation broken',
-      'Its condition, action or collection no longer fits.',
-      _fix(RunFix.editAutomation),
+      t.automationWidgetsReasonBroken,
+      t.automationWidgetsReasonBrokenDetail,
+      fix(RunFix.editAutomation),
     ),
     RunReason.crashed => copy(
-      'Stopped after a crash',
-      'Morkva stopped while this ran, probably out of memory.',
-      _fix(RunFix.resume, 'Resume on the automation'),
+      t.automationWidgetsStoppedAfterCrash,
+      t.automationWidgetsReasonCrashedDetail,
+      fix(RunFix.resume, t.automationWidgetsReasonCrashedAdvice),
     ),
     RunReason.paused || RunReason.loopSuspected => copy(
-      'Paused',
-      'It was paused (by you, or because it looked like a loop).',
-      _fix(RunFix.resume),
+      t.automationWidgetsPaused,
+      t.automationWidgetsReasonPausedDetail,
+      fix(RunFix.resume),
     ),
     RunReason.engineUnavailable => copy(
-      'Can\'t run here',
-      'The secure sandbox can\'t start on this device.',
-      _say('Run it from another device or browser'),
+      t.automationWidgetsReasonEngineUnavailable,
+      t.automationWidgetsReasonEngineUnavailableDetail,
+      say(t.automationWidgetsReasonEngineUnavailableAdvice),
     ),
     RunReason.notSettled => copy(
-      'Card didn\'t update in time',
-      'The change hadn\'t reached Morkva within 5 s, so it wasn\'t checked.',
-      _fix(RunFix.runAgain),
+      t.automationWidgetsReasonNotSettled,
+      t.automationWidgetsReasonNotSettledDetail,
+      fix(RunFix.runAgain),
     ),
     RunReason.notPermitted => copy(
-      'Not allowed',
-      'A change touched a collection this module isn\'t allowed in.',
-      _fix(RunFix.changeAccess),
+      t.automationWidgetsReasonNotPermitted,
+      t.automationWidgetsReasonNotPermittedDetail,
+      fix(RunFix.changeAccess),
     ),
     RunReason.loop => copy(
-      'Would loop',
-      'This automation already ran in this chain.',
-      _say('Change its conditions'),
+      t.automationWidgetsReasonLoop,
+      t.automationWidgetsReasonLoopDetail,
+      say(t.automationWidgetsReasonLoopAdvice),
     ),
     RunReason.depthLimit => copy(
-      'Chain too long',
-      'Automations triggered each other 3 levels deep; Morkva stopped here.',
-      _say('Change the automations\' conditions'),
+      t.automationWidgetsReasonDepthLimit,
+      t.automationWidgetsReasonDepthLimitDetail,
+      say(t.automationWidgetsReasonDepthLimitAdvice),
     ),
     RunReason.fanOut => copy(
-      'Too many cards at once',
-      'Only the first 100 cards of one change are processed.',
-      _say('Split the change into smaller batches'),
+      t.automationWidgetsReasonFanOut,
+      t.automationWidgetsReasonFanOutDetail,
+      say(t.automationWidgetsReasonFanOutAdvice),
     ),
     RunReason.queueFull => copy(
-      'Too busy',
-      'Too many runs were waiting.',
-      _fix(RunFix.runAgain, 'Run again later'),
+      t.automationWidgetsReasonQueueFull,
+      t.automationWidgetsReasonQueueFullDetail,
+      fix(RunFix.runAgain, t.automationWidgetsReasonQueueFullAdvice),
     ),
     RunReason.reviewBacklog => copy(
-      'Too many waiting reviews',
-      '50 reviews are already waiting.',
-      _say('Review or reject the waiting ones'),
+      t.automationWidgetsReasonReviewBacklog,
+      t.automationWidgetsReasonReviewBacklogDetail,
+      say(t.automationWidgetsReasonReviewBacklogAdvice),
     ),
     RunReason.cardGone => copy(
-      'Card was deleted',
-      'The card no longer exists.',
+      t.automationWidgetsReasonCardGone,
+      t.automationWidgetsReasonCardGoneDetail,
     ),
     RunReason.cancelled => copy(
-      'Stopped',
-      'Stopped by you. Nothing was changed.',
-      _fix(RunFix.runAgain),
+      t.automationWidgetsStopped,
+      t.automationWidgetsReasonCancelledDetail,
+      fix(RunFix.runAgain),
     ),
     RunReason.duplicate => copy(
-      'Already running',
-      'This automation was already running on this card.',
+      t.automationWidgetsReasonDuplicate,
+      t.automationWidgetsReasonDuplicateDetail,
     ),
     RunReason.loadError || RunReason.bootError || RunReason.loadTimeout => copy(
-      'Module didn\'t start',
-      'The module\'s code has an error or took too long to load.',
-      _fix(RunFix.askMorkva, 'Ask Morkva to fix it, or import a fixed file'),
+      t.automationWidgetsReasonLoadError,
+      t.automationWidgetsReasonLoadErrorDetail,
+      fix(RunFix.askMorkva, t.automationWidgetsReasonLoadErrorAdvice),
     ),
     RunReason.moduleError => copy(
-      'Module failed',
+      t.automationWidgetsReasonModuleError,
       error == null
-          ? 'The module failed.'
-          : 'The module failed: ${error.message}',
-      _fix(RunFix.askMorkva),
+          ? t.automationWidgetsReasonModuleErrorDetail
+          : t.automationWidgetsReasonModuleErrorMessage(error.message),
+      fix(RunFix.askMorkva),
     ),
     RunReason.planRefused => copy(
-      'Change refused',
-      'A change the module asked for wasn\'t allowed — see Calls.',
-      _fix(RunFix.changeAccess, 'Check Calls; change access if needed'),
+      t.automationWidgetsReasonPlanRefused,
+      t.automationWidgetsReasonPlanRefusedDetail,
+      fix(RunFix.changeAccess, t.automationWidgetsReasonPlanRefusedAdvice),
     ),
     RunReason.limitExceeded => copy(
-      'Too much work',
-      'The module asked for more than one run may do (calls, data or time).',
-      _say('Run it on fewer cards'),
+      t.automationWidgetsReasonLimitExceeded,
+      t.automationWidgetsReasonLimitExceededDetail,
+      say(t.automationWidgetsReasonLimitExceededAdvice),
     ),
     RunReason.abuse => copy(
-      'Stopped',
-      'The module sent too many or too large messages.',
-      _fix(RunFix.askMorkva),
+      t.automationWidgetsStopped,
+      t.automationWidgetsReasonAbuseDetail,
+      fix(RunFix.askMorkva),
     ),
     RunReason.offline => copy(
-      'Offline',
-      'Couldn\'t apply without a connection.',
-      _fix(RunFix.runAgain, 'Run again when online'),
+      t.automationWidgetsReasonOffline,
+      t.automationWidgetsReasonOfflineDetail,
+      fix(RunFix.runAgain, t.automationWidgetsReasonOfflineAdvice),
     ),
     RunReason.notApplied => copy(
-      'Nothing applied',
-      'None of the changes could be applied — see the plan.',
-      _fix(RunFix.runAgain),
+      t.automationWidgetsReasonNotApplied,
+      t.automationWidgetsReasonNotAppliedDetail,
+      fix(RunFix.runAgain),
     ),
     RunReason.interrupted => copy(
-      'Outcome unknown',
-      'Morkva was closed while applying — it may be partly applied.',
-      _say('Check the card'),
+      t.automationWidgetsOutcomeUnknown,
+      t.automationWidgetsReasonInterruptedDetail,
+      say(t.automationWidgetsReasonInterruptedAdvice),
       CopyTone.warning,
     ),
     RunReason.internal => copy(
-      'Something went wrong',
-      'Morkva hit an unexpected error.',
-      _fix(RunFix.runAgain, 'Run again; copy the log if it repeats'),
+      t.commonSomethingWentWrong,
+      t.automationWidgetsReasonInternalDetail,
+      fix(RunFix.runAgain, t.automationWidgetsReasonInternalAdvice),
     ),
     RunReason.codeChanged => copy(
-      'Rejected',
-      'The module\'s code changed before you reviewed the preview.',
-      _fix(RunFix.reviewPermissions),
+      t.automationWidgetsRunRejected,
+      t.automationWidgetsReasonCodeChangedDetail,
+      fix(RunFix.reviewPermissions),
     ),
     RunReason.uninstalled => copy(
-      'Rejected',
-      'The module was removed before you reviewed the preview.',
+      t.automationWidgetsRunRejected,
+      t.automationWidgetsReasonUninstalledDetail,
     ),
-    RunReason.superseded => copy('Expired', 'A new run replaced this preview.'),
+    RunReason.superseded => copy(
+      t.automationWidgetsRunExpired,
+      t.automationWidgetsReasonSupersededDetail,
+    ),
   };
 }
 
 /// A run doc of another window or app start that was left applying: Morkva
 /// can't tell what was written (no Run again).
-const RunCopy kOutcomeUnknownCopy = RunCopy(
-  row: 'Outcome unknown',
-  detail: 'It was applying in another window — check the cards.',
-  tone: CopyTone.warning,
-  advice: (text: 'Check the cards', fix: null),
-);
+RunCopy outcomeUnknownCopy([AppLocalizations? l10n]) {
+  final t = l10n ?? currentAppStrings();
+  return RunCopy(
+    row: t.automationWidgetsOutcomeUnknown,
+    detail: t.automationWidgetsOutcomeUnknownDetail,
+    tone: CopyTone.warning,
+    advice: (text: t.automationWidgetsOutcomeUnknownAdvice, fix: null),
+  );
+}
 
 /// A review held by another window or an earlier app start.
-const RunCopy kReviewNotHereCopy = RunCopy(
-  row: 'Review not available here',
-  detail: 'It was opened in another window, or before Morkva restarted.',
-  tone: CopyTone.muted,
-  advice: (text: 'Run again', fix: RunFix.runAgain),
-);
+RunCopy reviewNotHereCopy([AppLocalizations? l10n]) {
+  final t = l10n ?? currentAppStrings();
+  return RunCopy(
+    row: t.automationWidgetsReviewNotHere,
+    detail: t.automationWidgetsReviewNotHereDetail,
+    tone: CopyTone.muted,
+    advice: (text: RunFix.runAgain.labelIn(t), fix: RunFix.runAgain),
+  );
+}
 
 /// The run log's policy line as the run detail Plan step shows it:
 /// "review: auto-apply is off for this module" → "Asked first: auto-apply
-/// is off for this module." (UX §7).
-String askedFirstLine(String policy) => policy.startsWith('review: ')
-    ? 'Asked first: ${policy.substring('review: '.length)}.'
+/// is off for this module." (UX §7). The policy text is the runner's own.
+String askedFirstLine(String policy, {AppLocalizations? l10n}) =>
+    policy.startsWith('review: ')
+    ? (l10n ?? currentAppStrings()).automationWidgetsAskedFirst(
+        policy.substring('review: '.length),
+      )
     : policy;
 
 /// A status chip: its words and tone.
 typedef ChipCopy = ({String label, CopyTone tone, IconData? icon});
 
 /// The module chip (UX §1a).
-ChipCopy moduleChip(ModuleStatus status) => switch (status) {
-  ModuleStatus.ok => (
-    label: 'Installed',
-    tone: CopyTone.success,
-    icon: Icons.check_rounded,
-  ),
-  ModuleStatus.needsConsent => (
-    label: 'Needs consent',
-    tone: CopyTone.warning,
-    icon: Icons.warning_amber_rounded,
-  ),
-  ModuleStatus.broken => (
-    label: 'Broken',
-    tone: CopyTone.error,
-    icon: Icons.error_outline,
-  ),
-};
+ChipCopy moduleChip(ModuleStatus status, {AppLocalizations? l10n}) {
+  final t = l10n ?? currentAppStrings();
+  return switch (status) {
+    ModuleStatus.ok => (
+      label: t.automationWidgetsChipInstalled,
+      tone: CopyTone.success,
+      icon: Icons.check_rounded,
+    ),
+    ModuleStatus.needsConsent => (
+      label: t.automationWidgetsNeedsConsent,
+      tone: CopyTone.warning,
+      icon: Icons.warning_amber_rounded,
+    ),
+    ModuleStatus.broken => (
+      label: t.automationWidgetsChipBroken,
+      tone: CopyTone.error,
+      icon: Icons.error_outline,
+    ),
+  };
+}
 
 /// The automation chip (UX §1b); null while active (no chip).
-ChipCopy? automationChip(AutomationStatus status) => switch (status) {
-  AutomationStatus.needsConsent => (
-    label: 'Needs consent',
-    tone: CopyTone.warning,
-    icon: Icons.warning_amber_rounded,
-  ),
-  AutomationStatus.broken => (
-    label: 'Broken',
-    tone: CopyTone.error,
-    icon: Icons.error_outline,
-  ),
-  AutomationStatus.crashed => (
-    label: 'Stopped after a crash',
-    tone: CopyTone.warning,
-    icon: Icons.warning_amber_rounded,
-  ),
-  AutomationStatus.loopSuspected => (
-    label: 'Loop suspected',
-    tone: CopyTone.warning,
-    icon: Icons.warning_amber_rounded,
-  ),
-  AutomationStatus.paused => (
-    label: 'Paused',
-    tone: CopyTone.neutral,
-    icon: Icons.pause_rounded,
-  ),
-  AutomationStatus.active => null,
-};
+ChipCopy? automationChip(AutomationStatus status, {AppLocalizations? l10n}) {
+  final t = l10n ?? currentAppStrings();
+  return switch (status) {
+    AutomationStatus.needsConsent => (
+      label: t.automationWidgetsNeedsConsent,
+      tone: CopyTone.warning,
+      icon: Icons.warning_amber_rounded,
+    ),
+    AutomationStatus.broken => (
+      label: t.automationWidgetsChipBroken,
+      tone: CopyTone.error,
+      icon: Icons.error_outline,
+    ),
+    AutomationStatus.crashed => (
+      label: t.automationWidgetsStoppedAfterCrash,
+      tone: CopyTone.warning,
+      icon: Icons.warning_amber_rounded,
+    ),
+    AutomationStatus.loopSuspected => (
+      label: t.automationWidgetsChipLoopSuspected,
+      tone: CopyTone.warning,
+      icon: Icons.warning_amber_rounded,
+    ),
+    AutomationStatus.paused => (
+      label: t.automationWidgetsPaused,
+      tone: CopyTone.neutral,
+      icon: Icons.pause_rounded,
+    ),
+    AutomationStatus.active => null,
+  };
+}
 
 /// An automation's effective apply mode (UX §1b).
 enum EffectiveApply { ask, auto, autoOff }
 
-ChipCopy applyChip(EffectiveApply apply) => switch (apply) {
-  EffectiveApply.ask => (
-    label: 'Ask first',
-    tone: CopyTone.neutral,
-    icon: Icons.visibility_outlined,
-  ),
-  EffectiveApply.auto => (
-    label: 'Auto',
-    tone: CopyTone.success,
-    icon: Icons.bolt_rounded,
-  ),
-  EffectiveApply.autoOff => (
-    label: 'Auto · off for this module',
-    tone: CopyTone.warning,
-    icon: Icons.bolt_rounded,
-  ),
-};
+ChipCopy applyChip(EffectiveApply apply, {AppLocalizations? l10n}) {
+  final t = l10n ?? currentAppStrings();
+  return switch (apply) {
+    EffectiveApply.ask => (
+      label: t.automationWidgetsChipAskFirst,
+      tone: CopyTone.neutral,
+      icon: Icons.visibility_outlined,
+    ),
+    EffectiveApply.auto => (
+      label: t.automationWidgetsChipAuto,
+      tone: CopyTone.success,
+      icon: Icons.bolt_rounded,
+    ),
+    EffectiveApply.autoOff => (
+      label: t.automationWidgetsChipAutoOff,
+      tone: CopyTone.warning,
+      icon: Icons.bolt_rounded,
+    ),
+  };
+}
 
 /// Auto only when stored Auto, by [uid], and [consent] still allows it for
 /// the module as it is ([module] `ok`: an old consent to replaced code keeps

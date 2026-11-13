@@ -217,6 +217,7 @@ GoRouter createAppRouter(
                           repository,
                           fieldEditorRegistry,
                           describeIssue: context.l10n.schemaIssueMessage,
+                          describeSaveError: context.l10n.collectionsSaveFailed,
                         )..load(id, selectFieldId: fieldId),
                         child: CollectionEditorPage(
                           registry: fieldEditorRegistry,

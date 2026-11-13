@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../../views/widgets/board/board_card_draggable.dart';
 import 'field_value_editor.dart';
 
@@ -74,8 +75,8 @@ class FileValueEditor extends FieldValueEditor {
         if (actions != null)
           _UploadButton(
             label: !field.multiple && files.isNotEmpty
-                ? 'Replace'
-                : 'Upload file',
+                ? context.l10n.objectsReplaceFile
+                : context.l10n.objectsUploadFile,
             // A single-file field uploads one file at a time.
             onPressed: canUpload && (field.multiple || uploads.isEmpty)
                 ? pick
@@ -87,16 +88,18 @@ class FileValueEditor extends FieldValueEditor {
 }
 
 /// "412 KB", "1.4 MB", "980 B".
-String formatFileSize(int bytes) {
-  if (bytes < 1024) return '$bytes B';
-  if (bytes < 1024 * 1024) return '${(bytes / 1024).round()} KB';
-  return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+String formatFileSize(AppLocalizations l10n, int bytes) {
+  if (bytes < 1024) return l10n.objectsFileSizeBytes('$bytes');
+  if (bytes < 1024 * 1024) {
+    return l10n.objectsFileSizeKb('${(bytes / 1024).round()}');
+  }
+  return l10n.objectsFileSizeMb((bytes / (1024 * 1024)).toStringAsFixed(1));
 }
 
 /// "PDF", "PNG"; "FILE" without an extension.
-String _badgeOf(String name) {
+String _badgeOf(AppLocalizations l10n, String name) {
   final dot = name.lastIndexOf('.');
-  if (dot < 0 || dot == name.length - 1) return 'FILE';
+  if (dot < 0 || dot == name.length - 1) return l10n.objectsFileBadge;
   final ext = name.substring(dot + 1).toUpperCase();
   return ext.length > 4 ? ext.substring(0, 4) : ext;
 }
@@ -149,7 +152,7 @@ class _TypeBadge extends StatelessWidget {
           borderRadius: Radii.smAll,
         ),
         child: Text(
-          _badgeOf(name),
+          _badgeOf(context.l10n, name),
           style: theme.textTheme.labelSmall?.copyWith(
             fontWeight: FontWeight.w700,
             color:
@@ -211,7 +214,7 @@ class _AttachmentTile extends StatelessWidget {
                             ),
                             if (size != null)
                               Text(
-                                formatFileSize(size),
+                                formatFileSize(context.l10n, size),
                                 style: MorkvaTypography.tabular(
                                   theme.textTheme.bodySmall ??
                                       const TextStyle(),
@@ -227,7 +230,7 @@ class _AttachmentTile extends StatelessWidget {
             ),
           ),
           IconButton(
-            tooltip: 'Remove ${attachment.name}',
+            tooltip: context.l10n.objectsRemoveNamed(attachment.name),
             onPressed: onRemove,
             iconSize: 18,
             color: scheme.onSurfaceVariant,
@@ -276,7 +279,9 @@ class _UploadingTile extends StatelessWidget {
                     minHeight: 4,
                     borderRadius: const BorderRadius.all(Radius.circular(2)),
                     backgroundColor: scheme.surfaceContainerHigh,
-                    semanticsLabel: 'Uploading ${upload.name}',
+                    semanticsLabel: context.l10n.objectsUploadingNamed(
+                      upload.name,
+                    ),
                     semanticsValue: '$percent%',
                   ),
                 ],
@@ -293,7 +298,7 @@ class _UploadingTile extends StatelessWidget {
             ),
             if (onCancel != null)
               IconButton(
-                tooltip: 'Cancel upload',
+                tooltip: context.l10n.objectsCancelUpload,
                 onPressed: onCancel,
                 iconSize: 18,
                 color: scheme.onSurfaceVariant,

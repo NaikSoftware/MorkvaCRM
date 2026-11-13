@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/automation/runner_api.dart';
 import '../../../core/domain/automation/automation.dart';
+import '../../assistant/bloc/assistant_bloc.dart' show currentAppStrings;
 
 /// Where the review sheet is (UX §6).
 enum ReviewPhase {
@@ -66,7 +67,10 @@ final class ReviewSheetState extends Equatable {
   String? get provenance {
     final m = module;
     if (m == null) return null;
-    return ['Module · ${m.name} (${m.id})', ?automationName].join(' · ');
+    return [
+      currentAppStrings().automationWidgetsProvenance(m.name, m.id),
+      ?automationName,
+    ].join(' · ');
   }
 
   /// The module, for `PlanCard(provenance:)`; null until the run doc

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 
 /// Shows [builder] as a 360 px popover dropping from [anchor] on wide
 /// screens, or as a bottom sheet when [compact].
@@ -15,7 +16,7 @@ Future<T?> showViewPopover<T>(
   required WidgetBuilder builder,
   bool alignEnd = false,
   double horizontalInset = 0,
-  String label = 'Popover',
+  String? label,
 }) {
   if (compact) {
     return showModalBottomSheet<T>(
@@ -43,14 +44,14 @@ Future<T?> showViewPopover<T>(
   return showGeneralDialog<T>(
     context: context,
     barrierDismissible: true,
-    barrierLabel: 'Dismiss',
+    barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
     barrierColor: Colors.transparent,
     transitionDuration: MotionDurations.fast,
     pageBuilder: (context, _, _) => _Popover(
       anchor: anchor,
       alignEnd: alignEnd,
       horizontalInset: horizontalInset,
-      label: label,
+      label: label ?? context.l10n.viewWidgetsPopover,
       child: builder(context),
     ),
     transitionBuilder: (context, animation, _, child) {

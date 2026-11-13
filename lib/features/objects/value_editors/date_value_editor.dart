@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import 'field_value_editor.dart';
 
 /// date: a read-only box that opens the (Monday-first) date picker, then the
@@ -83,7 +84,9 @@ class _DateBox extends StatelessWidget {
           isEmpty: text.isEmpty,
           decoration: InputDecoration(
             enabled: enabled,
-            hintText: _field.includeTime ? 'Pick date and time' : 'Pick a date',
+            hintText: _field.includeTime
+                ? context.l10n.objectsPickDateTime
+                : context.l10n.objectsPickDate,
             error: ctx.error == null ? null : const SizedBox.shrink(),
             prefixIcon: Icon(
               Icons.calendar_today_outlined,
@@ -94,7 +97,7 @@ class _DateBox extends StatelessWidget {
                 ? null
                 : IconActionButton(
                     icon: Icons.close,
-                    tooltip: 'Clear ${ctx.field.name}',
+                    tooltip: context.l10n.objectsClearNamed(ctx.field.name),
                     onPressed: enabled
                         ? () => ctx.onChanged(const DateFieldValue(null))
                         : null,

@@ -13,6 +13,7 @@ import '../assistant/bloc/assistant_focus.dart';
 import '../automation/widgets/collection_actions_menu.dart';
 import '../automation/widgets/run_indicator.dart';
 import '../auth/conflict_warning_banner.dart';
+import '../../l10n/l10n.dart';
 import '../objects/object_editor.dart';
 import 'collection_views_cubit.dart';
 import 'collection_views_state.dart';
@@ -134,7 +135,10 @@ class _CollectionViewsPageState extends State<CollectionViewsPage> {
     if (state is! ViewsReady) return;
     final object = state.objectById(id) ?? cubit.findObject(id);
     if (object == null) {
-      _notify(context, "This link's ${itemLabelOf(state.collection)} is gone");
+      _notify(
+        context,
+        context.l10n.viewsLinkCardGone(itemLabelOf(state.collection)),
+      );
       _dropParams({'card': id});
       return;
     }
@@ -305,9 +309,9 @@ void _maybeNudge(BuildContext context, CollectionViewsState state) {
     if (!context.mounted) return;
     _notify(
       context,
-      'Add your first $item',
+      context.l10n.viewsAddFirstItem(item),
       action: SnackBarAction(
-        label: 'New $item',
+        label: context.l10n.viewsNewItem(item),
         onPressed: () => _quickAdd(context, state),
       ),
     );
@@ -338,7 +342,10 @@ void _notify(
         width: wide ? 480 : null,
         action: undo == null
             ? action
-            : SnackBarAction(label: 'Undo', onPressed: () => undo()),
+            : SnackBarAction(
+                label: context.l10n.commonUndo,
+                onPressed: () => undo(),
+              ),
       ),
     );
 }
@@ -386,7 +393,9 @@ Future<void> _openFilterEditor(
     compact: anchor == null,
     anchor: anchor ?? Rect.zero,
     horizontalInset: inset,
-    label: initial == null ? 'Add filter' : 'Edit filter',
+    label: initial == null
+        ? context.l10n.viewsAddFilter
+        : context.l10n.viewsEditFilter,
     // Rebuilds as reference choices arrive.
     builder: (sheetContext) =>
         BlocBuilder<CollectionViewsCubit, CollectionViewsState>(
@@ -433,7 +442,7 @@ Future<void> _openSortMenu(
     anchor: anchor ?? Rect.zero,
     alignEnd: true,
     horizontalInset: inset,
-    label: 'Sort',
+    label: context.l10n.viewsSort,
     builder: (sheetContext) => SortMenu(
       collection: state.collection,
       current: view.sort,
@@ -505,7 +514,7 @@ Future<void> _quickAdd(
   final result = await QuickAddDialog.show(
     context,
     itemLabel: itemLabel,
-    titleLabel: titleField?.name ?? 'Title',
+    titleLabel: titleField?.name ?? context.l10n.viewsTitleFallback,
     prefill: prefill,
   );
   if (result == null || !context.mounted) return;
@@ -513,7 +522,7 @@ Future<void> _quickAdd(
     final id = cubit.quickAdd(result.title, groupKey: groupKey, day: day);
     final now = cubit.state;
     if (id != null && now is ViewsReady && now.objectById(id) == null) {
-      _notify(context, 'Added — hidden by the filters');
+      _notify(context, context.l10n.viewsAddedHidden);
     }
     return;
   }
@@ -532,10 +541,10 @@ Future<void> _quickAdd(
     prefillNote: switch (layout) {
       _ when groupLabel != null && groupLabel.isNotEmpty =>
         state.activeView.mode == ViewModeIds.board
-            ? 'Filled from the $groupLabel column'
-            : 'Filled from the $groupLabel group',
+            ? context.l10n.viewsFilledFromColumn(groupLabel)
+            : context.l10n.viewsFilledFromGroup(groupLabel),
       final DateFieldDefinition f when dayValue != null =>
-        'Filled from ${formatFieldValue(f, dayValue)}',
+        context.l10n.viewsFilledFromDay(formatFieldValue(f, dayValue)),
       _ => null,
     },
   );
@@ -573,7 +582,7 @@ void _notifyIfHidden(BuildContext context, MorkvaObject object) {
         now.activeView.copyWith(filters: now.effectiveFilters),
         [object],
       ).isEmpty) {
-    _notify(context, 'Saved — hidden by the filters');
+    _notify(context, context.l10n.viewsSavedHidden);
   }
 }
 
@@ -612,7 +621,9 @@ Future<void> _openObject(
         latest.objectById(object.id) ?? object,
       );
       final undo = cubit.deleteObject(object.id);
-      if (undo != null) _notify(context, 'Deleted "$title"', undo: undo);
+      if (undo != null) {
+        _notify(context, context.l10n.viewsDeletedTitle(title), undo: undo);
+      }
     case null:
       break;
   }
@@ -642,11 +653,9 @@ Future<void> _deleteView(BuildContext context, ViewDefinition view) async {
   final cubit = context.read<CollectionViewsCubit>();
   final confirmed = await MorkvaConfirmDialog.show(
     context,
-    title: 'Delete view?',
-    message:
-        'This deletes the view "${view.name}" and its filters and sort. '
-        'Your data stays as it is.',
-    confirmLabel: 'Delete',
+    title: context.l10n.viewsDeleteViewTitle,
+    message: context.l10n.viewsDeleteViewMessage(view.name),
+    confirmLabel: context.l10n.commonDelete,
     destructive: true,
   );
   if (confirmed == true) await cubit.deleteView(view.id);
@@ -737,7 +746,7 @@ class _WideHeader extends StatelessWidget {
           CollectionActionsMenu(scope: _actionScope(state), narrow: narrow),
           if (narrow)
             IconButton.outlined(
-              tooltip: 'Customize',
+              tooltip: context.l10n.viewsCustomize,
               onPressed: () => _customize(context, collection.id),
               icon: const Icon(Icons.tune, size: 18),
             )
@@ -745,12 +754,12 @@ class _WideHeader extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: () => _customize(context, collection.id),
               icon: const Icon(Icons.tune, size: 18),
-              label: const Text('Customize'),
+              label: Text(context.l10n.viewsCustomize),
             ),
           if (collection.fields.isNotEmpty) ...[
             const SizedBox(width: Spacing.sm),
             PrimaryButton(
-              label: 'New ${itemLabelOf(collection)}',
+              label: context.l10n.viewsNewItem(itemLabelOf(collection)),
               icon: Icons.add,
               onPressed: () => _createObject(context, state),
             ),
@@ -788,7 +797,7 @@ class _PhoneFrame extends StatelessWidget {
         leading: ShellTab.of(context)
             ? null
             : IconButton(
-                tooltip: 'Back',
+                tooltip: context.l10n.commonBack,
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () =>
                     context.canPop() ? context.pop() : context.go('/'),
@@ -823,23 +832,25 @@ class _PhoneFrame extends StatelessWidget {
             // Without fields the body's Customize carries the only `tune`.
             if (collection.fields.isNotEmpty)
               IconButton(
-                tooltip: 'View settings',
+                tooltip: context.l10n.viewsViewSettings,
                 icon: const Icon(Icons.tune),
                 onPressed: () => _openViewSettings(context, modes),
               ),
             PopupMenuButton<void>(
-              tooltip: 'More',
+              tooltip: context.l10n.commonMore,
               icon: const Icon(Icons.more_vert),
               itemBuilder: (_) => [
                 if (ready != null)
                   ...collectionPhoneMenuItems(context, _actionScope(ready)),
                 PopupMenuItem(
                   onTap: () => _customize(context, collection.id),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(Icons.tune, size: 20),
-                      SizedBox(width: Spacing.sm),
-                      Flexible(child: Text('Customize collection')),
+                      const Icon(Icons.tune, size: 20),
+                      const SizedBox(width: Spacing.sm),
+                      Flexible(
+                        child: Text(context.l10n.viewsCustomizeCollection),
+                      ),
                     ],
                   ),
                 ),
@@ -854,7 +865,9 @@ class _PhoneFrame extends StatelessWidget {
           // covers as little as possible.
           : FloatingActionButton(
               onPressed: () => _createObject(context, ready),
-              tooltip: 'New ${itemLabelOf(ready.collection)}',
+              tooltip: context.l10n.viewsNewItem(
+                itemLabelOf(ready.collection),
+              ),
               child: const Icon(Icons.add),
             ),
       body: SafeArea(
@@ -895,12 +908,10 @@ class _WorkBody extends StatelessWidget {
     if (collection.fields.isEmpty) {
       return EmptyState(
         icon: Icons.view_column_outlined,
-        title: 'This collection has no fields yet',
-        message:
-            'Add the fields you track for each ${itemLabelOf(collection)}, '
-            'then come back to work with them here.',
+        title: context.l10n.viewsNoFieldsTitle,
+        message: context.l10n.viewsNoFieldsMessage(itemLabelOf(collection)),
         action: PrimaryButton(
-          label: 'Customize',
+          label: context.l10n.viewsCustomize,
           icon: Icons.tune,
           onPressed: () => _customize(context, collection.id),
         ),
@@ -956,7 +967,7 @@ class _WorkBody extends StatelessWidget {
                     onClear: cubit.clearTransientFilters,
                   ),
                   TextActionButton(
-                    label: 'Save as view',
+                    label: context.l10n.viewsSaveAsView,
                     icon: Icons.bookmark_add_outlined,
                     onPressed: cubit.saveTransientAsView,
                   ),
@@ -994,13 +1005,13 @@ class _WorkBody extends StatelessWidget {
             child: noMatches
                 ? EmptyState(
                     icon: Icons.filter_alt_off_outlined,
-                    title: 'Nothing matches these filters',
-                    message:
-                        'None of your ${state.totalCount} '
-                        '${collection.name.toLowerCase()} pass the filters '
-                        'above.',
+                    title: context.l10n.viewsNoMatchesTitle,
+                    message: context.l10n.viewsNoMatchesMessage(
+                      state.totalCount,
+                      collection.name.toLowerCase(),
+                    ),
                     action: SecondaryButton(
-                      label: 'Clear filters',
+                      label: context.l10n.viewsClearFilters,
                       icon: Icons.filter_alt_off_outlined,
                       onPressed: cubit.clearFilters,
                     ),
@@ -1037,7 +1048,7 @@ class _AssistantFiltersChip extends StatelessWidget {
         ),
     ].join(' · ');
     return Tooltip(
-      message: 'Filters from Ask Morkva, not saved: $filters',
+      message: context.l10n.viewsAssistantFiltersTooltip(filters),
       child: InputChip(
         avatar: Icon(
           Icons.auto_awesome,
@@ -1047,14 +1058,14 @@ class _AssistantFiltersChip extends StatelessWidget {
         label: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 320),
           child: Text(
-            'From assistant · $filters',
+            context.l10n.viewsFromAssistant(filters),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
         ),
         onDeleted: onClear,
         deleteIcon: const Icon(Icons.close, size: 16),
-        deleteButtonTooltipMessage: 'Clear assistant filters',
+        deleteButtonTooltipMessage: context.l10n.viewsClearAssistantFilters,
         backgroundColor: scheme.secondaryContainer,
         side: BorderSide.none,
         shape: const RoundedRectangleBorder(borderRadius: Radii.smAll),
@@ -1101,8 +1112,10 @@ class _UnknownModeNotice extends StatelessWidget {
             const SizedBox(width: Spacing.xs),
             Expanded(
               child: Text(
-                'This view uses the "$modeId" mode, which this version '
-                "doesn't have yet. Showing it as a ${fallback.label.toLowerCase()}.",
+                context.l10n.viewsUnknownMode(
+                  modeId,
+                  fallback.label.toLowerCase(),
+                ),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: scheme.onSurfaceVariant,
                 ),
@@ -1121,12 +1134,10 @@ class _NotFound extends StatelessWidget {
   @override
   Widget build(BuildContext context) => EmptyState(
     icon: Icons.search_off_outlined,
-    title: 'Collection not found',
-    message:
-        'This collection may have been deleted, or the link is wrong. '
-        'Head back home to pick another.',
+    title: context.l10n.viewsNotFoundTitle,
+    message: context.l10n.viewsNotFoundMessage,
     action: PrimaryButton(
-      label: 'Back to collections',
+      label: context.l10n.viewsBackToCollections,
       icon: Icons.arrow_back,
       onPressed: () => context.go('/'),
     ),
@@ -1157,13 +1168,13 @@ class _ErrorCard extends StatelessWidget {
               Icon(Icons.cloud_off_outlined, size: 32, color: scheme.error),
               const SizedBox(height: Spacing.sm),
               Text(
-                "Couldn't load this view",
+                context.l10n.viewsLoadError,
                 style: theme.textTheme.titleMedium,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: Spacing.xs),
               Text(
-                'Check your connection and try again.',
+                context.l10n.viewsLoadErrorMessage,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: scheme.onSurfaceVariant,
                 ),
@@ -1171,7 +1182,7 @@ class _ErrorCard extends StatelessWidget {
               ),
               const SizedBox(height: Spacing.md),
               SecondaryButton(
-                label: 'Retry',
+                label: context.l10n.commonRetry,
                 icon: Icons.refresh,
                 onPressed: () => context.read<CollectionViewsCubit>().retry(),
               ),
