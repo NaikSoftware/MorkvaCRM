@@ -441,6 +441,20 @@ void main() {
       });
     });
 
+    test('an object over the byte budget still goes, alone', () async {
+      final c = TrelloImportCubit(repo, sliceBytes: 1)
+        ..addFiles([(name: 'board.json', text: _sample)])
+        ..next();
+      addTearDown(c.close);
+      final sent = spyBatches();
+
+      await c.startImport();
+
+      expect(c.state.step, TrelloImportStep.done);
+      expect(sent.every((s) => s.length == 1), isTrue);
+      expect(sent, hasLength(c.state.totalObjects));
+    });
+
     test('two boards import in board order', () async {
       final c = cubit()
         ..addFiles([

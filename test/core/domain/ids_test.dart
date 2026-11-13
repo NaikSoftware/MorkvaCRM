@@ -26,8 +26,28 @@ void main() {
     expect(minted, hasLength(1000));
   });
 
+  test('one generator never repeats an id, even with a repeating suffix', () {
+    // Many ids share a clock tick (a millisecond on the web); only the time
+    // part can keep them apart when the random suffixes collide.
+    final ids = IdGenerator(random: _Zero());
+    final minted = {for (var i = 0; i < 20000; i++) ids.objectId()};
+    expect(minted, hasLength(20000));
+  });
+
   test('the old feature path re-exports the same class', () {
     final IdGenerator ids = old_path.IdGenerator();
     expect(ids.fieldId(), startsWith('f_'));
   });
+}
+
+/// A [Random] whose every int is 0, so suffixes always collide.
+class _Zero implements Random {
+  @override
+  int nextInt(int max) => 0;
+
+  @override
+  double nextDouble() => 0;
+
+  @override
+  bool nextBool() => false;
 }
