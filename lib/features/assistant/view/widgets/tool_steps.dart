@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../design/design.dart';
+import '../../../../l10n/l10n.dart';
 import '../../bloc/chat_item.dart';
 import 'assistant_scope.dart';
 
@@ -37,7 +38,9 @@ class _ToolStepsState extends State<ToolSteps> {
         alignment: AlignmentDirectional.centerStart,
         child: PressableScale(
           onPressed: _toggle,
-          semanticLabel: 'Steps: ${widget.item.headline}. Show each step',
+          semanticLabel: context.l10n.assistantStepsShow(
+            widget.item.headlineIn(context.l10n),
+          ),
           borderRadius: BorderRadius.circular(14),
           // A 44 px hit area around the 28 px chip.
           child: Padding(
@@ -57,7 +60,7 @@ class _ToolStepsState extends State<ToolSteps> {
                   const SizedBox(width: Spacing.xs),
                   Flexible(
                     child: Text(
-                      widget.item.headline,
+                      widget.item.headlineIn(context.l10n),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
@@ -82,11 +85,13 @@ class _ToolStepsState extends State<ToolSteps> {
 
     return Semantics(
       container: true,
-      label: 'Steps',
+      label: context.l10n.assistantSteps,
       child: PressableScale(
         onPressed: widget.item.running ? null : _toggle,
         pressedScale: 1,
-        semanticLabel: widget.item.running ? null : 'Hide steps',
+        semanticLabel: widget.item.running
+            ? null
+            : context.l10n.assistantHideSteps,
         borderRadius: Radii.mdAll,
         child: Container(
           width: double.infinity,
@@ -130,7 +135,7 @@ class _StepLine extends StatelessWidget {
     final running = step.status == StepStatus.running;
     final failed = step.status == StepStatus.failed;
     final text = failed
-        ? '${step.label.replaceAll('…', '')} — ${step.summary ?? 'failed'}'
+        ? '${step.label.replaceAll('…', '')} — ${step.summary ?? context.l10n.assistantStepFailed}'
         : step.text;
     return Semantics(
       liveRegion: true,

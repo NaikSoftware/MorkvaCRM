@@ -56,10 +56,117 @@ class TrelloBoardSummary {
   final List<String> fieldNames;
 }
 
+/// The names an import gives what it creates: collections, fields, views and
+/// stand-ins for blank Trello names. They are the user's data from then on,
+/// so the app passes them in the user's language. English by default.
+class TrelloNames {
+  const TrelloNames({
+    this.board = 'Trello board',
+    this.untitledCard = 'Untitled card',
+    this.untitledList = 'Untitled list',
+    this.untitledField = 'Untitled field',
+    this.untitledOption = 'Untitled option',
+    this.untitledItem = 'Untitled item',
+    this.noList = 'No list',
+    this.label = 'Label',
+    this.member = 'Member',
+    this.name = 'Name',
+    this.description = 'Description',
+    this.list = 'List',
+    this.labels = 'Labels',
+    this.members = 'Members',
+    this.start = 'Start',
+    this.due = 'Due',
+    this.dueDone = 'Due done',
+    this.attachments = 'Attachments',
+    this.trelloLink = 'Trello link',
+    this.archived = 'Archived',
+    this.boardView = 'Board',
+    this.allView = 'All',
+    this.item = 'Item',
+    this.done = 'Done',
+    this.checklist = 'Checklist',
+    this.card = 'Card',
+    this.comment = 'Comment',
+    this.author = 'Author',
+    this.date = 'Date',
+    this.checklistItems = _checklistItems,
+    this.comments = _comments,
+    this.trelloField = _trelloField,
+    this.color = _color,
+  });
+
+  /// A board with a blank name.
+  final String board;
+  final String untitledCard;
+  final String untitledList;
+  final String untitledField;
+  final String untitledOption;
+  final String untitledItem;
+
+  /// The one List option of a board without lists.
+  final String noList;
+
+  /// A label with no name and no colour.
+  final String label;
+
+  /// A member with no name.
+  final String member;
+
+  // The board collection's fields.
+  final String name;
+  final String description;
+  final String list;
+  final String labels;
+  final String members;
+  final String start;
+  final String due;
+  final String dueDone;
+  final String attachments;
+  final String trelloLink;
+  final String archived;
+
+  // The board collection's views.
+  final String boardView;
+  final String allView;
+
+  // The checklist items and comments collections' fields.
+  final String item;
+  final String done;
+  final String checklist;
+  final String card;
+  final String comment;
+  final String author;
+  final String date;
+
+  /// The checklist items collection: "Board · Checklist items".
+  final String Function(String board) checklistItems;
+
+  /// The comments collection: "Board · Comments".
+  final String Function(String board) comments;
+
+  /// A custom field renamed for clashing with a built-in one: "Due (Trello
+  /// field)" for [n] = 2, then "Due (Trello field 2)"….
+  final String Function(String field, int n) trelloField;
+
+  /// An unnamed label of colour [base] (`purple`) and [shade] (`dark`,
+  /// `light` or null): "Purple dark".
+  final String Function(String base, String? shade) color;
+}
+
+String _checklistItems(String board) => '$board · Checklist items';
+String _comments(String board) => '$board · Comments';
+String _trelloField(String field, int n) =>
+    n == 2 ? '$field (Trello field)' : '$field (Trello field ${n - 1})';
+String _color(String base, String? shade) =>
+    '${base[0].toUpperCase()}${base.substring(1)}'
+    '${shade == null ? '' : ' $shade'}';
+
 /// Summarizes [board] by mapping it, so the field names are the real ones.
 TrelloBoardSummary summarizeTrelloBoard(
   TrelloBoard board, {
   required bool includeArchived,
+  TrelloNames names = const TrelloNames(),
 }) {
   final mapped = mapTrelloBoard(
     board,
@@ -67,6 +174,7 @@ TrelloBoardSummary summarizeTrelloBoard(
     checklists: true,
     comments: true,
     ids: IdGenerator(),
+    names: names,
   );
   int count(ImportedKind kind) => mapped
       .where((c) => c.kind == kind)
@@ -94,13 +202,14 @@ TrelloBoardSummary summarizeTrelloBoard(
 /// only with [includeArchived]. A board field is created only when some
 /// imported card has a value for it, except Name and List. Mapping the same
 /// board twice creates two independent copies; de-duplicating boards is the
-/// caller's job.
+/// caller's job. [names] name what it creates.
 List<ImportedCollection> mapTrelloBoard(
   TrelloBoard board, {
   required bool includeArchived,
   required bool checklists,
   required bool comments,
   required IdGenerator ids,
+  TrelloNames names = const TrelloNames(),
 }) {
   final closedLists = {
     for (final l in board.lists)
@@ -118,7 +227,7 @@ List<ImportedCollection> mapTrelloBoard(
     (c) => [listRank[c.idList] ?? lists.length, c.pos],
   );
   final boardName = board.name.trim().isEmpty
-      ? 'Trello board'
+      ? names.board
       : board.name.trim();
   final boardTime = _idTime(board.id) ?? DateTime.utc(1970);
   final objectIds = {for (final c in cards) c.id: ids.objectId()};
@@ -143,28 +252,29 @@ List<ImportedCollection> mapTrelloBoard(
   }
 
   column(
-    'Name',
+    names.name,
     (id, name) => TextFieldDefinition(id: id, name: name),
-    (c) => TextFieldValue(c.name.trim().isEmpty ? 'Untitled card' : c.name),
+    (c) =>
+        TextFieldValue(c.name.trim().isEmpty ? names.untitledCard : c.name),
     always: true,
   );
   column(
-    'Description',
+    names.description,
     (id, name) => TextFieldDefinition(id: id, name: name, multiline: true),
     (c) => c.desc.trim().isEmpty ? null : TextFieldValue(c.desc),
   );
 
   final listOptions = lists.isEmpty
-      ? [SelectOption(id: ids.optionId(), label: 'No list')]
+      ? [SelectOption(id: ids.optionId(), label: names.noList)]
       : _options(ids, [
           for (final l in lists)
-            (l.name.trim().isEmpty ? 'Untitled list' : l.name.trim(), null),
+            (l.name.trim().isEmpty ? names.untitledList : l.name.trim(), null),
         ]);
   final listOption = {
     for (final (i, l) in lists.indexed) l.id: listOptions[i].id,
   };
   column(
-    'List',
+    names.list,
     (id, name) =>
         SingleSelectFieldDefinition(id: id, name: name, options: listOptions),
     (c) => SingleSelectFieldValue(
@@ -179,8 +289,8 @@ List<ImportedCollection> mapTrelloBoard(
         l.name.trim().isNotEmpty
             ? l.name.trim()
             : l.color == null
-            ? 'Label'
-            : _colorName(l.color!),
+            ? names.label
+            : _colorName(l.color!, names),
         _hex(l.color),
       ),
   ]);
@@ -188,7 +298,7 @@ List<ImportedCollection> mapTrelloBoard(
     for (final (i, l) in board.labels.indexed) l.id: labelOptions[i].id,
   };
   column(
-    'Labels',
+    names.labels,
     (id, name) =>
         MultiSelectFieldDefinition(id: id, name: name, options: labelOptions),
     (c) => _multi(c.idLabels, labelOption),
@@ -196,30 +306,30 @@ List<ImportedCollection> mapTrelloBoard(
 
   final memberOptions = _options(ids, [
     for (final m in board.members)
-      (m.fullName.isEmpty ? 'Member' : m.fullName, null),
+      (m.fullName.isEmpty ? names.member : m.fullName, null),
   ]);
   final memberOption = {
     for (final (i, m) in board.members.indexed) m.id: memberOptions[i].id,
   };
   column(
-    'Members',
+    names.members,
     (id, name) =>
         MultiSelectFieldDefinition(id: id, name: name, options: memberOptions),
     (c) => _multi(c.idMembers, memberOption),
   );
 
   column(
-    'Start',
+    names.start,
     (id, name) => DateFieldDefinition(id: id, name: name),
     (c) => c.start == null ? null : DateFieldValue(_day(c.start!)),
   );
   column(
-    'Due',
+    names.due,
     (id, name) => DateFieldDefinition(id: id, name: name, includeTime: true),
     (c) => c.due == null ? null : DateFieldValue(c.due),
   );
   column(
-    'Due done',
+    names.dueDone,
     (id, name) => BooleanFieldDefinition(id: id, name: name),
     (c) => c.due != null || c.dueComplete
         ? BooleanFieldValue(c.dueComplete)
@@ -227,7 +337,7 @@ List<ImportedCollection> mapTrelloBoard(
   );
 
   for (final f in _sorted(board.customFields, (f) => [f.pos])) {
-    final name = f.name.trim().isEmpty ? 'Untitled field' : f.name.trim();
+    final name = f.name.trim().isEmpty ? names.untitledField : f.name.trim();
     switch (f.type) {
       case 'text':
         column(
@@ -275,7 +385,7 @@ List<ImportedCollection> mapTrelloBoard(
         final options = _options(ids, [
           for (final o in sorted)
             (
-              o.text.trim().isEmpty ? 'Untitled option' : o.text.trim(),
+              o.text.trim().isEmpty ? names.untitledOption : o.text.trim(),
               _hex(o.color),
             ),
         ]);
@@ -296,7 +406,7 @@ List<ImportedCollection> mapTrelloBoard(
   }
 
   column(
-    'Attachments',
+    names.attachments,
     (id, name) => TextFieldDefinition(id: id, name: name, multiline: true),
     (c) => c.attachments.isEmpty
         ? null
@@ -313,13 +423,13 @@ List<ImportedCollection> mapTrelloBoard(
           ),
   );
   column(
-    'Trello link',
+    names.trelloLink,
     (id, name) => TextFieldDefinition(id: id, name: name),
     (c) => c.shortUrl == null ? null : TextFieldValue(c.shortUrl),
   );
   if (cards.any(archived)) {
     column(
-      'Archived',
+      names.archived,
       (id, name) => BooleanFieldDefinition(id: id, name: name),
       (c) => BooleanFieldValue(archived(c)),
     );
@@ -327,7 +437,22 @@ List<ImportedCollection> mapTrelloBoard(
 
   // Built-in names win even when that field is absent (views find built-ins
   // by name); a clashing custom field gets "(Trello field)".
-  final taken = {for (final n in _builtInNames) n.toLowerCase()};
+  final taken = {
+    for (final n in [
+      names.name,
+      names.description,
+      names.list,
+      names.labels,
+      names.members,
+      names.start,
+      names.due,
+      names.dueDone,
+      names.attachments,
+      names.trelloLink,
+      names.archived,
+    ])
+      n.toLowerCase(),
+  };
   final fields = [
     for (final col in columns)
       col.make(
@@ -336,9 +461,7 @@ List<ImportedCollection> mapTrelloBoard(
             ? _unique(
                 col.name,
                 taken,
-                (n) => n == 2
-                    ? '${col.name} (Trello field)'
-                    : '${col.name} (Trello field ${n - 1})',
+                (n) => names.trelloField(col.name, n),
               )
             : col.name,
       ),
@@ -358,7 +481,7 @@ List<ImportedCollection> mapTrelloBoard(
       ),
   ];
   final order = [for (final o in objects) o.id];
-  final archivedField = named('Archived');
+  final archivedField = named(names.archived);
   final boardCollection = Collection(
     id: ids.collectionId(),
     name: boardName,
@@ -369,12 +492,16 @@ List<ImportedCollection> mapTrelloBoard(
     views: [
       ViewDefinition(
         id: ids.viewId(),
-        name: 'Board',
+        name: names.boardView,
         mode: ViewModeIds.board,
-        layoutFieldId: named('List')!.id,
+        layoutFieldId: named(names.list)!.id,
         fieldIds: [
           fields.first.id,
-          for (final f in [named('Labels'), named('Due'), named('Members')])
+          for (final f in [
+            named(names.labels),
+            named(names.due),
+            named(names.members),
+          ])
             ?f?.id,
         ],
         filters: [
@@ -385,7 +512,7 @@ List<ImportedCollection> mapTrelloBoard(
       ),
       ViewDefinition(
         id: ids.viewId(),
-        name: 'All',
+        name: names.allView,
         fieldIds: [for (final f in fields) f.id],
         // No manualOrder: a second copy of every card id would double the
         // collection doc's size for big boards.
@@ -412,14 +539,18 @@ List<ImportedCollection> mapTrelloBoard(
   if (checklists && items.isNotEmpty) {
     final hasDue = items.any((e) => e.$2.due != null);
     final fields = <FieldDefinition>[
-      TextFieldDefinition(id: ids.fieldId(), name: 'Item'),
-      BooleanFieldDefinition(id: ids.fieldId(), name: 'Done'),
-      TextFieldDefinition(id: ids.fieldId(), name: 'Checklist'),
+      TextFieldDefinition(id: ids.fieldId(), name: names.item),
+      BooleanFieldDefinition(id: ids.fieldId(), name: names.done),
+      TextFieldDefinition(id: ids.fieldId(), name: names.checklist),
       if (hasDue)
-        DateFieldDefinition(id: ids.fieldId(), name: 'Due', includeTime: true),
+        DateFieldDefinition(
+          id: ids.fieldId(),
+          name: names.due,
+          includeTime: true,
+        ),
       ReferenceFieldDefinition(
         id: ids.fieldId(),
-        name: 'Card',
+        name: names.card,
         targetCollectionId: boardCollection.id,
       ),
     ];
@@ -427,7 +558,7 @@ List<ImportedCollection> mapTrelloBoard(
       for (final (list, item) in items)
         _object(ids, fields, [
           TextFieldValue(
-            item.name.trim().isEmpty ? 'Untitled item' : item.name,
+            item.name.trim().isEmpty ? names.untitledItem : item.name,
           ),
           BooleanFieldValue(item.complete),
           TextFieldValue(list.name.trim().isEmpty ? null : list.name.trim()),
@@ -437,9 +568,10 @@ List<ImportedCollection> mapTrelloBoard(
     ];
     final collection = _child(
       ids,
-      '$boardName · Checklist items',
+      names.checklistItems(boardName),
       'task',
       fields,
+      allView: names.allView,
       manualOrder: [for (final o in objects) o.id],
     );
     result.add(
@@ -459,12 +591,20 @@ List<ImportedCollection> mapTrelloBoard(
   ];
   if (comments && notes.isNotEmpty) {
     final fields = <FieldDefinition>[
-      TextFieldDefinition(id: ids.fieldId(), name: 'Comment', multiline: true),
-      TextFieldDefinition(id: ids.fieldId(), name: 'Author'),
-      DateFieldDefinition(id: ids.fieldId(), name: 'Date', includeTime: true),
+      TextFieldDefinition(
+        id: ids.fieldId(),
+        name: names.comment,
+        multiline: true,
+      ),
+      TextFieldDefinition(id: ids.fieldId(), name: names.author),
+      DateFieldDefinition(
+        id: ids.fieldId(),
+        name: names.date,
+        includeTime: true,
+      ),
       ReferenceFieldDefinition(
         id: ids.fieldId(),
-        name: 'Card',
+        name: names.card,
         targetCollectionId: boardCollection.id,
       ),
     ];
@@ -481,9 +621,10 @@ List<ImportedCollection> mapTrelloBoard(
     ];
     final collection = _child(
       ids,
-      '$boardName · Comments',
+      names.comments(boardName),
       'note',
       fields,
+      allView: names.allView,
       sort: const ViewSort(fieldId: ViewSort.createdAt, ascending: false),
     );
     result.add(
@@ -497,20 +638,6 @@ List<ImportedCollection> mapTrelloBoard(
   }
   return result;
 }
-
-const _builtInNames = [
-  'Name',
-  'Description',
-  'List',
-  'Labels',
-  'Members',
-  'Start',
-  'Due',
-  'Due done',
-  'Attachments',
-  'Trello link',
-  'Archived',
-];
 
 /// A board field before its id and final name are known.
 class _Column {
@@ -599,6 +726,7 @@ Collection _child(
   String name,
   String icon,
   List<FieldDefinition> fields, {
+  required String allView,
   List<String> manualOrder = const [],
   ViewSort? sort,
 }) => Collection(
@@ -610,7 +738,7 @@ Collection _child(
   views: [
     ViewDefinition(
       id: ids.viewId(),
-      name: 'All',
+      name: allView,
       fieldIds: [for (final f in fields) f.id],
       sort: sort,
       manualOrder: manualOrder,
@@ -674,8 +802,14 @@ String? _hex(String? color) {
   };
 }
 
-/// "purple_dark" → "Purple dark".
-String _colorName(String color) {
-  final words = color.split('_').where((w) => w.isNotEmpty).join(' ');
-  return words.isEmpty ? 'Label' : words[0].toUpperCase() + words.substring(1);
+/// "purple_dark" → "Purple dark" (via [TrelloNames.color]).
+String _colorName(String color, TrelloNames names) {
+  final words = color.split('_').where((w) => w.isNotEmpty).toList();
+  return switch (words) {
+    [] => names.label,
+    [final base] => names.color(base, null),
+    [final base, final shade] => names.color(base, shade),
+    // Not a Trello colour name: shown as is, capitalized.
+    _ => names.color(words.join(' '), null),
+  };
 }

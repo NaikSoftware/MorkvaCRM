@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../../../core/domain/domain.dart';
 import '../../../../design/design.dart';
+import '../../../../l10n/l10n.dart';
 import '../../../views/widgets/filter_builder.dart';
 import '../../../views/widgets/view_labels.dart';
 import '../../../views/widgets/view_popover.dart';
@@ -469,7 +470,11 @@ class _CalculationConfigState extends State<CalculationConfig> {
         : formulaCycle(_owner, _field.id);
     final error = cycle != null
         ? 'Circular: ${cycle.join(' → ')}'
-        : (_field.expression == null ? null : compiled.error?.message);
+        : switch (compiled.error) {
+            final e? when _field.expression != null =>
+              context.l10n.formulaErrorMessage(e),
+            _ => null,
+          };
     final insertable = [
       for (final f in _owner.fields)
         if (f.id != _field.id && formulaTypeOfField(f) != null) f,
@@ -507,7 +512,8 @@ class _CalculationConfigState extends State<CalculationConfig> {
             Icon(Icons.check_circle, size: 16, color: semantic.success),
             const SizedBox(width: Spacing.xxs),
             Text(
-              'Result: ${compiled.formula!.type.label}',
+              'Result: '
+              '${context.l10n.formulaTypeLabel(compiled.formula!.type)}',
               style: theme.textTheme.labelMedium?.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
@@ -543,6 +549,7 @@ class _CalculationConfigState extends State<CalculationConfig> {
           for (final name in _quickFunctions)
             _FunctionChip(
               function: formulaFunctions[name]!,
+              l10n: context.l10n,
               onPressed: () => _insertFunction(formulaFunctions[name]!),
             ),
           _FunctionChip.text(
@@ -561,9 +568,12 @@ class _CalculationConfigState extends State<CalculationConfig> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(f.usage, style: mono.copyWith(fontSize: 13)),
                         Text(
-                          f.summary,
+                          context.l10n.formulaUsage(f),
+                          style: mono.copyWith(fontSize: 13),
+                        ),
+                        Text(
+                          context.l10n.formulaSummary(f),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: scheme.onSurfaceVariant,
                           ),
@@ -661,7 +671,7 @@ class _CalculationConfigState extends State<CalculationConfig> {
         children: [
           for (final op in AggregateOp.values)
             ChoiceChip(
-              label: Text(op.label),
+              label: Text(context.l10n.aggregateOpLabel(op)),
               selected: a.op == op,
               onSelected: (_) => _setAggregation(a.copyWith(op: op)),
             ),
@@ -893,9 +903,13 @@ class _SourceOption {
 
 /// A compact monospace chip that inserts a function.
 class _FunctionChip extends StatelessWidget {
-  _FunctionChip({required FormulaFunction function, required this.onPressed})
-    : label = function.name,
-      tooltip = '${function.usage} — ${function.summary}';
+  _FunctionChip({
+    required FormulaFunction function,
+    required AppLocalizations l10n,
+    required this.onPressed,
+  }) : label = function.name,
+       tooltip =
+           '${l10n.formulaUsage(function)} — ${l10n.formulaSummary(function)}';
 
   const _FunctionChip.text({
     required this.label,

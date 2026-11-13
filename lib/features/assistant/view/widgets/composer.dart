@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../design/design.dart';
+import '../../../../l10n/l10n.dart';
 import '../../bloc/assistant_state.dart';
 import 'assistant_scope.dart';
 import 'focus_chip.dart';
@@ -115,7 +116,7 @@ class _ComposerState extends State<Composer> {
     final phone = scope.phone;
     final focused = _focus.hasFocus && _enabled;
     final hint = _hint();
-    final focusLabel = _state.focus?.label;
+    final focusLabel = _state.focus?.labelIn(context.l10n);
     final primaryText =
         theme.extension<MorkvaSemanticColors>()?.primaryText ?? scheme.primary;
 
@@ -144,8 +145,8 @@ class _ComposerState extends State<Composer> {
           disabledBorder: InputBorder.none,
           contentPadding: EdgeInsets.symmetric(vertical: phone ? 10 : 12),
           hintText: _state.items.isEmpty
-              ? 'Ask about your data, or tell me what to change…'
-              : 'Ask a follow-up…',
+              ? context.l10n.assistantComposerHint
+              : context.l10n.assistantComposerFollowUp,
           hintStyle: theme.textTheme.bodyMedium?.copyWith(
             fontSize: scope.messageSize,
             fontWeight: FontWeight.w500,
@@ -177,7 +178,10 @@ class _ComposerState extends State<Composer> {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Expanded(
-            child: Semantics(label: 'Message Morkva', child: field),
+            child: Semantics(
+              label: context.l10n.assistantMessageField,
+              child: field,
+            ),
           ),
           const SizedBox(width: Spacing.xs),
           _running
@@ -225,7 +229,7 @@ class _ComposerState extends State<Composer> {
             if (!phone) ...[
               const SizedBox(height: Spacing.xs),
               Text(
-                'Answers can be wrong — check important numbers.',
+                context.l10n.assistantDisclaimer,
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodySmall,
               ),
@@ -237,11 +241,12 @@ class _ComposerState extends State<Composer> {
   }
 
   String? _hint() {
+    final l10n = context.l10n;
     switch (_state.availability) {
       case AvailabilityOffline():
-        return 'You’re offline — Ask Morkva needs a connection.';
+        return l10n.assistantOffline;
       case AvailabilityQuotaExhausted(:final until):
-        return 'Ask Morkva is paused until ${clockTime(until)}.';
+        return l10n.assistantPausedUntil(clockTime(until));
       case AvailabilityUnavailable(:final message):
         return message;
       case AvailabilityChecking() ||
@@ -251,16 +256,17 @@ class _ComposerState extends State<Composer> {
           AvailabilityNotSetUp():
         break;
     }
-    if (_applying) return 'Applying changes…';
+    if (_applying) return l10n.assistantApplyingChanges;
     if (_state.phase is AwaitingApprovalPhase) {
       final plan = _state.pendingPlan?.plan;
       if (plan != null && plan.destructive) {
         final noun = RegExp(r'^Delete \d+ (.+)$').firstMatch(plan.title)?[1];
-        return 'Approve or keep the ${noun ?? 'items'} above — or send a new '
-            'message to skip them.';
+        // The noun is cut from the harness's English title.
+        return noun != null && l10n.localeName == 'en'
+            ? l10n.assistantApproveOrKeep(noun)
+            : l10n.assistantApproveOrKeepItems;
       }
-      return 'Approve or reject the changes above — or send a new message to '
-          'skip them.';
+      return l10n.assistantApproveOrReject;
     }
     return null;
   }
@@ -293,7 +299,9 @@ class _SendButton extends StatelessWidget {
       bg = scheme.surfaceContainerHigh;
       fg = scheme.onSurfaceVariant;
     }
-    final label = stop ? 'Stop generating' : 'Send';
+    final label = stop
+        ? context.l10n.assistantStopGenerating
+        : context.l10n.assistantSend;
     return Tooltip(
       message: label,
       child: PressableScale(

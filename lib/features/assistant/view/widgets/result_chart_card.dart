@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../../design/design.dart';
 import '../../bloc/chat_item.dart';
 import '../../../../core/agent/agent_event.dart' show PresentKind;
+import '../../../../l10n/l10n.dart';
 import 'assistant_scope.dart';
 import 'chip_button.dart';
 import 'dashed_border.dart';
@@ -69,7 +70,10 @@ class _ResultChartCardState extends State<ResultChartCard> {
           else if (chart.points.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: Spacing.md),
-              child: Text('No data to chart', style: theme.textTheme.bodySmall),
+              child: Text(
+                context.l10n.assistantNoChartData,
+                style: theme.textTheme.bodySmall,
+              ),
             )
           else if (_asTable)
             _PointsTable(chart: chart)
@@ -92,14 +96,19 @@ class _ResultChartCardState extends State<ResultChartCard> {
               spacing: Spacing.xs,
               children: [
                 ChipButton(
-                  label: _asTable ? 'Show as chart' : 'Show as table',
+                  label: _asTable
+                      ? context.l10n.assistantShowAsChart
+                      : context.l10n.assistantShowAsTable,
                   onPressed: () => setState(() => _asTable = !_asTable),
                 ),
                 if (name != null)
                   ChipButton(
-                    label: 'Save as a view on $name',
+                    label: context.l10n.assistantSaveAsView(name),
                     onPressed: () => scope.actions.suggest(
-                      'Save “${widget.item.title}” as a view on $name',
+                      context.l10n.assistantSaveAsViewPrompt(
+                        widget.item.title,
+                        name,
+                      ),
                     ),
                   ),
               ],
@@ -161,19 +170,30 @@ int? _peakIndex(List<ChartPoint> points) {
   return top.length == 1 ? top.single : null;
 }
 
-String _chartSemantics(ResultChart chart, String kind) {
+String _chartSemantics(
+  AppLocalizations l10n,
+  ResultChart chart,
+  String kind,
+) {
   final peak = _peakIndex(chart.points);
   final first = chart.points.first.label;
   final last = chart.points.last.label;
   final peakText = peak == null
       ? ''
-      : ', peak ${chart.points[peak].label} at '
-            '${groupedNumber(chart.points[peak].value!)}';
+      : l10n.assistantChartPeak(
+          chart.points[peak].label,
+          groupedNumber(chart.points[peak].value!),
+        );
   final labels = chart.points.length > 12
       ? ''
       : ': ${chart.points.map((p) => p.label).join(', ')}';
-  return '$kind chart: ${chart.metricLabel}, from $first to $last$peakText'
-      '$labels';
+  return l10n.assistantChartSemantics(
+    kind,
+    chart.metricLabel,
+    first,
+    last,
+    '$peakText$labels',
+  );
 }
 
 class _BarChart extends StatelessWidget {
@@ -198,7 +218,7 @@ class _BarChart extends StatelessWidget {
 
     return Semantics(
       image: true,
-      label: _chartSemantics(chart, 'Bar'),
+      label: _chartSemantics(context.l10n, chart, 'bar'),
       child: ExcludeSemantics(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -264,7 +284,7 @@ class _Bar extends StatelessWidget {
     final label = peak
         ? compactNumber(point.value!)
         : point.partial
-        ? 'so far'
+        ? context.l10n.assistantSoFar
         : null;
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
@@ -347,7 +367,7 @@ class _LineChart extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Semantics(
       image: true,
-      label: _chartSemantics(chart, 'Line'),
+      label: _chartSemantics(context.l10n, chart, 'line'),
       child: ExcludeSemantics(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -490,7 +510,7 @@ class _PointsTable extends StatelessWidget {
                 child: Align(
                   alignment: AlignmentDirectional.centerStart,
                   child: Text(
-                    p.partial ? '${p.label} (so far)' : p.label,
+                    p.partial ? context.l10n.assistantPointSoFar(p.label) : p.label,
                     style: style,
                   ),
                 ),

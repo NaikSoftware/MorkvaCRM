@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../design/design.dart';
+import '../../l10n/l10n.dart';
 
 /// The Morkva brand: a carrot logomark on a carrot tile, plus the "Morkva"
 /// wordmark over a quiet "CRM" line when [extended].
@@ -9,7 +10,7 @@ class BrandWordmark extends StatelessWidget {
     super.key,
     this.extended = true,
     this.onTap,
-    this.tooltip = 'All collections',
+    this.tooltip,
   });
 
   /// Whether to show the wordmark beside the logomark.
@@ -18,8 +19,8 @@ class BrandWordmark extends StatelessWidget {
   /// Called when the brand is tapped. Null = not tappable.
   final VoidCallback? onTap;
 
-  /// What a tap does, shown on hover.
-  final String tooltip;
+  /// What a tap does, shown on hover. Defaults to All collections.
+  final String? tooltip;
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +59,7 @@ class BrandWordmark extends StatelessWidget {
 
     if (onTap == null) return Semantics(label: 'Morkva CRM', child: brand);
     return Tooltip(
-      message: tooltip,
+      message: tooltip ?? context.l10n.shellAllCollections,
       child: InkWell(
         onTap: onTap,
         borderRadius: Radii.mdAll,

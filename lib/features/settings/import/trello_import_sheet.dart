@@ -10,6 +10,7 @@ import '../../../api/data/data_repository.dart';
 import '../../../api/sync/sync_status.dart';
 import '../../../api/sync/sync_status_cubit.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../../assistant/view/widgets/dashed_border.dart';
 import '../../automation/view/automations_page.dart';
 import '../../automation/view/consent_sheet.dart';
@@ -45,6 +46,7 @@ Future<String?> showTrelloImportSheet(
   final repo = context.read<DataRepository>();
   final sync = context.read<SyncStatusCubit?>();
   final sheet = _Sheet(pickFiles);
+  final names = context.l10n.trelloNames;
   return showAutomationSheet<String>(
     context,
     // A write in flight must not lose its cubit to a scrim tap.
@@ -52,7 +54,8 @@ Future<String?> showTrelloImportSheet(
     builder: (_) => BlocProvider(
       // Seeded: a listener only hears later changes.
       create: (_) =>
-          TrelloImportCubit(repo)..setOffline(sync?.state is SyncOffline),
+          TrelloImportCubit(repo, names: names)
+            ..setOffline(sync?.state is SyncOffline),
       child: sync == null
           ? sheet
           : BlocListener<SyncStatusCubit, SyncStatus>(

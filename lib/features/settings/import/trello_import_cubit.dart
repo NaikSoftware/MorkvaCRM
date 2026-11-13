@@ -225,6 +225,7 @@ class TrelloImportCubit extends Cubit<TrelloImportState> {
     this.sliceTimeout = const Duration(seconds: 30),
     this.sliceSize = 450,
     this.sliceBytes = 4 << 20,
+    this.names = const TrelloNames(),
   }) : _ids = ids ?? IdGenerator(),
        super(const TrelloImportState());
 
@@ -241,6 +242,9 @@ class TrelloImportCubit extends Cubit<TrelloImportState> {
   /// object goes): Firestore refuses a commit over 10 MiB, and 450 cards with
   /// Trello's longest descriptions (16,384 chars) reach ~14 MiB in Cyrillic.
   final int sliceBytes;
+
+  /// What the created collections, fields and views are named.
+  final TrelloNames names;
 
   final _summaryCache = <(String, bool), TrelloBoardSummary>{};
 
@@ -389,8 +393,11 @@ class TrelloImportCubit extends Cubit<TrelloImportState> {
       for (final b in s.boards)
         b.board.id: _summaryCache.putIfAbsent(
           (b.board.id, s.includeArchived),
-          () =>
-              summarizeTrelloBoard(b.board, includeArchived: s.includeArchived),
+          () => summarizeTrelloBoard(
+            b.board,
+            includeArchived: s.includeArchived,
+            names: names,
+          ),
         ),
     },
   );
@@ -410,6 +417,7 @@ class TrelloImportCubit extends Cubit<TrelloImportState> {
             checklists: c.checklists,
             comments: c.comments,
             ids: _ids,
+            names: names,
           ),
     ];
     _saved.clear();

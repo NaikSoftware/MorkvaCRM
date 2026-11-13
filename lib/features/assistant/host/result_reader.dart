@@ -1,3 +1,5 @@
+import 'dart:ui' show Locale;
+
 import '../../../core/domain/domain.dart';
 import '../../../core/harness/cache/derived_snapshot.dart';
 import '../../../core/harness/cache/result_store.dart';
@@ -7,6 +9,7 @@ import '../../../core/harness/input/screen_line.dart' show describeFilter;
 import '../../../core/harness/query/aggregate_engine.dart';
 import '../../../core/harness/query/query_engine.dart';
 import '../../../core/harness/query/result_shaper.dart';
+import '../../../l10n/l10n.dart';
 import '../bloc/chat_item.dart';
 
 /// Turns a stored harness result (a handle, or its persisted spec after a
@@ -16,10 +19,20 @@ import '../bloc/chat_item.dart';
 /// A live handle whose data is unchanged renders its own ordered ids, so the
 /// table shows exactly the result the model saw; otherwise the spec re-runs.
 final class ResultReader {
-  ResultReader({required this.queries, required this.aggregates});
+  ResultReader({
+    required this.queries,
+    required this.aggregates,
+    AppLocalizations Function()? strings,
+  }) : _strings = strings ?? _english;
 
   final QueryEngine queries;
   final AggregateEngine aggregates;
+
+  /// The words of titles, step lines and totals (English by default).
+  final AppLocalizations Function() _strings;
+
+  static AppLocalizations _english() =>
+      lookupAppLocalizations(const Locale('en'));
 
   /// Rows a table card holds ("Showing 20 of 148").
   static const int tableRows = 20;
@@ -48,29 +61,32 @@ final class ResultReader {
     final stored = handle == null ? null : _results.get(handle, thread: thread);
     final json = stored?.spec ?? spec;
     if (json == null) return null;
+    final t = _strings();
     try {
       switch (json['kind']) {
         case 'query':
           final query = QuerySpec.fromJson(json);
           final name = _collectionName(query.collectionId);
           if (name == null) return null;
-          final where = _where(query);
+          final where = _where(t, query);
           if (where != null) return '$name $where';
           final n = total ?? stored?.total;
           // Past [tableRows] the card shows a page of them, not all.
           if (n == null) return name;
-          return n <= tableRows ? '$name · $n shown' : '$name · $n cards';
+          return n <= tableRows
+              ? t.assistantResultShown(name, n)
+              : t.assistantResultCards(name, n);
         case 'aggregate':
           final aggregate = AggregateSpec.fromJson(json);
           final query = aggregate.query;
           final collection = queries.cache.collection(query.collectionId);
           if (collection == null) return null;
           final name = _shaper.name(collection.name);
-          final by = _groupName(collection, aggregate);
+          final by = _groupName(t, collection, aggregate);
           final head = by == null
-              ? '$name · ${aggregate.metrics.map((m) => _metricName(collection, m)).join(', ')}'
-              : '$name by $by';
-          final where = _where(query);
+              ? '$name · ${aggregate.metrics.map((m) => _metricName(t, collection, m)).join(', ')}'
+              : t.assistantResultBy(name, by);
+          final where = _where(t, query);
           return where == null ? head : '$head · $where';
       }
     } on FormatException {
@@ -95,16 +111,19 @@ final class ResultReader {
       if (collection == null) return null;
       final scanned = queries.cache.current(collection.id)?.count;
       final filtered = query.filters.isNotEmpty || query.search != null;
-      final by = aggregate == null ? null : _groupName(collection, aggregate);
+      final t = _strings();
+      final by = aggregate == null
+          ? null
+          : _groupName(t, collection, aggregate);
       return [
-        'Looked at ${_shaper.name(collection.name)}',
+        t.assistantStepLookedAt(_shaper.name(collection.name)),
         if (filtered)
           scanned == null
-              ? 'filtered to ${stored.total}'
-              : 'filtered $scanned → ${stored.total}',
-        if (by != null) 'grouped by $by',
+              ? t.assistantStepFilteredTo(stored.total)
+              : t.assistantStepFiltered(scanned, stored.total),
+        if (by != null) t.assistantStepGroupedBy(by),
         for (final m in aggregate?.metrics ?? const <MetricSpec>[])
-          if (m.op != AggregateOp.count) _metricVerb(collection, m),
+          if (m.op != AggregateOp.count) _metricVerb(t, collection, m),
       ].join(' · ');
     } on FormatException {
       return null;
@@ -117,7 +136,7 @@ final class ResultReader {
   };
 
   /// "where Paid is false, Status any of [“Packing”]", "matching “melnyk”".
-  String? _where(QuerySpec query) {
+  String? _where(AppLocalizations t, QuerySpec query) {
     final collection = queries.cache.collection(query.collectionId);
     if (collection == null) return null;
     String quote(String text) => '“${_shaper.name(text)}”';
@@ -129,14 +148,19 @@ final class ResultReader {
     ];
     final search = query.search?.trim();
     final parts = [
-      if (clauses.isNotEmpty) 'where ${clauses.join(', ')}',
-      if (search != null && search.isNotEmpty) 'matching ${quote(search)}',
+      if (clauses.isNotEmpty) t.assistantResultWhere(clauses.join(', ')),
+      if (search != null && search.isNotEmpty)
+        t.assistantResultMatching(quote(search)),
     ];
     return parts.isEmpty ? null : parts.join(' ');
   }
 
   /// "Status", "Created (month)": the group-by field as titles name it.
-  String? _groupName(Collection collection, AggregateSpec spec) {
+  String? _groupName(
+    AppLocalizations t,
+    Collection collection,
+    AggregateSpec spec,
+  ) {
     final group = spec.groupBy;
     if (group == null) return null;
     final field = filterFieldOf(collection, group.fieldId);
@@ -145,9 +169,15 @@ final class ResultReader {
         ? field.outputField
         : field;
     final name = _shaper.name(field.name);
-    return presented is DateFieldDefinition
-        ? '$name (${group.bucket.name})'
-        : name;
+    if (presented is! DateFieldDefinition) return name;
+    final bucket = switch (group.bucket) {
+      DateBucket.day => t.assistantBucketDay,
+      DateBucket.week => t.assistantBucketWeek,
+      DateBucket.month => t.assistantBucketMonth,
+      DateBucket.quarter => t.assistantBucketQuarter,
+      DateBucket.year => t.assistantBucketYear,
+    };
+    return t.assistantResultBucket(name, bucket);
   }
 
   String _metricField(Collection collection, MetricSpec m) => _shaper.name(
@@ -155,19 +185,35 @@ final class ResultReader {
   );
 
   /// "count", "sum of Total".
-  String _metricName(Collection collection, MetricSpec m) => m.fieldId == null
-      ? m.op.name
-      : '${m.op.name} of ${_metricField(collection, m)}';
+  String _metricName(
+    AppLocalizations t,
+    Collection collection,
+    MetricSpec m,
+  ) => m.fieldId == null
+      ? _opName(t, m.op)
+      : t.assistantMetricOf(_opName(t, m.op), _metricField(collection, m));
+
+  static String _opName(AppLocalizations t, AggregateOp op) => switch (op) {
+    AggregateOp.count => t.assistantOpCount,
+    AggregateOp.sum => t.assistantOpSum,
+    AggregateOp.average => t.assistantOpAverage,
+    AggregateOp.min => t.assistantOpMin,
+    AggregateOp.max => t.assistantOpMax,
+  };
 
   /// "summed Total", "averaged Price".
-  String _metricVerb(Collection collection, MetricSpec m) {
+  String _metricVerb(
+    AppLocalizations t,
+    Collection collection,
+    MetricSpec m,
+  ) {
     final field = _metricField(collection, m);
     return switch (m.op) {
-      AggregateOp.sum => 'summed $field',
-      AggregateOp.average => 'averaged $field',
-      AggregateOp.min => 'lowest $field',
-      AggregateOp.max => 'highest $field',
-      AggregateOp.count => 'counted',
+      AggregateOp.sum => t.assistantMetricSummed(field),
+      AggregateOp.average => t.assistantMetricAveraged(field),
+      AggregateOp.min => t.assistantMetricLowest(field),
+      AggregateOp.max => t.assistantMetricHighest(field),
+      AggregateOp.count => t.assistantMetricCounted,
     };
   }
 
@@ -288,7 +334,7 @@ final class ResultReader {
       totalCount: objects.length,
       totals: hasTotals
           ? [
-              'Total',
+              _strings().assistantTableTotal,
               for (final (i, f) in fields.indexed)
                 numeric[i] ? _sum(derived, objects, f) : '',
             ]
@@ -319,7 +365,9 @@ final class ResultReader {
       collectionId: spec.query.collectionId,
       columns: [
         ResultColumn(
-          groupField == null ? 'All' : _shaper.name(groupField.name),
+          groupField == null
+              ? _strings().assistantTableAll
+              : _shaper.name(groupField.name),
         ),
         for (final l in labels) ResultColumn(l, numeric: true),
       ].take(tableColumns).toList(),
@@ -327,7 +375,7 @@ final class ResultReader {
         if (spec.groupBy == null)
           ResultRow(
             cells: [
-              'All',
+              _strings().assistantTableAll,
               for (final v in _list(result['totals'])) figure(v),
             ].take(tableColumns).toList(),
           ),
@@ -343,7 +391,7 @@ final class ResultReader {
       totals: spec.groupBy == null || groups.length < 2
           ? null
           : [
-              'Total',
+              _strings().assistantTableTotal,
               for (final v in _list(result['totals'])) figure(v),
             ].take(tableColumns).toList(),
     );

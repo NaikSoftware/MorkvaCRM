@@ -1,5 +1,852 @@
 {
   "@@locale": "en",
+  "shellAllCollections": "All collections",
+  "shellNavAll": "All",
+  "shellCollapseSidebar": "Collapse sidebar",
+  "shellExpandSidebar": "Expand sidebar",
+  "shellPinnedHeader": "PINNED",
+  "shellPinnedEmpty": "Pin the collections you use most — tap the pin on any collection in All collections.",
+  "shellUnpin": "Unpin",
+  "shellDragToReorder": "Drag to reorder",
+  "shellJumpTo": "Jump to…",
+  "shellJumpToShortcut": "Jump to… ({shortcut})",
+  "@shellJumpToShortcut": {
+    "placeholders": {
+      "shortcut": {
+        "type": "String"
+      }
+    }
+  },
+  "shellJumpHint": "Jump to a collection",
+  "shellJumpNoMatch": "No collection matches \"{query}\"",
+  "@shellJumpNoMatch": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "shellAskMorkva": "Ask Morkva",
+  "shellAskMorkvaShortcut": "Ask Morkva · {shortcut}",
+  "@shellAskMorkvaShortcut": {
+    "placeholders": {
+      "shortcut": {
+        "type": "String"
+      }
+    }
+  },
+  "shellAccountAndSettings": "Account and settings",
+  "shellSyncSynced": "Synced",
+  "shellSyncSyncing": "Syncing…",
+  "shellSyncOffline": "Offline",
+  "shellSyncConflict": "Conflict",
+  "shellSyncError": "Sync error",
+  "shellSyncStatus": "Sync status: {status}",
+  "@shellSyncStatus": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "shellSyncStatusDismiss": "Sync status: {status}. Tap to dismiss.",
+  "@shellSyncStatusDismiss": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "designTypeToConfirm": "Type “{text}” to confirm",
+  "@designTypeToConfirm": {
+    "placeholders": {
+      "text": {
+        "type": "String"
+      }
+    }
+  },
+  "designChangeIcon": "Change icon",
+  "designChooseIcon": "Choose an icon",
+  "designIconNone": "None",
+  "designIconCards": "Cards",
+  "designIconGrid": "Grid",
+  "designIconInventory": "Inventory",
+  "designIconShipping": "Shipping",
+  "designIconOrders": "Orders",
+  "designIconProducts": "Products",
+  "designIconPricing": "Pricing",
+  "designIconPeople": "People",
+  "designIconContact": "Contact",
+  "designIconCompany": "Company",
+  "designIconStore": "Store",
+  "designIconFinance": "Finance",
+  "designIconInvoices": "Invoices",
+  "designIconSchedule": "Schedule",
+  "designIconTasks": "Tasks",
+  "designIconDocuments": "Documents",
+  "designIconNotes": "Notes",
+  "designIconFavorites": "Favorites",
+  "designIconPriorities": "Priorities",
+  "designIconProperties": "Properties",
+  "designIconVehicles": "Vehicles",
+  "designIconServices": "Services",
+  "designIconPets": "Pets",
+  "designIconMenu": "Menu",
+  "assistantAskMorkva": "Ask Morkva",
+  "assistantConversationHistory": "Conversation history",
+  "assistantNewConversation": "New conversation",
+  "assistantCloseAssistant": "Close assistant",
+  "assistantBackToConversation": "Back to the conversation",
+  "assistantConversations": "Conversations",
+  "assistantGreeting": "Hi. What should we look at?",
+  "assistantGreetingNamed": "Hi {name}. What should we look at?",
+  "@assistantGreetingNamed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantIntroOne": "I can read your {name} collection, crunch numbers, and make changes — you approve every change before it happens.",
+  "@assistantIntroOne": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantIntro": "{count, plural, =0{I can help you set up collections, crunch numbers, and make changes — you approve every change before it happens.} other{I can read all {count} of your collections, crunch numbers, and make changes — you approve every change before it happens.}}",
+  "@assistantIntro": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "assistantSuggestAsk": "Ask",
+  "assistantSuggestAnalyze": "Analyze",
+  "assistantSuggestAct": "Act",
+  "assistantSuggestHelp": "What can you help me with?",
+  "assistantSuggestCreateClients": "Create a Clients collection with name, phone and city",
+  "assistantSuggestSetUpOrders": "Set up an Orders collection linked to Clients",
+  "assistantSuggestHowMany": "How many {name} were added this month?",
+  "@assistantSuggestHowMany": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantSuggestNewest": "Show the 5 newest {name}",
+  "@assistantSuggestNewest": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantSuggestByMonth": "{name} by month this year",
+  "@assistantSuggestByMonth": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantSuggestCompare": "Compare {name} this month with last month",
+  "@assistantSuggestCompare": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantSuggestLinked": "Add a new collection linked to {name}",
+  "@assistantSuggestLinked": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantSuggestNotes": "Add a Notes field to {name}",
+  "@assistantSuggestNotes": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantConsentTitle": "Before you start",
+  "assistantConsentData": "To answer, Ask Morkva sends your question and the parts of your data it needs to Google’s Gemini.",
+  "assistantConsentFreeTier": "On the free tier Google may use prompts and answers to improve its products, so keep sensitive details out of your questions.",
+  "assistantDisclaimer": "Answers can be wrong — check important numbers.",
+  "assistantEnable": "Enable Ask Morkva",
+  "assistantOffTitle": "Ask Morkva is off",
+  "assistantOffBody": "Ask Morkva isn’t enabled for your account.",
+  "assistantNotSetUpTitle": "Not set up yet",
+  "assistantNotSetUpBody": "Ask Morkva isn’t set up for this project yet.",
+  "assistantUnavailableTitle": "Ask Morkva is unavailable",
+  "assistantTryLater": "Try again later.",
+  "assistantOpenObject": "Open {label}",
+  "@assistantOpenObject": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantRemoveContext": "Remove context",
+  "assistantLookingAt": "Looking at: {target}",
+  "@assistantLookingAt": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantShownCount": "{count} shown",
+  "@assistantShownCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "assistantJumpToLatest": "Jump to latest",
+  "assistantThinking": "Thinking…",
+  "assistantWaitLarge": "This conversation is large; waiting {seconds} s.",
+  "@assistantWaitLarge": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "assistantBusyRetryingNow": "Gemini is busy. Retrying now…",
+  "assistantBusyRetryingIn": "Gemini is busy. Retrying in {seconds} s.",
+  "@assistantBusyRetryingIn": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "assistantWaitLargeSpoken": "This conversation is large; waiting before it continues.",
+  "assistantBusyRetryingShortly": "Gemini is busy. Retrying shortly.",
+  "assistantDailyLimit": "Today’s free AI limit is used up. It resets at {time}.",
+  "@assistantDailyLimit": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantRetryNow": "Retry now",
+  "assistantDeleteThreadTitle": "Delete this conversation?",
+  "assistantDeleteThreadBody": "“{title}” and its messages will be deleted. Changes it made to your data stay.",
+  "@assistantDeleteThreadBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantDeleteThreadTooltip": "Delete “{title}”",
+  "@assistantDeleteThreadTooltip": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantNoThreads": "No conversations yet",
+  "assistantNoThreadsBody": "Ask something to start one.",
+  "assistantNothingFound": "Nothing found",
+  "assistantNoThreadsMatch": "No conversations match “{query}”.",
+  "@assistantNoThreadsMatch": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantApplyingSwitchLater": "Applying changes… you can switch conversations when it’s done.",
+  "assistantSearchThreads": "Search conversations",
+  "assistantComposerHint": "Ask about your data, or tell me what to change…",
+  "assistantComposerFollowUp": "Ask a follow-up…",
+  "assistantMessageField": "Message Morkva",
+  "assistantOffline": "You’re offline — Ask Morkva needs a connection.",
+  "assistantPausedUntil": "Ask Morkva is paused until {time}.",
+  "@assistantPausedUntil": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantApplyingChanges": "Applying changes…",
+  "assistantApproveOrKeep": "Approve or keep the {noun} above — or send a new message to skip them.",
+  "@assistantApproveOrKeep": {
+    "placeholders": {
+      "noun": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantApproveOrKeepItems": "Approve or keep the items above — or send a new message to skip them.",
+  "assistantApproveOrReject": "Approve or reject the changes above — or send a new message to skip them.",
+  "assistantStopGenerating": "Stop generating",
+  "assistantSend": "Send",
+  "assistantStepsShow": "Steps: {headline}. Show each step",
+  "@assistantStepsShow": {
+    "placeholders": {
+      "headline": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantSteps": "Steps",
+  "assistantHideSteps": "Hide steps",
+  "assistantStepFailed": "failed",
+  "assistantNoChartData": "No data to chart",
+  "assistantShowAsChart": "Show as chart",
+  "assistantShowAsTable": "Show as table",
+  "assistantSaveAsView": "Save as a view on {name}",
+  "@assistantSaveAsView": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantSaveAsViewPrompt": "Save “{title}” as a view on {name}",
+  "@assistantSaveAsViewPrompt": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantSoFar": "so far",
+  "assistantPointSoFar": "{label} (so far)",
+  "@assistantPointSoFar": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantChartSemantics": "{kind, select, bar{Bar chart} other{Line chart}}: {metric}, from {first} to {last}{details}",
+  "@assistantChartSemantics": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      },
+      "metric": {
+        "type": "String"
+      },
+      "first": {
+        "type": "String"
+      },
+      "last": {
+        "type": "String"
+      },
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantChartPeak": ", peak {label} at {value}",
+  "@assistantChartPeak": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantShowingRows": "Showing {shown} of {total}",
+  "@assistantShowingRows": {
+    "placeholders": {
+      "shown": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "assistantOpenAsFilteredView": "Open as filtered view",
+  "assistantCopyTable": "Copy table",
+  "assistantTableCopied": "Table copied",
+  "assistantOpenCell": "Open {column} {value}",
+  "@assistantOpenCell": {
+    "placeholders": {
+      "column": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantRetryFailed": "Retry failed",
+  "assistantAppliedSchemaChange": "Applied schema change",
+  "assistantAppliedChanges": "Applied changes",
+  "assistantStaleLeft": "{count} changed elsewhere since the preview — left as they were",
+  "@assistantStaleLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "assistantStartedRuns": "{count, plural, =1{Started 1 automation run ·} other{Started {count} automation runs ·}}",
+  "@assistantStartedRuns": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "assistantView": "View",
+  "assistantReverted": "Reverted — nothing is changed now",
+  "assistantUndoFailed": "Couldn’t undo these changes",
+  "assistantUpdatedSomeFailed": "Updated {done}, {failed} failed",
+  "@assistantUpdatedSomeFailed": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
+  "assistantApprovedOf": "You approved {done} of {total}",
+  "@assistantApprovedOf": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "assistantApplied": "Applied",
+  "assistantQueued": "{count} waiting for a connection",
+  "@assistantQueued": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "assistantAppliedNote": "Applied · {note}",
+  "@assistantAppliedNote": {
+    "placeholders": {
+      "note": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantUndoExpired": "Undo expired",
+  "assistantUndoUntilClose": "undo available until you close Morkva",
+  "assistantUndoForMinutes": "{minutes, plural, =1{undo available for a minute} other{undo available for {minutes} min}}",
+  "@assistantUndoForMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "assistantStopped": "Stopped",
+  "assistantCutShort": "Cut short — ask me to continue",
+  "assistantProposedDeletion": "Proposed deletion",
+  "assistantProposedChanges": "Proposed changes",
+  "assistantMoreNotShown": "{count} more not shown yet",
+  "@assistantMoreNotShown": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "assistantShowMore": "Show {count} more",
+  "@assistantShowMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "assistantAllSelected": "{count, plural, =2{Both selected} other{All {count} selected}}",
+  "@assistantAllSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "assistantNoneSelected": "None selected",
+  "assistantSomeSelected": "{picked} of {total} selected",
+  "@assistantSomeSelected": {
+    "placeholders": {
+      "picked": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "assistantDeleteCollectionTitle": "Delete the {name} collection?",
+  "@assistantDeleteCollectionTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantDeleteCollectionBody": "Every card in {name} goes with it. {undo}",
+  "@assistantDeleteCollectionBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "undo": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantDeleteCollection": "Delete collection",
+  "assistantAppliesWithoutAsking": "Applies changes without asking",
+  "assistantPlanKind": "{kind, select, createCard{Create card} updateCard{Update card} deleteCard{Delete card} createCollection{Create collection} updateCollection{Update collection} deleteCollection{Delete collection} addField{Add field} updateField{Update field} deleteField{Delete field} createView{Create view} updateView{Update view} deleteView{Delete view} saveModule{Save module} saveAutomation{Save automation} deleteAutomation{Delete automation} other{{fallback}}}",
+  "@assistantPlanKind": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      },
+      "fallback": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantUndoNone": "This can’t be undone.",
+  "assistantUndoPartialFor": "Some of it can be undone for {minutes} minutes.",
+  "@assistantUndoPartialFor": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "assistantUndoPartialLater": "Some of it can be undone afterwards.",
+  "assistantUndoFor": "You can undo this for {minutes} minutes.",
+  "@assistantUndoFor": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "assistantUndoLater": "You can undo afterwards.",
+  "assistantNothingChangesUntilApproved": "Nothing changes until you approve. {undo}",
+  "@assistantNothingChangesUntilApproved": {
+    "placeholders": {
+      "undo": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantModuleSource": "Module · {name} ({id})",
+  "@assistantModuleSource": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantDiffFromEmpty": "from empty",
+  "assistantDiffEmpty": "empty",
+  "assistantDiffFrom": "from {value}",
+  "@assistantDiffFrom": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantDiffTo": "to {value}",
+  "@assistantDiffTo": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantViewCode": "View code",
+  "assistantApplyingChangesLabel": "Applying changes",
+  "assistantUpdateModule": "Update module",
+  "assistantInstallModule": "Install module",
+  "assistantDeleteSomeOf": "Delete {count} of {total}",
+  "@assistantDeleteSomeOf": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "assistantApproveChanges": "{count, plural, =1{Approve 1 change} other{Approve {count} changes}}",
+  "@assistantApproveChanges": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "assistantKeepIt": "Keep it",
+  "assistantKeepThem": "Keep them",
+  "assistantReject": "Reject",
+  "assistantApplying": "Applying…",
+  "assistantUpdatingProgress": "Updating {done} of {total}…",
+  "@assistantUpdatingProgress": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "assistantRejectedNothingChanged": "Rejected — nothing changed",
+  "assistantSkippedNothingChanged": "Skipped — nothing changed",
+  "assistantNothingChangedAfter": "{message} — nothing changed",
+  "@assistantNothingChangedAfter": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantChangedElsewhere": "Changed elsewhere since the preview",
+  "assistantPreviewExpired": "This preview expired — nothing changed",
+  "assistantInterrupted": "Interrupted while applying — may have been partly applied, check your data",
+  "assistantCouldNotApply": "Couldn’t apply the changes",
+  "assistantRebuild": "Rebuild",
+  "assistantErrorLoadPartial": "Couldn’t load this whole conversation, so the message wasn’t sent. Try again in a moment.",
+  "assistantErrorOpen": "Couldn’t open this conversation.",
+  "assistantNothingWasChanged": "Nothing was changed.",
+  "assistantApprovedWereApplied": "The changes you approved were applied.",
+  "assistantErrorWithOutcome": "{message} {outcome}",
+  "@assistantErrorWithOutcome": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      },
+      "outcome": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantBlocked": "I can't help with that request.",
+  "assistantErrorDailyLimit": "Today's AI limit is used up.",
+  "assistantErrorBusy": "Gemini is busy right now.",
+  "assistantErrorDropped": "I couldn't finish — the connection dropped.",
+  "assistantErrorUnknown": "Something went wrong and I couldn't finish.",
+  "assistantCouldNotReadResult": "Couldn’t read the result ({message})",
+  "@assistantCouldNotReadResult": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantCouldNotRetry": "Couldn’t retry ({message})",
+  "@assistantCouldNotRetry": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantNeedsConnection": "Needs a connection",
+  "assistantNeedsConnectionToUndo": "Needs a connection to undo",
+  "assistantSnippetChart": "chart",
+  "assistantSnippetTable": "table",
+  "assistantStepsFailed": "{count, plural, =1{1 step didn't go through} other{{count} steps didn't go through}}",
+  "@assistantStepsFailed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "assistantResultShown": "{name} · {count} shown",
+  "@assistantResultShown": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "assistantResultCards": "{count, plural, =1{{name} · 1 card} other{{name} · {count} cards}}",
+  "@assistantResultCards": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "assistantResultBy": "{name} by {group}",
+  "@assistantResultBy": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "group": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantResultWhere": "where {clauses}",
+  "@assistantResultWhere": {
+    "placeholders": {
+      "clauses": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantResultMatching": "matching {query}",
+  "@assistantResultMatching": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantStepLookedAt": "Looked at {name}",
+  "@assistantStepLookedAt": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantStepFilteredTo": "filtered to {count}",
+  "@assistantStepFilteredTo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "assistantStepFiltered": "filtered {from} → {to}",
+  "@assistantStepFiltered": {
+    "placeholders": {
+      "from": {
+        "type": "int"
+      },
+      "to": {
+        "type": "int"
+      }
+    }
+  },
+  "assistantStepGroupedBy": "grouped by {group}",
+  "@assistantStepGroupedBy": {
+    "placeholders": {
+      "group": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantTableTotal": "Total",
+  "assistantTableAll": "All",
+  "assistantResultBucket": "{field} ({bucket})",
+  "@assistantResultBucket": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      },
+      "bucket": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantBucketDay": "day",
+  "assistantBucketWeek": "week",
+  "assistantBucketMonth": "month",
+  "assistantBucketQuarter": "quarter",
+  "assistantBucketYear": "year",
+  "assistantOpCount": "count",
+  "assistantOpSum": "sum",
+  "assistantOpAverage": "average",
+  "assistantOpMin": "min",
+  "assistantOpMax": "max",
+  "assistantMetricOf": "{op} of {field}",
+  "@assistantMetricOf": {
+    "placeholders": {
+      "op": {
+        "type": "String"
+      },
+      "field": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantMetricSummed": "summed {field}",
+  "@assistantMetricSummed": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantMetricAveraged": "averaged {field}",
+  "@assistantMetricAveraged": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantMetricLowest": "lowest {field}",
+  "@assistantMetricLowest": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantMetricHighest": "highest {field}",
+  "@assistantMetricHighest": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      }
+    }
+  },
+  "assistantMetricCounted": "counted",
   "authWelcomeTitle": "Welcome to your workspace",
   "authWelcomeBody": "One tidy home for your collections and cards — synced securely across every device you sign in on.",
   "authPrivacyNote": "We only use your Google account to sign you in. Your data stays yours.",
@@ -65,6 +912,467 @@
     "placeholders": {
       "count": {
         "type": "int"
+      }
+    }
+  },
+  "coreYes": "Yes",
+  "coreNo": "No",
+  "coreLinkedCount": "{count} linked",
+  "@coreLinkedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "coreNoValueGroup": "No {field}",
+  "@coreNoValueGroup": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      }
+    }
+  },
+  "coreWeekOf": "Week of {day}",
+  "@coreWeekOf": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      }
+    }
+  },
+  "coreDefaultViewName": "All",
+  "coreFormulaTypeNumber": "Number",
+  "coreFormulaTypeText": "Text",
+  "coreFormulaTypeBoolean": "Yes / No",
+  "coreFormulaTypeDate": "Date",
+  "coreAggregateOpCount": "Count",
+  "coreAggregateOpSum": "Sum",
+  "coreAggregateOpAverage": "Average",
+  "coreAggregateOpMin": "Min",
+  "coreAggregateOpMax": "Max",
+  "formulaFunctionUsage": "{name, select, IF{IF(condition, then, else)} AND{AND(a, b, …)} OR{OR(a, b, …)} NOT{NOT(condition)} ROUND{ROUND(number, digits)} FLOOR{FLOOR(number)} CEIL{CEIL(number)} ABS{ABS(number)} MIN{MIN(a, b, …)} MAX{MAX(a, b, …)} CONCAT{CONCAT(a, b, …)} LEN{LEN(text)} UPPER{UPPER(text)} LOWER{LOWER(text)} TODAY{TODAY()} YEAR{YEAR(date)} MONTH{MONTH(date)} DAY{DAY(date)} ISBLANK{ISBLANK(value)} other{{name}}}",
+  "@formulaFunctionUsage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "formulaFunctionSummary": "{name, select, IF{Picks a value by a Yes / No condition.} AND{Yes when every condition is Yes.} OR{Yes when any condition is Yes.} NOT{Flips Yes and No.} ROUND{Rounds to the given decimal digits (0 by default).} FLOOR{Rounds down to a whole number.} CEIL{Rounds up to a whole number.} ABS{The number without its sign.} MIN{The smallest number.} MAX{The largest number.} CONCAT{Joins values into one text.} LEN{How many characters the text has.} UPPER{The text in capitals.} LOWER{The text in lower case.} TODAY{Today's date.} YEAR{The year of a date.} MONTH{The month of a date (1–12).} DAY{The day of the month of a date.} ISBLANK{Yes when the value is empty.} other{}}",
+  "@formulaFunctionSummary": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "formulaErrorEmpty": "Enter a formula",
+  "formulaErrorNotANumber": "\"{text}\" is not a number",
+  "@formulaErrorNotANumber": {
+    "placeholders": {
+      "text": {
+        "type": "String"
+      }
+    }
+  },
+  "formulaErrorUnclosedText": "Close the text with \"",
+  "formulaErrorUnclosedField": "Close the field with {brace}",
+  "@formulaErrorUnclosedField": {
+    "placeholders": {
+      "brace": {
+        "type": "String"
+      }
+    }
+  },
+  "formulaErrorUnexpected": "Unexpected \"{text}\"",
+  "@formulaErrorUnexpected": {
+    "placeholders": {
+      "text": {
+        "type": "String"
+      }
+    }
+  },
+  "formulaErrorNoSuchField": "No field named \"{name}\"",
+  "@formulaErrorNoSuchField": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "formulaErrorOwnField": "A formula can't use its own field",
+  "formulaErrorFieldNotUsable": "\"{name}\" can't be used in a formula — use an Aggregate field to summarize linked items",
+  "@formulaErrorFieldNotUsable": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "formulaErrorFieldWithoutBraces": "Put field names in braces: {token}",
+  "@formulaErrorFieldWithoutBraces": {
+    "placeholders": {
+      "token": {
+        "type": "String"
+      }
+    }
+  },
+  "formulaErrorUnknownFunction": "Unknown function \"{name}\"",
+  "@formulaErrorUnknownFunction": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "formulaErrorWrongArguments": "Use {usage}",
+  "@formulaErrorWrongArguments": {
+    "placeholders": {
+      "usage": {
+        "type": "String"
+      }
+    }
+  },
+  "formulaErrorUnclosedCall": "Close {name}( with )",
+  "@formulaErrorUnclosedCall": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "formulaErrorExpectsNumbers": "{name} expects numbers",
+  "@formulaErrorExpectsNumbers": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "formulaErrorExpectsBooleans": "{name} expects Yes / No values",
+  "@formulaErrorExpectsBooleans": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "formulaErrorExpectsText": "{name} expects text",
+  "@formulaErrorExpectsText": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "formulaErrorExpectsDate": "{name} expects a date",
+  "@formulaErrorExpectsDate": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "formulaErrorNeedsCondition": "{name} needs a Yes / No condition",
+  "@formulaErrorNeedsCondition": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "formulaErrorBranchTypesDiffer": "{name} needs \"then\" and \"else\" of the same type ({left} vs {right})",
+  "@formulaErrorBranchTypesDiffer": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "left": {
+        "type": "String"
+      },
+      "right": {
+        "type": "String"
+      }
+    }
+  },
+  "formulaErrorUnclosedBracket": "Close the bracket with )",
+  "formulaErrorEndsEarly": "The formula ends too early",
+  "formulaErrorNegateNeedsNumber": "\"-\" needs a number",
+  "formulaErrorJoinWithAmpersand": "Use & to join text",
+  "formulaErrorCannotCombine": "\"{op}\" can't combine {left} and {right}",
+  "@formulaErrorCannotCombine": {
+    "placeholders": {
+      "op": {
+        "type": "String"
+      },
+      "left": {
+        "type": "String"
+      },
+      "right": {
+        "type": "String"
+      }
+    }
+  },
+  "capabilitySchemaReadTitle": "See your collections and fields",
+  "capabilitySchemaReadExplanation": "Reads collection and field names and types.",
+  "capabilityDataReadTitle": "Read cards",
+  "capabilityDataReadExplanation": "Reads card values in the allowed collections.",
+  "capabilityDataWriteTitle": "Create and change cards",
+  "capabilityDataWriteExplanation": "Proposes new cards and edits.",
+  "capabilityDataDeleteTitle": "Delete cards",
+  "capabilityDataDeleteExplanation": "Proposes deleting cards. Never applied automatically.",
+  "capabilitySchemaWriteTitle": "Change collections and fields",
+  "capabilitySchemaWriteExplanation": "Proposes new fields or field changes. Never applied automatically.",
+  "capabilitySchemaDeleteTitle": "Delete fields and collections",
+  "capabilitySchemaDeleteExplanation": "Proposes deleting fields or collections. Never applied automatically.",
+  "capabilityViewsWriteTitle": "Change views",
+  "capabilityViewsWriteExplanation": "Proposes view changes — filters, sort, columns. Never applied automatically.",
+  "capabilityUiNavigateTitle": "Link to cards",
+  "capabilityUiNavigateExplanation": "Shows links that open a card or view when you tap them.",
+  "coreSchemaCollectionNameRequired": "Collection name is required",
+  "coreSchemaFieldNameRequired": "Field name is required",
+  "coreSchemaDuplicateFieldName": "Duplicate field name \"{name}\"",
+  "@coreSchemaDuplicateFieldName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "coreSchemaTypeLocked": "The type of \"{name}\" is locked after save; add a new field instead",
+  "@coreSchemaTypeLocked": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "templatesTitle": "Start from a template",
+  "templatesSubtitle": "Ready-made collections you can change like any other.",
+  "templatesLoadFailed": "Couldn't load the templates.",
+  "templatesSampleHint": "Sample cards come along so you can see it working — delete them anytime.",
+  "templatesContents": "{collections, plural, =1{1 collection} other{{collections} collections}} · {cards, plural, =1{1 sample card} other{{cards} sample cards}}",
+  "@templatesContents": {
+    "placeholders": {
+      "collections": {
+        "type": "int"
+      },
+      "cards": {
+        "type": "int"
+      }
+    }
+  },
+  "templatesAdd": "Add to workspace",
+  "templatesAddFailed": "Couldn't add {name}. Check your connection.",
+  "@templatesAddFailed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "coreTrelloBoard": "Trello board",
+  "coreTrelloUntitledCard": "Untitled card",
+  "coreTrelloUntitledList": "Untitled list",
+  "coreTrelloUntitledField": "Untitled field",
+  "coreTrelloUntitledOption": "Untitled option",
+  "coreTrelloUntitledItem": "Untitled item",
+  "coreTrelloNoList": "No list",
+  "coreTrelloLabel": "Label",
+  "coreTrelloMember": "Member",
+  "coreTrelloName": "Name",
+  "coreTrelloDescription": "Description",
+  "coreTrelloList": "List",
+  "coreTrelloLabels": "Labels",
+  "coreTrelloMembers": "Members",
+  "coreTrelloStart": "Start",
+  "coreTrelloDue": "Due",
+  "coreTrelloDueDone": "Due done",
+  "coreTrelloAttachments": "Attachments",
+  "coreTrelloLink": "Trello link",
+  "coreTrelloArchived": "Archived",
+  "coreTrelloBoardView": "Board",
+  "coreTrelloItem": "Item",
+  "coreTrelloDone": "Done",
+  "coreTrelloChecklist": "Checklist",
+  "coreTrelloCard": "Card",
+  "coreTrelloComment": "Comment",
+  "coreTrelloAuthor": "Author",
+  "coreTrelloDate": "Date",
+  "coreTrelloChecklistItems": "{board} · Checklist items",
+  "@coreTrelloChecklistItems": {
+    "placeholders": {
+      "board": {
+        "type": "String"
+      }
+    }
+  },
+  "coreTrelloComments": "{board} · Comments",
+  "@coreTrelloComments": {
+    "placeholders": {
+      "board": {
+        "type": "String"
+      }
+    }
+  },
+  "coreTrelloFieldRenamed": "{field} (Trello field)",
+  "@coreTrelloFieldRenamed": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      }
+    }
+  },
+  "coreTrelloFieldRenamedNumbered": "{field} (Trello field {number})",
+  "@coreTrelloFieldRenamedNumbered": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      },
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "coreTrelloColorGreen": "Green",
+  "coreTrelloColorYellow": "Yellow",
+  "coreTrelloColorOrange": "Orange",
+  "coreTrelloColorRed": "Red",
+  "coreTrelloColorPurple": "Purple",
+  "coreTrelloColorBlue": "Blue",
+  "coreTrelloColorSky": "Sky",
+  "coreTrelloColorLime": "Lime",
+  "coreTrelloColorPink": "Pink",
+  "coreTrelloColorBlack": "Black",
+  "coreTrelloColorShade": "{shade, select, light{{color} light} dark{{color} dark} other{{color} {shade}}}",
+  "@coreTrelloColorShade": {
+    "placeholders": {
+      "color": {
+        "type": "String"
+      },
+      "shade": {
+        "type": "String"
+      }
+    }
+  },
+  "validationRequired": "{name} is required",
+  "@validationRequired": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "validationDateMin": "{name} must be on or after {date}",
+  "@validationDateMin": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "validationDateMax": "{name} must be on or before {date}",
+  "@validationDateMax": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "validationNumberMin": "{name} must be at least {min}",
+  "@validationNumberMin": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "min": {
+        "type": "String"
+      }
+    }
+  },
+  "validationNumberMax": "{name} must be at most {max}",
+  "@validationNumberMax": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "validationTooLong": "{name} must be at most {max} characters",
+  "@validationTooLong": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "validationOneFile": "{name} allows only one file",
+  "@validationOneFile": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "validationFileType": "{file} has an unsupported type for {name}",
+  "@validationFileType": {
+    "placeholders": {
+      "file": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "validationNoOption": "{name} has no option \"{option}\"",
+  "@validationNoOption": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "option": {
+        "type": "String"
+      }
+    }
+  },
+  "validationInvalidOption": "\"{option}\" is not a valid option for {name}",
+  "@validationInvalidOption": {
+    "placeholders": {
+      "option": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "validationBlankReference": "{name} contains a blank reference",
+  "@validationBlankReference": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "validationOneReference": "{name} may reference at most one object",
+  "@validationOneReference": {
+    "placeholders": {
+      "name": {
+        "type": "String"
       }
     }
   },

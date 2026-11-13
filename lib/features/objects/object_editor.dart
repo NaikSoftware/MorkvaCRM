@@ -12,6 +12,7 @@ import '../../core/automation/runner_api.dart';
 import '../../core/domain/automation/automation.dart' show AutomationStatus;
 import '../../core/domain/domain.dart';
 import '../../design/design.dart';
+import '../../l10n/l10n.dart';
 import '../automation/bloc/automation_runs_cubit.dart';
 import '../automation/bloc/modules_cubit.dart';
 import '../automation/view/automations_page.dart' show automationsOffline;
@@ -510,7 +511,9 @@ class _ObjectEditorState extends State<ObjectEditor> {
     final cubit = context.read<ObjectEditorCubit>();
     return BlocBuilder<ObjectEditorCubit, ObjectEditorState>(
       builder: (context, state) {
-        final errors = state.visibleErrors;
+        final errors = state.visibleErrorsWordedBy(
+          context.l10n.validationMessage,
+        );
         final layout = _layoutOf(state.collection);
         final gutter = widget.compact ? Spacing.md : Spacing.lg;
         final sections = layout.sections;

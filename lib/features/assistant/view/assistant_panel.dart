@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../bloc/assistant_state.dart';
 import 'assistant_actions.dart';
 import 'widgets/assistant_header.dart';
@@ -147,7 +148,7 @@ class _AssistantPanelState extends State<AssistantPanel> {
             child: Semantics(
               container: true,
               explicitChildNodes: true,
-              label: 'Ask Morkva',
+              label: context.l10n.assistantAskMorkva,
               child: FocusTraversalGroup(child: panel),
             ),
           );
@@ -161,7 +162,7 @@ class _AssistantPanelState extends State<AssistantPanel> {
         ? null
         : IconActionButton(
             icon: Icons.close_rounded,
-            tooltip: 'Close assistant',
+            tooltip: context.l10n.assistantCloseAssistant,
             onPressed: widget.onClose,
           );
     final historyButton = widget.historyBuilder == null
@@ -169,8 +170,8 @@ class _AssistantPanelState extends State<AssistantPanel> {
         : IconActionButton(
             icon: Icons.history_rounded,
             tooltip: history
-                ? 'Back to the conversation'
-                : 'Conversation history',
+                ? context.l10n.assistantBackToConversation
+                : context.l10n.assistantConversationHistory,
             onPressed: () => _setHistory(!history),
           );
     if (history) {
@@ -189,7 +190,7 @@ class _AssistantPanelState extends State<AssistantPanel> {
           if (state.items.isNotEmpty && state.availability.canSend)
             IconActionButton(
               icon: Icons.edit_square,
-              tooltip: 'New conversation',
+              tooltip: context.l10n.assistantNewConversation,
               onPressed: widget.actions.newThread,
             ),
           ?close,

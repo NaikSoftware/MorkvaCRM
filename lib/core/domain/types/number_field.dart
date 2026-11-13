@@ -84,6 +84,7 @@ class NumberFieldDefinition extends FieldDefinition {
             fieldId: id,
             code: ValidationError.outOfRange,
             message: '$name must be at least $min',
+            minimum: min,
           ),
         );
       }
@@ -93,6 +94,7 @@ class NumberFieldDefinition extends FieldDefinition {
             fieldId: id,
             code: ValidationError.outOfRange,
             message: '$name must be at most $max',
+            maximum: max,
           ),
         );
       }

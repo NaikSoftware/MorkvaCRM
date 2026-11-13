@@ -128,6 +128,35 @@ void main() {
       expect(_error('"open').offset, 0);
       expect(_error('').message, 'Enter a formula');
     });
+
+    test('errors carry a code and their parts for the UI to word', () {
+      final call = _error('ROUND({Name})');
+      expect(call.code, FormulaErrorCode.expectsNumbers);
+      expect(call.text, 'ROUND');
+      expect(call.message, 'ROUND expects numbers');
+      final branches = _error('IF({Paid}, 1, "a")');
+      expect(
+        (branches.code, branches.text, branches.left, branches.right),
+        (
+          FormulaErrorCode.branchTypesDiffer,
+          'IF',
+          FormulaType.number,
+          FormulaType.text,
+        ),
+      );
+      expect(branches.offset, 0);
+      final combine = _error('{Paid} * 2');
+      expect(
+        (combine.code, combine.text, combine.left, combine.right),
+        (
+          FormulaErrorCode.cannotCombine,
+          '*',
+          FormulaType.boolean,
+          FormulaType.number,
+        ),
+      );
+      expect(combine.message, '"*" can\'t combine Yes / No and Number');
+    });
   });
 
   test('result types', () {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
 import '../tokens/radii.dart';
 import '../tokens/spacing.dart';
 import 'buttons/primary_button.dart';
@@ -28,7 +29,7 @@ class MorkvaConfirmDialog extends StatefulWidget {
     required this.title,
     required this.message,
     required this.confirmLabel,
-    this.cancelLabel = 'Cancel',
+    this.cancelLabel,
     this.destructive = false,
     this.confirmText,
   });
@@ -36,7 +37,9 @@ class MorkvaConfirmDialog extends StatefulWidget {
   final String title;
   final String message;
   final String confirmLabel;
-  final String cancelLabel;
+
+  /// Defaults to "Cancel".
+  final String? cancelLabel;
 
   /// When true, the confirm button is tinted with the error role (a deletion or
   /// other irreversible action).
@@ -53,7 +56,7 @@ class MorkvaConfirmDialog extends StatefulWidget {
     required String title,
     required String message,
     required String confirmLabel,
-    String cancelLabel = 'Cancel',
+    String? cancelLabel,
     bool destructive = false,
     String? confirmText,
   }) {
@@ -108,7 +111,7 @@ class _MorkvaConfirmDialogState extends State<MorkvaConfirmDialog> {
                 const SizedBox(height: Spacing.md),
                 MorkvaTextField(
                   controller: _typed,
-                  label: 'Type “$confirmText” to confirm',
+                  label: context.l10n.designTypeToConfirm(confirmText),
                   hint: confirmText,
                   autofocus: true,
                   textInputAction: TextInputAction.done,
@@ -133,7 +136,7 @@ class _MorkvaConfirmDialogState extends State<MorkvaConfirmDialog> {
           runSpacing: Spacing.xs,
           children: [
             TextActionButton(
-              label: widget.cancelLabel,
+              label: widget.cancelLabel ?? context.l10n.commonCancel,
               onPressed: () => Navigator.of(context).pop(false),
             ),
             _ConfirmButton(

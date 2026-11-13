@@ -1,3 +1,4 @@
+import '../core_words.dart';
 import '../types/date_field.dart';
 import '../view/field_format.dart';
 
@@ -49,22 +50,18 @@ String dateBucketKey(DateTime start, DateBucket bucket) {
 }
 
 /// How the [bucket] starting on [start] reads: `Nov 9, 2026`,
-/// `Week of Nov 9, 2026`, `Nov 2026`, `Q4 2026`, `2026`.
+/// `Week of Nov 9, 2026`, `Nov 2026`, `Q4 2026`, `2026` (in English; the app
+/// sets Intl.defaultLocale and [CoreWords.current]).
 String dateBucketLabel(DateTime start, DateBucket bucket) {
-  final day = '${_months[start.month - 1]} ${start.day}, ${start.year}';
+  final day = localDateFormat('yMMMd').format(start);
   return switch (bucket) {
     DateBucket.day => day,
-    DateBucket.week => 'Week of $day',
-    DateBucket.month => '${_months[start.month - 1]} ${start.year}',
-    DateBucket.quarter => 'Q${(start.month - 1) ~/ 3 + 1} ${start.year}',
+    DateBucket.week => CoreWords.current.weekOf(day),
+    // Stand-alone month (LLL): nominative in Ukrainian.
+    DateBucket.month => localDateFormat('LLL y').format(start),
+    DateBucket.quarter => localDateFormat('QQQ y').format(start),
     DateBucket.year => '${start.year}',
   };
 }
-
-// The same short month names formatFieldValue shows dates with.
-const _months = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', //
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-];
 
 String _two(int n) => n.toString().padLeft(2, '0');

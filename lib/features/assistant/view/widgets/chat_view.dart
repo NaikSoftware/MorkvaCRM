@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/agent/agent_event.dart' show Receipt;
+import '../../../../l10n/l10n.dart';
 import '../../bloc/assistant_state.dart';
 import '../../bloc/chat_item.dart';
 import 'assistant_scope.dart';
@@ -123,7 +124,7 @@ class _AssistantChatViewState extends State<AssistantChatView> {
           action: journal == null
               ? null
               : SnackBarAction(
-                  label: 'Undo',
+                  label: context.l10n.commonUndo,
                   onPressed: () => actions.undo(journal),
                 ),
         ),

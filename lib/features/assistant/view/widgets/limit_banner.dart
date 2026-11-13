@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/agent/agent_event.dart' show RetryReason;
 import '../../../../design/design.dart';
+import '../../../../l10n/l10n.dart';
 import '../../bloc/assistant_state.dart';
 import 'assistant_scope.dart';
 
@@ -61,6 +62,7 @@ class _LimitBannerViewState extends State<LimitBannerView> {
     // banner instead of on every tick.
     final String spoken;
     final bool retry;
+    final l10n = context.l10n;
     switch (banner) {
       case RetryBanner(:final until, :final reason):
         final left = until.difference(scope.now());
@@ -68,20 +70,18 @@ class _LimitBannerViewState extends State<LimitBannerView> {
             ? 0
             : (left.inMilliseconds / 1000).ceil();
         text = switch (reason) {
-          RetryReason.tpm => 'This conversation is large; waiting $seconds s.',
+          RetryReason.tpm => l10n.assistantWaitLarge(seconds),
           _ =>
             seconds == 0
-                ? 'Gemini is busy. Retrying now…'
-                : 'Gemini is busy. Retrying in $seconds s.',
+                ? l10n.assistantBusyRetryingNow
+                : l10n.assistantBusyRetryingIn(seconds),
         };
         spoken = reason == RetryReason.tpm
-            ? 'This conversation is large; waiting before it continues.'
-            : 'Gemini is busy. Retrying shortly.';
+            ? l10n.assistantWaitLargeSpoken
+            : l10n.assistantBusyRetryingShortly;
         retry = seconds > 0;
       case DailyLimitBanner(:final resetsAt):
-        text =
-            'Today’s free AI limit is used up. It resets at '
-            '${clockTime(resetsAt)}.';
+        text = l10n.assistantDailyLimit(clockTime(resetsAt));
         spoken = text;
         retry = false;
     }
@@ -134,7 +134,7 @@ class _LimitBannerViewState extends State<LimitBannerView> {
             if (retry)
               PressableScale(
                 onPressed: scope.actions.retryNow,
-                semanticLabel: 'Retry now',
+                semanticLabel: l10n.assistantRetryNow,
                 borderRadius: Radii.mdAll,
                 child: SizedBox(
                   height: 44,
@@ -143,7 +143,7 @@ class _LimitBannerViewState extends State<LimitBannerView> {
                     child: Align(
                       widthFactor: 1,
                       child: Text(
-                        'Retry now',
+                        l10n.assistantRetryNow,
                         style: theme.textTheme.labelLarge?.copyWith(
                           fontSize: 13,
                           color: fg,

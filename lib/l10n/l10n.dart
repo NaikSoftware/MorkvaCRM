@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'app_localizations.dart';
 
 export 'app_localizations.dart';
+export 'core_labels.dart';
 
 /// English, for contexts with no localizations delegate (bare test harnesses).
 final _english = lookupAppLocalizations(const Locale('en'));

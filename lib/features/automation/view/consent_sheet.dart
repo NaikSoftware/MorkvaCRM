@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/domain/automation/automation.dart';
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../bloc/modules_cubit.dart';
 import '../widgets/radio_row.dart';
 import '../widgets/reason_copy.dart';
@@ -280,7 +281,7 @@ class CapabilityRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final copy = kCapabilityCopy[cap];
+    final l10n = context.l10n;
     final strike = removed
         ? const TextStyle(decoration: TextDecoration.lineThrough)
         : null;
@@ -310,7 +311,7 @@ class CapabilityRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  copy?.title ?? cap,
+                  l10n.capabilityTitle(cap),
                   style: theme.textTheme.titleSmall
                       ?.merge(strike)
                       .copyWith(
@@ -318,7 +319,7 @@ class CapabilityRow extends StatelessWidget {
                       ),
                 ),
                 Text(
-                  [copy?.explanation ?? '', ?extra].join(' · '),
+                  [l10n.capabilityExplanation(cap), ?extra].join(' · '),
                   style: theme.textTheme.bodySmall
                       ?.merge(strike)
                       .copyWith(color: scheme.onSurfaceVariant),

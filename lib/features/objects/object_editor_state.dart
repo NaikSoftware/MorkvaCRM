@@ -141,18 +141,34 @@ class ObjectEditorState extends Equatable {
 
   /// Every current error (input error first, else the first rule broken),
   /// whether shown yet or not.
-  Map<String, String> get errors => {
+  Map<String, String> get errors => errorsWordedBy(_inEnglish);
+
+  /// [errors], each broken rule worded by [describe].
+  Map<String, String> errorsWordedBy(
+    String Function(FieldDefinition field, ValidationError error) describe,
+  ) => {
     for (final field in collection.fields)
       if (!readOnlyFieldIds.contains(field.id))
         field.id:
             ?(inputErrors[field.id] ??
-            field.validate(valueOf(field)).firstOrNull?.message),
+            switch (field.validate(valueOf(field)).firstOrNull) {
+              final error? => describe(field, error),
+              null => null,
+            }),
   };
+
+  static String _inEnglish(FieldDefinition _, ValidationError error) =>
+      error.message;
 
   /// The errors the form shows now: touched fields, or all after a save
   /// attempt.
-  Map<String, String> get visibleErrors {
-    final all = errors;
+  Map<String, String> get visibleErrors => visibleErrorsWordedBy(_inEnglish);
+
+  /// [visibleErrors], each broken rule worded by [describe].
+  Map<String, String> visibleErrorsWordedBy(
+    String Function(FieldDefinition field, ValidationError error) describe,
+  ) {
+    final all = errorsWordedBy(describe);
     if (showAllErrors) return all;
     return {
       for (final e in all.entries)

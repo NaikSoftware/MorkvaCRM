@@ -32,6 +32,7 @@ import '../core/automation/engine/script_engine.dart';
 import '../core/automation/runner_api.dart';
 import '../core/automation/store_catalog.dart';
 import '../core/domain/automation/automation.dart';
+import '../core/domain/core_words.dart';
 import '../core/harness/session/harness_session.dart';
 import '../design/design.dart';
 import '../features/assistant/bloc/assistant_bloc.dart';
@@ -380,6 +381,8 @@ class _MorkvaAppState extends State<MorkvaApp> {
             builder: (context, child) {
               // DateFormat in lib/core (no BuildContext) reads this.
               Intl.defaultLocale = Localizations.localeOf(context).toString();
+              // So do core's fallback words ("Untitled", "Yes"…).
+              CoreWords.current = context.l10n.coreWords;
               final router = KeyedSubtree(key: _routerKey, child: child!);
               final cubits = _cubits;
               if (cubits == null) return router;
