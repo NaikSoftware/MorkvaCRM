@@ -3,13 +3,16 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../api/auth/auth_cubit.dart';
+import '../../app/shell/app_shell.dart';
 import '../../design/design.dart';
 import '../automation/widgets/run_indicator.dart';
 import 'import/trello_import_sheet.dart';
 
 /// Settings: the workspace's Automations entry (the phone's way in; wide
 /// layouts also have it in the sidebar), imports from other apps and
-/// sign-out, in a 720 px column on the page title's left edge.
+/// sign-out. Wide, laid out like the Automations page: a centred 1040 px
+/// column on a 48 px gutter carrying its own title (the shell draws no
+/// header); on a phone, full width on the shell header's 16 px gutter.
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
@@ -20,22 +23,40 @@ class SettingsPage extends StatelessWidget {
     final sky = (theme.brightness == Brightness.light
         ? CollectionTints.light
         : CollectionTints.dark)[2];
+    final wide =
+        MediaQuery.sizeOf(context).width >= AppShell.expandedBreakpoint;
+    final gutter = wide ? Spacing.xxl : Spacing.md;
+    // The scroll view spans the page, so the wheel works beside the column.
     return SingleChildScrollView(
-      // The shell header's gutter, so the title and the column share an edge.
-      // with the header's own sm bottom padding, a lg gap under the title.
-      padding: const EdgeInsets.fromLTRB(
-        Spacing.md,
-        Spacing.sm,
-        Spacing.md,
-        Spacing.lg,
-      ),
       child: Align(
-        alignment: Alignment.topLeft,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 720),
+        alignment: Alignment.topCenter,
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 1040 + 2 * Spacing.xxl),
+          // Phone: with the shell header's sm bottom padding, a lg gap under
+          // its title.
+          padding: EdgeInsets.fromLTRB(
+            gutter,
+            wide ? Spacing.lg : Spacing.sm,
+            gutter,
+            Spacing.lg,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (wide) ...[
+                ConstrainedBox(
+                  // The Automations header's title row height.
+                  constraints: const BoxConstraints(minHeight: 44),
+                  child: Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: Text(
+                      'Settings',
+                      style: theme.textTheme.headlineSmall,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: Spacing.md),
+              ],
               const _SectionLabel('Workspace'),
               ListTileCard(
                 title: 'Automations',

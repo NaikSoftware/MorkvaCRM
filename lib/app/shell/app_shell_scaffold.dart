@@ -351,13 +351,15 @@ class _ShellViewState extends State<_ShellView> {
               : inAutomations
               ? 'Automations'
               : 'Collections',
-          // Wide, All collections and Automations draw their own header; a
-          // collection and the automation detail pages always do.
+          // Wide, All collections, Automations and Settings draw their own
+          // header; a collection and the automation detail pages always do.
           header:
               inCollection ||
                   widget.automationsDetail ||
                   (wide &&
-                      (place == ShellPlace.allCollections || inAutomations))
+                      (place == ShellPlace.allCollections ||
+                          inAutomations ||
+                          inSettings))
               ? const SizedBox.shrink()
               : null,
           // Wide, the sidebar is the way back and carries the brand.
