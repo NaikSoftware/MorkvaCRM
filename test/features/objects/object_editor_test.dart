@@ -53,6 +53,31 @@ final _laidOut = deals.copyWith(
   ),
 );
 
+/// Deals laid out as one titled section holding a single row of [spans]
+/// over Name, Amount, Stage, Due (in that order).
+Collection _row(List<int> spans) {
+  const ids = ['name', 'amount', 'stage', 'due'];
+  return deals.copyWith(
+    layout: CardLayout(
+      sections: [
+        LayoutSection(
+          id: 's1',
+          title: 'Deal',
+          rows: [
+            LayoutRow(
+              id: 'r1',
+              cells: [
+                for (var i = 0; i < spans.length; i++)
+                  LayoutCell(fieldId: ids[i], span: spans[i]),
+              ],
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
 /// Holds [saveObject] until [gate] completes.
 class _GatedRepo extends FakeDataRepository {
   _GatedRepo(super.initial);
@@ -150,6 +175,105 @@ void main() {
       await tester.tap(_inEditor(find.text('Notes')));
       await tester.pumpAndSettle();
       expect(_inEditor(find.text('Due')), findsOneWidget);
+    });
+
+    testWidgets('dialog: rows follow their spans, as on the layout canvas', (
+      tester,
+    ) async {
+      // Was: any cell under 240 px stacked the whole row, so three columns
+      // or an 8 | 4 split never showed in the 720 px dialog.
+      for (final spans in [
+        [4, 4, 4],
+        [8, 4],
+        [3, 3, 3, 3],
+        [6, 3],
+      ]) {
+        await _open(tester, collection: _row(spans));
+        final labels = [
+          for (final n in ['Name', 'Amount', 'Stage', 'Due'].take(spans.length))
+            tester.getTopLeft(_inEditor(find.text(n)).first),
+        ];
+        final form = tester.getSize(find.byType(ObjectEditor)).width;
+        final columnWidth = (form - 2 * Spacing.lg) / kLayoutColumns;
+        var column = 0;
+        for (var i = 0; i < spans.length; i++) {
+          expect(labels[i].dy, labels.first.dy, reason: '$spans cell $i');
+          expect(
+            labels[i].dx - labels.first.dx,
+            closeTo(column * columnWidth, 24),
+            reason: '$spans cell $i',
+          );
+          column += spans[i];
+        }
+        Navigator.of(tester.element(find.byType(ObjectEditor))).pop();
+        await tester.pumpAndSettle();
+      }
+    });
+
+    testWidgets('dialog: a lone narrowed cell keeps its width', (tester) async {
+      await _open(tester, collection: _row([6]));
+      final form = tester.getSize(find.byType(ObjectEditor)).width;
+      expect(tester.getSize(_fields.first).width, lessThan(form / 2));
+    });
+
+    testWidgets('every field type fits a 2-column cell', (tester) async {
+      const fields = <FieldDefinition>[
+        TextFieldDefinition(id: 'f0', name: 'Text', isRequired: true),
+        NumberFieldDefinition(id: 'f1', name: 'Number', unitLabel: 'USD'),
+        stageField,
+        companyField,
+        meetingField,
+        BooleanFieldDefinition(id: 'f5', name: 'Flag'),
+        AutoNumberFieldDefinition(id: 'f6', name: 'No.'),
+        MultiSelectFieldDefinition(
+          id: 'f7',
+          name: 'Tags',
+          options: [SelectOption(id: 'a', label: 'Alpha')],
+        ),
+        FileFieldDefinition(id: 'f8', name: 'Files'),
+        CalculatedFieldDefinition(
+          id: 'f9',
+          name: 'Total',
+          declaredOutputType: 'number',
+          expression: '{f1} * 2',
+        ),
+        TextFieldDefinition(id: 'f10', name: 'Notes', multiline: true),
+        dueField,
+      ];
+      const span = 2;
+      final collection = deals.copyWith(
+        fields: fields,
+        layout: CardLayout(
+          sections: [
+            LayoutSection(
+              id: 's1',
+              rows: [
+                for (var r = 0; r < fields.length; r += kLayoutColumns ~/ span)
+                  LayoutRow(
+                    id: 'r$r',
+                    cells: [
+                      for (final f
+                          in fields.skip(r).take(kLayoutColumns ~/ span))
+                        LayoutCell(fieldId: f.id, span: span),
+                    ],
+                  ),
+              ],
+            ),
+          ],
+        ),
+      );
+      // The dialog, and the narrowest full page that still keeps spans.
+      for (final size in const [Size(1280, 900), Size(640, 900)]) {
+        await _open(tester, collection: collection, size: size);
+        expect(tester.takeException(), isNull, reason: '$size');
+        expect(
+          tester.getTopLeft(_inEditor(find.text('Stage')).first).dy,
+          tester.getTopLeft(_inEditor(find.text('Number')).first).dy,
+          reason: '$size: span-2 cells sit side by side',
+        );
+        Navigator.of(tester.element(find.byType(ObjectEditor))).pop();
+        await tester.pumpAndSettle();
+      }
     });
 
     testWidgets('phone: full page with Save in the app bar; cells stack', (
