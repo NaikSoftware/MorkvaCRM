@@ -1,0 +1,159 @@
+{
+  "id": "64a1f0c2b1a2c3d4e5f60001",
+  "name": "Sales Pipeline",
+  "desc": "Leads and deals",
+  "closed": false,
+  "shortUrl": "https://trello.com/b/AbCd1234",
+  "prefs": { "background": "blue", "backgroundColor": "#0079BF" },
+  "labelNames": { "green": "Won", "red": "Lost", "sky": "", "purple_dark": "" },
+  "lists": [
+    { "id": "64a1f0c2b1a2c3d4e5f60102", "name": "Old", "closed": true, "pos": 32768 },
+    { "id": "64a1f0c2b1a2c3d4e5f60101", "name": "Leads", "closed": false, "pos": 16384 },
+    { "id": "64a1f0c2b1a2c3d4e5f60103", "name": "  ", "closed": false, "pos": 49152 },
+    { "id": "64a1f0c2b1a2c3d4e5f60104", "name": "leads", "closed": false, "pos": "65536" }
+  ],
+  "labels": [
+    { "id": "64a1f0c2b1a2c3d4e5f60201", "name": "Won", "color": "green", "uses": 1 },
+    { "id": "64a1f0c2b1a2c3d4e5f60202", "name": "VIP", "color": "purple_dark", "uses": 1 },
+    { "id": "64a1f0c2b1a2c3d4e5f60203", "name": "", "color": null, "uses": 1 },
+    { "id": "64a1f0c2b1a2c3d4e5f60204", "name": "", "color": "sky", "uses": 1 },
+    { "id": "64a1f0c2b1a2c3d4e5f60205", "name": "Won", "color": "red", "uses": 1 },
+    { "id": "64a1f0c2b1a2c3d4e5f60206", "name": "Unused", "color": "lime_light", "uses": 0 }
+  ],
+  "members": [
+    { "id": "5191197f9433cf5507006338", "fullName": "Ann Lee", "username": "annlee" },
+    { "id": "5191197f9433cf5507006339", "fullName": "", "username": "bob" }
+  ],
+  "customFields": [
+    { "id": "cf01", "name": "Notes", "type": "text", "pos": 16384 },
+    { "id": "cf02", "name": "Deal size", "type": "number", "pos": 32768 },
+    { "id": "cf03", "name": "Signed", "type": "date", "pos": 49152 },
+    { "id": "cf04", "name": "Paid", "type": "checkbox", "pos": 65536 },
+    {
+      "id": "cf05", "name": "Source", "type": "list", "pos": 81920,
+      "options": [
+        { "id": "opt2", "value": { "text": "Ads" }, "color": "blue", "pos": 32768 },
+        { "id": "opt1", "value": { "text": "Referral" }, "color": "none", "pos": 16384 }
+      ]
+    },
+    { "id": "cf06", "name": "due", "type": "text", "pos": 98304 },
+    { "id": "cf07", "name": "Empty", "type": "text", "pos": 114688 }
+  ],
+  "cards": [
+    {
+      "id": "64a1f0c2b1a2c3d4e5f60301", "name": "Acme Corp", "desc": "**Hot** lead",
+      "idList": "64a1f0c2b1a2c3d4e5f60101", "closed": false, "pos": 65535,
+      "due": "2026-12-01T12:00:00.000Z", "start": "2026-11-20T12:00:00.000Z", "dueComplete": false,
+      "idLabels": ["64a1f0c2b1a2c3d4e5f60201", "64a1f0c2b1a2c3d4e5f60202", "64a1f0c2b1a2c3d4e5f60205"],
+      "idMembers": ["5191197f9433cf5507006338"],
+      "shortUrl": "https://trello.com/c/Xy12Ab34", "dateLastActivity": "2026-11-10T09:30:00.000Z",
+      "attachments": [
+        { "id": "64a1f0c2b1a2c3d4e5f60501", "name": "https://acme.com", "url": "https://acme.com", "isUpload": false },
+        { "id": "64a1f0c2b1a2c3d4e5f60502", "name": "contract.png", "url": "https://trello.com/1/cards/x/attachments/y/download/contract.png", "isUpload": true }
+      ],
+      "customFieldItems": [
+        { "id": "i1", "idCustomField": "cf01", "value": { "text": "Call Tue" } },
+        { "id": "i2", "idCustomField": "cf02", "value": { "number": "12500.5" } },
+        { "id": "i3", "idCustomField": "cf03", "value": { "date": "2026-11-20T15:00:00.000Z" } },
+        { "id": "i4", "idCustomField": "cf04", "value": { "checked": "true" } },
+        { "id": "i5", "idCustomField": "cf05", "idValue": "opt2" },
+        { "id": "i6", "idCustomField": "cf06", "value": { "text": "ASAP" } },
+        { "id": "i7", "idCustomField": "cf07", "value": { "text": "   " } }
+      ]
+    },
+    {
+      "id": "64a1f0c3b1a2c3d4e5f60302", "name": "Beta Ltd", "desc": "",
+      "idList": "64a1f0c2b1a2c3d4e5f60101", "closed": false, "pos": 1024,
+      "due": null, "start": null, "dueComplete": true,
+      "idLabels": ["64a1f0c2b1a2c3d4e5f60203", "64a1f0c2b1a2c3d4e5f60204", "64a1f0c2b1a2c3d4e5f6dead"],
+      "idMembers": ["5191197f9433cf5507006339", "5191197f9433cf550700dead"],
+      "shortUrl": "https://trello.com/c/Beta0001", "dateLastActivity": "2026-11-11T09:30:00.000Z",
+      "attachments": [],
+      "customFieldItems": [
+        { "id": "i8", "idCustomField": "cf02", "value": { "number": 7 } },
+        { "id": "i9", "idCustomField": "cf04", "value": { "checked": true } },
+        { "id": "i10", "idCustomField": "cf05", "idValue": "opt-missing" },
+        { "id": "i11", "idCustomField": "cf02", "value": { "number": "NaN" } }
+      ]
+    },
+    {
+      "id": "64a1f0c4b1a2c3d4e5f60303", "name": "Gamma (old list)", "desc": "In an archived list",
+      "idList": "64a1f0c2b1a2c3d4e5f60102", "closed": false, "pos": 16384,
+      "idLabels": [], "idMembers": [], "shortUrl": "https://trello.com/c/Gamma001",
+      "dateLastActivity": "2026-10-01T00:00:00.000Z"
+    },
+    {
+      "id": "64a1f0c5b1a2c3d4e5f60304", "name": "Delta (archived)", "desc": "",
+      "idList": "64a1f0c2b1a2c3d4e5f60101", "closed": true, "pos": 99999,
+      "idLabels": [], "idMembers": [], "shortUrl": "https://trello.com/c/Delta001",
+      "dateLastActivity": "not a date"
+    },
+    {
+      "id": "64a1f0c6b1a2c3d4e5f60305", "name": "   ",
+      "idList": "64a1f0c2b1a2c3d4e5f60103", "closed": false, "pos": 16384,
+      "shortUrl": "https://trello.com/c/Blank001"
+    },
+    {
+      "id": "64a1f0c7b1a2c3d4e5f60306", "name": "Orphan",
+      "idList": "64a1f0c2b1a2c3d4e5f6dead", "closed": false, "pos": 1,
+      "shortUrl": "https://trello.com/c/Orphan01"
+    },
+    "not a card",
+    { "name": "no id" }
+  ],
+  "checklists": [
+    {
+      "id": "64a1f0c2b1a2c3d4e5f60402", "name": "Docs", "idCard": "64a1f0c2b1a2c3d4e5f60301", "pos": 32768,
+      "checkItems": [
+        { "id": "64a1f0d0b1a2c3d4e5f60411", "name": "Sign contract", "pos": 16384, "state": "incomplete" }
+      ]
+    },
+    {
+      "id": "64a1f0c2b1a2c3d4e5f60401", "name": "Onboarding", "idCard": "64a1f0c2b1a2c3d4e5f60301", "pos": 16384,
+      "checkItems": [
+        { "id": "ci2", "name": "Kickoff call", "pos": 32768, "state": "incomplete", "due": "2026-11-25T15:00:00.000Z" },
+        { "id": "ci1", "name": "Send NDA", "pos": 16384, "state": "complete", "due": null }
+      ]
+    },
+    {
+      "id": "64a1f0c2b1a2c3d4e5f60403", "name": "Wrap-up", "idCard": "64a1f0c5b1a2c3d4e5f60304", "pos": 16384,
+      "checkItems": [
+        { "id": "ci3", "name": "Archive files", "pos": 16384, "state": "complete" }
+      ]
+    },
+    {
+      "id": "64a1f0c2b1a2c3d4e5f60404", "name": "Ghost", "idCard": "64a1f0c2b1a2c3d4e5f6dead", "pos": 16384,
+      "checkItems": [
+        { "id": "ci4", "name": "Never imported", "pos": 16384, "state": "complete" }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "id": "64a1f0e0b1a2c3d4e5f60601", "type": "commentCard", "date": "2026-11-03T08:00:00.000Z",
+      "memberCreator": { "id": "5191197f9433cf5507006338", "fullName": "Ann Lee", "username": "annlee" },
+      "data": { "text": "Sent proposal", "card": { "id": "64a1f0c2b1a2c3d4e5f60301", "name": "Acme Corp" } }
+    },
+    {
+      "id": "64a1f0e1b1a2c3d4e5f60602", "type": "commentCard", "date": "2026-11-04T08:00:00.000Z",
+      "memberCreator": { "id": "5191197f9433cf5507006339", "fullName": "", "username": "bob" },
+      "data": { "text": "Follow up next week", "card": { "id": "64a1f0c2b1a2c3d4e5f60301", "name": "Acme Corp" } }
+    },
+    {
+      "id": "64a1f0e2b1a2c3d4e5f60603", "type": "commentCard", "date": "2026-11-05T08:00:00.000Z",
+      "memberCreator": { "fullName": "Ann Lee" },
+      "data": { "text": "On a deleted card", "card": { "id": "64a1f0c2b1a2c3d4e5f6dead", "name": "Gone" } }
+    },
+    {
+      "id": "64a1f0e3b1a2c3d4e5f60604", "type": "commentCard", "date": "2026-11-06T08:00:00.000Z",
+      "memberCreator": { "fullName": "Ann Lee" },
+      "data": { "text": "Closed it", "card": { "id": "64a1f0c5b1a2c3d4e5f60304", "name": "Delta (archived)" } }
+    },
+    {
+      "id": "64a1f0e4b1a2c3d4e5f60605", "type": "updateCard", "date": "2026-11-07T08:00:00.000Z",
+      "data": { "card": { "id": "64a1f0c2b1a2c3d4e5f60301" } }
+    }
+  ],
+  "pluginData": [],
+  "powerUps": []
+}

@@ -189,6 +189,27 @@ void main() {
     expect(find.byKey(const ValueKey('indicator-ring')), findsOneWidget);
   });
 
+  testWidgets('Settings: the Trello row opens the import sheet', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+    router.go('/settings');
+    await tester.pumpAndSettle();
+    expect(find.text('WORKSPACE'), findsOneWidget);
+    expect(find.text('IMPORT FROM OTHER APPS'), findsOneWidget);
+    expect(find.text('Sign out'), findsOneWidget);
+
+    await tester.tap(find.text('Trello'));
+    await tester.pumpAndSettle();
+    expect(find.text('Import from Trello'), findsOneWidget);
+    expect(find.text('Step 1 of 2 · Add boards'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Close'));
+    await tester.pumpAndSettle();
+    expect(find.text('Import from Trello'), findsNothing);
+    expect(router.state.uri.toString(), '/settings');
+  });
+
   testWidgets('the shell provides the automations host', (tester) async {
     await pumpApp(tester);
     router.go('/automations');
