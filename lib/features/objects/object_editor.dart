@@ -1127,9 +1127,13 @@ class _Banner extends StatelessWidget {
 // Layout
 // -----------------------------------------------------------------------------
 
-/// Cells narrower than this stack full width instead (same rule as the card
-/// preview).
-const double _minCellWidth = 240;
+/// Below this form width every cell stacks full width; at or above it rows
+/// follow their 12-column spans, as drawn on the layout canvas.
+const double _stackBelowWidth = 600;
+
+/// A row with a cell narrower than this stacks too (only span-1 cells get
+/// there): a switch or a read-only value can't fit.
+const double _minCellWidth = 80;
 const double _cellGap = Spacing.md;
 
 class _Section extends StatelessWidget {
@@ -1211,8 +1215,9 @@ class _Section extends StatelessWidget {
   }
 }
 
-/// One layout row: cells side by side by their 12-column spans, or stacked
-/// when any cell would be narrower than [_minCellWidth].
+/// One layout row: cells side by side by their 12-column spans (unused
+/// columns stay empty), or stacked when the form is narrower than
+/// [_stackBelowWidth] or a cell narrower than [_minCellWidth].
 class _Row extends StatelessWidget {
   const _Row({required this.row, required this.cellBuilder});
 
@@ -1222,13 +1227,15 @@ class _Row extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cells = row.cells;
-    if (cells.length == 1) return cellBuilder(cells.single.fieldId);
+    if (cells.length == 1 && cells.single.span == kLayoutColumns) {
+      return cellBuilder(cells.single.fieldId);
+    }
     return LayoutBuilder(
       builder: (context, constraints) {
         final usable = constraints.maxWidth - _cellGap * (cells.length - 1);
-        final stack = cells.any(
-          (c) => usable * c.span / kLayoutColumns < _minCellWidth,
-        );
+        final stack =
+            constraints.maxWidth < _stackBelowWidth ||
+            cells.any((c) => usable * c.span / kLayoutColumns < _minCellWidth);
         if (stack) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
