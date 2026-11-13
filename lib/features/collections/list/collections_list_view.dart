@@ -80,33 +80,24 @@ class CollectionsListView extends StatelessWidget {
   }
 }
 
-/// The populated state: the page header (title, filter, create actions), then
-/// the pinned collections and everything else as card grids.
-class _CollectionsContent extends StatefulWidget {
+/// The populated state: the page header (title, count, create actions), then
+/// the pinned collections and everything else as card grids. Finding a
+/// collection by name is the shell's Jump to.
+class _CollectionsContent extends StatelessWidget {
   const _CollectionsContent({required this.collections});
 
   final List<Collection> collections;
-
-  @override
-  State<_CollectionsContent> createState() => _CollectionsContentState();
-}
-
-class _CollectionsContentState extends State<_CollectionsContent> {
-  String _filter = '';
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final pins = context.watch<PinnedCollectionsCubit>().state;
-    final all = widget.collections;
+    final all = collections;
     final pinned = pinnedCollections(pins, all);
-    final q = _filter.trim().toLowerCase();
-    bool matches(Collection c) => q.isEmpty || c.name.toLowerCase().contains(q);
-    final shownPinned = pinned.where(matches).toList();
     final others = [
       for (final c in all)
-        if (!pins.contains(c.id) && matches(c)) c,
+        if (!pins.contains(c.id)) c,
     ];
 
     return LayoutBuilder(
@@ -114,15 +105,14 @@ class _CollectionsContentState extends State<_CollectionsContent> {
         final isWide =
             constraints.maxWidth >= CollectionsListView._gridBreakpoint;
         final gutter = isWide ? Spacing.xl : Spacing.md;
-        // Title, filter and both buttons on one line need room.
-        final inlineActions = constraints.maxWidth >= 1000;
-        final filter = SearchField(
-          hintText: 'Filter collections',
-          onChanged: (v) => setState(() => _filter = v),
-        );
+        // Labelled buttons beside the title need room; else icon buttons.
+        final labelled = constraints.maxWidth >= 760;
         final count =
             '${all.length} ${all.length == 1 ? 'collection' : 'collections'}'
-            '${pinned.isEmpty ? '' : ' · ${pinned.length} pinned to the sidebar'}';
+            '${pinned.isEmpty ? '' : ' · ${pinned.length} pinned${isWide ? ' to the sidebar' : ''}'}';
+        final countStyle = theme.textTheme.bodyMedium?.copyWith(
+          color: scheme.onSurfaceVariant,
+        );
 
         Widget caption(String text, {IconData? icon}) => SliverToBoxAdapter(
           child: Padding(
@@ -188,15 +178,14 @@ class _CollectionsContentState extends State<_CollectionsContent> {
                 0,
               ),
               sliver: SliverToBoxAdapter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                child: Row(
+                  crossAxisAlignment: isWide
+                      ? CrossAxisAlignment.end
+                      : CrossAxisAlignment.center,
                   children: [
-                    if (isWide)
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Expanded(
-                            child: Column(
+                    Expanded(
+                      child: isWide
+                          ? Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
@@ -204,82 +193,52 @@ class _CollectionsContentState extends State<_CollectionsContent> {
                                   style: theme.textTheme.headlineMedium,
                                 ),
                                 const SizedBox(height: Spacing.xxs),
-                                Text(
-                                  count,
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: scheme.onSurfaceVariant,
-                                  ),
-                                ),
+                                Text(count, style: countStyle),
                               ],
-                            ),
-                          ),
-                          if (inlineActions) ...[
-                            SizedBox(width: 260, child: filter),
-                            const SizedBox(width: Spacing.sm),
-                            SecondaryButton(
-                              label: 'From template',
-                              icon: Icons.auto_awesome_mosaic_outlined,
-                              onPressed: () =>
-                                  CollectionsListView._fromTemplate(context),
-                            ),
-                            const SizedBox(width: Spacing.xs),
-                            PrimaryButton(
-                              label: 'New collection',
-                              icon: Icons.add,
-                              onPressed: () =>
-                                  CollectionsListView._create(context),
-                            ),
-                          ],
-                        ],
+                            )
+                          // Phone: the shell header carries the title.
+                          : Text(count, style: countStyle),
+                    ),
+                    const SizedBox(width: Spacing.sm),
+                    if (labelled) ...[
+                      SecondaryButton(
+                        label: 'From template',
+                        icon: Icons.auto_awesome_mosaic_outlined,
+                        onPressed: () =>
+                            CollectionsListView._fromTemplate(context),
                       ),
-                    if (!inlineActions) ...[
-                      if (isWide) const SizedBox(height: Spacing.md),
-                      Row(
-                        children: [
-                          Expanded(child: filter),
-                          const SizedBox(width: Spacing.xs),
-                          IconButton.outlined(
-                            tooltip: 'From template',
-                            icon: const Icon(
-                              Icons.auto_awesome_mosaic_outlined,
-                            ),
-                            onPressed: () =>
-                                CollectionsListView._fromTemplate(context),
-                          ),
-                          IconButton.filled(
-                            tooltip: 'New collection',
-                            icon: const Icon(Icons.add),
-                            onPressed: () =>
-                                CollectionsListView._create(context),
-                          ),
-                        ],
+                      const SizedBox(width: Spacing.xs),
+                      PrimaryButton(
+                        label: 'New collection',
+                        icon: Icons.add,
+                        onPressed: () => CollectionsListView._create(context),
+                      ),
+                    ] else ...[
+                      IconButton.outlined(
+                        tooltip: 'From template',
+                        icon: const Icon(Icons.auto_awesome_mosaic_outlined),
+                        onPressed: () =>
+                            CollectionsListView._fromTemplate(context),
+                      ),
+                      const SizedBox(width: Spacing.xs),
+                      IconButton.filled(
+                        tooltip: 'New collection',
+                        icon: const Icon(Icons.add),
+                        onPressed: () => CollectionsListView._create(context),
                       ),
                     ],
                   ],
                 ),
               ),
             ),
-            if (shownPinned.isNotEmpty) ...[
+            if (pinned.isNotEmpty) ...[
               caption('PINNED', icon: Icons.push_pin),
-              grid(shownPinned),
+              grid(pinned),
             ],
             if (others.isNotEmpty) ...[
               caption(pinned.isEmpty ? 'COLLECTIONS' : 'EVERYTHING ELSE'),
               grid(others),
             ],
-            if (shownPinned.isEmpty && others.isEmpty)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(Spacing.xl),
-                  child: Text(
-                    'No collection matches "${_filter.trim()}"',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-              ),
             const SliverToBoxAdapter(child: SizedBox(height: Spacing.xxl)),
           ],
         );
