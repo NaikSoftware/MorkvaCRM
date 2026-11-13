@@ -992,6 +992,10 @@ class _ImportingStep extends StatelessWidget {
     final paused = failure != null && !state.running;
     final written = state.writtenObjects;
     final total = state.totalObjects;
+    // The total spans checklist items and comments too, so say so.
+    final what = state.rows.any((r) => r.kind != ImportedKind.board)
+        ? 'Writing cards and items'
+        : 'Writing cards';
     return AutomationSheetFrame(
       header: const SheetHeader(
         icon: _boardIcon,
@@ -1012,7 +1016,7 @@ class _ImportingStep extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.baseline,
           textBaseline: TextBaseline.alphabetic,
           children: [
-            Expanded(child: Text('Writing cards', style: _strong(theme))),
+            Expanded(child: Text(what, style: _strong(theme))),
             Text(
               '${_n(written)} of ${_n(total)}',
               style: _figures(
@@ -1032,7 +1036,7 @@ class _ImportingStep extends StatelessWidget {
           color: paused ? semantic.warning : scheme.primary,
           // The value must stay numeric (a percentage); the count goes in
           // the label.
-          semanticsLabel: 'Writing cards, ${_n(written)} of ${_n(total)}',
+          semanticsLabel: '$what, ${_n(written)} of ${_n(total)}',
         ),
         if (!paused) ...[
           const SizedBox(height: Spacing.xs),
