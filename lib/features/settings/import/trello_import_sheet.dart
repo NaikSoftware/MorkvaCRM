@@ -1170,7 +1170,7 @@ class _DoneStep extends StatelessWidget {
         title: 'Your boards are in',
         subtitle:
             '${_count(state.rows.length, 'collection')} · '
-            '${_count(state.totalObjects, 'card')}',
+            '${_count(state.rows.where((r) => r.kind == ImportedKind.board).fold(0, (n, r) => n + r.total), 'card')}',
       ),
       body: [
         _Group(

@@ -342,9 +342,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Your boards are in'), findsOneWidget);
-      final total =
-          _summary.cards + _summary.checklistItems + _summary.comments;
-      expect(find.text('3 collections · $total cards'), findsOneWidget);
+      // The header counts board cards only, not checklist items or comments.
+      expect(
+        find.text('3 collections · ${_summary.cards} cards'),
+        findsOneWidget,
+      );
       expect(
         find.text('${_summary.cards} cards · board view by List'),
         findsOneWidget,

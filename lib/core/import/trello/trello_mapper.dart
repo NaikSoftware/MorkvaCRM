@@ -301,13 +301,15 @@ List<ImportedCollection> mapTrelloBoard(
     (c) => c.attachments.isEmpty
         ? null
         : TextFieldValue(
-            c.attachments
-                .map(
-                  (a) => a.name.trim().isEmpty || a.name == a.url
-                      ? a.url
-                      : '${a.name.trim()} — ${a.url}',
-                )
-                .join('\n'),
+            _clip(
+              c.attachments
+                  .map(
+                    (a) => a.name.trim().isEmpty || a.name == a.url
+                        ? a.url
+                        : '${a.name.trim()} — ${a.url}',
+                  )
+                  .join('\n'),
+            ),
           ),
   );
   column(
@@ -615,6 +617,15 @@ Collection _child(
     ),
   ],
 );
+
+/// Longest generated text value; keeps one card far below Firestore's 1 MiB
+/// document limit (≤ 3 bytes per char in UTF-8), so no single card can make
+/// its slice fail on every retry.
+const kMaxImportedTextLength = 100000;
+
+String _clip(String text) => text.length <= kMaxImportedTextLength
+    ? text
+    : '${text.substring(0, kMaxImportedTextLength - 1)}…';
 
 /// The creation time in a Trello (Mongo ObjectId) id: its first 8 hex digits
 /// are Unix seconds.

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -276,6 +277,38 @@ void main() {
       expect(c.views.first.filters, isEmpty);
     });
   });
+
+  test(
+    'a huge attachments text is clipped so one card cannot outgrow a doc',
+    () {
+      final url = 'https://example.com/${'x' * 80}';
+      final big = TrelloBoard.parse(
+        jsonEncode({
+          'id': '64a1f0c2b1a2c3d4e5f60001',
+          'name': 'Big',
+          'lists': [
+            {'id': '64a1f0c2b1a2c3d4e5f60101', 'name': 'L', 'pos': 1},
+          ],
+          'cards': [
+            {
+              'id': '64a1f0c2b1a2c3d4e5f60301',
+              'name': 'C',
+              'idList': '64a1f0c2b1a2c3d4e5f60101',
+              'pos': 1,
+              'attachments': [
+                for (var i = 0; i < 3000; i++)
+                  {'id': 'a$i', 'name': url, 'url': url},
+              ],
+            },
+          ],
+        }),
+      );
+      final ic = map(from: big).first;
+      final text = value(ic, ic.objects.single, 'Attachments')! as String;
+      expect(text.length, kMaxImportedTextLength);
+      expect(text, endsWith('…'));
+    },
+  );
 
   group('checklist items', () {
     test('one item per check item of an imported card, in order', () {
