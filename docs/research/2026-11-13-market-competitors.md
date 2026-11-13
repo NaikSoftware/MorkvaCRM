@@ -1,9 +1,10 @@
 # Competitor & market research — where MorkvaCRM should go
 
-*Researched 2026-11-13. Live web sweep (8 researchers) → adversarial re-check of every price and
-load-bearing claim against vendor pages (9 checkers) → completeness critic → red-team of this
+*Researched 2026-11-13. Live web sweep (8 researchers) → adversarial re-check of the swept prices
+and load-bearing claims against vendor pages (9 checkers) → completeness critic → red-team of this
 report (strategy skeptic + evidence auditor). Prices are what vendor pages showed on 2026-11-13
-unless marked **(3p)** = third-party capture only. Raw research JSON is not committed; key sources
+unless marked **(3p)** = third-party capture only. Rows marked **(critic)** got a single pass, not
+the adversarial re-check; Softr's price was not read from its own page. Raw research JSON is not committed; key sources
 are linked inline and in §11.*
 
 ---
@@ -45,7 +46,7 @@ handful of English threads plus our one origin customer. §8 puts a cheap valida
   development, not for paying customers or EU users), and the app has no localization.
 
 **Next three moves** (detail in §8): (1) validation gate — rebuild 3 real maker workflows in
-HugeProfit/KeyCRM + 10 maker interviews; (2) on-device date reminders + Sheets/CSV import +
+HugeProfit/KeyCRM + 10 maker interviews; (2) date reminders + CSV/Sheets import +
 finish Trello import; (3) store-published mobile release with billing, on paid Gemini.
 
 ---
@@ -96,7 +97,7 @@ Column key: **Model** = how flexible the data is. **Off** = offline editing on m
 
 ### 3.1 Horizontal small-business CRMs
 
-| Player | For | Model | Entry pricing (verified) | Off | AI | vs us |
+| Player | For | Model | Entry pricing | Off | AI | vs us |
 |---|---|---|---|---|---|---|
 | [Pipedrive](https://www.pipedrive.com/en/pricing) | 2–50 rep B2B sales teams | Fixed deals/people/orgs + custom fields | Lite $14, Growth $39, Premium $59, Ultimate $79 /seat annual **(3p)**; EU page €14/€24/€49/€69; no free plan, 14-day trial | Yes, mobile (moves, notes, activities) | AI assistant, Nova meeting intel (Sep 2026), MCP server | Best pipeline UX; can't model orders/materials |
 | [HubSpot](https://www.hubspot.com/pricing/crm) | Solo → mid-market | Fixed objects; custom objects Enterprise | Free 2 users / 1k contacts; Starter $7 promo ($20 list); Pro $90 + $1,500 onboarding | No documented offline; cached access at best | Breeze, Agent Builder, credits $0.01; outcome pricing since 14 Apr 2026 | Steep tier cliff; offline idea "Not Currently Planned" |
@@ -299,7 +300,8 @@ comments; pricing/billing; store-published mobile apps; team sharing (in progres
 **Launch blockers outside the feature list:**
 - **Gemini free tier.** Staying on Spark with the free Gemini tier is a deliberate development
   choice (owner decision, 2026-11-10). The assistant defaults to `gemini-3.5-flash-lite`,
-  `rpm = 12` for the whole project and `dataUse = free`
+  the app's own throttle at `rpm = 12` under the free tier's 15 RPM per-project limit, and
+  `dataUse = free`
   (`lib/api/assistant/assistant_config.dart`). Per the Gemini API terms, unpaid-tier content may
   be used to improve Google's products with human review, sensitive/personal data shouldn't be
   submitted, and only paid services may be offered to users in the EEA/UK/Switzerland. Cards hold
@@ -384,11 +386,14 @@ Functions / paid plan.
 ### Next three, in order
 1. **Validation gate** (no code). Rebuild 3 real maker workflows (apparel origin + 2 others) in
    HugeProfit and KeyCRM; interview 10 makers (UA and English). Proceed **UA-first** only if ≥ 5
-   hit a break in the fixed model that we fix and ≥ 3 commit to the UAH 350–600 price; otherwise
+   hit a break in the fixed model that we fix and ≥ 3 commit to the UAH 400–700 price; otherwise
    lead with the English maker market ($20–49 norm), or with the runner-up if maker WTP is
    ≤ $10/mo.
-2. **Daily-use + acquisition basics:** on-device **date reminders** from date fields (local
-   notifications) **[client]**; **Google Sheets / CSV import** **[client]**; finish the **Trello
+2. **Daily-use + acquisition basics:** **date reminders** from date fields — local
+   notifications on mobile **[client]**, but they only reach users once the mobile app ships (item
+   3), and on web they fire only while a tab is open (closed-tab web push needs a server
+   **[Blaze]**); **CSV import** **[client]** and **Google Sheets import** **[client, plus an extra
+   Sheets OAuth scope beyond sign-in]**; finish the **Trello
    import** in progress **[client]**.
 3. **Launchable app:** store-published Android/iOS release (App Check, mobile build items still
    open) with **billing**; move the assistant to **paid Gemini** with per-workspace metering
@@ -447,7 +452,8 @@ Functions / paid plan.
   business, like KeyCRM/HugeProfit order quotas — unlike a total-card cap), all field types and
   calculated fields, a small AI allowance. Don't gate the data model — it's the wedge against
   Attio/folk/HubSpot.
-- **Paid:** around **$9–15/month (≈ UAH 350–600)** per workspace — second and later editors,
+- **Paid:** around **$9–15/month (≈ UAH 400–700 at 45.4 UAH/USD on 2026-11-13; near HugeProfit's UAH
+  349–799 tiers)** per workspace — second and later editors,
   higher monthly quota, reminders/automations, AI allowance, integration modules; a higher tier
   for bigger teams. Re-price for the English market if the gate points there ($20–49 norm).
 - **AI:** included allowance with a visible meter; no surprise overage.
@@ -505,7 +511,7 @@ Not done in this study — needed before committing a year of roadmap:
   [Attio formula attributes, Jul 2026](https://attio.com/changelog/2026/formula-attributes-are-here) ·
   [SPOTIO DASH confirm flow](https://support.spotio.com/hc/en-us/articles/39393147551383-DASH-Your-AI-Co-Pilot-for-Field-Sales) ·
   [Freshsales free plan removal](https://www.usagepricing.com/blueprint/activity/freshworks-2026-07-21-freshsales-free-plan-dropped) ·
-  [Gemini API terms](https://ai.google.dev/gemini-api/terms)
+  [Gemini API terms](https://aistudio.google.com/docs/terms)
 - Makers: [Craftybase → Stocksmith](https://craftybase.com/blog/craftybase-is-becoming-stocksmith) ·
   [Katana pricing](https://www.katanamrp.com/pricing/) ·
   [KeyCRM manufacturing module](https://help.keycrm.app/en/orders/how-to-use-the-manufacturing-module) ·
