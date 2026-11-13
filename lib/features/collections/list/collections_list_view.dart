@@ -199,7 +199,7 @@ class _CollectionsContent extends StatelessWidget {
                           // Phone: the shell header carries the title.
                           : Text(count, style: countStyle),
                     ),
-                    const SizedBox(width: Spacing.sm),
+                    const SizedBox(width: Spacing.xs),
                     if (labelled) ...[
                       SecondaryButton(
                         label: 'From template',

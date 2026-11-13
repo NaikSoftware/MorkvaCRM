@@ -55,6 +55,8 @@ those documents disagree with this one, this one wins.
   New collection (icon buttons below 760 px). Phone: "N collections · M pinned" and the icon
   buttons. No filter: finding a collection is Jump to (sidebar field, rail icon, Ctrl+K; on phone
   a search icon in the All collections header), owner 2026-11-14.
+  The 640–760 px band (title + count with icon buttons, no sidebar) has no artboard; the code
+  defines it.
 - Sections `PINNED` then `EVERYTHING ELSE` (just `COLLECTIONS` when nothing is pinned); card grid
   (max 320 px wide; 2 columns on phone), 176 px cards: tinted glyph, pin toggle, overflow menu
   (Customize / Rename / Delete), name, 2-line description, field count.
