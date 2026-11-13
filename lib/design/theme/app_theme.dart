@@ -164,7 +164,9 @@ abstract final class AppTheme {
         thumbColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)
               ? scheme.onPrimary
-              : scheme.outline,
+              // onSurfaceVariant, not outline: the off state needs 3:1
+              // against the track and the page (WCAG 1.4.11).
+              : scheme.onSurfaceVariant,
         ),
         trackColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)
@@ -174,7 +176,7 @@ abstract final class AppTheme {
         trackOutlineColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)
               ? Colors.transparent
-              : scheme.outline,
+              : scheme.onSurfaceVariant,
         ),
       ),
       snackBarTheme: SnackBarThemeData(

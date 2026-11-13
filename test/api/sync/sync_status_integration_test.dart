@@ -86,6 +86,18 @@ void main() {
     });
   });
 
+  group('collections listener', () {
+    // It is open on every page, so it must feed the status even when no
+    // collection is open (the fake can't go offline; this is the hook the
+    // offline case rides on, checked e2e).
+    test('watching collections alone moves the status off Unknown', () async {
+      repository.watchCollections().listen((_) {});
+      await _settle();
+
+      expect(syncStatus.state, isA<SyncSynced>());
+    });
+  });
+
   group('conflict detection', () {
     test(
       'pre-existing object observed at rev>=2 does NOT fire SyncConflict',

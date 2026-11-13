@@ -61,8 +61,10 @@ class ListTileCard extends StatelessWidget {
                     const SizedBox(height: Spacing.xxs),
                     Text(
                       subtitle!,
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: scheme.onSurfaceVariant),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],

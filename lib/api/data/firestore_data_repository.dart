@@ -193,20 +193,32 @@ class FirestoreDataRepository implements DataRepository {
   @override
   Stream<List<Collection>> watchCollections() {
     final wid = _wid;
-    return _watch<List<Collection>>(
-      (subject) => _refs
+    return _watch<List<Collection>>((subject) {
+      var emitted = false;
+      // This listener is open on every page, so its metadata is what tells
+      // the app it went offline (or came back) when no collection is open.
+      return _refs
           .collections(wid)
-          .snapshots()
+          .snapshots(includeMetadataChanges: true)
           .listen(
             (snapshot) {
               if (subject.isClosed) return;
+              // Object writes in flight own the status until they settle.
+              if (_pendingObjects.isEmpty) {
+                _syncStatus.reportSnapshotMeta(
+                  isFromCache: snapshot.metadata.isFromCache,
+                  hasPendingWrites: snapshot.metadata.hasPendingWrites,
+                );
+              }
+              if (emitted && snapshot.docChanges.isEmpty) return;
+              emitted = true;
               subject.add(snapshot.docs.map(_collectionFromDoc).toList());
             },
             onError: (Object error, StackTrace stackTrace) {
               if (!subject.isClosed) subject.addError(error, stackTrace);
             },
-          ),
-    );
+          );
+    });
   }
 
   // shortcut: pins live on the workspace doc, so a shared workspace would share
