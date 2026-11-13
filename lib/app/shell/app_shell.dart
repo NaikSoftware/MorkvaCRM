@@ -202,7 +202,7 @@ class AppShell extends StatelessWidget {
 }
 
 /// A slim header over the content area: an optional [leading], the page
-/// [title], and an optional [trailing] control, on the `lg` content gutter.
+/// [title], and an optional [trailing] control, on the `md` content gutter.
 class _PageHeader extends StatelessWidget {
   const _PageHeader({required this.title, this.leading, this.trailing});
 
