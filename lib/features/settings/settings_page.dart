@@ -73,8 +73,11 @@ class SettingsPage extends StatelessWidget {
                       ),
                       trailing: const Icon(Icons.chevron_right_rounded),
                       onTap: () async {
+                        // Browser Back mid-import leaves Settings while the
+                        // sheet stays up; the router outlives this page.
+                        final router = GoRouter.of(context);
                         final to = await showTrelloImportSheet(context);
-                        if (to != null && context.mounted) context.go(to);
+                        if (to != null) router.go(to);
                       },
                     ),
                   ],
