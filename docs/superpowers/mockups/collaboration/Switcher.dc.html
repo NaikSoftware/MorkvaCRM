@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Workspace switcher</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&amp;family=Hanken+Grotesk:wght@400;500;600;700&amp;family=Roboto+Mono:wght@500&amp;display=swap">
+<style>
+body{margin:0;background:#FBF7F2}
+svg{flex:0 0 auto}
+/* ---------- shell: sidebar (shell_sidebar.dart, full 272) ---------- */
+.side{width:272px;flex:0 0 272px;box-sizing:border-box;background:#F4EDE3;display:flex;flex-direction:column;padding:16px 12px 12px}
+.nav{display:flex;align-items:center;gap:12px;height:44px;padding:0 6px 0 8px;margin:0 0 2px;border-radius:14px;border:0;background:transparent;width:100%;text-align:left;font:500 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;color:#2B2018;box-sizing:border-box;text-decoration:none}
+.nav[aria-current="page"]{background:#FFFFFF;font-weight:700;box-shadow:0 1px 2px rgba(0,0,0,.08),0 3px 6px rgba(74,53,32,.06)}
+.tile{width:28px;height:28px;flex:0 0 28px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center}
+.cap{font:700 11px 'Hanken Grotesk',sans-serif;letter-spacing:.9px;text-transform:uppercase;color:#6B5E52;margin:0}
+.ib{width:44px;height:44px;flex:0 0 44px;border-radius:22px;border:0;padding:0;background:transparent;color:#6B5E52;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+kbd{font:600 11px 'Hanken Grotesk',sans-serif;color:#6B5E52;border:1px solid #E0D5C7;border-radius:6px;padding:2px 6px}
+/* ---------- avatars (UserAvatar: initials disc; me = leaf) ---------- */
+.av{width:28px;height:28px;flex:0 0 28px;border-radius:50%;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;font:700 11px 'Hanken Grotesk',sans-serif;letter-spacing:.2px}
+.av-me{background:#4C7A34;color:#FFFFFF}
+.av-sky{background:#DCEAF3;color:#2F5F80}
+.av-plum{background:#EDE0EE;color:#6B3F70}
+.av-sand{background:#F6EBC8;color:#6E5310}
+.av-more{background:#EEE5D8;color:#4A4036}
+.pile{display:inline-flex;align-items:center}
+.pile .av{position:relative;box-shadow:0 0 0 2px #FBF7F2}
+.pile .av:nth-child(1){z-index:4}.pile .av:nth-child(2){z-index:3}.pile .av:nth-child(3){z-index:2}.pile .av:nth-child(4){z-index:1}
+.pile .av+.av{margin-left:-4px}
+.pop .pile .av{box-shadow:0 0 0 2px #FFFFFF}
+/* ---------- buttons (design/components/buttons + theme OutlinedButton) ---------- */
+.btn{height:44px;flex:0 0 auto;padding:0 24px;border-radius:12px;border:0;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:8px;font:600 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;white-space:nowrap;cursor:pointer}
+.btn-icon{padding-left:20px}
+.btn-primary{background:#E8821E;color:#3A1E00}
+.btn-outlined{background:transparent;color:#2B2018;border:1px solid #B6A593}
+.btn-outlined[aria-expanded="true"]{background:#E8DECD}
+.btn-outlined .chev{display:inline-flex;color:#6B5E52;margin-right:-8px}
+.btn-sm{padding:0 16px}
+.btn-text{height:44px;flex:0 0 auto;padding:0 12px;border-radius:12px;border:0;background:transparent;color:#8A4708;display:inline-flex;align-items:center;gap:6px;font:600 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;white-space:nowrap;cursor:pointer}
+.btn-text.danger{color:#C0392B}
+.hit{flex:0 0 auto;min-width:44px;min-height:44px;padding:0;border:0;background:transparent;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+/* ---------- collection page: header, view tabs, toolbar ---------- */
+.page-hd{display:flex;align-items:center;gap:8px;padding:24px 24px 8px}
+.glyph{width:44px;height:44px;flex:0 0 44px;border-radius:13px;display:inline-flex;align-items:center;justify-content:center}
+.page-title{flex:1 1 auto;min-width:0;margin:0 0 0 4px;font:600 24px/1.2 'Bricolage Grotesque',sans-serif;letter-spacing:-0.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tabs{display:flex;align-items:center;padding:0 12px;border-bottom:1px solid #E0D5C7;margin:0 24px}
+.tab{position:relative;height:48px;padding:0 12px;border:0;background:transparent;display:inline-flex;align-items:center;gap:8px;font:500 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;color:#6B5E52;border-radius:8px;white-space:nowrap;cursor:pointer}
+.tab[aria-selected="true"]{color:#2B2018;font-weight:600}
+.tab[aria-selected="true"]::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;border-radius:3px 3px 0 0;background:#E8821E}
+.tab-more{width:32px;height:32px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;color:#6B5E52}
+.toolbar{height:52px;display:flex;align-items:center;gap:8px;padding:0 24px}
+.fchip{display:inline-flex;align-items:center;gap:4px;height:32px;padding:0 4px 0 12px;box-sizing:border-box;border-radius:8px;background:#FFE0C2;color:#4E2A00;font:600 14px 'Hanken Grotesk',sans-serif;white-space:nowrap}
+.fchip-x{width:44px;height:44px;flex:0 0 44px;margin:-8px;padding:0;border:0;background:transparent;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:#4E2A00}
+.fadd{height:32px;padding:0 12px 0 8px;border-radius:8px;border:1px dashed #B6A593;color:#6B5E52;display:inline-flex;align-items:center;gap:4px;font:600 14px 'Hanken Grotesk',sans-serif;box-sizing:border-box}
+.tcluster{display:inline-flex;align-items:center;height:36px;border-radius:12px;border:1px solid rgba(182,165,147,.6);padding:0 4px}
+.tbtn{min-width:44px;min-height:44px;margin:-4px 0;padding:0;border:0;background:transparent;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;cursor:pointer}
+.tbtn>span{height:36px;padding:0 10px;display:inline-flex;align-items:center;gap:6px;font:600 14px 'Hanken Grotesk',sans-serif;color:#2B2018;white-space:nowrap}
+.tbtn i{display:inline-flex;color:#6B5E52;font-style:normal}
+.tsep{width:1px;height:20px;background:#E0D5C7}
+/* ---------- table (modes/table_mode.dart: header 44, rows 52) ---------- */
+.tbl{margin:0 24px;border-radius:16px;border:1px solid #E0D5C7;background:#FFFFFF;overflow:hidden}
+.tr{display:grid;grid-template-columns:264px 128px 200px 160px 136px 128px minmax(0,1fr);height:52px;border-bottom:1px solid #E0D5C7}
+.tr.th{height:44px;background:#FAF4EC}
+.th>div{display:flex;align-items:center;gap:4px;padding:0 12px;font:600 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;color:#6B5E52}
+.th>div:first-child{padding-left:16px}
+.td{display:flex;align-items:center;min-width:0;padding:0 12px;font:400 14px/1.45 'Hanken Grotesk',sans-serif;color:#2B2018;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.td.title{padding-left:16px;font-weight:600}
+.num{justify-content:flex-end !important}
+.tfoot{height:36px;display:flex;align-items:center;padding:0 16px;background:#FAF4EC;font:600 12px 'Hanken Grotesk',sans-serif;letter-spacing:.2px;color:#6B5E52;font-variant-numeric:tabular-nums}
+/* OptionPill: 24 tall, full radius, 8 px dot, option colour @16% on white */
+.opt{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;box-sizing:border-box;border-radius:12px;font:600 12px 'Hanken Grotesk',sans-serif;letter-spacing:.2px;color:#2B2018;white-space:nowrap}
+.opt::before{content:"";width:8px;height:8px;border-radius:4px;background:var(--dot)}
+.o-new{background:#DFEAF1;--dot:#3A7CA5}
+.o-cutting{background:#F8F0DA;--dot:#D4A017}
+.o-sewing{background:#FBEBDB;--dot:#E8821E}
+.o-ready{background:#E2EADF;--dot:#4C7A34}
+.o-shipped{background:#E7E5E3;--dot:#6B5E52}
+/* ---------- share popover (view_popover.dart pattern, 400 wide) ---------- */
+.anchor{position:relative;display:inline-flex;flex:0 0 auto}
+.pop{position:absolute;top:calc(100% + 4px);right:0;z-index:5;width:400px;box-sizing:border-box;background:#FFFFFF;border:1px solid #E0D5C7;border-radius:12px;box-shadow:0 4px 10px rgba(0,0,0,.14),0 16px 28px rgba(82,58,34,.10);text-align:left;font:400 14px/1.45 'Hanken Grotesk',sans-serif;color:#2B2018;white-space:normal}
+.pop-hd{display:flex;align-items:center;gap:8px;padding:8px 6px 0 20px}
+.pop-title{flex:1 1 auto;min-width:0;margin:0;font:600 16px/1.35 'Hanken Grotesk',sans-serif;color:#2B2018;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pop-sec{padding:4px 20px 16px}
+.sec-lbl{display:block;margin:0 0 8px;font:600 14px/1.3 'Hanken Grotesk',sans-serif;letter-spacing:.1px;color:#2B2018}
+.hint{margin:0;font:400 12px/1.45 'Hanken Grotesk',sans-serif;color:#6B5E52}
+.field{flex:1 1 auto;min-width:0;height:44px;display:flex;align-items:center;box-sizing:border-box;border:0;box-shadow:inset 0 0 0 1px #B6A593;border-radius:12px;background:#FFFFFF}
+.field input{flex:1 1 auto;min-width:0;height:44px;border:0;outline:0;background:transparent;padding:0 0 0 14px;font:400 14px 'Hanken Grotesk',sans-serif;color:#2B2018}
+.field input::placeholder{color:#6B5E52;opacity:1}
+.inline-sel{height:44px;flex:0 0 auto;padding:0 8px 0 12px;border:0;border-left:1px solid #E0D5C7;border-radius:0 12px 12px 0;background:transparent;display:inline-flex;align-items:center;gap:2px;font:600 14px 'Hanken Grotesk',sans-serif;color:#2B2018;cursor:pointer}
+.inline-sel i,.sel i{display:inline-flex;color:#6B5E52;font-style:normal}
+.people{display:flex;align-items:center;gap:8px;margin:8px -8px -4px 0}
+.people-txt{flex:1 1 auto;min-width:0;white-space:nowrap;font:400 14px 'Hanken Grotesk',sans-serif;color:#2B2018;font-variant-numeric:tabular-nums}
+.people-txt b{font-weight:600}
+.pop-div{height:1px;background:#E0D5C7;margin:0}
+.access{width:100%;display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 8px 6px 6px;margin:0 -6px;box-sizing:content-box;border:0;border-radius:12px;background:transparent;text-align:left;cursor:pointer}
+.acc-ic{width:36px;height:36px;flex:0 0 36px;border-radius:18px;display:inline-flex;align-items:center;justify-content:center}
+.acc-txt{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:1px}
+.acc-name{display:inline-flex;align-items:center;gap:2px;font:600 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;color:#2B2018}
+.acc-name i{display:inline-flex;color:#6B5E52;font-style:normal}
+.quiet{margin-top:8px;padding:4px 12px 8px 16px;border-radius:12px;background:#FAF4EC}
+.q-row{display:flex;align-items:center;gap:10px;min-height:44px}
+.q-row+.q-row{border-top:1px solid #EEE5D8}
+.q-ic{display:inline-flex;color:#6B5E52}
+.q-txt{flex:1 1 auto;min-width:0;font:400 14px/1.4 'Hanken Grotesk',sans-serif;color:#2B2018}
+.q-txt small{display:block;font-size:12px;line-height:1.45;color:#6B5E52}
+.url{flex:1 1 auto;min-width:0;font:500 13px 'Roboto Mono',ui-monospace,monospace;color:#2B2018;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sel{min-height:44px;flex:0 0 auto;padding:0;border:0;background:transparent;display:inline-flex;align-items:center;cursor:pointer}
+.sel>span{height:36px;padding:0 6px 0 12px;box-sizing:border-box;border:1px solid #B6A593;border-radius:12px;background:#FFFFFF;display:inline-flex;align-items:center;gap:4px;font:600 14px 'Hanken Grotesk',sans-serif;color:#2B2018}
+.sw{width:52px;min-height:44px;flex:0 0 auto;padding:0;border:0;background:transparent;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.sw>span{position:relative;width:52px;height:32px;box-sizing:border-box;border-radius:16px;border:2px solid #6B5E52;background:#E8DECD}
+.sw>span::after{content:"";position:absolute;left:6px;top:6px;width:16px;height:16px;border-radius:8px;background:#6B5E52}
+.q-actions{display:flex;align-items:center;gap:4px;margin:0 0 -4px -12px}
+.dot{width:8px;height:8px;flex:0 0 8px;border-radius:4px}
+.note{display:flex;align-items:flex-start;gap:8px;margin:12px 0 0;font:400 12px/1.45 'Hanken Grotesk',sans-serif;color:#6B5E52}
+.note svg{margin-top:1px}
+.pop-ft{display:flex;align-items:center;gap:16px;padding:12px 16px 12px 20px;border-top:1px solid #E0D5C7}
+.pop-ft .hint{flex:1 1 auto}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* ---------- workspace glyph (square = workspace, circle = person) + role pill ---------- */
+.ws{width:38px;height:38px;flex:0 0 38px;box-sizing:border-box;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;font:700 14px 'Bricolage Grotesque',sans-serif;letter-spacing:-.2px}
+.ws-sm{width:32px;height:32px;flex-basis:32px;border-radius:10px;font-size:12px}
+.ws-xs{width:28px;height:28px;flex-basis:28px;border-radius:9px;font-size:11px}
+.ws-mw{background:#E8821E;color:#3A1E00}
+.ws-ll{background:#F6EBC8;color:#6E5310}
+.ws-kp{background:#DCEAF3;color:#2F5F80}
+.ws-tf{background:#D8EEEA;color:#23605A}
+.role{display:inline-flex;align-items:center;height:20px;padding:0 8px;box-sizing:border-box;border-radius:10px;font:600 11px 'Hanken Grotesk',sans-serif;letter-spacing:.3px;white-space:nowrap;flex:0 0 auto}
+.r-owner{background:#FFE0C2;color:#4E2A00}
+.r-admin{background:#DCEAF3;color:#2F5F80}
+.r-editor{background:#E3EEDB;color:#3B6128}
+.r-viewer{background:#E6E2DC;color:#4A4036}
+/* ---------- workspace switcher (replaces BrandWordmark) ---------- */
+.wsw{display:flex;align-items:center;gap:6px;flex:1 1 auto;min-width:0;height:52px;padding:0 4px 0 8px;margin:0;box-sizing:border-box;border:0;border-radius:14px;background:transparent;text-align:left;cursor:pointer;font-family:'Hanken Grotesk',sans-serif;color:#2B2018}
+.wsw[aria-expanded="true"]{background:#FFFFFF;box-shadow:0 1px 2px rgba(0,0,0,.08),0 3px 6px rgba(74,53,32,.06)}
+.menu{position:absolute;left:12px;top:74px;z-index:20;width:320px;box-sizing:border-box;padding:8px 0;background:#FFFFFF;border:1px solid #E0D5C7;border-radius:12px;box-shadow:0 4px 10px rgba(0,0,0,.14),0 16px 28px rgba(82,58,34,.10);font:400 14px/1.45 'Hanken Grotesk',sans-serif;color:#2B2018}
+.m-cap{display:flex;align-items:center;gap:6px;margin:0;padding:10px 16px 6px}
+.m-row{display:flex;align-items:center;gap:12px;width:calc(100% - 16px);min-height:56px;margin:0 8px;padding:6px 8px;box-sizing:border-box;border:0;border-radius:10px;background:transparent;text-align:left;cursor:pointer;font:400 14px 'Hanken Grotesk',sans-serif;color:#2B2018}
+.m-row[aria-checked="true"]{background:#FAF4EC}
+.m-txt{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:1px}
+.m-name{font:600 14px/1.3 'Hanken Grotesk',sans-serif;letter-spacing:.1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.m-sub{font:400 12px/1.4 'Hanken Grotesk',sans-serif;color:#6B5E52;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.m-act{display:flex;align-items:center;gap:12px;width:calc(100% - 16px);height:44px;margin:0 8px;padding:0 8px 0 14px;box-sizing:border-box;border:0;border-radius:10px;background:transparent;text-align:left;cursor:pointer;font:500 14px 'Hanken Grotesk',sans-serif;color:#2B2018}
+.m-act svg{color:#6B5E52}
+.m-div{height:1px;background:#E0D5C7;margin:8px 0}
+.cnt{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:9px;background:#E8821E;color:#3A1E00;font:700 11px 'Hanken Grotesk',sans-serif;letter-spacing:0;font-variant-numeric:tabular-nums}
+.btn-36{height:44px;padding:0;border:0;background:transparent;display:inline-flex;align-items:center;cursor:pointer;flex:0 0 auto}
+.btn-36>span{height:36px;padding:0 16px;box-sizing:border-box;border-radius:12px;display:inline-flex;align-items:center;gap:6px;font:600 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;white-space:nowrap}
+.btn-36.primary>span{background:#E8821E;color:#3A1E00}
+.btn-36.text>span{padding:0 12px;color:#8A4708}
+/* ---------- invitation banner (main panel top) ---------- */
+.banner{display:flex;align-items:center;gap:12px;margin:16px 24px 0;min-height:52px;padding:4px 8px 4px 12px;box-sizing:border-box;border-radius:12px;background:#DCEAF3;color:#2B2018;position:relative;z-index:1}
+.banner p{flex:1 1 auto;min-width:0;margin:0;font:400 14px/1.45 'Hanken Grotesk',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.banner b{font-weight:600}
+/* ---------- Home: All collections (collections_list_view.dart: gutter 32, cards max 320 wide, 176 tall) ---------- */
+.home-hd{display:flex;align-items:flex-end;gap:8px}
+.ccard{height:176px;box-sizing:border-box;display:flex;flex-direction:column;padding:16px 4px 16px 16px;border-radius:16px;background:#FFFFFF;box-shadow:0 1px 2px rgba(0,0,0,.08),0 3px 6px rgba(74,53,32,.06);min-width:0}
+.cname{margin:8px 0 0;font:600 18px/1.25 'Bricolage Grotesque',sans-serif;letter-spacing:-0.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:4px}
+.cmeta{font:600 12px 'Hanken Grotesk',sans-serif;letter-spacing:.2px;color:#6B5E52;font-variant-numeric:tabular-nums}
+.cib{width:44px;height:44px;flex:0 0 44px;margin:-4px 0;padding:0;border:0;background:transparent;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:#6B5E52}
+.cib>span{width:36px;height:36px;border-radius:18px;display:inline-flex;align-items:center;justify-content:center}
+.pcap{display:flex;align-items:center;gap:8px;margin:0;padding:24px 0 8px}
+.cgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.btn-secondary{background:#E8DECD;color:#2B2018;border:1px solid #E0D5C7}
+</style>
+</helmet>
+<div style="position: relative; width: 1440px; height: 900px; display: flex; background: #FBF7F2; font-family: 'Hanken Grotesk', sans-serif; color: #2B2018; overflow: hidden">
+
+  <!-- ===== Sidebar 272 (shell_sidebar.dart _full) — wordmark becomes the workspace switcher ===== -->
+  <nav class="side" aria-label="Main">
+    <div style="display: flex; align-items: center; margin: 0 0 8px">
+      <button class="wsw" aria-haspopup="menu" aria-expanded="true" aria-controls="ws-menu" aria-label="Workspace: Morkva Wear, Owner. Switch workspace">
+        <span class="ws ws-xs ws-mw">M</span>
+        <span style="flex: 0 1 auto; min-width: 0; font: 600 14px/1.3 'Hanken Grotesk', sans-serif; letter-spacing: .1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Morkva Wear</span>
+        <span class="role r-owner" style="padding: 0 6px">Owner</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B5E52" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 18px; margin-left: auto"><path d="M7.5 9.5L12 5l4.5 4.5M7.5 14.5L12 19l4.5-4.5"/></svg>
+      </button>
+      <button class="ib" aria-label="Collapse sidebar" style="margin: 0 -6px 0 -4px; border-radius: 12px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15M16 9.5L13.5 12l2.5 2.5"/></svg></button>
+    </div>
+
+    <button style="display: flex; align-items: center; height: 44px; margin: -2px 0; padding: 0; border: 0; background: transparent; text-align: left; cursor: pointer"><span style="flex: 1 1 auto; display: flex; align-items: center; gap: 8px; height: 40px; box-sizing: border-box; padding: 0 8px 0 12px; border-radius: 12px; border: 1px solid #E0D5C7; background: #FBF7F2; color: #6B5E52; font: 400 14px 'Hanken Grotesk', sans-serif">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <span style="flex: 1 1 auto">Jump to…</span>
+      <kbd style="background: #F4EDE3">Ctrl K</kbd>
+    </span></button>
+
+    <button aria-pressed="false" style="display: flex; align-items: center; gap: 8px; height: 44px; margin-top: 8px; padding: 0 8px 0 12px; border-radius: 12px; border: 0; background: transparent; color: #2B2018; font: 600 14px 'Hanken Grotesk', sans-serif; text-align: left; cursor: pointer">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="#8A4708" aria-hidden="true"><path d="M12 2.5c.6 4.6 2.9 6.9 7.5 7.5-4.6.6-6.9 2.9-7.5 7.5-.6-4.6-2.9-6.9-7.5-7.5 4.6-.6 6.9-2.9 7.5-7.5zM19 15.5c.3 2 1.2 2.9 3.2 3.2-2 .3-2.9 1.2-3.2 3.2-.3-2-1.2-2.9-3.2-3.2 2-.3 2.9-1.2 3.2-3.2z"/></svg>
+      <span style="flex: 1 1 auto">Ask Morkva</span>
+      <kbd>Ctrl J</kbd>
+    </button>
+
+    <div style="height: 8px"></div>
+    <a href="#" class="nav" aria-current="page">
+      <span class="tile" style="background: #E8821E; color: #3A1E00"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></svg></span>
+      <span style="flex: 1 1 auto">All collections</span>
+    </a>
+    <a href="#" class="nav">
+      <span class="tile" style="background: #EEE5D8; color: #4E2A00"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 2.5L4.5 13.5H11l-1.5 8 9-11H12z"/></svg></span>
+      <span style="flex: 1 1 auto">Automations</span>
+    </a>
+
+    <div style="padding: 16px 4px 4px 12px"><p class="cap">Pinned</p></div>
+    <a href="#" class="nav"><span class="tile" style="background: #FFE0C2; color: #8A4708"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5h12v17l-2.4-1.6-2.4 1.6-2.4-1.6-2.4 1.6L6 20.5z"/><path d="M9.5 8h5M9.5 11.5h5M9.5 15h3"/></svg></span><span style="flex: 1 1 auto">Orders</span></a>
+    <a href="#" class="nav"><span class="tile" style="background: #E3EEDB; color: #3B6128"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4.5a3.5 3.5 0 1 1 0 7a3.5 3.5 0 1 1 0-7zM2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5c2 .7 3.2 2.6 3.5 5.5"/></svg></span><span style="flex: 1 1 auto">Customers</span></a>
+    <a href="#" class="nav"><span class="tile" style="background: #EDE0EE; color: #6B3F70"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7.5c0-1.9 2.2-3.5 5-3.5s5 1.6 5 3.5v9c0 1.9-2.2 3.5-5 3.5s-5-1.6-5-3.5z"/><path d="M9 6.2a1.3 1.3 0 1 1 0 2.6a1.3 1.3 0 1 1 0-2.6zM14 16.5h6.5"/></svg></span><span style="flex: 1 1 auto">Fabrics</span></a>
+
+    <span style="flex: 1 1 auto"></span>
+
+    <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0 0 4px; border-top: 1px solid #E0D5C7">
+      <span class="av av-me" style="width: 34px; height: 34px; flex: 0 0 34px; font-size: 14px">OK</span>
+      <span style="display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto">
+        <span style="font-size: 14px; font-weight: 600">Olena Koval</span>
+        <span style="display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; color: #6B5E52"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 18.5h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.6 9.1 4.75 4.75 0 0 0 7 18.5z"/><path d="M9.5 13.5l2 2 3.5-3.5"/></svg>Synced</span>
+      </span>
+      <button class="ib" aria-label="Settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg></button>
+    </div>
+  </nav>
+
+  <!-- ===== Workspace menu (open), hangs under the switcher; overhangs the main panel ===== -->
+  <div id="ws-menu" class="menu" role="menu" aria-label="Workspaces">
+    <p class="cap m-cap">Your workspace</p>
+    <button class="m-row" role="menuitemradio" aria-checked="true">
+      <span class="ws ws-sm ws-mw">M</span>
+      <span class="m-txt"><span class="m-name">Morkva Wear</span><span class="m-sub">4 members · 1 pending</span></span>
+      <span class="role r-owner">Owner</span>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8A4708" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+    </button>
+
+    <p class="cap m-cap">Other workspaces</p>
+    <button class="m-row" role="menuitemradio" aria-checked="false">
+      <span class="ws ws-sm ws-ll">L</span>
+      <span class="m-txt"><span class="m-name">Lviv Leather Co.</span><span class="m-sub">3 members</span></span>
+      <span class="role r-editor">Editor</span>
+      <span style="width: 20px; flex: 0 0 20px"></span>
+    </button>
+    <button class="m-row" role="menuitemradio" aria-checked="false">
+      <span class="ws ws-sm ws-kp">K</span>
+      <span class="m-txt"><span class="m-name">Kyiv Print Lab</span><span class="m-sub">5 members</span></span>
+      <span class="role r-viewer">Viewer</span>
+      <span style="width: 20px; flex: 0 0 20px"></span>
+    </button>
+
+    <p class="cap m-cap">Invitations <span class="cnt" aria-label="1 invitation">1</span></p>
+    <div role="group" aria-label="Invitation to Tkanyna Fabrics" style="display: flex; gap: 12px; margin: 0 8px; padding: 6px 8px 4px; border-radius: 10px">
+      <span class="ws ws-sm ws-tf" style="margin-top: 2px">T</span>
+      <span class="m-txt">
+        <span class="m-name">Tkanyna Fabrics</span>
+        <span class="m-sub" style="white-space: normal">Oksana invited you as <b style="font-weight: 600; color: #2B2018">Editor</b></span>
+        <span style="display: flex; align-items: center; gap: 4px; margin: 4px 0 0 0">
+          <button class="btn-36 primary" role="menuitem"><span>Join</span></button>
+          <button class="btn-36 text" role="menuitem"><span>Decline</span></button>
+        </span>
+      </span>
+    </div>
+
+    <div class="m-div" role="separator"></div>
+    <a href="#" class="m-act" role="menuitem" style="text-decoration: none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4.5a3.5 3.5 0 1 1 0 7a3.5 3.5 0 1 1 0-7zM2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5c2 .7 3.2 2.6 3.5 5.5"/></svg>Manage team</a>
+    <a href="#" class="m-act" role="menuitem" style="text-decoration: none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>Shared links</a>
+  </div>
+
+  <!-- ===== Main panel: Home (All collections); the invitation banner sits at its top (spec §6) ===== -->
+  <main style="position: relative; flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; padding: 16px 32px 0; box-sizing: border-box; overflow: hidden">
+
+    <!-- NEW: invitation banner (pending invite for the signed-in email; Home only) -->
+    <section class="banner" role="region" aria-label="Invitation" style="margin: 0 0 24px">
+      <span class="ws ws-xs ws-tf">T</span>
+      <p><b>Oksana Hrytsenko</b> (oksana@tkanyna.ua) invited you to <b>Tkanyna Fabrics</b> as an Editor.</p>
+      <button class="btn-36 text"><span style="color: #2F5F80">Not now</span></button>
+      <button class="btn-36 primary"><span>Join</span></button>
+    </section>
+
+    <header class="home-hd">
+      <div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+        <h1 style="margin: 0; font: 600 24px/1.2 'Bricolage Grotesque', sans-serif; letter-spacing: -0.4px">All collections</h1>
+        <p style="margin: 0; font: 400 14px/1.45 'Hanken Grotesk', sans-serif; color: #6B5E52">6 collections · 3 pinned to the sidebar</p>
+      </div>
+      <label style="width: 260px; flex: 0 0 260px; display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; box-sizing: border-box; border-radius: 12px; border: 1px solid #B6A593; background: #FFFFFF; color: #6B5E52">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input aria-label="Filter collections" placeholder="Filter collections" style="flex: 1 1 auto; min-width: 0; height: 42px; border: 0; outline: 0; background: transparent; font: 400 14px 'Hanken Grotesk', sans-serif; color: #2B2018">
+      </label>
+      <button class="btn btn-secondary btn-icon" style="margin-left: 4px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></svg>From template</button>
+      <button class="btn btn-primary btn-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New collection</button>
+    </header>
+
+    <p class="cap pcap"><svg width="16" height="16" viewBox="0 0 24 24" fill="#E8821E" aria-hidden="true"><path d="M9 3h6l-1 6.5 3 3V14H7v-1.5l3-3z"/><path d="M12 14v7" stroke="#E8821E" stroke-width="2" stroke-linecap="round"/></svg>Pinned</p>
+    <div class="cgrid">
+        <article class="ccard">
+          <div style="display: flex; align-items: flex-start">
+            <span class="glyph" style="background: #FFE0C2; color: #8A4708"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5h12v17l-2.4-1.6-2.4 1.6-2.4-1.6-2.4 1.6L6 20.5zM9.5 8h5M9.5 11.5h5M9.5 15h3"/></svg></span>
+            <span style="flex: 1 1 auto"></span>
+            <button class="cib" aria-label="Unpin Orders from sidebar" aria-pressed="true"><span style="background: #FCEEDF; color: #E8821E"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 3h6l-1 6.5 3 3V14H7v-1.5l3-3z"/><path d="M12 14v7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span></button>
+            <button class="cib" aria-label="More actions for Orders"><span><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></span></button>
+          </div>
+          <span class="cname">Orders</span>
+          <span style="flex: 1 1 auto"></span>
+          <span class="cmeta">8 fields</span>
+        </article>
+        <article class="ccard">
+          <div style="display: flex; align-items: flex-start">
+            <span class="glyph" style="background: #E3EEDB; color: #3B6128"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4.5a3.5 3.5 0 1 1 0 7a3.5 3.5 0 1 1 0-7zM2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5c2 .7 3.2 2.6 3.5 5.5"/></svg></span>
+            <span style="flex: 1 1 auto"></span>
+            <button class="cib" aria-label="Unpin Customers from sidebar" aria-pressed="true"><span style="background: #FCEEDF; color: #E8821E"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 3h6l-1 6.5 3 3V14H7v-1.5l3-3z"/><path d="M12 14v7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span></button>
+            <button class="cib" aria-label="More actions for Customers"><span><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></span></button>
+          </div>
+          <span class="cname">Customers</span>
+          <span style="flex: 1 1 auto"></span>
+          <span class="cmeta">6 fields</span>
+        </article>
+        <article class="ccard">
+          <div style="display: flex; align-items: flex-start">
+            <span class="glyph" style="background: #EDE0EE; color: #6B3F70"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7.5c0-1.9 2.2-3.5 5-3.5s5 1.6 5 3.5v9c0 1.9-2.2 3.5-5 3.5s-5-1.6-5-3.5zM9 6.2a1.3 1.3 0 1 1 0 2.6a1.3 1.3 0 1 1 0-2.6zM14 16.5h6.5"/></svg></span>
+            <span style="flex: 1 1 auto"></span>
+            <button class="cib" aria-label="Unpin Fabrics from sidebar" aria-pressed="true"><span style="background: #FCEEDF; color: #E8821E"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 3h6l-1 6.5 3 3V14H7v-1.5l3-3z"/><path d="M12 14v7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span></button>
+            <button class="cib" aria-label="More actions for Fabrics"><span><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></span></button>
+          </div>
+          <span class="cname">Fabrics</span>
+          <span style="flex: 1 1 auto"></span>
+          <span class="cmeta">7 fields</span>
+        </article>
+    </div>
+
+    <p class="cap pcap">Everything else</p>
+    <div class="cgrid">
+        <article class="ccard">
+          <div style="display: flex; align-items: flex-start">
+            <span class="glyph" style="background: #DCEAF3; color: #2F5F80"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5h11v9h-11zM14.5 10.5h3.5l2.5 3v3h-6M7 19a1.8 1.8 0 1 1 0-3.6a1.8 1.8 0 1 1 0 3.6zM17 19a1.8 1.8 0 1 1 0-3.6a1.8 1.8 0 1 1 0 3.6z"/></svg></span>
+            <span style="flex: 1 1 auto"></span>
+            <button class="cib" aria-label="Pin Suppliers to sidebar" aria-pressed="false"><span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6l-1 6.5 3 3V14H7v-1.5l3-3z"/><path d="M12 14v7" stroke-linecap="round"/></svg></span></button>
+            <button class="cib" aria-label="More actions for Suppliers"><span><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></span></button>
+          </div>
+          <span class="cname">Suppliers</span>
+          <span style="flex: 1 1 auto"></span>
+          <span class="cmeta">5 fields</span>
+        </article>
+        <article class="ccard">
+          <div style="display: flex; align-items: flex-start">
+            <span class="glyph" style="background: #F6EBC8; color: #6E5310"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7.5h16v10H4zM4 10.5h16M7.5 14.5h3"/></svg></span>
+            <span style="flex: 1 1 auto"></span>
+            <button class="cib" aria-label="Pin Expenses to sidebar" aria-pressed="false"><span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6l-1 6.5 3 3V14H7v-1.5l3-3z"/><path d="M12 14v7" stroke-linecap="round"/></svg></span></button>
+            <button class="cib" aria-label="More actions for Expenses"><span><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></span></button>
+          </div>
+          <span class="cname">Expenses</span>
+          <span style="flex: 1 1 auto"></span>
+          <span class="cmeta">6 fields</span>
+        </article>
+        <article class="ccard">
+          <div style="display: flex; align-items: flex-start">
+            <span class="glyph" style="background: #D8EEEA; color: #23605A"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5.5h14v14H5zM8.5 12l2.5 2.5 4.5-5"/></svg></span>
+            <span style="flex: 1 1 auto"></span>
+            <button class="cib" aria-label="Pin Tasks to sidebar" aria-pressed="false"><span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6l-1 6.5 3 3V14H7v-1.5l3-3z"/><path d="M12 14v7" stroke-linecap="round"/></svg></span></button>
+            <button class="cib" aria-label="More actions for Tasks"><span><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></span></button>
+          </div>
+          <span class="cname">Tasks</span>
+          <span style="flex: 1 1 auto"></span>
+          <span class="cmeta">5 fields</span>
+        </article>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -64,6 +64,7 @@ Build top to bottom. Arrows show hard dependencies.
 | 7 | [Example templates](epic-07-example-templates.md) | Importable hoodie + orders templates; end-to-end acceptance | 4, 6 |
 | 8 | [Global AI assistant](epic-08-ai-assistant.md) *(done)* | "Ask Morkva" chat: ask / analyze / act on data via the Morkva Harness | 2 (4, 6 soft) |
 | 9 | [Automations](epic-09-automations.md) | Sandboxed JS modules: actions on buttons or card-event triggers, consent, run log, SDK docs | 8 (2, 4, 6) |
+| 10 | [Team collaboration & view sharing](../superpowers/specs/2026-11-13-team-collaboration-design.md) *(designed, not built)* | Members + roles, invites, workspace switcher, teammate links, published copies of views for outsiders | 2, 4 (8, 9 touched) |
 | — | [Future epics](future-epics.md) | Scheduled triggers, Firebase admin, marketplace, more modes | — |
 
 A reasonable first milestone ("the engine is real") is **Epics 0–4**: a user can sign in,

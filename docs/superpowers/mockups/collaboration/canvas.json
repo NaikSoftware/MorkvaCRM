@@ -1,0 +1,175 @@
+{
+ "v": 3,
+ "createdOnFiles": {
+  "v": 1,
+  "at": "2026-11-13T12:00:00Z"
+ },
+ "title": "Morkva — Team & sharing",
+ "launch": {
+  "view": "canvas"
+ },
+ "pages": [],
+ "boards": {
+  "Main.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "1 · UI-1 One Share button (recommended)"
+  },
+  "VariantTwoDoors.dc.html": {
+   "x": 1520,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "2 · UI-2 Two doors: Teammates | Publish"
+  },
+  "VariantMinimal.dc.html": {
+   "x": 3040,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "3 · UI-3 Minimal: view menu + Settings"
+  },
+  "Team.dc.html": {
+   "x": 0,
+   "y": 1320,
+   "w": 1440,
+   "h": 900,
+   "title": "4 · Settings › Team"
+  },
+  "Invite.dc.html": {
+   "x": 1520,
+   "y": 1320,
+   "w": 1440,
+   "h": 900,
+   "title": "5 · Invite people"
+  },
+  "Switcher.dc.html": {
+   "x": 3040,
+   "y": 1320,
+   "w": 1440,
+   "h": 900,
+   "title": "6 · Workspace switcher"
+  },
+  "InviteLanding.dc.html": {
+   "x": 4560,
+   "y": 1320,
+   "w": 1440,
+   "h": 900,
+   "title": "7 · Invite landing: signed out + wrong account"
+  },
+  "PublishPeople.dc.html": {
+   "x": 0,
+   "y": 2640,
+   "w": 1440,
+   "h": 900,
+   "title": "8 · Publish: only people I add"
+  },
+  "PublicView.dc.html": {
+   "x": 1520,
+   "y": 2640,
+   "w": 1440,
+   "h": 900,
+   "title": "9 · Published view (outsider)"
+  },
+  "SharedLinks.dc.html": {
+   "x": 3040,
+   "y": 2640,
+   "w": 1440,
+   "h": 900,
+   "title": "10 · Settings › Shared links"
+  },
+  "ViewerMode.dc.html": {
+   "x": 4560,
+   "y": 2640,
+   "w": 1440,
+   "h": 900,
+   "title": "11 · Viewer role: read-only"
+  },
+  "Phone.dc.html": {
+   "x": 0,
+   "y": 3960,
+   "w": 390,
+   "h": 844,
+   "title": "12 · Phone: share sheet"
+  },
+  "PhonePublic.dc.html": {
+   "x": 470,
+   "y": 3960,
+   "w": 390,
+   "h": 844,
+   "title": "13 · Phone: published view"
+  },
+  "Dark.dc.html": {
+   "x": 1410,
+   "y": 3960,
+   "w": 1440,
+   "h": 900,
+   "title": "15 · Dark: share popover"
+  },
+  "PhoneInvitation.dc.html": {
+   "x": 940,
+   "y": 3960,
+   "w": 390,
+   "h": 844,
+   "title": "14 · Phone: invitation on Home"
+  },
+  "PhoneJoin.dc.html": {
+   "x": 2930,
+   "y": 3960,
+   "w": 390,
+   "h": 844,
+   "title": "16 · Phone: join landing (/join)"
+  }
+ },
+ "order": [
+  "Main.dc.html",
+  "VariantTwoDoors.dc.html",
+  "VariantMinimal.dc.html",
+  "Team.dc.html",
+  "Invite.dc.html",
+  "Switcher.dc.html",
+  "InviteLanding.dc.html",
+  "PublishPeople.dc.html",
+  "PublicView.dc.html",
+  "SharedLinks.dc.html",
+  "ViewerMode.dc.html",
+  "Phone.dc.html",
+  "PhonePublic.dc.html",
+  "PhoneInvitation.dc.html",
+  "Dark.dc.html",
+  "PhoneJoin.dc.html"
+ ],
+ "notes": {
+  "share": {
+   "x": 0,
+   "y": -260,
+   "text": "Share surface — three variants",
+   "kind": "title1",
+   "maxW": 6000
+  },
+  "team": {
+   "x": 0,
+   "y": 1060,
+   "text": "Team workspace",
+   "kind": "title1",
+   "maxW": 6000
+  },
+  "publish": {
+   "x": 0,
+   "y": 2380,
+   "text": "Published views & roles",
+   "kind": "title1",
+   "maxW": 6000
+  },
+  "phone": {
+   "x": 0,
+   "y": 3700,
+   "text": "Phone + dark",
+   "kind": "title1",
+   "maxW": 6000
+  }
+ },
+ "designSystems": []
+}

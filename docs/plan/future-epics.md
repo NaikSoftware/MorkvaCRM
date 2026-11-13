@@ -35,12 +35,13 @@ More renderers in the Epic 4 view system — calendar (group/place by a date fie
 (image-forward cards), maybe timeline. Each is an additive mode, not a rewrite, because Epic 4
 separates query/grouping from rendering.
 
-## Shared workspaces & multi-user collaboration
-Sharing a workspace with other accounts (Firebase Storage rules already make this possible —
-Epic 2 lays the path layout for it) and, beyond that, real-time or merge-based collaboration
-past Epic 2's single-user conflict handling (e.g. CRDT/operational merge, presence). Granting
-access is the near step; live merge is the significant one and depends on a firmer sync
-foundation.
+## Shared workspaces & multi-user collaboration → Epic 10 (designed)
+Designed in [`../superpowers/specs/2026-11-13-team-collaboration-design.md`](../superpowers/specs/2026-11-13-team-collaboration-design.md)
+(mockups: `../superpowers/mockups/collaboration/`): workspace members with Owner/Admin/Editor/Viewer
+roles, invites by email or link, a workspace switcher, teammate links to views, and read-only
+**published copies** of a view for outsiders (by link or email list). Not built yet; five owner
+decisions open (Spark vs Blaze first). What stays future beyond that design: presence, real-time
+merge (CRDT/OT), comments + a Commenter role, per-collection guests, audit log.
 
 ## Template sharing
 Promote Epic 7's local templates into shareable/published templates (overlaps with the
