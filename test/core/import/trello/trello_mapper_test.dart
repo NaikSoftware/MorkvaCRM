@@ -143,7 +143,11 @@ void main() {
       expect(value(boardCol, beta, 'Labels'), ['Label', 'Sky']);
       expect(value(boardCol, acme, 'Members'), ['Ann Lee']);
       expect(value(boardCol, beta, 'Members'), ['bob']);
-      expect(value(boardCol, acme, 'Start'), DateTime.utc(2026, 11, 20));
+      final start = DateTime.utc(2026, 11, 20, 12).toLocal();
+      expect(
+        value(boardCol, acme, 'Start'),
+        DateTime.utc(start.year, start.month, start.day),
+      );
       expect(value(boardCol, acme, 'Due'), DateTime.utc(2026, 12, 1, 12));
       expect(value(boardCol, beta, 'Due done'), true);
       expect(value(boardCol, acme, 'Notes'), 'Call Tue');
@@ -241,16 +245,22 @@ void main() {
       );
     });
 
-    test('a start stored at local midnight keeps its calendar day', () {
+    test('a start keeps the calendar day Trello shows locally', () {
+      // Local wall-clock times, so the test holds in any zone; afternoon
+      // starts used to roll a day on (733 of 1,703 cards in a real board).
+      String at(int hour, int minute) =>
+          DateTime(2026, 11, 10, hour, minute).toUtc().toIso8601String();
       final tiny = TrelloBoard.parse(
         '{"id":"b1","name":"Tiny","lists":[],"cards":['
-        '{"id":"c1","name":"Kyiv","start":"2026-11-12T22:00:00.000Z"},'
-        '{"id":"c2","name":"New York","start":"2026-11-13T05:00:00.000Z"}]}',
+        '{"id":"c1","name":"midnight","start":"${at(0, 0)}"},'
+        '{"id":"c2","name":"morning","start":"${at(8, 0)}"},'
+        '{"id":"c3","name":"afternoon","start":"${at(17, 16)}"},'
+        '{"id":"c4","name":"late","start":"${at(23, 59)}"}]}',
       );
       final boardCol = map(from: tiny).single;
       expect(
         boardCol.objects.map((o) => value(boardCol, o, 'Start')),
-        everyElement(DateTime.utc(2026, 11, 13)),
+        everyElement(DateTime.utc(2026, 11, 10)),
       );
     });
 

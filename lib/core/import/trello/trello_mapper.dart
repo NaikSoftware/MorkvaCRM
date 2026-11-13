@@ -626,13 +626,14 @@ DateTime? _idTime(String id) {
       : DateTime.fromMillisecondsSinceEpoch(seconds * 1000, isUtc: true);
 }
 
-/// The calendar day of a date-only Trello value. Trello appears to store it
-/// at the creator's local midnight (22:00Z the day before at UTC+2), so it is
-/// rounded to the nearest UTC midnight: right for UTC−11 to UTC+12, and for
-/// a value stored at UTC midnight.
+/// The calendar day of a date-only Trello value, as Trello shows it to the
+/// importer: the day in this device's zone. Real starts are any time of day
+/// (Butler sets "now"), so rounding in UTC moved afternoon starts a day on.
+/// shortcut: assumes the importer shares the board's zone; a board imported
+/// from far away can be a day out — pass the zone in if that ever matters.
 DateTime _day(DateTime d) {
-  final n = d.add(const Duration(hours: 12));
-  return DateTime.utc(n.year, n.month, n.day);
+  final local = d.toLocal();
+  return DateTime.utc(local.year, local.month, local.day);
 }
 
 /// Trello label colours (light, base, dark) in Atlassian's palette.
