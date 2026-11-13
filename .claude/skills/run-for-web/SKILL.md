@@ -13,7 +13,8 @@ Run the app on Chrome so the Google session stays logged in between launches.
 From the project root:
 
 ```bash
-PROFILE="$HOME/.morkva-chrome-profile"; mkdir -p "$PROFILE"
+# The ONE shared, signed-in profile: always the main checkout's, also from worktrees.
+PROFILE="/home/naik/Dev/MorkvaCRM/.dart_tool/chrome-device"
 flutter run -d chrome --web-hostname localhost --web-port 8088 \
   --web-browser-flag=--user-data-dir="$PROFILE"
 ```
@@ -34,7 +35,8 @@ Against the local Firestore emulator (e2e; no production data, persistence off),
 ## Notes
 
 - **Use `-d chrome`**, not `-d web-server` — only the chrome device launches a real browser to attach the profile to.
-- Use a **dedicated** profile dir (`~/.morkva-chrome-profile`), never the user's real Chrome profile — that collides with their everyday Chrome and locks.
+- Always use the **shared** profile `/home/naik/Dev/MorkvaCRM/.dart_tool/chrome-device` (the owner's signed-in session), never `~/.morkva-chrome-profile` (signed out, retired) and never the user's real Chrome profile. Don't ask the owner to sign in. Check no other Chrome holds it first (`ps -eo args | grep [c]hrome-device`).
+- `flutter clean` in the main checkout deletes `.dart_tool`, and the sign-in with it.
 - First web compile is slow (~30–60s); later runs are faster.
 - The user must complete the Google sign-in popup **once** per profile; it persists afterward.
 
@@ -44,7 +46,7 @@ Against the local Firestore emulator (e2e; no production data, persistence off),
 
 ```bash
 pkill -9 -f "remote-debugging-port"
-rm -f "$HOME/.morkva-chrome-profile"/Singleton{Lock,Cookie,Socket}
+rm -f /home/naik/Dev/MorkvaCRM/.dart_tool/chrome-device/Singleton{Lock,Cookie,Socket}
 ```
 
 Then run again.
