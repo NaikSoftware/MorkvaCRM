@@ -8,18 +8,18 @@
 <body>
 <x-dc>
 <helmet>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&amp;family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&amp;family=Hanken+Grotesk:wght@400;500;600;700&amp;family=Onest:wght@400;500;600;700&amp;display=swap">
 <style>
 body{margin:0;background:#FBF7F2}
 .rb{position:relative;width:52px;height:52px;border-radius:16px;border:0;background:transparent;display:inline-flex;align-items:center;justify-content:center;color:#6B5E52}
 .tile{width:36px;height:36px;border-radius:11px;display:inline-flex;align-items:center;justify-content:center}
-.cap{font:700 11px 'Hanken Grotesk',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#6B5E52;margin:0}
-.row{display:flex;align-items:center;gap:12px;min-height:48px;padding:0 6px 0 8px;border-radius:12px;font:500 14px 'Hanken Grotesk',sans-serif;color:#2B2018}
+.cap{font:700 11px 'Hanken Grotesk','Onest',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#6B5E52;margin:0}
+.row{display:flex;align-items:center;gap:12px;min-height:48px;padding:0 6px 0 8px;border-radius:12px;font:500 14px 'Hanken Grotesk','Onest',sans-serif;color:#2B2018}
 .ib{width:36px;height:36px;border-radius:12px;border:0;background:transparent;color:#6B5E52;display:inline-flex;align-items:center;justify-content:center}
 .td{padding:0 16px;height:48px;border-bottom:1px solid #F4EDE3;font-size:14px;text-align:left}
 </style>
 </helmet>
-<div style="position: relative; width: 1024px; height: 800px; display: flex; background: #FBF7F2; font-family: 'Hanken Grotesk', sans-serif; color: #2B2018; overflow: hidden">
+<div style="position: relative; width: 1024px; height: 800px; display: flex; background: #FBF7F2; font-family: 'Hanken Grotesk','Onest', sans-serif; color: #2B2018; overflow: hidden">
 
   <!-- Compact rail -->
   <nav aria-label="Main" style="width: 76px; flex: 0 0 76px; background: #F4EDE3; display: flex; flex-direction: column; align-items: center; padding: 16px 0 12px; gap: 6px; box-sizing: border-box">
@@ -39,18 +39,18 @@ body{margin:0;background:#FBF7F2}
     </sc-for>
     <span style="flex: 1 1 auto"></span>
     <button class="rb" aria-label="Settings"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg></button>
-    <span style="position: relative; width: 36px; height: 36px; border-radius: 18px; background: #4C7A34; color: #FFFFFF; display: inline-flex; align-items: center; justify-content: center; font: 700 13px 'Hanken Grotesk', sans-serif">OK<span style="position: absolute; right: -1px; bottom: -1px; width: 10px; height: 10px; border-radius: 5px; background: #2E8B57; border: 2px solid #F4EDE3"></span></span>
+    <span style="position: relative; width: 36px; height: 36px; border-radius: 18px; background: #4C7A34; color: #FFFFFF; display: inline-flex; align-items: center; justify-content: center; font: 700 13px 'Hanken Grotesk','Onest', sans-serif">OK<span style="position: absolute; right: -1px; bottom: -1px; width: 10px; height: 10px; border-radius: 5px; background: #2E8B57; border: 2px solid #F4EDE3"></span></span>
   </nav>
 
   <!-- Orders collection (the grid button opens All collections) -->
   <main style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; padding: 24px 32px; gap: 20px">
     <header style="display: flex; align-items: center; gap: 12px">
       <span class="tile" style="width: 40px; height: 40px; background: #FFE0C2; color: #8A4708"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8"/></svg></span>
-      <h1 style="margin: 0; font: 700 26px 'Bricolage Grotesque', sans-serif; letter-spacing: -0.4px">Orders</h1>
+      <h1 style="margin: 0; font: 700 26px 'Bricolage Grotesque','Onest', sans-serif; letter-spacing: -0.4px">Orders</h1>
       <span style="font-size: 14px; color: #6B5E52">142 cards</span>
     </header>
     <div style="border-radius: 16px; background: #FFFFFF; border: 1px solid #EEE5D8; overflow: hidden">
-      <table style="width: 100%; border-collapse: collapse; font-family: 'Hanken Grotesk', sans-serif">
+      <table style="width: 100%; border-collapse: collapse; font-family: 'Hanken Grotesk','Onest', sans-serif">
         <thead><tr style="background: #FAF4EC; color: #6B5E52; font-size: 12px"><th class="td" style="font-weight: 600">Order</th><th class="td" style="font-weight: 600">Client</th><th class="td" style="font-weight: 600">Status</th><th class="td" style="font-weight: 600">Total</th></tr></thead>
         <tbody>
           <sc-for list="{{rows}}" as="r" hint-placeholder-count="8">

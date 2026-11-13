@@ -8,94 +8,94 @@
 <body>
 <x-dc>
 <helmet>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&amp;family=Hanken+Grotesk:wght@400;500;600;700&amp;family=Roboto+Mono:wght@500&amp;display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&amp;family=Hanken+Grotesk:wght@400;500;600;700&amp;family=Roboto+Mono:wght@500&amp;family=Onest:wght@400;500;600;700&amp;display=swap">
 <style>
 body{margin:0;background:#FBF7F2}
 svg{flex:0 0 auto}
 .ib{width:44px;height:44px;flex:0 0 44px;border-radius:22px;border:0;padding:0;background:transparent;color:#6B5E52;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
 /* avatars (UserAvatar; me = leaf) */
-.av{width:28px;height:28px;flex:0 0 28px;border-radius:50%;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;font:700 11px 'Hanken Grotesk',sans-serif;letter-spacing:.2px}
+.av{width:28px;height:28px;flex:0 0 28px;border-radius:50%;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;font:700 11px 'Hanken Grotesk','Onest',sans-serif;letter-spacing:.2px}
 .av-me{background:#4C7A34;color:#FFFFFF}
 .av-sky{background:#DCEAF3;color:#2F5F80}
 .av-plum{background:#EDE0EE;color:#6B3F70}
 .av-sand{background:#F6EBC8;color:#6E5310}
 /* buttons */
-.btn{height:44px;flex:0 0 auto;padding:0 24px;border-radius:12px;border:0;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:8px;font:600 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;white-space:nowrap;cursor:pointer}
+.btn{height:44px;flex:0 0 auto;padding:0 24px;border-radius:12px;border:0;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:8px;font:600 14px 'Hanken Grotesk','Onest',sans-serif;letter-spacing:.1px;white-space:nowrap;cursor:pointer}
 .btn-primary{background:#E8821E;color:#3A1E00}
 .btn-secondary{background:#E8DECD;color:#2B2018;border:1px solid #E0D5C7}
 .btn-sm{padding:0 16px}
-.btn-text{height:44px;flex:0 0 auto;padding:0 12px;border-radius:12px;border:0;background:transparent;color:#8A4708;display:inline-flex;align-items:center;gap:6px;font:600 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;white-space:nowrap;cursor:pointer}
+.btn-text{height:44px;flex:0 0 auto;padding:0 12px;border-radius:12px;border:0;background:transparent;color:#8A4708;display:inline-flex;align-items:center;gap:6px;font:600 14px 'Hanken Grotesk','Onest',sans-serif;letter-spacing:.1px;white-space:nowrap;cursor:pointer}
 .hit{flex:0 0 auto;min-width:44px;min-height:44px;padding:0;border:0;background:transparent;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
 /* page behind */
-.tab{position:relative;height:48px;padding:0 12px;border:0;background:transparent;display:inline-flex;align-items:center;gap:8px;font:500 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;color:#6B5E52;white-space:nowrap;flex:0 0 auto}
+.tab{position:relative;height:48px;padding:0 12px;border:0;background:transparent;display:inline-flex;align-items:center;gap:8px;font:500 14px 'Hanken Grotesk','Onest',sans-serif;letter-spacing:.1px;color:#6B5E52;white-space:nowrap;flex:0 0 auto}
 .tab[aria-selected="true"]{color:#2B2018;font-weight:600}
 .tab[aria-selected="true"]::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;border-radius:3px 3px 0 0;background:#E8821E}
-.fchip{display:inline-flex;align-items:center;height:32px;padding:0 12px;box-sizing:border-box;border-radius:8px;background:#FFE0C2;color:#4E2A00;font:600 14px 'Hanken Grotesk',sans-serif;white-space:nowrap}
+.fchip{display:inline-flex;align-items:center;height:32px;padding:0 12px;box-sizing:border-box;border-radius:8px;background:#FFE0C2;color:#4E2A00;font:600 14px 'Hanken Grotesk','Onest',sans-serif;white-space:nowrap}
 .tbl{border-radius:16px;border:1px solid #E0D5C7;background:#FFFFFF;overflow:hidden}
 .tr{display:grid;grid-template-columns:168px 96px 120px;height:52px;border-bottom:1px solid #E0D5C7}
 .tr.th{height:44px;background:#FAF4EC}
-.th>div{display:flex;align-items:center;padding:0 12px;font:600 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;color:#6B5E52;white-space:nowrap}
-.td{display:flex;align-items:center;min-width:0;padding:0 12px;font:400 14px/1.45 'Hanken Grotesk',sans-serif;color:#2B2018;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.th>div{display:flex;align-items:center;padding:0 12px;font:600 14px 'Hanken Grotesk','Onest',sans-serif;letter-spacing:.1px;color:#6B5E52;white-space:nowrap}
+.td{display:flex;align-items:center;min-width:0;padding:0 12px;font:400 14px/1.45 'Hanken Grotesk','Onest',sans-serif;color:#2B2018;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .th>div:first-child,.td.title{padding-left:16px}
 .td.title{font-weight:600}
 .td.title span{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .num{justify-content:flex-end}
-.sync{display:inline-flex;align-items:center;gap:4px;height:28px;padding:0 12px;box-sizing:border-box;border-radius:14px;background:#EBE5DE;color:#6B5E52;font:600 12px 'Hanken Grotesk',sans-serif;letter-spacing:.2px;white-space:nowrap;flex:0 0 auto}
-.opt{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;box-sizing:border-box;border-radius:12px;font:600 12px 'Hanken Grotesk',sans-serif;letter-spacing:.2px;color:#2B2018;white-space:nowrap}
+.sync{display:inline-flex;align-items:center;gap:4px;height:28px;padding:0 12px;box-sizing:border-box;border-radius:14px;background:#EBE5DE;color:#6B5E52;font:600 12px 'Hanken Grotesk','Onest',sans-serif;letter-spacing:.2px;white-space:nowrap;flex:0 0 auto}
+.opt{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;box-sizing:border-box;border-radius:12px;font:600 12px 'Hanken Grotesk','Onest',sans-serif;letter-spacing:.2px;color:#2B2018;white-space:nowrap}
 .opt::before{content:"";width:8px;height:8px;border-radius:4px;background:var(--dot)}
 .o-sewing{background:#FBEBDB;--dot:#E8821E}
 .o-cutting{background:#F8F0DA;--dot:#D4A017}
 /* sheet (view_popover.dart phone: white bottom sheet, top radius 16) */
-.sheet{position:absolute;left:0;right:0;bottom:0;height:675px;display:flex;flex-direction:column;background:#FFFFFF;border-radius:16px 16px 0 0;font:400 14px/1.45 'Hanken Grotesk',sans-serif;color:#2B2018}
+.sheet{position:absolute;left:0;right:0;bottom:0;height:675px;display:flex;flex-direction:column;background:#FFFFFF;border-radius:16px 16px 0 0;font:400 14px/1.45 'Hanken Grotesk','Onest',sans-serif;color:#2B2018}
 .sec{padding:4px 20px 16px}
-.sec-lbl{display:block;margin:0 0 8px;font:600 14px/1.3 'Hanken Grotesk',sans-serif;letter-spacing:.1px;color:#2B2018}
-.hint{margin:0;font:400 12px/1.45 'Hanken Grotesk',sans-serif;color:#6B5E52}
+.sec-lbl{display:block;margin:0 0 8px;font:600 14px/1.3 'Hanken Grotesk','Onest',sans-serif;letter-spacing:.1px;color:#2B2018}
+.hint{margin:0;font:400 12px/1.45 'Hanken Grotesk','Onest',sans-serif;color:#6B5E52}
 .field{flex:1 1 auto;min-width:0;height:44px;display:flex;align-items:center;box-sizing:border-box;box-shadow:inset 0 0 0 1px #B6A593;border-radius:12px;background:#FFFFFF}
-.field input{flex:1 1 auto;min-width:0;width:100%;height:44px;border:0;outline:0;background:transparent;padding:0 0 0 14px;font:400 14px 'Hanken Grotesk',sans-serif;color:#2B2018}
+.field input{flex:1 1 auto;min-width:0;width:100%;height:44px;border:0;outline:0;background:transparent;padding:0 0 0 14px;font:400 14px 'Hanken Grotesk','Onest',sans-serif;color:#2B2018}
 .field input::placeholder{color:#6B5E52;opacity:1}
-.inline-sel{height:44px;flex:0 0 auto;padding:0 6px 0 10px;border:0;border-left:1px solid #E0D5C7;border-radius:0 12px 12px 0;background:transparent;display:inline-flex;align-items:center;gap:2px;font:600 14px 'Hanken Grotesk',sans-serif;color:#2B2018;cursor:pointer}
+.inline-sel{height:44px;flex:0 0 auto;padding:0 6px 0 10px;border:0;border-left:1px solid #E0D5C7;border-radius:0 12px 12px 0;background:transparent;display:inline-flex;align-items:center;gap:2px;font:600 14px 'Hanken Grotesk','Onest',sans-serif;color:#2B2018;cursor:pointer}
 .inline-sel i,.sel i,.acc-name i{display:inline-flex;color:#6B5E52;font-style:normal}
 .access{width:100%;display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 8px 6px 6px;margin:0 -6px;box-sizing:content-box;border:0;border-radius:12px;background:transparent;text-align:left;cursor:pointer}
 .acc-ic{width:36px;height:36px;flex:0 0 36px;border-radius:18px;display:inline-flex;align-items:center;justify-content:center}
 .acc-txt{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:1px}
-.acc-name{display:inline-flex;align-items:center;gap:2px;font:600 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;color:#2B2018}
+.acc-name{display:inline-flex;align-items:center;gap:2px;font:600 14px 'Hanken Grotesk','Onest',sans-serif;letter-spacing:.1px;color:#2B2018}
 .pile{display:inline-flex;align-items:center}
 .pile .av{position:relative;box-shadow:0 0 0 2px #FBF7F2}
 .pile .av:nth-child(1){z-index:4}.pile .av:nth-child(2){z-index:3}.pile .av:nth-child(3){z-index:2}.pile .av:nth-child(4){z-index:1}
 .pile .av+.av{margin-left:-4px}
 .people{display:flex;align-items:center;gap:8px;margin:8px -8px -4px 0}
-.people-txt{flex:1 1 auto;min-width:0;white-space:nowrap;font:400 14px 'Hanken Grotesk',sans-serif;color:#2B2018;font-variant-numeric:tabular-nums}
+.people-txt{flex:1 1 auto;min-width:0;white-space:nowrap;font:400 14px 'Hanken Grotesk','Onest',sans-serif;color:#2B2018;font-variant-numeric:tabular-nums}
 .people-txt b{font-weight:600}
 .pop-div{height:1px;background:#E0D5C7;margin:0}
 .quiet{margin-top:8px;padding:4px 12px 8px 16px;border-radius:12px;background:#FAF4EC}
 .q-row{display:flex;align-items:center;gap:10px;min-height:44px}
 .q-row+.q-row{border-top:1px solid #EEE5D8}
 .q-ic{display:inline-flex;color:#6B5E52}
-.q-txt{flex:1 1 auto;min-width:0;font:400 14px/1.4 'Hanken Grotesk',sans-serif;color:#2B2018}
+.q-txt{flex:1 1 auto;min-width:0;font:400 14px/1.4 'Hanken Grotesk','Onest',sans-serif;color:#2B2018}
 .q-txt small{display:block;font-size:12px;line-height:1.45;color:#6B5E52}
 .url{flex:1 1 auto;min-width:0;font:500 13px 'Roboto Mono',ui-monospace,monospace;color:#2B2018;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sel{min-height:44px;flex:0 0 auto;padding:0;border:0;background:transparent;display:inline-flex;align-items:center;cursor:pointer}
-.sel>span{height:36px;padding:0 6px 0 12px;box-sizing:border-box;border:1px solid #B6A593;border-radius:12px;background:#FFFFFF;display:inline-flex;align-items:center;gap:4px;font:600 14px 'Hanken Grotesk',sans-serif;color:#2B2018}
+.sel>span{height:36px;padding:0 6px 0 12px;box-sizing:border-box;border:1px solid #B6A593;border-radius:12px;background:#FFFFFF;display:inline-flex;align-items:center;gap:4px;font:600 14px 'Hanken Grotesk','Onest',sans-serif;color:#2B2018}
 .sw{width:52px;min-height:44px;flex:0 0 auto;padding:0;border:0;background:transparent;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
 .sw>span{position:relative;width:52px;height:32px;box-sizing:border-box;border-radius:16px;border:2px solid #6B5E52;background:#E8DECD}
 .sw>span::after{content:"";position:absolute;left:6px;top:6px;width:16px;height:16px;border-radius:8px;background:#6B5E52}
 .q-actions{display:flex;align-items:center;gap:4px;margin:0 0 -4px 16px}
 .dot{width:8px;height:8px;flex:0 0 8px;border-radius:4px}
-.note{display:flex;align-items:flex-start;gap:8px;margin:12px 0 0;font:400 12px/1.45 'Hanken Grotesk',sans-serif;color:#6B5E52}
+.note{display:flex;align-items:flex-start;gap:8px;margin:12px 0 0;font:400 12px/1.45 'Hanken Grotesk','Onest',sans-serif;color:#6B5E52}
 .note svg{margin-top:1px}
 .pop .pile .av,.sheet .pile .av{box-shadow:0 0 0 2px #FFFFFF}
 .btn-text.danger{color:#C0392B}
 .sheet .hint,.sheet .q-txt,.sheet .note span{text-wrap:balance}
 </style>
 </helmet>
-<div style="position: relative; width: 390px; height: 844px; overflow: hidden; background: #FBF7F2; font-family: 'Hanken Grotesk', sans-serif; color: #2B2018">
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; background: #FBF7F2; font-family: 'Hanken Grotesk','Onest', sans-serif; color: #2B2018">
 
   <!-- ===== Page behind: Orders (_PhoneFrame: back, glyph 32, title, AskMorkvaAction, sync slot, tune, more_vert) ===== -->
   <div style="position: absolute; inset: 0; display: flex; flex-direction: column">
     <header style="display: flex; align-items: center; height: 56px; padding: 0 4px; flex: 0 0 auto">
       <button class="ib" aria-label="Back" style="width: 48px; height: 48px; flex-basis: 48px; border-radius: 24px; color: #2B2018"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
       <span style="width: 32px; height: 32px; flex: 0 0 32px; border-radius: 10px; background: #FFE0C2; color: #8A4708; display: inline-flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5h12v17l-2.4-1.6-2.4 1.6-2.4-1.6-2.4 1.6L6 20.5z"/><path d="M9.5 8h5M9.5 11.5h5M9.5 15h3"/></svg></span>
-      <h1 id="bar-title" style="margin: 0 0 0 12px; flex: 1 1 auto; min-width: 0; font: 600 18px/1.3 'Bricolage Grotesque', sans-serif; letter-spacing: -0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Orders</h1>
+      <h1 id="bar-title" style="margin: 0 0 0 12px; flex: 1 1 auto; min-width: 0; font: 600 18px/1.3 'Bricolage Grotesque','Onest', sans-serif; letter-spacing: -0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Orders</h1>
       <!-- AskMorkvaAction: 44, radius 14, primaryContainer -->
       <button class="ib" aria-label="Ask Morkva" style="border-radius: 14px; background: #FFE0C2"><svg width="22" height="22" viewBox="0 0 24 24" fill="#8A4708" aria-hidden="true"><path d="M12 2.5c.6 4.6 2.9 6.9 7.5 7.5-4.6.6-6.9 2.9-7.5 7.5-.6-4.6-2.9-6.9-7.5-7.5 4.6-.6 6.9-2.9 7.5-7.5zM19 15.5c.3 2 1.2 2.9 3.2 3.2-2 .3-2.9 1.2-3.2 3.2-.3-2-1.2-2.9-3.2-3.2 2-.3 2.9-1.2 3.2-3.2z"/></svg></button>
       <!-- RunIndicatorButton(idle: SyncStatusIndicator()): static "Synced" pill -->
@@ -132,7 +132,7 @@ svg{flex:0 0 auto}
   <section class="sheet" role="dialog" aria-labelledby="share-title">
     <span aria-hidden="true" style="display: block; width: 32px; height: 4px; border-radius: 2px; background: #B6A593; margin: 10px auto 2px; flex: 0 0 auto"></span>
     <div style="display: flex; align-items: center; gap: 8px; padding: 2px 6px 0 20px; flex: 0 0 auto">
-      <h2 id="share-title" style="flex: 1 1 auto; min-width: 0; margin: 0; font: 600 16px/1.35 'Hanken Grotesk', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Share “For Sunflower Studio”</h2>
+      <h2 id="share-title" style="flex: 1 1 auto; min-width: 0; margin: 0; font: 600 16px/1.35 'Hanken Grotesk','Onest', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Share “For Sunflower Studio”</h2>
       <button class="ib" aria-label="Close"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
 

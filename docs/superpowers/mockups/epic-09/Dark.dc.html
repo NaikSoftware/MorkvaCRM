@@ -8,29 +8,29 @@
 <body>
 <x-dc>
 <helmet>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&amp;family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&amp;family=Hanken+Grotesk:wght@400;500;600;700&amp;family=Onest:wght@400;500;600;700&amp;display=swap">
 <style>
 body{margin:0;background:#1A1410}
 .slot{width:76px;height:56px;flex:0 0 56px;display:flex;align-items:center;justify-content:center}
 .rb{position:relative;width:52px;height:52px;border-radius:16px;border:0;background:transparent;color:#C3B6A6;display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
 .gl{width:36px;height:36px;border-radius:11px;display:inline-flex;align-items:center;justify-content:center}
 .ib{width:44px;height:44px;border-radius:22px;border:0;background:transparent;color:#C3B6A6;display:inline-flex;align-items:center;justify-content:center}
-.cnt{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;box-sizing:border-box;border-radius:10px;font:600 12px 'Hanken Grotesk',sans-serif;font-variant-numeric:tabular-nums}
-.pill{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 10px 0 8px;box-sizing:border-box;border-radius:12px;font:600 12px 'Hanken Grotesk',sans-serif;letter-spacing:.2px;white-space:nowrap}
-.tb{height:44px;padding:0 12px;border-radius:12px;border:0;background:transparent;color:#F59B3C;display:inline-flex;align-items:center;gap:8px;font:600 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px}
+.cnt{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;box-sizing:border-box;border-radius:10px;font:600 12px 'Hanken Grotesk','Onest',sans-serif;font-variant-numeric:tabular-nums}
+.pill{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 10px 0 8px;box-sizing:border-box;border-radius:12px;font:600 12px 'Hanken Grotesk','Onest',sans-serif;letter-spacing:.2px;white-space:nowrap}
+.tb{height:44px;padding:0 12px;border-radius:12px;border:0;background:transparent;color:#F59B3C;display:inline-flex;align-items:center;gap:8px;font:600 14px 'Hanken Grotesk','Onest',sans-serif;letter-spacing:.1px}
 .step{display:flex;gap:12px;align-items:flex-start}
 .dot{flex:0 0 12px;width:12px;height:12px;margin:20px 0 0;border-radius:6px;background:#8C7E70;box-shadow:0 0 0 3px #1A1410}
 .dcard{flex:1 1 auto;min-width:0;border-radius:16px;background:#241D17;padding:0 12px 0 4px}
 .sh{display:flex;align-items:center;gap:8px;min-height:52px;min-width:0}
 .chev{width:44px;height:44px;flex:0 0 44px;margin:0 -4px;padding:0;border:0;border-radius:10px;background:transparent;color:#C3B6A6;display:inline-flex;align-items:center;justify-content:center}
-.st{margin:0;font:600 16px/1.3 'Hanken Grotesk',sans-serif;flex:0 0 auto}
+.st{margin:0;font:600 16px/1.3 'Hanken Grotesk','Onest',sans-serif;flex:0 0 auto}
 .sm{font-size:13px;color:#C3B6A6;margin-left:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .mono{font:400 13px/20px monospace}
 .ln{display:block;height:20px}
 .cl{display:block;height:20px;white-space:pre;box-sizing:border-box}
 </style>
 </helmet>
-<div style="position: relative; width: 1440px; height: 900px; display: flex; background: #1A1410; font-family: 'Hanken Grotesk', sans-serif; color: #F3EBE0; overflow: hidden">
+<div style="position: relative; width: 1440px; height: 900px; display: flex; background: #1A1410; font-family: 'Hanken Grotesk','Onest', sans-serif; color: #F3EBE0; overflow: hidden">
   <!-- Dark rail 76: surfaceContainer #241D17; selected tile surfaceContainerLowest #141009 (code), no shadow (spec 11) -->
   <nav aria-label="Main" style="width: 76px; flex: 0 0 76px; box-sizing: border-box; background: #241D17; border-right: 1px solid #332A22; display: flex; flex-direction: column; align-items: center; padding: 16px 0">
     <a href="#" aria-label="Expand sidebar" style="width: 44px; height: 44px; margin: -2px; display: inline-flex; align-items: center; justify-content: center"><span style="width: 40px; height: 40px; border-radius: 13px; background: #F59B3C; display: inline-flex; align-items: center; justify-content: center">
@@ -43,7 +43,7 @@ body{margin:0;background:#1A1410}
     <div class="slot">
       <a href="#" aria-current="page" aria-label="Automations, 2 need review" title="Automations · 2 need review" class="rb" style="color: #F3EBE0; background: #141009">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 2.5L4.5 13.5H11l-1.5 8 9-11H12z"/></svg>
-        <span style="position: absolute; top: 6px; right: 5px; min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box; border-radius: 9px; background: #3A2F12; color: #F1DC9A; box-shadow: 0 0 0 2px #141009; font: 700 11px 'Hanken Grotesk', sans-serif; display: inline-flex; align-items: center; justify-content: center">2</span>
+        <span style="position: absolute; top: 6px; right: 5px; min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box; border-radius: 9px; background: #3A2F12; color: #F1DC9A; box-shadow: 0 0 0 2px #141009; font: 700 11px 'Hanken Grotesk','Onest', sans-serif; display: inline-flex; align-items: center; justify-content: center">2</span>
       </a>
     </div>
     <span aria-hidden="true" style="width: 28px; height: 1px; margin: 8px 0 7px; background: #4A4036"></span>
@@ -54,25 +54,25 @@ body{margin:0;background:#1A1410}
     <span style="flex: 1 1 auto"></span>
     <div class="slot"><button class="rb" aria-label="Settings"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg></button></div>
     <div style="height: 4px"></div>
-    <span aria-label="Olena Kovalenko, synced" role="img" style="position: relative; width: 34px; height: 34px; border-radius: 17px; background: #4C7A34; color: #FFFFFF; display: inline-flex; align-items: center; justify-content: center; font: 700 14px 'Hanken Grotesk', sans-serif">OK<span style="position: absolute; right: -1px; bottom: -1px; width: 7px; height: 7px; border-radius: 6px; background: #5BB585; border: 2px solid #241D17"></span></span>
+    <span aria-label="Olena Kovalenko, synced" role="img" style="position: relative; width: 34px; height: 34px; border-radius: 17px; background: #4C7A34; color: #FFFFFF; display: inline-flex; align-items: center; justify-content: center; font: 700 14px 'Hanken Grotesk','Onest', sans-serif">OK<span style="position: absolute; right: -1px; bottom: -1px; width: 7px; height: 7px; border-radius: 6px; background: #5BB585; border: 2px solid #241D17"></span></span>
   </nav>
 
   <!-- State A: failed run detail (the page's content column) -->
-  <span aria-hidden="true" style="position: absolute; z-index: 5; top: 8px; display: inline-flex; align-items: center; height: 28px; padding: 0 12px; border-radius: 28px; background: #2E2620; box-shadow: inset 0 0 0 1px #4A4036; color: #F3EBE0; font: 600 12px 'Hanken Grotesk', sans-serif; letter-spacing: .2px; white-space: nowrap; left: 92px">1 · Failed run detail (full page; drawn narrow)</span>
-  <span aria-hidden="true" style="position: absolute; z-index: 5; top: 8px; display: inline-flex; align-items: center; height: 28px; padding: 0 12px; border-radius: 28px; background: #2E2620; box-shadow: inset 0 0 0 1px #4A4036; color: #F3EBE0; font: 600 12px 'Hanken Grotesk', sans-serif; letter-spacing: .2px; white-space: nowrap; right: 16px">2 · Code viewer dialog over module details</span>
+  <span aria-hidden="true" style="position: absolute; z-index: 5; top: 8px; display: inline-flex; align-items: center; height: 28px; padding: 0 12px; border-radius: 28px; background: #2E2620; box-shadow: inset 0 0 0 1px #4A4036; color: #F3EBE0; font: 600 12px 'Hanken Grotesk','Onest', sans-serif; letter-spacing: .2px; white-space: nowrap; left: 92px">1 · Failed run detail (full page; drawn narrow)</span>
+  <span aria-hidden="true" style="position: absolute; z-index: 5; top: 8px; display: inline-flex; align-items: center; height: 28px; padding: 0 12px; border-radius: 28px; background: #2E2620; box-shadow: inset 0 0 0 1px #4A4036; color: #F3EBE0; font: 600 12px 'Hanken Grotesk','Onest', sans-serif; letter-spacing: .2px; white-space: nowrap; right: 16px">2 · Code viewer dialog over module details</span>
   <main aria-label="Run detail" style="width: 444px; flex: 0 0 444px; box-sizing: border-box; padding: 48px 24px 24px; display: flex; flex-direction: column; border-right: 1px solid #4A4036; overflow: hidden">
-    <a href="#" style="align-self: flex-start; height: 44px; margin-left: -12px; padding: 0 12px; border-radius: 12px; display: inline-flex; align-items: center; gap: 6px; color: #F59B3C; font: 600 14px 'Hanken Grotesk', sans-serif; letter-spacing: .1px; text-decoration: none">
+    <a href="#" style="align-self: flex-start; height: 44px; margin-left: -12px; padding: 0 12px; border-radius: 12px; display: inline-flex; align-items: center; gap: 6px; color: #F59B3C; font: 600 14px 'Hanken Grotesk','Onest', sans-serif; letter-spacing: .1px; text-decoration: none">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
       Runs
     </a>
     <div style="display: flex; align-items: center; gap: 10px; margin-top: 4px">
       <span class="pill" style="background: #93000A; color: #FFDAD6"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9 9l6 6M15 9l-6 6"/></svg>Failed</span>
-      <h1 style="margin: 0; font: 600 20px/1.25 'Bricolage Grotesque', sans-serif; letter-spacing: -0.3px">Stamp when shipped</h1>
+      <h1 style="margin: 0; font: 600 20px/1.25 'Bricolage Grotesque','Onest', sans-serif; letter-spacing: -0.3px">Stamp when shipped</h1>
     </div>
     <p style="margin: 4px 0 0; font-size: 14px; line-height: 1.45; color: #C3B6A6; font-variant-numeric: tabular-nums">Stamp shipped date v1.0.0 › Stamp · Ask first · on&nbsp;web · 12&nbsp;Nov&nbsp;12:31 · 38&nbsp;ms</p>
 
     <div style="display: flex; align-items: center; gap: 4px; margin-top: 12px">
-      <button style="height: 44px; padding: 0 20px; border-radius: 12px; border: 1px solid #4A4036; background: #39302A; color: #F3EBE0; display: inline-flex; align-items: center; gap: 8px; font: 600 14px 'Hanken Grotesk', sans-serif; letter-spacing: .1px; margin-right: 4px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v4.5h-4.5"/></svg>Run again on #1042</button>
+      <button style="height: 44px; padding: 0 20px; border-radius: 12px; border: 1px solid #4A4036; background: #39302A; color: #F3EBE0; display: inline-flex; align-items: center; gap: 8px; font: 600 14px 'Hanken Grotesk','Onest', sans-serif; letter-spacing: .1px; margin-right: 4px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v4.5h-4.5"/></svg>Run again on #1042</button>
       <button class="tb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-8.5 8.5M18 14v4.5A1.5 1.5 0 0 1 16.5 20h-11A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6H10"/></svg>Open card</button>
       <button class="ib" aria-label="More: Edit automation, Copy log"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></button>
     </div>
@@ -112,10 +112,10 @@ body{margin:0;background:#1A1410}
   <!-- State B: module details with the code viewer dialog (900 × 80% height) -->
   <div style="position: relative; flex: 1 1 auto; min-width: 0; overflow: hidden">
     <div aria-hidden="true" style="padding: 6px 32px; display: flex; flex-direction: column; gap: 2px">
-      <span style="height: 36px; display: inline-flex; align-items: center; gap: 6px; color: #F59B3C; font: 600 14px 'Hanken Grotesk', sans-serif"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>Automations</span>
+      <span style="height: 36px; display: inline-flex; align-items: center; gap: 6px; color: #F59B3C; font: 600 14px 'Hanken Grotesk','Onest', sans-serif"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>Automations</span>
       <span style="display: flex; align-items: center; gap: 12px">
         <span style="width: 36px; height: 36px; border-radius: 11px; background: #163834; color: #9FD9CF; display: inline-flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4M9 15l2 2 4-4"/></svg></span>
-        <span style="font: 600 20px 'Bricolage Grotesque', sans-serif; letter-spacing: -0.3px">Stamp shipped date</span>
+        <span style="font: 600 20px 'Bricolage Grotesque','Onest', sans-serif; letter-spacing: -0.3px">Stamp shipped date</span>
         <span class="pill" style="padding: 0 8px; background: #39302A; color: #F3EBE0; font-variant-numeric: tabular-nums"><span style="width: 8px; height: 8px; border-radius: 4px; background: #8C7E70"></span>v1.0.0</span>
         <span class="pill" style="background: #263A1C; color: #B5D99E"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Installed</span>
       </span>
@@ -125,7 +125,7 @@ body{margin:0;background:#1A1410}
     <section role="dialog" aria-modal="true" aria-label="module.js" style="position: absolute; left: 10px; top: 90px; width: 900px; height: 720px; box-sizing: border-box; border-radius: 16px; background: #2E2620; display: flex; flex-direction: column; overflow: hidden">
       <header style="display: flex; align-items: center; gap: 12px; height: 64px; flex: 0 0 64px; padding: 0 8px 0 20px">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C3B6A6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 8L4 12l4.5 4M15.5 8L20 12l-4.5 4"/></svg>
-        <h2 style="margin: 0; font: 600 16px/1.3 'Hanken Grotesk', sans-serif">module.js</h2>
+        <h2 style="margin: 0; font: 600 16px/1.3 'Hanken Grotesk','Onest', sans-serif">module.js</h2>
         <span style="flex: 1 1 auto; font-size: 13px; color: #C3B6A6; font-variant-numeric: tabular-nums">2.1 KB · sha256:3fa2…c91</span>
         <button class="ib" aria-label="Copy code"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="8.5" y="8.5" width="11" height="11" rx="2.5"/><path d="M15.5 8.5V6A1.5 1.5 0 0 0 14 4.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"/></svg></button>
         <button class="ib" aria-label="Close"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>

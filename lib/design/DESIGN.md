@@ -38,6 +38,8 @@ Dark mode mirrors with warm espresso surfaces and a brighter carrot
 `tokens/typography.dart` builds the `TextTheme`.
 - **Bricolage Grotesque** — display, headline, titleLarge (the brand voice).
 - **Hanken Grotesk** — body, labels, data.
+- **Onest** — fallback on every style for Cyrillic (Ukrainian) text, which neither family
+  above covers. Mockups list it second in each font stack: `'Hanken Grotesk','Onest',sans-serif`.
 - Display sizes carry negative tracking (−1.0 at 48px → −0.2 at 18px).
 - **Numbers in data cells:** wrap with `MorkvaTypography.tabular(style)` for
   tabular figures so digits align.

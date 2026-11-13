@@ -8,34 +8,34 @@
 <body>
 <x-dc>
 <helmet>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&amp;family=Hanken+Grotesk:wght@400;500;600&amp;display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&amp;family=Hanken+Grotesk:wght@400;500;600&amp;family=Onest:wght@400;500;600;700&amp;display=swap">
 <style>
 body{margin:0;background:#FBF7F2}
 </style>
 </helmet>
-<div style="width: 390px; height: 844px; overflow: hidden; position: relative; background: #8F8378; font-family: 'Hanken Grotesk', system-ui, sans-serif; color: #2B2018">
+<div style="width: 390px; height: 844px; overflow: hidden; position: relative; background: #8F8378; font-family: 'Hanken Grotesk','Onest', system-ui, sans-serif; color: #2B2018">
   <div role="dialog" aria-labelledby="pp" style="position: absolute; left: 0; right: 0; bottom: 0; height: 620px; background: #FBF7F2; border-radius: 28px 28px 0 0; display: flex; flex-direction: column">
     <div aria-hidden="true" style="align-self: center; width: 32px; height: 4px; border-radius: 2px; background: #B6A593; margin: 12px 0 8px"></div>
     <div style="padding: 4px 16px 12px; display: flex; flex-direction: column; gap: 12px">
-      <h2 id="pp" style="margin: 0; font: 700 20px 'Bricolage Grotesque', sans-serif">Link company</h2>
+      <h2 id="pp" style="margin: 0; font: 700 20px 'Bricolage Grotesque','Onest', sans-serif">Link company</h2>
       <label style="display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 14px; border-radius: 24px; background: #FFFFFF; border: 1px solid #B6A593">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B5E52" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6"></circle><path d="M20 20l-4.5-4.5"></path></svg>
-        <input type="search" placeholder="Search companies" aria-label="Search companies" style="flex: 1 1 auto; border: 0; outline: none; background: transparent; font: 500 15px 'Hanken Grotesk', sans-serif">
+        <input type="search" placeholder="Search companies" aria-label="Search companies" style="flex: 1 1 auto; border: 0; outline: none; background: transparent; font: 500 15px 'Hanken Grotesk','Onest', sans-serif">
       </label>
     </div>
     <ul style="list-style: none; margin: 0; padding: 0 8px; flex: 1 1 auto; overflow: hidden; display: flex; flex-direction: column">
       <sc-for list="{{items}}" as="it" hint-placeholder-count="6">
         <li>
-          <button type="button" style="width: 100%; display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 0 12px; border: 0; border-radius: 14px; background: {{it.bg}}; text-align: left; font-family: 'Hanken Grotesk', sans-serif; color: #2B2018">
-            <span style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px"><span style="font: 600 15px 'Hanken Grotesk', sans-serif">{{it.name}}</span><span style="font: 400 13px 'Hanken Grotesk', sans-serif; color: #6B5E52">{{it.sub}}</span></span>
+          <button type="button" style="width: 100%; display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 0 12px; border: 0; border-radius: 14px; background: {{it.bg}}; text-align: left; font-family: 'Hanken Grotesk','Onest', sans-serif; color: #2B2018">
+            <span style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px"><span style="font: 600 15px 'Hanken Grotesk','Onest', sans-serif">{{it.name}}</span><span style="font: 400 13px 'Hanken Grotesk','Onest', sans-serif; color: #6B5E52">{{it.sub}}</span></span>
             <sc-if value="{{it.on}}" hint-placeholder-val="{{false}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8A4708" stroke-width="2.4" stroke-linecap="round"><path d="M5 12l5 5 9-10"></path></svg></sc-if>
           </button>
         </li>
       </sc-for>
     </ul>
     <div style="padding: 8px 16px 24px; border-top: 1px solid #E0D5C7; display: flex; justify-content: space-between; align-items: center">
-      <button type="button" style="height: 44px; padding: 0 12px; border-radius: 22px; border: 0; background: transparent; color: #A8321F; font: 600 14px 'Hanken Grotesk', sans-serif">Unlink</button>
-      <button type="button" style="height: 44px; padding: 0 16px; border-radius: 22px; border: 0; background: transparent; color: #8A4708; font: 600 14px 'Hanken Grotesk', sans-serif">Cancel</button>
+      <button type="button" style="height: 44px; padding: 0 12px; border-radius: 22px; border: 0; background: transparent; color: #A8321F; font: 600 14px 'Hanken Grotesk','Onest', sans-serif">Unlink</button>
+      <button type="button" style="height: 44px; padding: 0 16px; border-radius: 22px; border: 0; background: transparent; color: #8A4708; font: 600 14px 'Hanken Grotesk','Onest', sans-serif">Cancel</button>
     </div>
   </div>
 </div>

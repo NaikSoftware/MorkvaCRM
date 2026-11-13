@@ -8,25 +8,25 @@
 <body>
 <x-dc>
 <helmet>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&amp;family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&amp;family=Hanken+Grotesk:wght@400;500;600;700&amp;family=Onest:wght@400;500;600;700&amp;display=swap">
 <style>
 body{margin:0;background:#FBF7F2}
-.lbl{font:600 13px 'Hanken Grotesk',sans-serif;color:#6B5E52;margin:0}
-.field{min-height:48px;box-sizing:border-box;padding:0 14px;border-radius:12px;border:1px solid #B6A593;background:#FFFFFF;display:flex;align-items:center;gap:8px;font:500 15px 'Hanken Grotesk',sans-serif;color:#2B2018}
-.seg{flex:1 1 0;height:40px;border:0;background:transparent;font:600 14px 'Hanken Grotesk',sans-serif;color:#6B5E52;border-radius:20px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
-.op{height:36px;padding:0 14px;border-radius:18px;border:1px solid #E0D5C7;background:#FFFFFF;font:600 13px 'Hanken Grotesk',sans-serif;color:#2B2018}
+.lbl{font:600 13px 'Hanken Grotesk','Onest',sans-serif;color:#6B5E52;margin:0}
+.field{min-height:48px;box-sizing:border-box;padding:0 14px;border-radius:12px;border:1px solid #B6A593;background:#FFFFFF;display:flex;align-items:center;gap:8px;font:500 15px 'Hanken Grotesk','Onest',sans-serif;color:#2B2018}
+.seg{flex:1 1 0;height:40px;border:0;background:transparent;font:600 14px 'Hanken Grotesk','Onest',sans-serif;color:#6B5E52;border-radius:20px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.op{height:36px;padding:0 14px;border-radius:18px;border:1px solid #E0D5C7;background:#FFFFFF;font:600 13px 'Hanken Grotesk','Onest',sans-serif;color:#2B2018}
 .op.on{background:#FFE0C2;border-color:#E8821E;color:#4E2A00}
-.cond{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 6px 0 12px;border-radius:8px;background:#F4EDE3;font:500 13px 'Hanken Grotesk',sans-serif;color:#2B2018;border:0}
-.add{height:32px;padding:0 10px;border-radius:8px;border:1px dashed #B6A593;background:transparent;color:#8A4708;font:600 13px 'Hanken Grotesk',sans-serif;display:inline-flex;align-items:center;gap:4px}
+.cond{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 6px 0 12px;border-radius:8px;background:#F4EDE3;font:500 13px 'Hanken Grotesk','Onest',sans-serif;color:#2B2018;border:0}
+.add{height:32px;padding:0 10px;border-radius:8px;border:1px dashed #B6A593;background:transparent;color:#8A4708;font:600 13px 'Hanken Grotesk','Onest',sans-serif;display:inline-flex;align-items:center;gap:4px}
 </style>
 </helmet>
-<div style="width: 440px; height: 860px; box-sizing: border-box; background: #FFFFFF; border-left: 1px solid #E0D5C7; font-family: 'Hanken Grotesk', sans-serif; color: #2B2018; display: flex; flex-direction: column">
+<div style="width: 440px; height: 860px; box-sizing: border-box; background: #FFFFFF; border-left: 1px solid #E0D5C7; font-family: 'Hanken Grotesk','Onest', sans-serif; color: #2B2018; display: flex; flex-direction: column">
   <header style="display: flex; align-items: center; gap: 12px; padding: 20px 24px 16px; border-bottom: 1px solid #F4EDE3">
     <span style="width: 40px; height: 40px; border-radius: 12px; background: #FFE0C2; color: #8A4708; display: inline-flex; align-items: center; justify-content: center">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg>
     </span>
     <div style="display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto">
-      <h2 style="margin: 0; font: 700 20px 'Bricolage Grotesque', sans-serif">Reserved</h2>
+      <h2 style="margin: 0; font: 700 20px 'Bricolage Grotesque','Onest', sans-serif">Reserved</h2>
       <span style="font-size: 13px; color: #6B5E52">Calculated · Number</span>
     </div>
     <button aria-label="Close" style="width: 40px; height: 40px; border-radius: 20px; border: 0; background: transparent; color: #6B5E52; display: inline-flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -81,8 +81,8 @@ body{margin:0;background:#FBF7F2}
     </div>
 
     <div style="padding: 14px 16px; border-radius: 12px; background: #F4EDE3; display: flex; flex-direction: column; gap: 4px">
-      <span style="font: 600 12px 'Hanken Grotesk', sans-serif; color: #6B5E52; letter-spacing: .02em">IN WORDS</span>
-      <span style="font: 500 14px/1.45 'Hanken Grotesk', sans-serif">Sum of <b>Quantity</b> of <b>Orders</b> linking here via <b>Item</b>, where Status is New, Paid</span>
+      <span style="font: 600 12px 'Hanken Grotesk','Onest', sans-serif; color: #6B5E52; letter-spacing: .02em">IN WORDS</span>
+      <span style="font: 500 14px/1.45 'Hanken Grotesk','Onest', sans-serif">Sum of <b>Quantity</b> of <b>Orders</b> linking here via <b>Item</b>, where Status is New, Paid</span>
     </div>
 
     <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
@@ -98,8 +98,8 @@ body{margin:0;background:#FBF7F2}
   </div>
 
   <footer style="display: flex; justify-content: flex-end; gap: 8px; padding: 16px 24px; border-top: 1px solid #F4EDE3">
-    <button style="height: 40px; padding: 0 20px; border-radius: 20px; border: 0; background: transparent; color: #8A4708; font: 600 14px 'Hanken Grotesk', sans-serif">Cancel</button>
-    <button style="height: 40px; padding: 0 24px; border-radius: 20px; border: 0; background: #E8821E; color: #2B2018; font: 700 14px 'Hanken Grotesk', sans-serif">Done</button>
+    <button style="height: 40px; padding: 0 20px; border-radius: 20px; border: 0; background: transparent; color: #8A4708; font: 600 14px 'Hanken Grotesk','Onest', sans-serif">Cancel</button>
+    <button style="height: 40px; padding: 0 24px; border-radius: 20px; border: 0; background: #E8821E; color: #2B2018; font: 700 14px 'Hanken Grotesk','Onest', sans-serif">Done</button>
   </footer>
 </div>
 </x-dc>
