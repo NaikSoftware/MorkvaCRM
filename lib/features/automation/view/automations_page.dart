@@ -825,6 +825,11 @@ class AutomationBanner extends StatelessWidget {
           border: Border.all(color: colors.foreground.withValues(alpha: 0.2)),
         ),
         child: Row(
+          // The icon sits on the first line of a wrapping message; an action
+          // button is taller than a line, so that row stays centred.
+          crossAxisAlignment: action == null
+              ? CrossAxisAlignment.start
+              : CrossAxisAlignment.center,
           children: [
             Icon(icon, size: 20, color: colors.foreground),
             const SizedBox(width: Spacing.sm),

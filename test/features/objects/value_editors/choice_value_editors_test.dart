@@ -125,6 +125,48 @@ void main() {
       await tester.pumpAndSettle();
       expect(h.value, const MultiSelectFieldValue());
     });
+
+    // The menu used to ride along with "+ Add" as chips were added before it.
+    for (final width in [800.0, 260.0]) {
+      testWidgets('menu stays put while adding tags (width $width)', (
+        tester,
+      ) async {
+        tester.view.physicalSize = Size(width, 600);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        final h = EditorHarness(_tags, const MultiSelectFieldValue(['up']));
+        await h.pump(tester);
+
+        // A second tap on Add closes the menu (not close-then-reopen).
+        await tester.tap(find.text('Add'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Add'));
+        await tester.pumpAndSettle();
+        expect(find.byType(CheckboxMenuButton), findsNothing);
+
+        await tester.tap(find.text('Add'));
+        await tester.pumpAndSettle();
+        Rect item() =>
+            tester.getRect(find.widgetWithText(CheckboxMenuButton, 'New'));
+        final opened = item();
+        // Opens right under the Add button, as before.
+        final add = tester.getRect(find.widgetWithText(TextButton, 'Add'));
+        // "New" is the third 48 px row of a menu hanging from Add's bottom.
+        expect(opened.topLeft - add.bottomLeft, const Offset(0, 104));
+
+        await tester.tap(find.widgetWithText(CheckboxMenuButton, 'Enterprise'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(CheckboxMenuButton, 'New'));
+        await tester.pumpAndSettle();
+        expect(h.value, const MultiSelectFieldValue(['ent', 'up', 'new']));
+        expect(item(), opened);
+
+        // Tapping beside the chips still dismisses the menu.
+        await tester.tapAt(Offset(width - 10, 30));
+        await tester.pumpAndSettle();
+        expect(find.byType(CheckboxMenuButton), findsNothing);
+      });
+    }
   });
 
   group('reference', () {

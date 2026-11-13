@@ -18,14 +18,17 @@ Color sheetSurface(ThemeData theme) => theme.brightness == Brightness.light
 
 /// Consent, import and test-run sheets: a centered dialog 560 wide
 /// (`Radii.lg`) on wide layouts, a full-height bottom sheet with a drag
-/// handle on phones.
+/// handle on phones. Not [dismissible]: no scrim tap, drag or handle; the
+/// sheet closes itself.
 Future<T?> showAutomationSheet<T>(
   BuildContext context, {
   required WidgetBuilder builder,
+  bool dismissible = true,
 }) {
   if (automationsExpanded(context)) {
     return showDialog<T>(
       context: context,
+      barrierDismissible: dismissible,
       builder: (context) => Dialog(
         backgroundColor: sheetSurface(Theme.of(context)),
         shape: const RoundedRectangleBorder(borderRadius: Radii.lgAll),
@@ -43,9 +46,15 @@ Future<T?> showAutomationSheet<T>(
   }
   return showModalBottomSheet<T>(
     context: context,
+    // Above the shell, as the dialog: a route change under the sheet (browser
+    // Back) must not dispose it mid-write. The scrim covers the app bar too.
+    useRootNavigator: true,
     isScrollControlled: true,
     useSafeArea: true,
-    showDragHandle: true,
+    backgroundColor: sheetSurface(Theme.of(context)),
+    isDismissible: dismissible,
+    enableDrag: dismissible,
+    showDragHandle: dismissible,
     // Keeps the paste field and test-run inputs above the keyboard.
     builder: (context) => Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
@@ -104,24 +113,45 @@ class AutomationSheetFrame extends StatelessWidget {
   }
 }
 
+/// The sheets' Files/Paste [SegmentedButton] style: 44 px tall like every
+/// other target. SegmentedButton ignores `minimumSize`; its height is 40 plus
+/// the density's adjustment, and +1 vertical density adds 4.
+const sheetSegmentedStyle = ButtonStyle(
+  visualDensity: VisualDensity(vertical: 1),
+  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+);
+
 /// A sheet's button row: an optional muted [hint] (a disabled button's
 /// reason) at the left, the [buttons] at the right; stacked when narrow.
 class SheetFooter extends StatelessWidget {
-  const SheetFooter({super.key, this.hint, required this.buttons});
+  const SheetFooter({
+    super.key,
+    this.hint,
+    this.hintIcon,
+    required this.buttons,
+  });
 
   final String? hint;
+
+  /// A glyph before the [hint] (e.g. offline), so the reason is not text only.
+  final IconData? hintIcon;
   final List<Widget> buttons;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final text = hint == null
+    final muted = theme.colorScheme.onSurfaceVariant;
+    final label = hint == null
         ? null
-        : Text(
-            hint!,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+        : Text(hint!, style: theme.textTheme.bodySmall?.copyWith(color: muted));
+    final text = label == null || hintIcon == null
+        ? label
+        : Row(
+            children: [
+              Icon(hintIcon, size: 16, color: muted),
+              const SizedBox(width: Spacing.xs),
+              Flexible(child: label),
+            ],
           );
     final row = Wrap(
       alignment: WrapAlignment.end,
@@ -149,18 +179,22 @@ class SheetFooter extends StatelessWidget {
   }
 }
 
-/// A sheet title with an icon tile and a subtitle.
+/// A sheet title with an icon tile, a subtitle and an optional Close.
 class SheetHeader extends StatelessWidget {
   const SheetHeader({
     super.key,
     required this.icon,
     required this.title,
     this.subtitle,
+    this.onClose,
   });
 
   final IconData icon;
   final String title;
   final String? subtitle;
+
+  /// Shows a Close button at the end when set.
+  final VoidCallback? onClose;
 
   @override
   Widget build(BuildContext context) {
@@ -193,6 +227,12 @@ class SheetHeader extends StatelessWidget {
             ],
           ),
         ),
+        if (onClose != null)
+          IconActionButton(
+            icon: Icons.close_rounded,
+            tooltip: 'Close',
+            onPressed: onClose,
+          ),
       ],
     );
   }

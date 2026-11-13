@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Invite people</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&amp;family=Hanken+Grotesk:wght@400;500;600;700&amp;family=Roboto+Mono:wght@500&amp;display=swap">
+<style>
+body{margin:0;background:#FBF7F2}
+svg{flex:0 0 auto}
+/* ---------- shell: sidebar (shell_sidebar.dart, full 272) ---------- */
+.side{width:272px;flex:0 0 272px;box-sizing:border-box;background:#F4EDE3;display:flex;flex-direction:column;padding:16px 12px 12px}
+.nav{display:flex;align-items:center;gap:12px;height:44px;padding:0 6px 0 8px;margin:0 0 2px;border-radius:14px;border:0;background:transparent;width:100%;text-align:left;font:500 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;color:#2B2018;box-sizing:border-box;text-decoration:none}
+.nav[aria-current="page"]{background:#FFFFFF;font-weight:700;box-shadow:0 1px 2px rgba(0,0,0,.08),0 3px 6px rgba(74,53,32,.06)}
+.tile{width:28px;height:28px;flex:0 0 28px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center}
+.cap{font:700 11px 'Hanken Grotesk',sans-serif;letter-spacing:.9px;text-transform:uppercase;color:#6B5E52;margin:0}
+.ib{width:44px;height:44px;flex:0 0 44px;border-radius:22px;border:0;padding:0;background:transparent;color:#6B5E52;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+kbd{font:600 11px 'Hanken Grotesk',sans-serif;color:#6B5E52;border:1px solid #E0D5C7;border-radius:6px;padding:2px 6px}
+/* ---------- avatars (UserAvatar: initials disc; me = leaf) ---------- */
+.av{width:28px;height:28px;flex:0 0 28px;border-radius:50%;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;font:700 11px 'Hanken Grotesk',sans-serif;letter-spacing:.2px}
+.av-me{background:#4C7A34;color:#FFFFFF}
+.av-sky{background:#DCEAF3;color:#2F5F80}
+.av-plum{background:#EDE0EE;color:#6B3F70}
+.av-sand{background:#F6EBC8;color:#6E5310}
+.av-more{background:#EEE5D8;color:#4A4036}
+.pile{display:inline-flex;align-items:center}
+.pile .av{position:relative;box-shadow:0 0 0 2px #FBF7F2}
+.pile .av:nth-child(1){z-index:4}.pile .av:nth-child(2){z-index:3}.pile .av:nth-child(3){z-index:2}.pile .av:nth-child(4){z-index:1}
+.pile .av+.av{margin-left:-4px}
+.pop .pile .av{box-shadow:0 0 0 2px #FFFFFF}
+/* ---------- buttons (design/components/buttons + theme OutlinedButton) ---------- */
+.btn{height:44px;flex:0 0 auto;padding:0 24px;border-radius:12px;border:0;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:8px;font:600 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;white-space:nowrap;cursor:pointer}
+.btn-icon{padding-left:20px}
+.btn-primary{background:#E8821E;color:#3A1E00}
+.btn-outlined{background:transparent;color:#2B2018;border:1px solid #B6A593}
+.btn-outlined[aria-expanded="true"]{background:#E8DECD}
+.btn-outlined .chev{display:inline-flex;color:#6B5E52;margin-right:-8px}
+.btn-sm{padding:0 16px}
+.btn-text{height:44px;flex:0 0 auto;padding:0 12px;border-radius:12px;border:0;background:transparent;color:#8A4708;display:inline-flex;align-items:center;gap:6px;font:600 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;white-space:nowrap;cursor:pointer}
+.btn-text.danger{color:#C0392B}
+.hit{flex:0 0 auto;min-width:44px;min-height:44px;padding:0;border:0;background:transparent;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+/* ---------- collection page: header, view tabs, toolbar ---------- */
+.page-hd{display:flex;align-items:center;gap:8px;padding:24px 24px 8px}
+.glyph{width:44px;height:44px;flex:0 0 44px;border-radius:13px;display:inline-flex;align-items:center;justify-content:center}
+.page-title{flex:1 1 auto;min-width:0;margin:0 0 0 4px;font:600 24px/1.2 'Bricolage Grotesque',sans-serif;letter-spacing:-0.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tabs{display:flex;align-items:center;padding:0 12px;border-bottom:1px solid #E0D5C7;margin:0 24px}
+.tab{position:relative;height:48px;padding:0 12px;border:0;background:transparent;display:inline-flex;align-items:center;gap:8px;font:500 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;color:#6B5E52;border-radius:8px;white-space:nowrap;cursor:pointer}
+.tab[aria-selected="true"]{color:#2B2018;font-weight:600}
+.tab[aria-selected="true"]::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;border-radius:3px 3px 0 0;background:#E8821E}
+.tab-more{width:32px;height:32px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;color:#6B5E52}
+.toolbar{height:52px;display:flex;align-items:center;gap:8px;padding:0 24px}
+.fchip{display:inline-flex;align-items:center;gap:4px;height:32px;padding:0 4px 0 12px;box-sizing:border-box;border-radius:8px;background:#FFE0C2;color:#4E2A00;font:600 14px 'Hanken Grotesk',sans-serif;white-space:nowrap}
+.fchip-x{width:44px;height:44px;flex:0 0 44px;margin:-8px;padding:0;border:0;background:transparent;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:#4E2A00}
+.fadd{height:32px;padding:0 12px 0 8px;border-radius:8px;border:1px dashed #B6A593;color:#6B5E52;display:inline-flex;align-items:center;gap:4px;font:600 14px 'Hanken Grotesk',sans-serif;box-sizing:border-box}
+.tcluster{display:inline-flex;align-items:center;height:36px;border-radius:12px;border:1px solid rgba(182,165,147,.6);padding:0 4px}
+.tbtn{min-width:44px;min-height:44px;margin:-4px 0;padding:0;border:0;background:transparent;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;cursor:pointer}
+.tbtn>span{height:36px;padding:0 10px;display:inline-flex;align-items:center;gap:6px;font:600 14px 'Hanken Grotesk',sans-serif;color:#2B2018;white-space:nowrap}
+.tbtn i{display:inline-flex;color:#6B5E52;font-style:normal}
+.tsep{width:1px;height:20px;background:#E0D5C7}
+/* ---------- table (modes/table_mode.dart: header 44, rows 52) ---------- */
+.tbl{margin:0 24px;border-radius:16px;border:1px solid #E0D5C7;background:#FFFFFF;overflow:hidden}
+.tr{display:grid;grid-template-columns:264px 160px 136px 200px 128px minmax(0,1fr);height:52px;border-bottom:1px solid #E0D5C7}
+.tr.th{height:44px;background:#FAF4EC}
+.th>div{display:flex;align-items:center;gap:4px;padding:0 12px;font:600 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;color:#6B5E52}
+.th>div:first-child{padding-left:16px}
+.td{display:flex;align-items:center;min-width:0;padding:0 12px;font:400 14px/1.45 'Hanken Grotesk',sans-serif;color:#2B2018;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.td.title{padding-left:16px;font-weight:600}
+.num{justify-content:flex-end !important}
+.tfoot{height:36px;display:flex;align-items:center;padding:0 16px;background:#FAF4EC;font:600 12px 'Hanken Grotesk',sans-serif;letter-spacing:.2px;color:#6B5E52;font-variant-numeric:tabular-nums}
+/* OptionPill: 24 tall, full radius, 8 px dot, option colour @16% on white */
+.opt{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;box-sizing:border-box;border-radius:12px;font:600 12px 'Hanken Grotesk',sans-serif;letter-spacing:.2px;color:#2B2018;white-space:nowrap}
+.opt::before{content:"";width:8px;height:8px;border-radius:4px;background:var(--dot)}
+.o-new{background:#DFEAF1;--dot:#3A7CA5}
+.o-cutting{background:#F8F0DA;--dot:#D4A017}
+.o-sewing{background:#FBEBDB;--dot:#E8821E}
+.o-ready{background:#E2EADF;--dot:#4C7A34}
+.o-shipped{background:#E7E5E3;--dot:#6B5E52}
+/* ---------- share popover (view_popover.dart pattern, 400 wide) ---------- */
+.anchor{position:relative;display:inline-flex;flex:0 0 auto}
+.pop{position:absolute;top:calc(100% + 4px);right:0;z-index:5;width:400px;box-sizing:border-box;background:#FFFFFF;border:1px solid #E0D5C7;border-radius:12px;box-shadow:0 4px 10px rgba(0,0,0,.14),0 16px 28px rgba(82,58,34,.10);text-align:left;font:400 14px/1.45 'Hanken Grotesk',sans-serif;color:#2B2018;white-space:normal}
+.pop-hd{display:flex;align-items:center;gap:8px;padding:8px 6px 0 20px}
+.pop-title{flex:1 1 auto;min-width:0;margin:0;font:600 16px/1.35 'Hanken Grotesk',sans-serif;color:#2B2018;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pop-sec{padding:4px 20px 16px}
+.sec-lbl{display:block;margin:0 0 8px;font:600 14px/1.3 'Hanken Grotesk',sans-serif;letter-spacing:.1px;color:#2B2018}
+.hint{margin:0;font:400 12px/1.45 'Hanken Grotesk',sans-serif;color:#6B5E52}
+.field{flex:1 1 auto;min-width:0;height:44px;display:flex;align-items:center;box-sizing:border-box;border:0;box-shadow:inset 0 0 0 1px #B6A593;border-radius:12px;background:#FFFFFF}
+.field input{flex:1 1 auto;min-width:0;height:44px;border:0;outline:0;background:transparent;padding:0 0 0 14px;font:400 14px 'Hanken Grotesk',sans-serif;color:#2B2018}
+.field input::placeholder{color:#6B5E52;opacity:1}
+.inline-sel{height:44px;flex:0 0 auto;padding:0 8px 0 12px;border:0;border-left:1px solid #E0D5C7;border-radius:0 12px 12px 0;background:transparent;display:inline-flex;align-items:center;gap:2px;font:600 14px 'Hanken Grotesk',sans-serif;color:#2B2018;cursor:pointer}
+.inline-sel i,.sel i{display:inline-flex;color:#6B5E52;font-style:normal}
+.people{display:flex;align-items:center;gap:8px;margin:8px -8px -4px 0}
+.people-txt{flex:1 1 auto;min-width:0;white-space:nowrap;font:400 14px 'Hanken Grotesk',sans-serif;color:#2B2018;font-variant-numeric:tabular-nums}
+.people-txt b{font-weight:600}
+.pop-div{height:1px;background:#E0D5C7;margin:0}
+.access{width:100%;display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 8px 6px 6px;margin:0 -6px;box-sizing:content-box;border:0;border-radius:12px;background:transparent;text-align:left;cursor:pointer}
+.acc-ic{width:36px;height:36px;flex:0 0 36px;border-radius:18px;display:inline-flex;align-items:center;justify-content:center}
+.acc-txt{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:1px}
+.acc-name{display:inline-flex;align-items:center;gap:2px;font:600 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;color:#2B2018}
+.acc-name i{display:inline-flex;color:#6B5E52;font-style:normal}
+.quiet{margin-top:8px;padding:4px 12px 8px 16px;border-radius:12px;background:#FAF4EC}
+.q-row{display:flex;align-items:center;gap:10px;min-height:44px}
+.q-row+.q-row{border-top:1px solid #EEE5D8}
+.q-ic{display:inline-flex;color:#6B5E52}
+.q-txt{flex:1 1 auto;min-width:0;font:400 14px/1.4 'Hanken Grotesk',sans-serif;color:#2B2018}
+.q-txt small{display:block;font-size:12px;line-height:1.45;color:#6B5E52}
+.url{flex:1 1 auto;min-width:0;font:500 13px 'Roboto Mono',ui-monospace,monospace;color:#2B2018;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sel{min-height:44px;flex:0 0 auto;padding:0;border:0;background:transparent;display:inline-flex;align-items:center;cursor:pointer}
+.sel>span{height:36px;padding:0 6px 0 12px;box-sizing:border-box;border:1px solid #B6A593;border-radius:12px;background:#FFFFFF;display:inline-flex;align-items:center;gap:4px;font:600 14px 'Hanken Grotesk',sans-serif;color:#2B2018}
+.sw{width:52px;min-height:44px;flex:0 0 auto;padding:0;border:0;background:transparent;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.sw>span{position:relative;width:52px;height:32px;box-sizing:border-box;border-radius:16px;border:2px solid #6B5E52;background:#E8DECD}
+.sw>span::after{content:"";position:absolute;left:6px;top:6px;width:16px;height:16px;border-radius:8px;background:#6B5E52}
+.q-actions{display:flex;align-items:center;gap:4px;margin:0 0 -4px -12px}
+.dot{width:8px;height:8px;flex:0 0 8px;border-radius:4px}
+.note{display:flex;align-items:flex-start;gap:8px;margin:12px 0 0;font:400 12px/1.45 'Hanken Grotesk',sans-serif;color:#6B5E52}
+.note svg{margin-top:1px}
+.pop-ft{display:flex;align-items:center;gap:16px;padding:12px 16px 12px 20px;border-top:1px solid #E0D5C7}
+.pop-ft .hint{flex:1 1 auto}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* ---------- settings sub-pages (Team, Shared links): 880 column, centred ---------- */
+.set-main{position:relative;flex:1 1 auto;min-width:0;overflow:hidden}
+.col{position:relative;width:880px;margin:0 auto;padding:4px 0 0}
+.crumbs{display:flex;align-items:center;gap:2px;height:44px;margin-left:-12px;font:600 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;color:#6B5E52}
+.crumbs a{display:inline-flex;align-items:center;gap:6px;height:44px;padding:0 12px;border-radius:12px;color:#8A4708;text-decoration:none}
+.crumbs i{display:inline-flex;color:#B6A593;font-style:normal}
+.crumbs span{padding:0 8px;color:#2B2018}
+.hd{display:flex;align-items:flex-end;gap:16px;margin:4px 0 0}
+.h1{margin:0;font:600 24px/1.2 'Bricolage Grotesque',sans-serif;letter-spacing:-0.4px;color:#2B2018}
+.lead{margin:6px 0 0;max-width:600px;font:400 14px/1.45 'Hanken Grotesk',sans-serif;color:#6B5E52}
+.card{background:#FFFFFF;border:1px solid #E0D5C7;border-radius:16px;box-shadow:0 1px 2px rgba(0,0,0,.08),0 3px 6px rgba(74,53,32,.06)}
+.av36{width:36px;height:36px;flex:0 0 36px;font-size:13px}
+.av24{width:24px;height:24px;flex:0 0 24px;font-size:10px}
+.av-rose{background:#F7DEDA;color:#8A3328}
+.av-teal{background:#D8EEEA;color:#23605A}
+.av-slate{background:#E6E2DC;color:#4A4036}
+.av-carrot{background:#FFE0C2;color:#8A4708}
+.badge{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:10px;font:700 11px 'Hanken Grotesk',sans-serif;letter-spacing:.2px;font-variant-numeric:tabular-nums}
+.muted{color:#6B5E52}
+.menu{position:absolute;z-index:6;width:248px;box-sizing:border-box;padding:6px;background:#FFFFFF;border:1px solid #E0D5C7;border-radius:12px;box-shadow:0 4px 10px rgba(0,0,0,.14),0 16px 28px rgba(82,58,34,.10)}
+.mi{width:100%;height:44px;display:flex;align-items:center;gap:12px;padding:0 12px;border:0;border-radius:8px;background:transparent;font:500 14px 'Hanken Grotesk',sans-serif;color:#2B2018;text-align:left;cursor:pointer}
+.mi i{display:inline-flex;color:#6B5E52;font-style:normal}
+.mi.hl{background:#FAF4EC}
+.mi.danger,.mi.danger i{color:#C0392B}
+.mdiv{height:1px;margin:6px -6px;background:#E0D5C7}
+.tip{position:absolute;z-index:7;padding:6px 10px;border-radius:8px;background:#2B2018;color:#FBF7F2;font:600 12px 'Hanken Grotesk',sans-serif;white-space:nowrap}
+/* ---------- Team page ---------- */
+.wscard{display:flex;align-items:center;gap:14px;margin-top:16px;padding:8px 16px 8px 12px}
+.ws-tile{width:44px;height:44px;flex:0 0 44px;border-radius:12px;background:#E8821E;color:#3A1E00;display:inline-flex;align-items:center;justify-content:center;font:700 16px 'Bricolage Grotesque',sans-serif;letter-spacing:-.2px}
+.ws-field{display:flex;flex-direction:column;gap:2px;flex:0 0 auto}
+.ws-field label{font:600 12px 'Hanken Grotesk',sans-serif;letter-spacing:.2px;color:#6B5E52}
+.ws-in{width:300px;height:40px;display:flex;align-items:center;box-sizing:border-box;margin-left:-12px;border-radius:12px;box-shadow:inset 0 0 0 1px #E0D5C7;background:#FFFFFF}
+.ws-in input{flex:1 1 auto;min-width:0;height:44px;margin:-2px 0;border:0;outline:0;background:transparent;padding:0 0 0 12px;font:600 16px 'Hanken Grotesk',sans-serif;color:#2B2018}
+.ws-in .hit{color:#6B5E52;margin:-2px 0}
+.ws-note{margin:2px 0 0;font:400 12px/1.45 'Hanken Grotesk',sans-serif;color:#6B5E52}
+.mlist{overflow:visible}
+.mrow{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 172px 168px 56px;align-items:center;height:56px;padding:0 4px 0 16px;border-top:1px solid #EEE5D8}
+.mrow.mh{height:44px;border-top:0;background:#FAF4EC;border-radius:15px 15px 0 0;font:600 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;color:#6B5E52}
+.mrow>[role="cell"]{display:flex;align-items:center;min-width:0}
+.mrow>.c-end{justify-content:flex-end}
+.who{display:flex;align-items:center;gap:12px;min-width:0}
+.who-txt{display:flex;flex-direction:column;min-width:0}
+.who-name{display:flex;align-items:center;gap:8px;font:600 14px 'Hanken Grotesk',sans-serif;color:#2B2018;white-space:nowrap}
+.who-mail{font:400 12px/1.45 'Hanken Grotesk',sans-serif;color:#6B5E52;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.you{margin-left:-4px;font-weight:400;color:#6B5E52}
+.rsel{min-height:44px;padding:0;border:0;background:transparent;display:inline-flex;align-items:center;justify-self:start;cursor:pointer}
+.rsel>span{height:32px;padding:0 6px 0 12px;box-sizing:border-box;border:1px solid #B6A593;border-radius:16px;background:#FFFFFF;display:inline-flex;align-items:center;gap:2px;font:600 13px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;color:#2B2018}
+.rsel i{display:inline-flex;color:#6B5E52;font-style:normal}
+.rfix{height:32px;padding:0 12px 0 10px;box-sizing:border-box;border-radius:16px;background:#FFE0C2;display:inline-flex;align-items:center;gap:6px;justify-self:start;font:600 13px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;color:#4E2A00}
+.seen{display:flex;flex-direction:column;align-items:flex-start !important;justify-content:center;font:400 14px/1.35 'Hanken Grotesk',sans-serif;color:#2B2018;font-variant-numeric:tabular-nums;white-space:nowrap}
+.seen small{font:400 12px/1.45 'Hanken Grotesk',sans-serif;color:#6B5E52}
+.more{width:44px;height:44px;border:0;border-radius:12px;background:transparent;color:#6B5E52;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.more[aria-expanded="true"]{background:#EEE5D8;color:#2B2018}
+/* pending invites (fixture: nadia@morkvawear.com) */
+.pend-hd{display:flex;align-items:center;gap:8px;margin:14px 0 6px 4px}
+.pend-hd .badge{background:#EEE5D8;color:#4A4036}
+.pend-hd h2{margin:0}
+.pend-hd .hint{margin-left:auto}
+.mrow.tall{height:68px}
+.who-own{font:400 12px/1.45 'Hanken Grotesk',sans-serif;color:#6B5E52;white-space:nowrap}
+.rpill{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:10px;background:#E3EEDB;color:#3B6128;font:600 11px 'Hanken Grotesk',sans-serif;letter-spacing:.3px}
+.btn-sec{background:#E8DECD;color:#2B2018;border:1px solid #E0D5C7}
+.btn-36{height:36px;padding:0 14px;border-radius:12px}
+.hit36{min-height:44px;padding:0;border:0;background:transparent;display:inline-flex;align-items:center;flex:0 0 auto;cursor:pointer}
+/* invite link card */
+.il{margin-top:16px;padding:8px 8px 10px 20px}
+.il-row{display:flex;align-items:center;gap:10px;min-height:44px;padding-right:12px}
+.il-row+.il-row{border-top:1px solid #EEE5D8}
+.il-row h2{margin:0;font:600 16px 'Hanken Grotesk',sans-serif;color:#2B2018;white-space:nowrap}
+.il-row .url{color:#6B5E52;margin-left:6px}
+.il-lbl{font:400 14px 'Hanken Grotesk',sans-serif;color:#2B2018;white-space:nowrap}
+.il-gap{width:20px;flex:0 0 20px}
+.il-dom{width:220px;flex:0 0 220px}
+.il-dom .at{padding-left:14px;font:600 14px 'Hanken Grotesk',sans-serif;color:#6B5E52}
+.il-dom input{padding-left:2px}
+.prow{display:flex;align-items:center;gap:12px;min-height:56px;padding:0 8px 0 16px}
+.prow .who-txt{flex:1 1 auto}
+.ws{width:38px;height:38px;flex:0 0 38px;box-sizing:border-box;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;font:700 14px 'Bricolage Grotesque',sans-serif;letter-spacing:-.2px}
+.ws-mw{background:#E8821E;color:#3A1E00}
+.role{display:inline-flex;align-items:center;height:20px;padding:0 8px;box-sizing:border-box;border-radius:10px;font:600 11px 'Hanken Grotesk',sans-serif;letter-spacing:.3px;white-space:nowrap;flex:0 0 auto}
+.r-owner{background:#FFE0C2;color:#4E2A00}
+/* workspace switcher (replaces BrandWordmark; same as Switcher.dc.html) */
+.wsw{display:flex;align-items:center;gap:6px;flex:1 1 auto;min-width:0;height:52px;padding:0 4px 0 8px;margin:0;box-sizing:border-box;border:0;border-radius:14px;background:transparent;text-align:left;cursor:pointer;font-family:'Hanken Grotesk',sans-serif;color:#2B2018}
+.ws-xs{width:28px;height:28px;flex-basis:28px;border-radius:9px;font-size:11px}
+/* ---------- Invite dialog (AutomationSheetFrame: 560, header 24/24/24/12, body 24/8/24/24, footer 16) ---------- */
+/* solid: rgba(0,0,0,.54) over the page, composited, so no page glyphs show beside the two dialogs */
+.scrim{position:absolute;inset:0;z-index:10;background:#73726F}
+.band{position:absolute;left:0;right:0;top:0;height:114px;z-index:11;background:#73726F}
+.cap-pill{position:absolute;top:14px;z-index:12;height:32px;padding:0 14px;border-radius:16px;background:#FBF7F2;color:#2B2018;display:inline-flex;align-items:center;font:600 12px 'Hanken Grotesk',sans-serif;letter-spacing:.2px;transform:translateX(-50%);white-space:nowrap}
+.vdiv{position:absolute;z-index:12;left:720px;top:114px;bottom:0;width:0;border-left:1px dashed rgba(251,247,242,.55)}
+.dlg{position:absolute;z-index:12;width:560px;box-sizing:border-box;background:#FFFFFF;border-radius:16px;box-shadow:0 4px 10px rgba(0,0,0,.14),0 16px 28px rgba(82,58,34,.10);display:flex;flex-direction:column;font:400 14px/1.45 'Hanken Grotesk',sans-serif;color:#2B2018}
+.dlg-hd{display:flex;align-items:center;gap:16px;padding:24px 14px 8px 24px}
+.dlg-tile{width:44px;height:44px;flex:0 0 44px;border-radius:12px;background:#FFE0C2;color:#4E2A00;display:inline-flex;align-items:center;justify-content:center}
+.dlg-tile.ok{background:#E3EEDB;color:#3B6128}
+.dlg-ttl{flex:1 1 auto;min-width:0}
+.dlg-sub{margin:2px 0 0;font:400 14px/1.45 'Hanken Grotesk',sans-serif;color:#6B5E52}
+.dlg-title{margin:0;font:600 18px/1.25 'Bricolage Grotesque',sans-serif;letter-spacing:-0.2px}
+.dlg-bd{padding:8px 24px 24px}
+.dlg-ft{display:flex;align-items:center;gap:8px;padding:16px 24px;border-top:1px solid #E0D5C7}
+.dlg-ft .hint{flex:1 1 auto}
+.chips{display:flex;align-items:stretch;box-sizing:border-box;border-radius:12px;box-shadow:inset 0 0 0 2px #E8821E;background:#FFFFFF}
+.chips-in{flex:1 1 auto;min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:12px 6px;padding:8px 0 8px 8px}
+.chips-in input{flex:1 1 140px;min-width:0;height:44px;margin:-6px 0;border:0;outline:0;background:transparent;padding:0 6px;font:400 14px 'Hanken Grotesk',sans-serif;color:#2B2018}
+.chips-in input::placeholder{color:#6B5E52;opacity:1}
+.chip{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 0 0 4px;box-sizing:border-box;border-radius:8px;background:#F4EDE3;border:1px solid #E0D5C7;font:600 13px 'Hanken Grotesk',sans-serif;color:#2B2018;white-space:nowrap;flex:0 0 auto}
+.chip .av{width:22px;height:22px;flex:0 0 22px;font-size:10px}
+.chip-x{width:44px;height:44px;flex:0 0 44px;margin:-6px -10px -6px -14px;padding:0;border:0;background:transparent;display:inline-flex;align-items:center;justify-content:center;color:#6B5E52;cursor:pointer}
+.chips .inline-sel{height:auto;align-self:stretch;border-left:1px solid #E0D5C7;padding:0 10px 0 14px}
+.info{display:flex;align-items:flex-start;gap:10px;margin:16px 0 0;padding:12px 14px;border-radius:12px;background:#DCEAF3;color:#2F5F80;font:500 14px/1.45 'Hanken Grotesk',sans-serif}
+.info svg{margin-top:1px}
+.irow{display:flex;align-items:center;gap:12px;min-height:72px;padding:0 12px 0 16px}
+.irow+.irow{border-top:1px solid #EEE5D8}
+.ilist{margin-top:16px;border:1px solid #E0D5C7;border-radius:12px}
+.i-txt{flex:1 1 auto;min-width:0;display:flex;flex-direction:column}
+.i-mail{font:600 14px 'Hanken Grotesk',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.i-meta{font:400 12px/1.45 'Hanken Grotesk',sans-serif;color:#6B5E52;font-variant-numeric:tabular-nums}
+.mail-prev{margin-top:16px;padding:12px 16px 14px;border-radius:12px;background:#FAF4EC;font:400 13px/1.5 'Hanken Grotesk',sans-serif;color:#2B2018}
+.mail-prev .cap{margin:0 0 6px}
+.mail-prev p{margin:0}
+.mail-prev p.gap{margin-top:1.5em}
+.mail-prev .url{font-size:12px}
+.info.top{margin:0}
+.chip.warn{background:#FBF3DC;border-color:#D4A017}
+.chip .av-rose{background:#F7DEDA;color:#8A3328}
+.warn-row{display:flex;align-items:center;gap:10px;margin-top:8px;padding:4px 4px 4px 12px;border-radius:12px;background:#FBF3DC;color:#5A4410;font:500 13px/1.45 'Hanken Grotesk',sans-serif}
+.warn-row span{flex:1 1 auto;min-width:0}
+.warn-row b{font-weight:700}
+.rolesel{width:100%;min-height:56px;display:flex;align-items:center;gap:12px;padding:6px 10px 6px 14px;box-sizing:border-box;border:0;border-radius:12px;box-shadow:inset 0 0 0 1px #B6A593;background:#FFFFFF;text-align:left;cursor:pointer;font-family:'Hanken Grotesk',sans-serif;color:#2B2018}
+.rolesel .rs-txt{flex:1 1 auto;display:flex;flex-direction:column}
+.rolesel b{font:600 14px 'Hanken Grotesk',sans-serif}
+.rolesel small{font:400 12px/1.45 'Hanken Grotesk',sans-serif;color:#6B5E52}
+.rolesel i{display:inline-flex;color:#6B5E52;font-style:normal}
+.snack{position:absolute;z-index:13;width:480px;box-sizing:border-box;display:flex;align-items:center;gap:12px;min-height:48px;padding:0 16px;border-radius:12px;background:#2B2018;color:#FBF7F2;font:500 14px 'Hanken Grotesk',sans-serif;box-shadow:0 4px 10px rgba(0,0,0,.24)}
+</style>
+</helmet>
+<div style="position: relative; width: 1440px; height: 900px; display: flex; background: #FBF7F2; font-family: 'Hanken Grotesk', sans-serif; color: #2B2018; overflow: hidden">
+
+  <!-- ===== Sidebar 272 (shell_sidebar.dart _full) ===== -->
+  <nav class="side" aria-label="Main" aria-hidden="true">
+    <!-- workspace switcher (replaces the wordmark; same markup as Switcher.dc.html, closed) -->
+    <div style="display: flex; align-items: center; margin: 0 0 8px">
+      <button class="wsw" aria-haspopup="menu" aria-expanded="false" aria-label="Workspace: Morkva Wear, Owner. Switch workspace">
+        <span class="ws ws-xs ws-mw">M</span>
+        <span style="flex: 0 1 auto; min-width: 0; font: 600 14px/1.3 'Hanken Grotesk', sans-serif; letter-spacing: .1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Morkva Wear</span>
+        <span class="role r-owner" style="padding: 0 6px">Owner</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B5E52" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 18px; margin-left: auto"><path d="M7.5 9.5L12 5l4.5 4.5M7.5 14.5L12 19l4.5-4.5"/></svg>
+      </button>
+      <button class="ib" aria-label="Collapse sidebar" style="margin: 0 -6px 0 -4px; border-radius: 12px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15M16 9.5L13.5 12l2.5 2.5"/></svg></button>
+    </div>
+
+    <button style="display: flex; align-items: center; height: 44px; margin: -2px 0; padding: 0; border: 0; background: transparent; text-align: left; cursor: pointer"><span style="flex: 1 1 auto; display: flex; align-items: center; gap: 8px; height: 40px; box-sizing: border-box; padding: 0 8px 0 12px; border-radius: 12px; border: 1px solid #E0D5C7; background: #FBF7F2; color: #6B5E52; font: 400 14px 'Hanken Grotesk', sans-serif">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <span style="flex: 1 1 auto">Jump to…</span>
+      <kbd style="background: #F4EDE3">Ctrl K</kbd>
+    </span></button>
+
+    <button aria-pressed="false" style="display: flex; align-items: center; gap: 8px; height: 44px; margin-top: 8px; padding: 0 8px 0 12px; border-radius: 12px; border: 0; background: transparent; color: #2B2018; font: 600 14px 'Hanken Grotesk', sans-serif; text-align: left; cursor: pointer">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="#8A4708" aria-hidden="true"><path d="M12 2.5c.6 4.6 2.9 6.9 7.5 7.5-4.6.6-6.9 2.9-7.5 7.5-.6-4.6-2.9-6.9-7.5-7.5 4.6-.6 6.9-2.9 7.5-7.5zM19 15.5c.3 2 1.2 2.9 3.2 3.2-2 .3-2.9 1.2-3.2 3.2-.3-2-1.2-2.9-3.2-3.2 2-.3 2.9-1.2 3.2-3.2z"/></svg>
+      <span style="flex: 1 1 auto">Ask Morkva</span>
+      <kbd>Ctrl J</kbd>
+    </button>
+
+    <div style="height: 8px"></div>
+    <a href="#" class="nav">
+      <span class="tile" style="background: #E8821E; color: #3A1E00"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></svg></span>
+      <span style="flex: 1 1 auto">All collections</span>
+    </a>
+    <a href="#" class="nav">
+      <span class="tile" style="background: #EEE5D8; color: #4E2A00"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 2.5L4.5 13.5H11l-1.5 8 9-11H12z"/></svg></span>
+      <span style="flex: 1 1 auto">Automations</span>
+    </a>
+
+    <div style="padding: 16px 4px 4px 12px"><p class="cap">Pinned</p></div>
+    <!-- Orders: pinned + selected -->
+    <a href="#" class="nav"><span class="tile" style="background: #FFE0C2; color: #8A4708"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5h12v17l-2.4-1.6-2.4 1.6-2.4-1.6-2.4 1.6L6 20.5z"/><path d="M9.5 8h5M9.5 11.5h5M9.5 15h3"/></svg></span><span style="flex: 1 1 auto">Orders</span></a>
+    <a href="#" class="nav"><span class="tile" style="background: #E3EEDB; color: #3B6128"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4.5a3.5 3.5 0 1 1 0 7a3.5 3.5 0 1 1 0-7zM2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5c2 .7 3.2 2.6 3.5 5.5"/></svg></span><span style="flex: 1 1 auto">Customers</span></a>
+    <a href="#" class="nav"><span class="tile" style="background: #EDE0EE; color: #6B3F70"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7.5c0-1.9 2.2-3.5 5-3.5s5 1.6 5 3.5v9c0 1.9-2.2 3.5-5 3.5s-5-1.6-5-3.5z"/><path d="M9 6.2a1.3 1.3 0 1 1 0 2.6a1.3 1.3 0 1 1 0-2.6zM14 16.5h6.5"/></svg></span><span style="flex: 1 1 auto">Fabrics</span></a>
+
+    <span style="flex: 1 1 auto"></span>
+
+    <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0 0 4px; border-top: 1px solid #E0D5C7">
+      <span class="av av-me" style="width: 34px; height: 34px; flex: 0 0 34px; font-size: 14px">OK</span>
+      <span style="display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto">
+        <span style="font-size: 14px; font-weight: 600">Olena Koval</span>
+        <span style="display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; color: #6B5E52"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 18.5h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.6 9.1 4.75 4.75 0 0 0 7 18.5z"/><path d="M9.5 13.5l2 2 3.5-3.5"/></svg>Synced</span>
+      </span>
+      <button class="ib" aria-label="Settings" aria-current="page" style="background: #FFFFFF; color: #2B2018; box-shadow: 0 1px 2px rgba(0,0,0,.08),0 3px 6px rgba(74,53,32,.06)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg></button>
+    </div>
+  </nav>
+
+  <!-- ===== Main panel: Settings › Team ===== -->
+  <main class="set-main" aria-hidden="true">
+    <!-- faint doodles (main panel only, never under text) -->
+    <svg width="460" height="300" viewBox="0 0 460 300" aria-hidden="true" style="position: absolute; right: 8px; bottom: -40px; opacity: .08" fill="none" stroke="#6B5E52" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M60 230c18-6 54-38 66-58a17 17 0 0 0-24-24c-20 13-52 49-58 66-3 8 7 17 16 16z"/><path d="M128 146l20-20M138 158l24-8M118 136l8-22"/>
+      <path d="M250 250c30-40 70-60 120-60M300 238c10-24 30-38 54-42M370 190c-6-14-2-30 10-40 6 14 2 30-10 40z"/>
+      <path d="M402 70c12 0 22 10 22 22M402 54c22 0 40 18 40 40"/>
+    </svg>
+
+    <div class="col">
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <a href="#">Settings</a><i><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></i><span aria-current="page">Team</span>
+      </nav>
+
+      <header class="hd">
+        <div style="flex: 1 1 auto; min-width: 0">
+          <h1 class="h1">Team</h1>
+          <p class="lead">Everyone here sees every collection in Morkva Wear. Roles decide who can change what.</p>
+        </div>
+        <button class="btn btn-primary btn-icon" style="margin-bottom: 2px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 4.5a3.5 3.5 0 1 1 0 7a3.5 3.5 0 1 1 0-7zM3 20c.8-3.5 3.4-5.5 6.5-5.5 2 0 3.8.8 5 2.3"/><path d="M18.5 13.5v7M15 17h7"/></svg>Invite people</button>
+      </header>
+
+      <!-- workspace name: inline edit, owner only -->
+      <section class="card wscard" aria-label="Workspace">
+        <span class="ws-tile" aria-hidden="true">M</span>
+        <div class="ws-field">
+          <label for="ws-name">Workspace name</label>
+          <span class="ws-in">
+            <input id="ws-name" type="text" value="Morkva Wear">
+            <button class="hit" aria-label="Rename workspace"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 19.5h4l10-10a2.8 2.8 0 0 0-4-4l-10 10z"/><path d="M13 7l4 4"/></svg></button>
+          </span>
+          <p class="ws-note">Teammates see this name in their workspace switcher.</p>
+        </div>
+      </section>
+
+      <!-- members list -->
+      <div class="pend-hd"><h2 id="mem-title" class="cap">Members</h2><span class="badge">4</span></div>
+      <div class="card mlist" role="table" aria-labelledby="mem-title">
+        <div class="mrow mh" role="row"><span role="columnheader">Member</span><span role="columnheader">Role</span><span role="columnheader">Joined</span><span role="columnheader"><span class="sr">Actions</span></span></div>
+
+        <div class="mrow tall" role="row">
+          <span class="who" role="cell"><span class="av av-me av36">OK</span><span class="who-txt"><span class="who-name">Olena Koval<span class="you">(you)</span></span><span class="who-mail">olena@morkvawear.com</span><span class="who-own">You own this workspace, so you can’t leave it.</span></span></span>
+          <span class="rfix" role="cell" title="The owner's role can't change"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 17L3.5 8l4.8 3.8L12 5.5l3.7 6.3L20.5 8l-1 9z"/><path d="M5 20h14"/></svg>Owner</span>
+          <span class="seen" role="cell">Mar 2025<small>Created the workspace</small></span>
+          <span role="cell"></span>
+        </div>
+
+        <div class="mrow" role="row">
+          <span class="who" role="cell"><span class="av av-sky av36">TM</span><span class="who-txt"><span class="who-name">Taras Melnyk</span><span class="who-mail">taras@morkvawear.com</span></span></span>
+          <span role="cell"><button class="rsel" aria-haspopup="listbox" aria-label="Role for Taras Melnyk: Admin"><span>Admin<i><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></i></span></button></span>
+          <span class="seen" role="cell">12 Sep<small>Invited by Olena</small></span>
+          <span role="cell" class="c-end"><button class="more" aria-label="More for Taras Melnyk" aria-haspopup="menu" aria-expanded="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="6" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="18" cy="12" r="1.7"/></svg></button></span>
+        </div>
+
+        <div class="mrow" role="row">
+          <span class="who" role="cell"><span class="av av-plum av36">IB</span><span class="who-txt"><span class="who-name">Iryna Bondar</span><span class="who-mail">iryna.bondar@gmail.com</span></span></span>
+          <span role="cell"><button class="rsel" aria-haspopup="listbox" aria-label="Role for Iryna Bondar: Editor"><span>Editor<i><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></i></span></button></span>
+          <span class="seen" role="cell">3 Oct<small>Invited by Taras</small></span>
+          <span role="cell" class="c-end"><button class="more" aria-label="More for Iryna Bondar" aria-haspopup="menu" aria-expanded="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="6" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="18" cy="12" r="1.7"/></svg></button></span>
+        </div>
+
+        <div class="mrow" role="row">
+          <span class="who" role="cell"><span class="av av-sand av36">MS</span><span class="who-txt"><span class="who-name">Max Shevchenko</span><span class="who-mail">max.shevchenko@gmail.com</span></span></span>
+          <span role="cell"><button class="rsel" aria-haspopup="listbox" aria-label="Role for Max Shevchenko: Viewer"><span>Viewer<i><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></i></span></button></span>
+          <span class="seen" role="cell">28 Oct<small>Joined by invite link</small></span>
+          <span role="cell" class="c-end"><button class="more" aria-label="More for Max Shevchenko" aria-haspopup="menu" aria-expanded="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="6" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="18" cy="12" r="1.7"/></svg></button></span>
+        </div>
+      </div>
+
+      <section aria-labelledby="pend-title">
+        <div class="pend-hd"><h2 id="pend-title" class="cap">Pending invites</h2><span class="badge">1</span><p class="hint">Email invites expire in 14 days.</p></div>
+        <div class="card" role="list">
+          <div class="prow" role="listitem">
+            <span class="av av-teal av36" aria-hidden="true">N</span>
+            <span class="who-txt"><span class="who-name">nadia@morkvawear.com <span class="rpill">Editor</span></span><span class="who-mail">Invited by Olena · Expires in 6 days</span></span>
+            <button class="btn-text" aria-label="Copy invite link for nadia@morkvawear.com"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>Copy link</button>
+            <button class="btn-text" aria-label="Email the invite to nadia@morkvawear.com"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5"/><path d="M4 7l8 6 8-6"/></svg>Email it</button>
+            <button class="btn-text danger" aria-label="Revoke the invite for nadia@morkvawear.com">Revoke</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- invite link: Viewer by default, expiry 1/7/30 days (no "never"), optional one domain -->
+      <section class="card il" aria-labelledby="il-title">
+        <div class="il-row">
+          <span class="q-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg></span>
+          <h2 id="il-title">Invite link</h2>
+          <span class="url">morkvacrm.web.app/join/q7Fz…/W2c…</span>
+          <button class="hit36"><span class="btn btn-sec btn-36"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8.5" y="8.5" width="11" height="11" rx="2.5"/><path d="M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5"/></svg> Copy link</span></button>
+          <button class="btn-text">Reset link</button>
+          <button class="btn-text danger">Turn off</button>
+        </div>
+        <div class="il-row">
+          <span class="il-lbl" id="il-role-lbl">Anyone with this link can join as</span>
+          <button class="sel" aria-labelledby="il-role-lbl il-role" aria-haspopup="listbox"><span id="il-role">Viewer<i><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></i></span></button>
+          <span class="il-gap"></span>
+          <span class="il-lbl" id="il-exp-lbl">Expires</span>
+          <button class="sel" aria-labelledby="il-exp-lbl il-exp" aria-haspopup="listbox"><span id="il-exp">In 7 days<i><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></i></span></button>
+          <span class="hint" style="margin-left: 4px">1 day, 7 days or 30 days</span>
+        </div>
+        <div class="il-row">
+          <label class="il-lbl" for="il-dom">Only emails from</label>
+          <span class="field il-dom"><span class="at" aria-hidden="true">@</span><input id="il-dom" type="text" placeholder="company.com"></span>
+          <span class="hint" style="margin-left: 4px">Optional, one domain. Empty: any Google account can join.</span>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- ===== Overlay: scrim + two states of the Invite dialog ===== -->
+  <div class="scrim"></div>
+  <div class="band"></div>
+  <span class="cap-pill" style="left: 380px">1 · Invite people (role defaults to Viewer)</span>
+  <span class="cap-pill" style="left: 1060px">2 · Saved (Nadia as Editor, sales@ removed): send the link</span>
+  <div class="vdiv" aria-hidden="true"></div>
+
+  <!-- state 1: invite -->
+  <section class="dlg" role="dialog" aria-modal="true" aria-labelledby="inv-title" style="left: 100px; top: 84px">
+    <div class="dlg-hd">
+      <span class="dlg-tile" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 4.5a3.5 3.5 0 1 1 0 7a3.5 3.5 0 1 1 0-7zM3 20c.8-3.5 3.4-5.5 6.5-5.5 2 0 3.8.8 5 2.3"/><path d="M18.5 13.5v7M15 17h7"/></svg></span>
+      <div class="dlg-ttl"><h2 id="inv-title" class="dlg-title">Invite people to Morkva Wear</h2></div>
+      <button class="ib" aria-label="Close"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="dlg-bd">
+      <div class="info top" role="note">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8v.01"/></svg>
+        <span>Everyone you invite sees every collection, card and field in Morkva Wear. To show a client only one view, close this and publish a copy from that view’s Share button.</span>
+      </div>
+
+      <label class="sec-lbl" for="inv-more" style="margin-top: 20px">Email addresses</label>
+      <div class="chips">
+        <div class="chips-in">
+          <span class="chip"><span class="av av-teal" aria-hidden="true">N</span>nadia@morkvawear.com<button class="chip-x" aria-label="Remove nadia@morkvawear.com"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span>
+          <span class="chip warn"><span class="av av-rose" aria-hidden="true">S</span>sales@sunflower.studio<button class="chip-x" aria-label="Remove sales@sunflower.studio"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span>
+          <input id="inv-more" type="email" placeholder="name@company.com">
+        </div>
+      </div>
+      <div class="warn-row" role="note">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.01"/></svg>
+        <span><b>sunflower.studio</b> isn’t your team’s domain. Sharing with a client? Publish a copy instead.</span>
+        <button class="btn-text">Publish a copy</button>
+      </div>
+
+      <p class="sec-lbl" id="inv-role-lbl" style="margin-top: 20px">Role</p>
+      <button class="rolesel" aria-labelledby="inv-role-lbl inv-role" aria-haspopup="listbox">
+        <span class="rs-txt" id="inv-role"><b>Viewer</b><small>See everything, change nothing</small></span>
+        <i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></i>
+      </button>
+      <p class="hint" style="margin-top: 6px">Editor: add, edit and delete cards. Admin: manage the team, collections, views and automations.</p>
+    </div>
+    <div class="dlg-ft">
+      <p class="hint">They’ll see the invite after signing in with Google as that email.</p>
+      <button class="btn-text">Cancel</button>
+      <button class="btn btn-primary">Invite 2 people</button>
+    </div>
+  </section>
+
+  <!-- state 2: shown only after the batch commits on the server -->
+  <section class="dlg" role="dialog" aria-modal="true" aria-labelledby="ready-title" style="left: 780px; top: 84px">
+    <div class="dlg-hd">
+      <span class="dlg-tile ok" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+      <div class="dlg-ttl"><h2 id="ready-title" class="dlg-title">Send the invites</h2></div>
+      <button class="ib" aria-label="Close"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="dlg-bd">
+      <div class="info top" role="note">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8v.01"/></svg>
+        <span>Morkva doesn’t send emails yet — we’ll open your email app.</span>
+      </div>
+
+      <div class="ilist" role="list">
+        <div class="irow" role="listitem">
+          <span class="av av-teal av36" aria-hidden="true">N</span>
+          <span class="i-txt"><span class="i-mail">nadia@morkvawear.com</span><span class="i-meta">Editor · Expires 27 Nov</span></span>
+          <button class="btn-text" aria-label="Copy invite link for nadia@morkvawear.com"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>Copy link</button>
+          <button class="hit36" aria-label="Email the invite to nadia@morkvawear.com"><span class="btn btn-sec btn-36"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5"/><path d="M4 7l8 6 8-6"/></svg> Email it</span></button>
+        </div>
+      </div>
+
+      <div class="mail-prev">
+        <p class="cap">“Email it” opens your email app with</p>
+        <p><b>Subject:</b> Join Morkva Wear on Morkva</p>
+        <p class="muted">Hi! I’ve invited you to Morkva Wear as an Editor.</p>
+        <p class="muted gap">Open this link and sign in with Google using nadia@morkvawear.com:</p>
+        <p class="url" style="color: #8A4708">https://morkvacrm.web.app/join/q7Fz…/8Kd…tA</p>
+        <p class="muted gap">The invite expires on 27 Nov.<br>— Olena Koval</p>
+      </div>
+
+      <p class="note"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3A7CA5" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span>It waits under Pending invites in Settings › Team until they sign in. You can copy the link again there.</span></p>
+    </div>
+    <div class="dlg-ft">
+      <span style="flex: 1 1 auto"></span>
+      <button class="btn btn-primary">Done</button>
+    </div>
+  </section>
+  <div class="snack" role="status" style="left: 820px; top: 820px">Invite link copied</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

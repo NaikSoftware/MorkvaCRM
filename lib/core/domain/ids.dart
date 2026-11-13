@@ -52,8 +52,15 @@ class IdGenerator {
   // VM and the web.
   static const int _suffixBound = 0xFFFFFFFF;
 
+  // The last time component used: on the web the clock ticks per
+  // millisecond and ~1,800 ids fit in one, so a bulk import (thousands of
+  // ids) could repeat a 32-bit suffix; a strictly rising time can't repeat.
+  int _lastTime = 0;
+
   String _mint(String prefix) {
-    final time = DateTime.now().microsecondsSinceEpoch.toRadixString(36);
+    final now = DateTime.now().microsecondsSinceEpoch;
+    _lastTime = now > _lastTime ? now : _lastTime + 1;
+    final time = _lastTime.toRadixString(36);
     final suffix = _random.nextInt(_suffixBound).toRadixString(36);
     return '${prefix}_${time}_$suffix';
   }

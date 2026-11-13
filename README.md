@@ -1,5 +1,7 @@
 # MorkvaCRM
 
+[![Tests](https://github.com/NaikSoftware/MorkvaCRM/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/NaikSoftware/MorkvaCRM/actions/workflows/tests.yml)
+
 A new-era CRM for small business, with automations and AI built in.
 
 ## Main points

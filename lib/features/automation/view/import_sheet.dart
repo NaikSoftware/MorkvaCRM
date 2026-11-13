@@ -140,6 +140,7 @@ class _ImportSheetState extends State<ImportSheet> {
           ],
           selected: {_source},
           showSelectedIcon: false,
+          style: sheetSegmentedStyle,
           onSelectionChanged: (s) {
             _source = s.single;
             _check();
