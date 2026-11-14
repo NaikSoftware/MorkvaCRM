@@ -479,10 +479,8 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
     );
     emit(state.copyWith(uploads: [...state.uploads, pending]));
     FileAttachment? done;
-    var message = "Couldn't upload ${file.name}";
-    if (file.bytes.length >= kMaxAttachmentBytes) {
-      message = "Couldn't upload ${file.name}: files must be under 25 MB";
-    } else {
+    final tooLarge = file.bytes.length >= kMaxAttachmentBytes;
+    if (!tooLarge) {
       try {
         done = await store.upload(
           id: pending.id,
@@ -512,7 +510,10 @@ class ObjectEditorCubit extends Cubit<ObjectEditorState> {
             if (u.id != pending.id) u,
         ],
         uploadErrors: done == null && !canceled
-            ? {...state.uploadErrors, field.id: message}
+            ? {
+                ...state.uploadErrors,
+                field.id: (file: file.name, tooLarge: tooLarge),
+              }
             : null,
       ),
     );

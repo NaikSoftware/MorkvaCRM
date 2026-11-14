@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/domain/domain.dart';
+import '../../../l10n/l10n.dart';
 import 'field_editor.dart';
 import 'widgets/calculation_config.dart';
 import 'widgets/preview_affordances.dart';
@@ -14,11 +15,11 @@ class CalculatedFieldEditor extends FieldEditor {
   String get typeId => kCalculatedFieldType;
 
   @override
-  String get displayLabel => 'Calculated';
+  String label(AppLocalizations l10n) => l10n.collectionsTypeCalculated;
 
   @override
-  String get description =>
-      'A formula, a total over linked items, or a linked item\'s field.';
+  String description(AppLocalizations l10n) =>
+      l10n.collectionsTypeCalculatedDescription;
 
   @override
   IconData get icon => Icons.functions;
@@ -51,16 +52,20 @@ class CalculatedFieldEditor extends FieldEditor {
 
   @override
   String summarize(
+    AppLocalizations l10n,
     FieldDefinition definition, {
     List<Collection> collections = const [],
   }) {
     final field = definition as CalculatedFieldDefinition;
-    final output =
-        FormulaType.ofFieldType(field.declaredOutputType)?.label ??
-        field.declaredOutputType;
-    if (field.isLookup) return 'Lookup';
+    final type = FormulaType.ofFieldType(field.declaredOutputType);
+    final output = type == null
+        ? field.declaredOutputType
+        : l10n.formulaTypeLabel(type);
+    if (field.isLookup) return l10n.collectionsModeLookup;
     final a = field.aggregate;
-    return a == null ? 'Formula → $output' : '${a.op.label} → $output';
+    return a == null
+        ? l10n.collectionsSummaryFormula(output)
+        : '${l10n.aggregateOpLabel(a.op)} → $output';
   }
 
   @override

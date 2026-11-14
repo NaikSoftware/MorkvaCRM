@@ -2,12 +2,14 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:morkva_crm/api/data/data_repository.dart';
 import 'package:morkva_crm/design/design.dart';
 import 'package:morkva_crm/features/settings/settings_page.dart';
 import 'package:morkva_crm/features/settings/theme_mode_cubit.dart';
+import 'package:morkva_crm/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../automation/view/automation_view_harness.dart'
@@ -252,6 +254,35 @@ void main() {
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
       await pumpSettings(tester, const Size(390, 844));
       expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('Ukrainian, phone at large text: worded, no overflow', (
+      tester,
+    ) async {
+      setWindow(tester, const Size(390, 844));
+      tester.platformDispatcher.textScaleFactorTestValue = 1.5;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await tester.pumpWidget(
+        withTheme(
+          MaterialApp(
+            locale: const Locale('uk'),
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: AppLocalizations.supportedLocales,
+            theme: AppTheme.light,
+            home: const Scaffold(body: SettingsPage()),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      for (final text in ['ВИГЛЯД', 'Тема', 'Світла', 'Темна', 'Системна']) {
+        expect(find.text(text), findsOneWidget);
+      }
     });
 
     testWidgets('a tap picks the theme and saves it on this device', (

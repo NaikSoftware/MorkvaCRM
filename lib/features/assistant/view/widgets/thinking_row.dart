@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 
 import 'sparkle_icon.dart';
+import '../../../../l10n/l10n.dart';
 
 /// "Thinking…" before the first token or step: a sparkle and a soft shimmer
 /// sweeping the label (static when animations are off).
 class ThinkingRow extends StatefulWidget {
-  const ThinkingRow({super.key, this.label = 'Thinking…'});
+  const ThinkingRow({super.key, this.label});
 
-  final String label;
+  /// Defaults to "Thinking…".
+  final String? label;
 
   @override
   State<ThinkingRow> createState() => _ThinkingRowState();
@@ -41,13 +43,14 @@ class _ThinkingRowState extends State<ThinkingRow>
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final base = scheme.onSurfaceVariant;
+    final text = widget.label ?? context.l10n.assistantThinking;
     final label = Text(
-      widget.label,
+      text,
       style: theme.textTheme.bodyMedium?.copyWith(color: base),
     );
     return Semantics(
       liveRegion: true,
-      label: widget.label,
+      label: text,
       excludeSemantics: true,
       child: SizedBox(
         height: 28,

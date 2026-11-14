@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../api/auth/auth_cubit.dart';
+import '../../api/auth/auth_repository.dart' show AuthFailure;
 import '../../app/shell/app_shell.dart';
 import '../../app/shell/brand_wordmark.dart';
 import '../../design/design.dart';
+import '../../l10n/l10n.dart';
 
 /// The first screen a signed-out user sees: brand presence, a one-line value
 /// proposition, and a single prominent "Continue with Google" action.
@@ -77,12 +79,13 @@ class _SignInContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
+    final l10n = context.l10n;
     final scheme = theme.colorScheme;
 
     return BlocBuilder<AuthCubit, AuthState>(
       builder: (context, state) {
         final loading = state is AuthLoading;
-        final errorMessage = state is AuthError ? state.message : null;
+        final error = state is AuthError ? state : null;
 
         return Column(
           mainAxisSize: MainAxisSize.min,
@@ -94,11 +97,10 @@ class _SignInContent extends StatelessWidget {
               child: BrandWordmark(extended: true),
             ),
             const SizedBox(height: Spacing.xl),
-            Text('Welcome to your workspace', style: textTheme.headlineSmall),
+            Text(l10n.authWelcomeTitle, style: textTheme.headlineSmall),
             const SizedBox(height: Spacing.sm),
             Text(
-              'One tidy home for your collections and cards — synced securely '
-              'across every device you sign in on.',
+              l10n.authWelcomeBody,
               style: textTheme.bodyLarge?.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
@@ -111,18 +113,20 @@ class _SignInContent extends StatelessWidget {
             if (loading) ...[
               const SizedBox(height: Spacing.xs),
               TextActionButton(
-                label: 'Cancel',
+                label: l10n.commonCancel,
                 onPressed: () => context.read<AuthCubit>().cancelSignIn(),
               ),
             ],
-            if (errorMessage != null) ...[
+            if (error != null) ...[
               const SizedBox(height: Spacing.md),
-              _InlineError(message: errorMessage),
+              _InlineError(
+                message: _failureText(l10n, error.failure),
+                detail: error.detail,
+              ),
             ],
             const SizedBox(height: Spacing.md),
             Text(
-              'We only use your Google account to sign you in. '
-              'Your data stays yours.',
+              l10n.authPrivacyNote,
               style: textTheme.bodySmall,
             ),
           ],
@@ -158,7 +162,7 @@ class _GoogleSignInButton extends StatelessWidget {
       onPressed: enabled
           ? () => context.read<AuthCubit>().signInWithGoogle()
           : null,
-      semanticLabel: 'Continue with Google',
+      semanticLabel: context.l10n.authContinueWithGoogle,
       borderRadius: Radii.mdAll,
       child: Container(
         height: 44,
@@ -180,7 +184,7 @@ class _GoogleSignInButton extends StatelessWidget {
                 const SizedBox(width: Spacing.sm),
                 Flexible(
                   child: Text(
-                    'Continue with Google',
+                    context.l10n.authContinueWithGoogle,
                     style: textStyle?.copyWith(color: fg),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -276,14 +280,24 @@ class _GoogleGlyphPainter extends CustomPainter {
   bool shouldRepaint(covariant _GoogleGlyphPainter oldDelegate) => false;
 }
 
+String _failureText(AppLocalizations l10n, AuthFailure failure) =>
+    switch (failure) {
+      AuthFailure.signInFailed => l10n.authErrorSignInFailed,
+      AuthFailure.noUser => l10n.authErrorNoUser,
+      AuthFailure.unsupportedPlatform => l10n.authErrorUnsupportedPlatform,
+      AuthFailure.noIdToken => l10n.authErrorNoIdToken,
+      AuthFailure.signOutFailed => l10n.authErrorSignOutFailed,
+    };
+
 /// A quiet, non-blocking inline error: a warning-tinted rounded strip with a
-/// small icon and the failure [message]. Uses the semantic `warning` role (an
-/// auth failure is recoverable guidance, not a hard system error) so it reads
-/// as "try again", never as an alarm.
+/// small icon, the failure [message] and the provider's raw [detail]. Uses the
+/// semantic `warning` role (an auth failure is recoverable guidance, not a hard
+/// system error) so it reads as "try again", never as an alarm.
 class _InlineError extends StatelessWidget {
-  const _InlineError({required this.message});
+  const _InlineError({required this.message, this.detail});
 
   final String message;
+  final String? detail;
 
   @override
   Widget build(BuildContext context) {
@@ -310,9 +324,19 @@ class _InlineError extends StatelessWidget {
             Icon(Icons.error_outline_rounded, size: 18, color: fg),
             const SizedBox(width: Spacing.xs),
             Expanded(
-              child: Text(
-                message,
-                style: theme.textTheme.bodyMedium?.copyWith(color: fg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    message,
+                    style: theme.textTheme.bodyMedium?.copyWith(color: fg),
+                  ),
+                  if (detail case final detail?)
+                    Text(
+                      detail,
+                      style: theme.textTheme.bodySmall?.copyWith(color: fg),
+                    ),
+                ],
               ),
             ),
           ],

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/domain/automation/automation.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../../assistant/view/widgets/dashed_border.dart';
 import '../bloc/modules_cubit.dart';
 import '../widgets/reason_copy.dart';
@@ -58,11 +59,11 @@ class _ImportSheetState extends State<ImportSheet> {
       // The browser refused to read the picked file (moved, or no access).
       if (mounted) {
         setState(
-          () => _result = const ImportPreview.problems([
+          () => _result = ImportPreview.problems([
             AutomationProblem(
               '',
               'unreadable',
-              "Couldn't read that file. Choose it again, or paste it.",
+              context.l10n.automationImportUnreadable,
             ),
           ]),
         );
@@ -83,6 +84,7 @@ class _ImportSheetState extends State<ImportSheet> {
     final replacing = result?.replacing;
     final bundle = result?.bundle;
     final errorStyle = theme.textTheme.bodySmall?.copyWith(color: scheme.error);
+    final l10n = context.l10n;
 
     final input = switch (_source) {
       _Source.file => DashedBorder(
@@ -100,7 +102,7 @@ class _ImportSheetState extends State<ImportSheet> {
                 const SizedBox(height: Spacing.xs),
                 Text(
                   // No drop target yet: dropping a file on Flutter web opens it in the tab.
-                  _fileName ?? 'Choose a .morkva.json file',
+                  _fileName ?? l10n.automationImportChooseFileHint,
                   style: theme.textTheme.bodyMedium,
                 ),
                 const SizedBox(height: Spacing.sm),
@@ -109,7 +111,7 @@ class _ImportSheetState extends State<ImportSheet> {
                 const SizedBox(height: Spacing.sm),
               ],
               SecondaryButton(
-                label: 'Choose file',
+                label: l10n.automationImportChooseFile,
                 icon: Icons.folder_open_outlined,
                 onPressed: _choose,
               ),
@@ -119,7 +121,7 @@ class _ImportSheetState extends State<ImportSheet> {
       ),
       _Source.paste => MorkvaTextField(
         controller: _paste,
-        hint: 'Paste the module file (JSON)',
+        hint: l10n.automationImportPasteHint,
         minLines: 8,
         maxLines: 8,
         keyboardType: TextInputType.multiline,
@@ -128,15 +130,21 @@ class _ImportSheetState extends State<ImportSheet> {
     };
 
     return AutomationSheetFrame(
-      header: const SheetHeader(
+      header: SheetHeader(
         icon: Icons.upload_outlined,
-        title: 'Import module',
+        title: l10n.automationImportModule,
       ),
       body: [
         SegmentedButton<_Source>(
-          segments: const [
-            ButtonSegment(value: _Source.file, label: Text('File')),
-            ButtonSegment(value: _Source.paste, label: Text('Paste')),
+          segments: [
+            ButtonSegment(
+              value: _Source.file,
+              label: Text(l10n.automationImportSourceFile),
+            ),
+            ButtonSegment(
+              value: _Source.paste,
+              label: Text(l10n.automationImportSourcePaste),
+            ),
           ],
           selected: {_source},
           showSelectedIcon: false,
@@ -183,21 +191,20 @@ class _ImportSheetState extends State<ImportSheet> {
           AutomationBanner(
             tone: CopyTone.neutral,
             icon: Icons.check_circle_outline,
-            title:
-                'This version (v${bundle.manifest.version}) is already '
-                'installed.',
+            title: l10n.automationImportSameVersion(bundle.manifest.version),
           ),
         ] else if (replacing != null && bundle != null) ...[
           const SizedBox(height: Spacing.sm),
           AutomationBanner(
             tone: CopyTone.warning,
             icon: Icons.swap_horiz,
-            title:
-                'A module with this id is installed '
-                '(v${replacing.module.version}).',
-            body:
-                'Allowing replaces it with v${bundle.manifest.version} for its '
-                '${replacing.automations == 1 ? '1 automation' : '${replacing.automations} automations'}.',
+            title: l10n.automationImportReplacingTitle(
+              replacing.module.version,
+            ),
+            body: l10n.automationImportReplacingBody(
+              replacing.automations,
+              bundle.manifest.version,
+            ),
           ),
         ],
         if (bundle != null && replacing == null) ...[
@@ -222,11 +229,11 @@ class _ImportSheetState extends State<ImportSheet> {
       footer: SheetFooter(
         buttons: [
           TextActionButton(
-            label: 'Cancel',
+            label: l10n.commonCancel,
             onPressed: () => Navigator.of(context).pop(),
           ),
           PrimaryButton(
-            label: 'Continue',
+            label: l10n.commonContinue,
             onPressed: bundle == null
                 ? null
                 : () => Navigator.of(context).pop(result),

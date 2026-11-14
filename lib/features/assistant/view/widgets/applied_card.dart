@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../design/design.dart';
+import '../../../../l10n/l10n.dart';
 import '../../../automation/widgets/action_buttons.dart' show AutomationPaths;
 import '../../bloc/chat_item.dart';
 import 'assistant_scope.dart';
@@ -123,7 +124,7 @@ class _AppliedCardState extends State<AppliedCard> {
 
     final undo = _undoOpen
         ? TintedButton(
-            label: 'Undo',
+            label: context.l10n.commonUndo,
             loading: item.undoState == UndoState.undoing,
             onPressed: () => actions.undo(receipt.journalId!),
           )
@@ -132,7 +133,7 @@ class _AppliedCardState extends State<AppliedCard> {
     // open, since the plan (which retry needs) outlives it only briefly.
     final retry = failed > 0 && !undone
         ? TintedButton(
-            label: 'Retry failed',
+            label: context.l10n.assistantRetryFailed,
             onPressed: () => actions.retryFailed(receipt.planId),
           )
         : null;
@@ -146,7 +147,9 @@ class _AppliedCardState extends State<AppliedCard> {
 
     return Semantics(
       container: true,
-      label: schema ? 'Applied schema change' : 'Applied changes',
+      label: schema
+          ? context.l10n.assistantAppliedSchemaChange
+          : context.l10n.assistantAppliedChanges,
       // Read on focus, never announced.
       value: undoLine,
       child: Container(
@@ -202,8 +205,7 @@ class _AppliedCardState extends State<AppliedCard> {
                         ),
                         if (stale > 0)
                           Text(
-                            '$stale changed elsewhere since the preview — '
-                            'left as they were',
+                            context.l10n.assistantStaleLeft(stale),
                             style: theme.textTheme.bodySmall,
                           ),
                         if (item.startedRuns case final n when n > 0)
@@ -211,13 +213,12 @@ class _AppliedCardState extends State<AppliedCard> {
                             children: [
                               Flexible(
                                 child: Text(
-                                  'Started $n automation '
-                                  '${n == 1 ? 'run' : 'runs'} ·',
+                                  context.l10n.assistantStartedRuns(n),
                                   style: theme.textTheme.bodySmall,
                                 ),
                               ),
                               TextActionButton(
-                                label: 'View',
+                                label: context.l10n.assistantView,
                                 onPressed: () => GoRouter.maybeOf(
                                   context,
                                 )?.go(AutomationPaths.runs()),
@@ -289,11 +290,12 @@ class _AppliedCardState extends State<AppliedCard> {
     final done = receipt.applied.length;
     final failed = receipt.failed.length;
     final queued = receipt.queued.length;
+    final l10n = context.l10n;
     switch (item.undoState) {
       case UndoState.undone:
-        return (item.undoNote ?? 'Reverted — nothing is changed now', null);
+        return (item.undoNote ?? l10n.assistantReverted, null);
       case UndoState.failed:
-        return (item.undoNote ?? 'Couldn’t undo these changes', scheme.error);
+        return (item.undoNote ?? l10n.assistantUndoFailed, scheme.error);
       case UndoState.available:
       case UndoState.undoing:
       case UndoState.expired:
@@ -301,13 +303,13 @@ class _AppliedCardState extends State<AppliedCard> {
     }
     final parts = <String>[];
     if (failed > 0) {
-      parts.add('Updated $done, $failed failed');
+      parts.add(l10n.assistantUpdatedSomeFailed(done, failed));
     } else if (receipt.declinedByUser.isNotEmpty) {
-      parts.add('You approved $done of ${plan.itemCount}');
+      parts.add(l10n.assistantApprovedOf(done, plan.itemCount));
     } else {
-      parts.add('Applied');
+      parts.add(l10n.assistantApplied);
     }
-    if (queued > 0) parts.add('$queued waiting for a connection');
+    if (queued > 0) parts.add(l10n.assistantQueued(queued));
     final undo = _undoLine();
     if (undo != null) parts.add(undo);
     final good = failed == 0 && receipt.declinedByUser.isEmpty;
@@ -317,7 +319,7 @@ class _AppliedCardState extends State<AppliedCard> {
         plan.rows.isNotEmpty &&
         plan.rows.every((r) => !r.kind.endsWith('Card'));
     if (good && schema && plan.notes.isNotEmpty) {
-      return ('Applied · ${plan.notes.first}', success);
+      return (l10n.assistantAppliedNote(plan.notes.first), success);
     }
     return (parts.join(' · '), good && parts.length == 1 ? success : null);
   }
@@ -325,13 +327,11 @@ class _AppliedCardState extends State<AppliedCard> {
   String? _undoLine() {
     if (item.receipt.journalId == null || item.undoUntil == null) return null;
     if (item.undoState == UndoState.expired || _left <= Duration.zero) {
-      return 'Undo expired';
+      return context.l10n.assistantUndoExpired;
     }
-    if (item.undoSessionOnly) return 'undo available until you close Morkva';
+    if (item.undoSessionOnly) return context.l10n.assistantUndoUntilClose;
     final minutes = (_left.inSeconds / 60).ceil();
-    return minutes <= 1
-        ? 'undo available for a minute'
-        : 'undo available for $minutes min';
+    return context.l10n.assistantUndoForMinutes(minutes <= 1 ? 1 : minutes);
   }
 }
 

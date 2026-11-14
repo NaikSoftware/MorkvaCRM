@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../api/auth/auth_cubit.dart';
 import '../../app/shell/app_shell.dart';
 import '../../design/design.dart';
+import '../../l10n/l10n.dart';
 import '../automation/view/consent_sheet.dart' show sheetSegmentedStyle;
 import '../automation/widgets/run_indicator.dart';
 import 'import/trello_import_sheet.dart';
@@ -23,6 +24,7 @@ class SettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
     final sky = (theme.brightness == Brightness.light
         ? CollectionTints.light
         : CollectionTints.dark)[2];
@@ -53,17 +55,17 @@ class SettingsPage extends StatelessWidget {
                   child: Align(
                     alignment: AlignmentDirectional.centerStart,
                     child: Text(
-                      'Settings',
+                      l10n.commonSettings,
                       style: theme.textTheme.headlineSmall,
                     ),
                   ),
                 ),
                 const SizedBox(height: Spacing.md),
               ],
-              const _SectionLabel('Workspace'),
+              _SectionLabel(l10n.settingsWorkspaceSection),
               ListTileCard(
-                title: 'Automations',
-                subtitle: 'Modules, buttons and runs',
+                title: l10n.commonAutomations,
+                subtitle: l10n.settingsAutomationsSubtitle,
                 leading: _Tile(
                   icon: Icons.bolt_rounded,
                   background: scheme.primaryContainer,
@@ -79,12 +81,10 @@ class SettingsPage extends StatelessWidget {
                 onTap: () => context.go('/automations'),
               ),
               const SizedBox(height: Spacing.lg),
-              const _SectionLabel('Import from other apps'),
+              _SectionLabel(l10n.settingsImportSection),
               ListTileCard(
                 title: 'Trello',
-                subtitle:
-                    'Boards become collections — lists, cards, labels, '
-                    'checklists and comments',
+                subtitle: l10n.settingsTrelloSubtitle,
                 leading: _Tile(
                   icon: Icons.view_kanban_outlined,
                   background: sky.background,
@@ -100,14 +100,14 @@ class SettingsPage extends StatelessWidget {
                 },
               ),
               const SizedBox(height: Spacing.lg),
-              const _SectionLabel('Appearance'),
+              _SectionLabel(l10n.settingsAppearanceSection),
               const _ThemeCard(),
               const SizedBox(height: Spacing.lg),
-              const _SectionLabel('Account'),
+              _SectionLabel(l10n.settingsAccountSection),
               Align(
                 alignment: AlignmentDirectional.centerStart,
                 child: SecondaryButton(
-                  label: 'Sign out',
+                  label: l10n.settingsSignOut,
                   icon: Icons.logout_rounded,
                   onPressed: () => context.read<AuthCubit>().signOut(),
                 ),
@@ -156,23 +156,24 @@ class _ThemeCard extends StatelessWidget {
     final plum = (theme.brightness == Brightness.light
         ? CollectionTints.light
         : CollectionTints.dark)[3];
+    final l10n = context.l10n;
     final mode = context.watch<ThemeModeCubit>().state;
     final picker = SegmentedButton<ThemeMode>(
-      segments: const [
+      segments: [
         ButtonSegment(
           value: ThemeMode.light,
-          icon: Icon(Icons.light_mode_outlined),
-          label: Text('Light'),
+          icon: const Icon(Icons.light_mode_outlined),
+          label: Text(l10n.settingsThemeLight),
         ),
         ButtonSegment(
           value: ThemeMode.dark,
-          icon: Icon(Icons.dark_mode_outlined),
-          label: Text('Dark'),
+          icon: const Icon(Icons.dark_mode_outlined),
+          label: Text(l10n.settingsThemeDark),
         ),
         ButtonSegment(
           value: ThemeMode.system,
-          icon: Icon(Icons.contrast_rounded),
-          label: Text('System'),
+          icon: const Icon(Icons.contrast_rounded),
+          label: Text(l10n.settingsThemeSystem),
         ),
       ],
       selected: {mode},
@@ -194,10 +195,10 @@ class _ThemeCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Theme', style: theme.textTheme.titleMedium),
+              Text(l10n.settingsTheme, style: theme.textTheme.titleMedium),
               const SizedBox(height: Spacing.xxs),
               Text(
-                'Saved on this device',
+                l10n.settingsThemeSubtitle,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),

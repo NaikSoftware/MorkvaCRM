@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../design/design.dart';
+import '../../../../l10n/l10n.dart';
 import '../../bloc/assistant_state.dart';
 import '../../bloc/chat_item.dart';
 import 'assistant_scope.dart';
@@ -76,7 +77,9 @@ class _PlanCardState extends State<PlanCard> {
 
     return Semantics(
       container: true,
-      label: destructive ? 'Proposed deletion' : 'Proposed changes',
+      label: destructive
+          ? context.l10n.assistantProposedDeletion
+          : context.l10n.assistantProposedChanges,
       child: Container(
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
@@ -107,8 +110,8 @@ class _PlanCardState extends State<PlanCard> {
                 child: DiffLine(change: plan.sharedChange!),
               ),
             if (plan.autoApplies)
-              const _WarningLine(
-                message: kAppliesWithoutAsking,
+              _WarningLine(
+                message: context.l10n.assistantAppliesWithoutAsking,
                 icon: Icons.bolt_rounded,
               ),
             for (final w in plan.warnings)
@@ -137,7 +140,9 @@ class _PlanCardState extends State<PlanCard> {
                 Padding(
                   padding: const EdgeInsetsDirectional.fromSTEB(42, 12, 14, 12),
                   child: Text(
-                    '${plan.itemCount - plan.rows.length} more not shown yet',
+                    context.l10n.assistantMoreNotShown(
+                      plan.itemCount - plan.rows.length,
+                    ),
                     style: theme.textTheme.bodySmall,
                   ),
                 ),
@@ -196,8 +201,8 @@ class _PlanCardState extends State<PlanCard> {
             value: all,
             destructive: plan.destructive,
             label: mixed
-                ? '${kindLabel(group.kind)} · ${rows.length}'
-                : _selectionLabel(picked, rows.length),
+                ? '${kindLabel(group.kind, context.l10n)} · ${rows.length}'
+                : _selectionLabel(context.l10n, picked, rows.length),
             emphasis: mixed && group.risk != PlanRisk.low,
             onChanged: locked ? null : (_) => _select(ids, all != true),
           ),
@@ -221,7 +226,7 @@ class _PlanCardState extends State<PlanCard> {
             child: Padding(
               padding: const EdgeInsetsDirectional.only(start: 30),
               child: TextActionButton(
-                label: 'Show $hidden more',
+                label: context.l10n.assistantShowMore(hidden),
                 onPressed: () => setState(() => _expandedKinds.add(group.kind)),
               ),
             ),
@@ -230,12 +235,10 @@ class _PlanCardState extends State<PlanCard> {
     ];
   }
 
-  String _selectionLabel(int picked, int total) {
-    if (picked == total) {
-      return total == 2 ? 'Both selected' : 'All $total selected';
-    }
-    if (picked == 0) return 'None selected';
-    return '$picked of $total selected';
+  String _selectionLabel(AppLocalizations l10n, int picked, int total) {
+    if (picked == total) return l10n.assistantAllSelected(total);
+    if (picked == 0) return l10n.assistantNoneSelected;
+    return l10n.assistantSomeSelected(picked, total);
   }
 
   void _select(Set<String> ids, bool? on) {
@@ -254,13 +257,15 @@ class _PlanCardState extends State<PlanCard> {
         .where((r) => r.kind == 'deleteCollection')
         .firstOrNull;
     if (collection != null) {
+      final l10n = context.l10n;
       final ok = await MorkvaConfirmDialog.show(
         context,
-        title: 'Delete the ${collection.label} collection?',
-        message:
-            'Every card in ${collection.label} goes with it. '
-            '${_undoSentence(plan, destructive: true)}',
-        confirmLabel: 'Delete collection',
+        title: l10n.assistantDeleteCollectionTitle(collection.label),
+        message: l10n.assistantDeleteCollectionBody(
+          collection.label,
+          _undoSentence(l10n, plan, destructive: true),
+        ),
+        confirmLabel: l10n.assistantDeleteCollection,
         destructive: true,
         confirmText: collection.label,
       );
@@ -273,10 +278,12 @@ class _PlanCardState extends State<PlanCard> {
 /// The confirm of a whole destructive plan: "Delete collection" for a
 /// collection, else the title up to its first " · " or quoted name ("Delete
 /// 7 orders", "Delete 2 cards", "Delete field").
-String _deleteLabel(PlanView plan) {
+/// The title part is the harness's English: other languages say "Delete".
+String _deleteLabel(AppLocalizations l10n, PlanView plan) {
   if (plan.rows.any((r) => r.kind == 'deleteCollection')) {
-    return 'Delete collection';
+    return l10n.assistantDeleteCollection;
   }
+  if (l10n.localeName != 'en') return l10n.commonDelete;
   final title = plan.title.split(' · ').first;
   final quote = title.indexOf(' “');
   if (quote < 0) return title;
@@ -288,9 +295,6 @@ String _deleteLabel(PlanView plan) {
       : head;
 }
 
-/// The line a plan that enrols an automation into auto-apply shows.
-const kAppliesWithoutAsking = 'Applies changes without asking';
-
 /// The warning code of a module install (its text is the shield subtitle).
 const kGrantsPermissionsWarning = 'grants_permissions';
 
@@ -299,26 +303,33 @@ const kGrantsPermissionsWarning = 'grants_permissions';
 bool _shield(PlanView plan) =>
     (plan.grantsPermissions || plan.autoApplies) && !plan.destructive;
 
-/// "Update card", "Add field" — a plan item kind for a mixed plan's group.
-String kindLabel(String kind) {
+/// "Update card", "Add field" — a plan item kind for a mixed plan's group;
+/// [l10n] words the known kinds, others are split from the name.
+String kindLabel(String kind, [AppLocalizations? l10n]) {
   final words = kind
       .replaceAllMapped(RegExp('([A-Z])'), (m) => ' ${m[1]!.toLowerCase()}')
       .trim();
-  return words.isEmpty ? kind : words[0].toUpperCase() + words.substring(1);
+  final split = words.isEmpty
+      ? kind
+      : words[0].toUpperCase() + words.substring(1);
+  return l10n?.assistantPlanKind(kind, split) ?? split;
 }
 
-String _undoSentence(PlanView plan, {required bool destructive}) =>
-    switch (plan.undo) {
-      'none' => 'This can’t be undone.',
-      'partial' =>
-        destructive
-            ? 'Some of it can be undone for $kUndoWindowMinutes minutes.'
-            : 'Some of it can be undone afterwards.',
-      _ =>
-        destructive
-            ? 'You can undo this for $kUndoWindowMinutes minutes.'
-            : 'You can undo afterwards.',
-    };
+String _undoSentence(
+  AppLocalizations l10n,
+  PlanView plan, {
+  required bool destructive,
+}) => switch (plan.undo) {
+  'none' => l10n.assistantUndoNone,
+  'partial' =>
+    destructive
+        ? l10n.assistantUndoPartialFor(kUndoWindowMinutes)
+        : l10n.assistantUndoPartialLater,
+  _ =>
+    destructive
+        ? l10n.assistantUndoFor(kUndoWindowMinutes)
+        : l10n.assistantUndoLater,
+};
 
 Widget _divided(AssistantColors colors, Widget child) => DecoratedBox(
   decoration: BoxDecoration(
@@ -344,11 +355,15 @@ class _Header extends StatelessWidget {
         .where((w) => w.code == kGrantsPermissionsWarning)
         .firstOrNull;
     final subtitle = destructive
-        ? [...plan.notes, _undoSentence(plan, destructive: true)].join(' ')
+        ? [
+            ...plan.notes,
+            _undoSentence(context.l10n, plan, destructive: true),
+          ].join(' ')
         : shield && grantsWarning != null
         ? grantsWarning.message
-        : 'Nothing changes until you approve. '
-              '${_undoSentence(plan, destructive: false)}';
+        : context.l10n.assistantNothingChangesUntilApproved(
+            _undoSentence(context.l10n, plan, destructive: false),
+          );
     final source = provenance;
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
@@ -391,7 +406,7 @@ class _Header extends StatelessWidget {
                 ),
                 if (source != null)
                   Text(
-                    'Module · ${source.name} (${source.id})',
+                    context.l10n.assistantModuleSource(source.name, source.id),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.labelMedium?.copyWith(
@@ -449,7 +464,7 @@ class DiffLine extends StatelessWidget {
         else if (markEmpty && after != null && after.isNotEmpty)
           Text(
             '—',
-            semanticsLabel: 'from empty',
+            semanticsLabel: context.l10n.assistantDiffFromEmpty,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: scheme.onSurfaceVariant,
             ),
@@ -462,7 +477,8 @@ class DiffLine extends StatelessWidget {
             size: 14,
             color: scheme.onSurfaceVariant,
           ),
-        if (after != null) DiffPill(after.isEmpty ? 'empty' : after),
+        if (after != null)
+          DiffPill(after.isEmpty ? context.l10n.assistantDiffEmpty : after),
       ],
     );
   }
@@ -498,7 +514,9 @@ class DiffPill extends StatelessWidget {
           text,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          semanticsLabel: before ? 'from $text' : 'to $text',
+          semanticsLabel: before
+              ? context.l10n.assistantDiffFrom(text)
+              : context.l10n.assistantDiffTo(text),
           style: theme.textTheme.labelMedium?.copyWith(
             color: tint.foreground,
             letterSpacing: 0,
@@ -767,7 +785,7 @@ class _PlanRowTile extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsetsDirectional.only(start: 18),
                         child: TextActionButton(
-                          label: 'View code',
+                          label: context.l10n.assistantViewCode,
                           icon: Icons.code_rounded,
                           onPressed: () =>
                               PlanCardScope.of(context).actions.viewCode(row),
@@ -831,18 +849,21 @@ class _Footer extends StatelessWidget {
     final count = item.selected.length;
     final committing = item.status == PlanStatus.committing;
     // While applying the button is a bare spinner: say what it is doing.
+    final l10n = context.l10n;
     final approveLabel = committing
-        ? 'Applying changes'
+        ? l10n.assistantApplyingChangesLabel
         : plan.itemCount == 1 && plan.rows.firstOrNull?.kind == 'saveModule'
-        ? (plan.title.startsWith('Update') ? 'Update module' : 'Install module')
+        ? (plan.title.startsWith('Update')
+              ? l10n.assistantUpdateModule
+              : l10n.assistantInstallModule)
         : destructive && plan.title.startsWith('Delete')
         ? (count != plan.itemCount
-              ? 'Delete $count of ${plan.itemCount}'
-              : _deleteLabel(plan))
-        : 'Approve $count ${count == 1 ? 'change' : 'changes'}';
+              ? l10n.assistantDeleteSomeOf(count, plan.itemCount)
+              : _deleteLabel(l10n, plan))
+        : l10n.assistantApproveChanges(count);
     final rejectLabel = destructive
-        ? (plan.itemCount == 1 ? 'Keep it' : 'Keep them')
-        : 'Reject';
+        ? (plan.itemCount == 1 ? l10n.assistantKeepIt : l10n.assistantKeepThem)
+        : l10n.assistantReject;
     final p = progress;
 
     return DecoratedBox(
@@ -860,8 +881,8 @@ class _Footer extends StatelessWidget {
                 liveRegion: true,
                 child: Text(
                   p == null || p.total == 0
-                      ? 'Applying…'
-                      : 'Updating ${p.done} of ${p.total}…',
+                      ? l10n.assistantApplying
+                      : l10n.assistantUpdatingProgress(p.done, p.total),
                   style: theme.textTheme.bodySmall,
                 ),
               ),
@@ -1056,28 +1077,35 @@ class _ClosedPlanCard extends StatelessWidget {
     final colors = AssistantColors.of(context);
     final actions = PlanCardScope.of(context).actions;
     final message = item.message;
+    final l10n = context.l10n;
     final (icon, line) = switch (item.status) {
       PlanStatus.rejected => (
         Icons.block_rounded,
-        'Rejected — nothing changed',
+        l10n.assistantRejectedNothingChanged,
       ),
-      PlanStatus.skipped => (Icons.redo_rounded, 'Skipped — nothing changed'),
+      PlanStatus.skipped => (
+        Icons.redo_rounded,
+        l10n.assistantSkippedNothingChanged,
+      ),
       PlanStatus.stale => (
         Icons.sync_problem_rounded,
-        '${message ?? 'Changed elsewhere since the preview'} — nothing changed',
+        l10n.assistantNothingChangedAfter(
+          message ?? l10n.assistantChangedElsewhere,
+        ),
       ),
       PlanStatus.expired => (
         Icons.timer_off_outlined,
-        'This preview expired — nothing changed',
+        l10n.assistantPreviewExpired,
       ),
       PlanStatus.interrupted => (
         Icons.help_outline_rounded,
-        'Interrupted while applying — may have been partly applied, check '
-            'your data',
+        l10n.assistantInterrupted,
       ),
       _ => (
         Icons.error_outline_rounded,
-        '${message ?? 'Couldn’t apply the changes'} — nothing changed',
+        l10n.assistantNothingChangedAfter(
+          message ?? l10n.assistantCouldNotApply,
+        ),
       ),
     };
     return Semantics(
@@ -1117,7 +1145,10 @@ class _ClosedPlanCard extends StatelessWidget {
               ),
             ),
             if (item.status == PlanStatus.expired)
-              TextActionButton(label: 'Rebuild', onPressed: actions.retry),
+              TextActionButton(
+                label: l10n.assistantRebuild,
+                onPressed: actions.retry,
+              ),
           ],
         ),
       ),

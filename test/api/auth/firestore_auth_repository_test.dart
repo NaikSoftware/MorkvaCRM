@@ -143,9 +143,9 @@ void main() {
         repository.signInWithGoogle(),
         throwsA(
           isA<AuthException>().having(
-            (e) => e.message,
-            'message',
-            'Google sign-in returned no user.',
+            (e) => e.failure,
+            'failure',
+            AuthFailure.noUser,
           ),
         ),
       );
@@ -173,13 +173,18 @@ void main() {
     test('rethrows an AuthException raised by the flow unchanged', () async {
       final repository = FirestoreAuthRepository(
         firebaseAuth: auth,
-        credentialFlow: (_) async => throw const AuthException('cancelled'),
+        credentialFlow: (_) async =>
+            throw const AuthException(AuthFailure.noIdToken),
       );
 
       await expectLater(
         repository.signInWithGoogle(),
         throwsA(
-          isA<AuthException>().having((e) => e.message, 'message', 'cancelled'),
+          isA<AuthException>().having(
+            (e) => e.failure,
+            'failure',
+            AuthFailure.noIdToken,
+          ),
         ),
       );
     });

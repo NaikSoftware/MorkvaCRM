@@ -53,15 +53,19 @@ class FirestoreAuthRepository implements AuthRepository {
       final credential = await _credentialFlow(_firebaseAuth);
       final user = _mapFirebaseUser(credential.user);
       if (user == null) {
-        throw const AuthException('Google sign-in returned no user.');
+        throw const AuthException(AuthFailure.noUser);
       }
       return user;
     } on AuthException {
       rethrow;
     } on FirebaseAuthException catch (e) {
-      throw AuthException(e.message ?? 'Google sign-in failed.', cause: e);
+      throw AuthException(
+        AuthFailure.signInFailed,
+        detail: e.message,
+        cause: e,
+      );
     } catch (e) {
-      throw AuthException('Google sign-in failed.', cause: e);
+      throw AuthException(AuthFailure.signInFailed, cause: e);
     }
   }
 

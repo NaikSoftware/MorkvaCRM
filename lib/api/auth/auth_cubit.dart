@@ -43,15 +43,19 @@ final class AuthUnauthenticated extends AuthState {
   const AuthUnauthenticated();
 }
 
-/// A sign-in or sign-out failed; carries a user-facing [message].
+/// A sign-in or sign-out failed; the UI words [failure] and shows [detail]
+/// (the provider's raw message) as is.
 final class AuthError extends AuthState {
-  const AuthError({required this.message});
+  const AuthError({required this.failure, this.detail});
 
-  /// Human-readable description of the failure.
-  final String message;
+  /// What went wrong.
+  final AuthFailure failure;
+
+  /// The provider's own message, if any.
+  final String? detail;
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [failure, detail];
 }
 
 /// Drives authentication for MorkvaCRM over an [AuthRepository].
@@ -92,7 +96,9 @@ class AuthCubit extends Cubit<AuthState> {
       // been closed mid-flight, or the user may have cancelled (see
       // [cancelSignIn]) — in which case a late popup rejection must not pop an
       // error over the now-quiet sign-in screen.
-      if (!isClosed && state is AuthLoading) emit(AuthError(message: e.message));
+      if (!isClosed && state is AuthLoading) {
+        emit(AuthError(failure: e.failure, detail: e.detail));
+      }
     }
   }
 
@@ -117,9 +123,11 @@ class AuthCubit extends Cubit<AuthState> {
       await _repository.signOut();
     } on AuthException catch (e) {
       // Guard the post-await emit in case the cubit was closed mid-flight.
-      if (!isClosed) emit(AuthError(message: e.message));
+      if (!isClosed) emit(AuthError(failure: e.failure, detail: e.detail));
     } catch (e) {
-      if (!isClosed) emit(AuthError(message: 'Sign-out failed: $e'));
+      if (!isClosed) {
+        emit(AuthError(failure: AuthFailure.signOutFailed, detail: '$e'));
+      }
     }
   }
 

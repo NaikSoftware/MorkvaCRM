@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/features/objects/value_editors/field_value_editor.dart';
 import 'package:morkva_crm/features/objects/value_editors/file_value_editor.dart';
+import 'package:morkva_crm/l10n/l10n.dart';
 
 import 'editor_harness.dart';
 
@@ -25,9 +26,10 @@ AttachmentActions _actions({
 
 void main() {
   test('sizes read as B / KB / MB', () {
-    expect(formatFileSize(980), '980 B');
-    expect(formatFileSize(412 * 1024), '412 KB');
-    expect(formatFileSize(1468006), '1.4 MB');
+    final en = lookupAppLocalizations(const Locale('en'));
+    expect(formatFileSize(en, 980), '980 B');
+    expect(formatFileSize(en, 412 * 1024), '412 KB');
+    expect(formatFileSize(en, 1468006), '1.4 MB');
   });
 
   testWidgets('tiles show badge, name and size; the name opens the file', (

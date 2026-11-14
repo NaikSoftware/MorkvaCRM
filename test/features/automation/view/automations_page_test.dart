@@ -5,6 +5,7 @@ import 'package:morkva_crm/core/domain/automation/automation.dart';
 import 'package:morkva_crm/design/design.dart';
 import 'package:morkva_crm/features/automation/bloc/run_log_cubit.dart';
 import 'package:morkva_crm/features/automation/view/automations_page.dart';
+import 'package:morkva_crm/l10n/l10n.dart';
 
 import 'automation_view_harness.dart';
 
@@ -379,6 +380,7 @@ void main() {
     test('the change count includes plan rows past the log cap', () {
       expect(
         changeCount(
+          lookupAppLocalizations(const Locale('en')),
           RunLog(
             plan: [
               for (var i = 0; i < RunLog.kMaxPlanRows; i++)
@@ -501,6 +503,7 @@ void main() {
   test('whenLine: one "starts matching" condition leads with its field', () {
     expect(
       whenLine(
+        lookupAppLocalizations(const Locale('en')),
         const EventTrigger(
           kind: TriggerKind.cardUpdated,
           collectionId: 'c_orders',

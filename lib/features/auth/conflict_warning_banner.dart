@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../api/sync/sync_status.dart';
 import '../../api/sync/sync_status_cubit.dart';
 import '../../design/design.dart';
+import '../../l10n/l10n.dart';
 
 /// A full-width banner that makes a last-write-wins conflict *visible* without
 /// alarming the user.
@@ -40,11 +41,6 @@ class _ConflictBanner extends StatelessWidget {
   /// Number of affected objects, used to phrase the message naturally.
   final int affectedCount;
 
-  String get _itemPhrase {
-    if (affectedCount <= 1) return 'an item';
-    return '$affectedCount items';
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -52,11 +48,12 @@ class _ConflictBanner extends StatelessWidget {
     // The container pair: onWarning is for text on solid warning and was
     // unreadable on this wash in dark mode.
     final fg = semantic.onWarningContainer;
+    final l10n = context.l10n;
 
     return Semantics(
       liveRegion: true,
       container: true,
-      label: 'Sync conflict warning',
+      label: l10n.syncConflictSemantics,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(
@@ -84,13 +81,12 @@ class _ConflictBanner extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'A newer version of $_itemPhrase was saved elsewhere',
+                    l10n.syncConflictTitle(affectedCount),
                     style: theme.textTheme.titleSmall?.copyWith(color: fg),
                   ),
                   const SizedBox(height: Spacing.xxs),
                   Text(
-                    'We kept your latest changes and replaced the other copy. '
-                    'If that other version mattered, re-enter those edits now.',
+                    l10n.syncConflictBody,
                     style: theme.textTheme.bodyMedium?.copyWith(color: fg),
                   ),
                 ],
@@ -119,13 +115,13 @@ class _DismissAction extends StatelessWidget {
     final textStyle = Theme.of(context).textTheme.labelLarge;
     return PressableScale(
       onPressed: () => context.read<SyncStatusCubit>().dismissConflict(),
-      semanticLabel: 'Dismiss conflict warning',
+      semanticLabel: context.l10n.syncConflictDismiss,
       borderRadius: Radii.smAll,
       child: Container(
         constraints: const BoxConstraints(minHeight: 44),
         alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
-        child: Text('Got it', style: textStyle?.copyWith(color: fg)),
+        child: Text(context.l10n.commonGotIt, style: textStyle?.copyWith(color: fg)),
       ),
     );
   }

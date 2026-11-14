@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 import '../collection.dart';
+import '../core_words.dart';
 import '../field_definition.dart';
 import '../field_value.dart';
 import '../morkva_object.dart';
@@ -87,7 +88,11 @@ List<ViewGroup> groupObjects(
   return [
     for (final (id, label, color) in heads)
       ViewGroup(key: id, label: label, color: color, objects: buckets[id]!),
-    ViewGroup(key: null, label: 'No ${field.name}', objects: none),
+    ViewGroup(
+      key: null,
+      label: CoreWords.current.noValueGroup(field.name),
+      objects: none,
+    ),
   ];
 }
 

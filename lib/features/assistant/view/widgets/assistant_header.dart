@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../design/design.dart';
+import '../../../../l10n/l10n.dart';
 import 'assistant_scope.dart';
 import 'sparkle_icon.dart';
 
@@ -41,7 +42,7 @@ class AssistantHeader extends StatelessWidget {
           if (phone)
             IconActionButton(
               icon: Icons.arrow_back_rounded,
-              tooltip: 'Back',
+              tooltip: context.l10n.commonBack,
               onPressed: onBack,
             )
           else
@@ -55,7 +56,7 @@ class AssistantHeader extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Ask Morkva',
+                    context.l10n.assistantAskMorkva,
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontSize: phone ? 17 : 16,
                       fontWeight: FontWeight.w700,

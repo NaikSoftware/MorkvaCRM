@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 
 /// The result of the create / rename collection form: a trimmed [name], an
 /// optional [description] (null when blank), and an optional [icon] key (null
@@ -44,9 +45,9 @@ class CollectionFormDialog extends StatefulWidget {
   static Future<CollectionFormResult?> create(BuildContext context) {
     return showDialog<CollectionFormResult>(
       context: context,
-      builder: (_) => const CollectionFormDialog(
-        title: 'New collection',
-        confirmLabel: 'Create',
+      builder: (_) => CollectionFormDialog(
+        title: context.l10n.collectionsNewCollection,
+        confirmLabel: context.l10n.commonCreate,
       ),
     );
   }
@@ -62,8 +63,8 @@ class CollectionFormDialog extends StatefulWidget {
     return showDialog<CollectionFormResult>(
       context: context,
       builder: (_) => CollectionFormDialog(
-        title: 'Rename collection',
-        confirmLabel: 'Save',
+        title: context.l10n.collectionsRenameCollection,
+        confirmLabel: context.l10n.commonSave,
         initialName: name,
         initialDescription: description,
         initialIcon: icon,
@@ -100,7 +101,7 @@ class _CollectionFormDialogState extends State<CollectionFormDialog> {
   void _submit() {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      setState(() => _nameError = 'Give your collection a name');
+      setState(() => _nameError = context.l10n.collectionsNameRequired);
       return;
     }
     final description = _descriptionController.text.trim();
@@ -131,7 +132,7 @@ class _CollectionFormDialogState extends State<CollectionFormDialog> {
               // to the field box itself — not the taller label+field column —
               // and stays put when the error line grows below.
               Text(
-                'Name',
+                context.l10n.collectionsNameLabel,
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: theme.colorScheme.onSurface,
                 ),
@@ -143,13 +144,13 @@ class _CollectionFormDialogState extends State<CollectionFormDialog> {
                   CollectionGlyph(
                     iconKey: _icon,
                     onTap: _pickIcon,
-                    tooltip: 'Choose icon',
+                    tooltip: context.l10n.collectionsChooseIcon,
                   ),
                   const SizedBox(width: Spacing.sm),
                   Expanded(
                     child: MorkvaTextField(
                       controller: _nameController,
-                      hint: 'Orders, Clients, Inventory…',
+                      hint: context.l10n.collectionsNameExamples,
                       autofocus: true,
                       errorText: _nameError,
                       textInputAction: TextInputAction.next,
@@ -166,8 +167,8 @@ class _CollectionFormDialogState extends State<CollectionFormDialog> {
               const SizedBox(height: Spacing.md),
               MorkvaTextField(
                 controller: _descriptionController,
-                label: 'Description',
-                hint: 'Optional — what this collection holds',
+                label: context.l10n.collectionsDescriptionLabel,
+                hint: context.l10n.collectionsDescriptionOptionalHint,
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) => _submit(),
               ),
@@ -176,7 +177,7 @@ class _CollectionFormDialogState extends State<CollectionFormDialog> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextActionButton(
-                    label: 'Cancel',
+                    label: context.l10n.commonCancel,
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                   const SizedBox(width: Spacing.xs),

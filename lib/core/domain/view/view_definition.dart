@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 
+import '../core_words.dart';
 import '../field_definition.dart';
 import '../types/text_field.dart';
 
@@ -129,7 +130,7 @@ class ViewDefinition extends Equatable {
   /// Id of the view every collection starts with.
   static const String defaultId = 'all';
 
-  /// The default "All" table view for [fields]: the first text field (the
+  /// The default table view ("All") for [fields]: the first text field (the
   /// title), then the first 3 other fields in schema order. Without a text
   /// field it shows the first 4 fields.
   factory ViewDefinition.defaultFor(List<FieldDefinition> fields) {
@@ -140,7 +141,7 @@ class ViewDefinition extends Equatable {
     ];
     return ViewDefinition(
       id: defaultId,
-      name: 'All',
+      name: CoreWords.current.defaultViewName,
       fieldIds: ids.take(4).toList(),
     );
   }

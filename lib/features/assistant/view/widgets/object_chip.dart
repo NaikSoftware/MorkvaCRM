@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../design/design.dart';
+import '../../../../l10n/l10n.dart';
 import '../../bloc/chat_item.dart';
 import 'assistant_scope.dart';
 import 'plan_card_scope.dart';
@@ -58,7 +59,7 @@ class ObjectChip extends StatelessWidget {
     );
     return PressableScale(
       onPressed: onTap,
-      semanticLabel: semanticLabel ?? 'Open $label',
+      semanticLabel: semanticLabel ?? context.l10n.assistantOpenObject(label),
       borderRadius: BorderRadius.circular(13),
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: 44),

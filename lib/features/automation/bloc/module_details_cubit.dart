@@ -6,6 +6,7 @@ import 'package:rxdart/rxdart.dart';
 
 import '../../../core/automation/runner_api.dart';
 import '../../../core/domain/automation/automation.dart';
+import '../../../l10n/l10n.dart';
 import 'modules_cubit.dart';
 
 /// The banner at the top of module details (UX §2).
@@ -223,21 +224,20 @@ class ModuleDetailsCubit extends Cubit<ModuleDetailsState> {
   /// The confirm before flipping auto-apply to [on]; null = no confirm
   /// (turning it off while no automation uses Auto).
   ConfirmCopy? autoApplyConfirm(bool on) {
+    final l10n = currentAppStrings();
     if (on) {
       return (
-        title: 'Apply this module\'s changes automatically?',
+        title: l10n.automationWidgetsAutoApplyOnTitle,
         body: null,
-        confirm: 'Turn on',
+        confirm: l10n.automationWidgetsTurnOn,
       );
     }
     final n = state.autoAutomations;
     if (n == 0) return null;
     return (
-      title: 'Turn off auto-apply?',
-      body: n == 1
-          ? '1 automation will ask first.'
-          : '$n automations will ask first.',
-      confirm: 'Turn off',
+      title: l10n.automationWidgetsAutoApplyOffTitle,
+      body: l10n.automationWidgetsAutoApplyOffBody(n),
+      confirm: l10n.automationWidgetsTurnOff,
     );
   }
 

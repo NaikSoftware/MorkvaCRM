@@ -11,6 +11,7 @@ import '../../../core/automation/runner_api.dart';
 import '../../../core/domain/automation/automation.dart';
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../../views/widgets/filter_builder.dart';
 import '../../views/widgets/view_labels.dart';
 import '../../views/widgets/view_popover.dart';
@@ -80,7 +81,7 @@ Future<bool> presentAutomationEditor(
     result = await showGeneralDialog<bool>(
       context: context,
       barrierDismissible: true,
-      barrierLabel: 'Close editor',
+      barrierLabel: context.l10n.automationCloseEditor,
       barrierColor: Colors.black54,
       transitionDuration: reduceMotion
           ? MotionDurations.none
@@ -141,11 +142,12 @@ class _AutomationEditorSheetState extends State<AutomationEditorSheet> {
   }
 
   Future<void> _delete() async {
+    final l10n = context.l10n;
     final confirmed = await MorkvaConfirmDialog.show(
       context,
-      title: 'Delete "${_cubit.state.name}"?',
-      message: 'Its button disappears. Run history stays.',
-      confirmLabel: 'Delete',
+      title: l10n.automationDeleteTitle(_cubit.state.name),
+      message: l10n.automationDeleteMessage,
+      confirmLabel: l10n.commonDelete,
       destructive: true,
     );
     if (confirmed != true || !mounted) return;
@@ -175,23 +177,26 @@ class _AutomationEditorSheetState extends State<AutomationEditorSheet> {
       listener: (_, s) => _sync(s),
       builder: (context, s) {
         final theme = Theme.of(context);
-        final title = s.existing == null ? 'New automation' : 'Edit automation';
+        final l10n = context.l10n;
+        final title = s.existing == null
+            ? l10n.automationNewAutomation
+            : l10n.automationEditAutomation;
         final gutter = widget.compact ? Spacing.md : Spacing.lg;
         final form = ListView(
           padding: EdgeInsets.fromLTRB(gutter, Spacing.md, gutter, Spacing.xl),
           children: [
             ..._banners(context, s),
             _Field(
-              label: 'Name',
+              label: l10n.automationEditorName,
               child: MorkvaTextField(
                 controller: _name,
-                hint: 'Stamp when shipped',
+                hint: l10n.automationEditorNameHint,
                 errorText: s.problemAt('name'),
                 onChanged: _cubit.setName,
               ),
             ),
             _Field(
-              label: 'When',
+              label: l10n.automationEditorWhen,
               child: _KindGrid(
                 kind: s.kind,
                 columns: widget.compact ? 1 : 2,
@@ -199,7 +204,7 @@ class _AutomationEditorSheetState extends State<AutomationEditorSheet> {
               ),
             ),
             _Field(
-              label: 'In',
+              label: l10n.automationEditorIn,
               child: _CollectionPicker(
                 state: s,
                 onChanged: _cubit.setCollection,
@@ -211,16 +216,16 @@ class _AutomationEditorSheetState extends State<AutomationEditorSheet> {
             if (!s.kind.isButton && s.collection != null)
               _Conditions(state: s, cubit: _cubit),
             _Field(
-              label: 'Do',
+              label: l10n.automationEditorDo,
               child: _Do(state: s, cubit: _cubit),
             ),
             if (s.kind.isButton)
               _Field(
-                label: 'Button',
+                label: l10n.automationEditorButton,
                 child: _ButtonLook(state: s, cubit: _cubit, label: _label),
               ),
             _Field(
-              label: 'Apply',
+              label: l10n.automationEditorApply,
               child: _Apply(
                 state: s,
                 onChanged: _cubit.setApply,
@@ -230,7 +235,7 @@ class _AutomationEditorSheetState extends State<AutomationEditorSheet> {
               ),
             ),
             _SwitchRow(
-              label: 'Enabled',
+              label: l10n.automationEditorEnabled,
               value: s.enabled,
               onChanged: _cubit.setEnabled,
             ),
@@ -253,7 +258,7 @@ class _AutomationEditorSheetState extends State<AutomationEditorSheet> {
               surfaceTintColor: Colors.transparent,
               titleSpacing: 0,
               leading: IconButton(
-                tooltip: 'Close',
+                tooltip: l10n.commonClose,
                 icon: const Icon(Icons.close),
                 onPressed: () => Navigator.of(context).maybePop(),
               ),
@@ -262,7 +267,7 @@ class _AutomationEditorSheetState extends State<AutomationEditorSheet> {
                 Padding(
                   padding: const EdgeInsets.only(right: Spacing.xs),
                   child: PrimaryButton(
-                    label: 'Save',
+                    label: l10n.commonSave,
                     loading: s.saving,
                     onPressed: _save,
                   ),
@@ -290,7 +295,7 @@ class _AutomationEditorSheetState extends State<AutomationEditorSheet> {
                   ),
                   IconActionButton(
                     icon: Icons.close,
-                    tooltip: 'Close',
+                    tooltip: l10n.commonClose,
                     onPressed: () => Navigator.of(context).maybePop(),
                   ),
                 ],
@@ -312,12 +317,12 @@ class _AutomationEditorSheetState extends State<AutomationEditorSheet> {
                     _DeleteButton(onPressed: s.saving ? null : _delete),
                   const Spacer(),
                   TextActionButton(
-                    label: 'Cancel',
+                    label: l10n.commonCancel,
                     onPressed: () => Navigator.of(context).maybePop(),
                   ),
                   const SizedBox(width: Spacing.xs),
                   PrimaryButton(
-                    label: 'Save',
+                    label: l10n.commonSave,
                     loading: s.saving,
                     onPressed: _save,
                   ),
@@ -344,27 +349,26 @@ class _AutomationEditorSheetState extends State<AutomationEditorSheet> {
     );
     final existing = s.existing;
     final paused = _resumed ? null : existing?.pausedReason;
+    final l10n = context.l10n;
     return [
       if (paused == PausedReason.broken)
         _Banner(
           colors: error,
-          title: 'This automation is paused.',
+          title: l10n.automationPausedBroken,
           message: existing?.brokenDetail,
         ),
       if (paused == PausedReason.loopSuspected)
         _Banner(
           colors: warning,
-          title: 'Paused: it ran too often in a minute,',
-          message:
-              'which looks like a loop (it may be changing the cards it '
-              'watches).',
+          title: l10n.automationPausedLoopTitle,
+          message: l10n.automationPausedLoopMessage,
           onResume: _resume,
         ),
       if (paused == PausedReason.crashed)
         _Banner(
           colors: warning,
-          title: 'Paused: Morkva stopped while this ran',
-          message: '(probably out of memory).',
+          title: l10n.automationPausedCrashedTitle,
+          message: l10n.automationPausedCrashedMessage,
           onResume: _resume,
         ),
       if (s.error case final message?) _Banner(colors: error, title: message),
@@ -512,7 +516,10 @@ class _Banner extends StatelessWidget {
             ),
             if (onResume != null) ...[
               const SizedBox(width: Spacing.xs),
-              SecondaryButton(label: 'Resume', onPressed: onResume),
+              SecondaryButton(
+                label: context.l10n.automationResume,
+                onPressed: onResume,
+              ),
             ],
           ],
         ),
@@ -533,33 +540,43 @@ class _KindGrid extends StatelessWidget {
   final int columns;
   final ValueChanged<EditorKind> onChanged;
 
-  static const _cards = [
-    (
-      EditorKind.cardButton,
-      Icons.smart_button_outlined,
-      'Button on a card',
-      "Shows in the card's header.",
-    ),
-    (
-      EditorKind.collectionButton,
-      Icons.table_chart_outlined,
-      'Button on a collection',
-      "Shows in the collection's Actions menu.",
-    ),
-    (
-      EditorKind.created,
-      Icons.add_box_outlined,
-      'When a card is created',
-      null,
-    ),
-    (EditorKind.updated, Icons.edit_outlined, 'When a card is updated', null),
-    (EditorKind.deleted, Icons.delete_outline, 'When a card is deleted', null),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final cards = [
+      (
+        EditorKind.cardButton,
+        Icons.smart_button_outlined,
+        l10n.automationWhenButtonCard,
+        l10n.automationKindCardButtonHint,
+      ),
+      (
+        EditorKind.collectionButton,
+        Icons.table_chart_outlined,
+        l10n.automationWhenButtonCollection,
+        l10n.automationKindCollectionButtonHint,
+      ),
+      (
+        EditorKind.created,
+        Icons.add_box_outlined,
+        l10n.automationWhenCreated,
+        null,
+      ),
+      (
+        EditorKind.updated,
+        Icons.edit_outlined,
+        l10n.automationWhenUpdated,
+        null,
+      ),
+      (
+        EditorKind.deleted,
+        Icons.delete_outline,
+        l10n.automationWhenDeleted,
+        null,
+      ),
+    ];
     final tiles = [
-      for (final (k, icon, title, hint) in _cards)
+      for (final (k, icon, title, hint) in cards)
         _RadioCard(
           value: k,
           selected: k == kind,
@@ -684,6 +701,7 @@ class _CollectionPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = state;
+    final l10n = context.l10n;
     final blocked = s.collections.where((c) => !s.collectionAllowed(c.id));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -694,7 +712,7 @@ class _CollectionPicker extends StatelessWidget {
           initialValue: s.collectionId,
           key: ValueKey('in/${s.collectionId}'),
           isExpanded: true,
-          hint: const Text('Pick a collection'),
+          hint: Text(l10n.automationPickCollection),
           decoration: InputDecoration(errorText: s.problemAt('collectionId')),
           items: [
             for (final c in s.collections)
@@ -705,7 +723,7 @@ class _CollectionPicker extends StatelessWidget {
                   collection: c,
                   note: s.collectionAllowed(c.id)
                       ? null
-                      : 'Not allowed for this module',
+                      : l10n.automationNotAllowedNote,
                 ),
               ),
           ],
@@ -716,14 +734,15 @@ class _CollectionPicker extends StatelessWidget {
             children: [
               Flexible(
                 child: Text(
-                  '${blocked.map((c) => c.name).join(', ')} '
-                  "${blocked.length == 1 ? "isn't" : "aren't"} allowed for "
-                  'this module.',
+                  l10n.automationNotAllowedForModule(
+                    blocked.length,
+                    blocked.map((c) => c.name).join(', '),
+                  ),
                   style: _muted(context),
                 ),
               ),
               TextActionButton(
-                label: 'Change access',
+                label: l10n.automationChangeAccess,
                 onPressed: onChangeAccess,
               ),
             ],
@@ -779,7 +798,9 @@ class _Conditions extends StatelessWidget {
       context,
       compact: anchor == null,
       anchor: anchor ?? Rect.zero,
-      label: initial == null ? 'Add condition' : 'Edit condition',
+      label: initial == null
+          ? context.l10n.automationAddCondition
+          : context.l10n.automationEditCondition,
       builder: (sheet) => FilterBuilder(
         collection: collection,
         initial: initial,
@@ -808,11 +829,12 @@ class _Conditions extends StatelessWidget {
     final collection = s.collection!;
     final updated = s.kind == EditorKind.updated;
     final check = s.lastCheck;
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _Field(
-          label: 'If',
+          label: l10n.automationEditorIf,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -822,7 +844,7 @@ class _Conditions extends StatelessWidget {
                 children: [
                   for (var i = 0; i < s.where.length; i++)
                     _ConditionChip(
-                      label: _conditionLabel(s.where[i], collection),
+                      label: _conditionLabel(l10n, s.where[i], collection),
                       onTap: filterOf(s.where[i]) == null
                           ? null
                           : () => _edit(context, index: i),
@@ -830,7 +852,8 @@ class _Conditions extends StatelessWidget {
                     ),
                   Builder(
                     builder: (anchor) => _AddButton(
-                      label: 'Condition',
+                      label: l10n.automationCondition,
+                      semanticLabel: l10n.automationAddCondition,
                       onPressed: () => _edit(anchor, anchor: _anchorOf(anchor)),
                     ),
                   ),
@@ -843,14 +866,14 @@ class _Conditions extends StatelessWidget {
                   controlAffinity: ListTileControlAffinity.leading,
                   value: s.anyChange,
                   onChanged: (v) => cubit.setAnyChange(v ?? false),
-                  title: const Text('Run on any change'),
+                  title: Text(l10n.automationRunOnAnyChange),
                 ),
             ],
           ),
         ),
         if (updated) ...[
           _Field(
-            label: 'Only when these fields change',
+            label: l10n.automationOnlyWhenFieldsChange,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -872,27 +895,27 @@ class _Conditions extends StatelessWidget {
                 ),
                 const SizedBox(height: Spacing.xxs),
                 Text(
-                  'Leave empty to react to any change.',
+                  l10n.automationLeaveEmptyAnyChange,
                   style: _muted(context),
                 ),
               ],
             ),
           ),
           _Field(
-            label: 'Run',
+            label: l10n.automationEditorRun,
             child: RadioGroup<TriggerMode>(
               groupValue: s.mode,
               onChanged: (m) => m == null ? null : cubit.setMode(m),
-              child: const Column(
+              child: Column(
                 children: [
                   RadioRow(
                     value: TriggerMode.enters,
-                    title: 'Once, when the card starts matching',
-                    hint: "Won't run again while it keeps matching.",
+                    title: l10n.automationModeEnters,
+                    hint: l10n.automationModeEntersHint,
                   ),
                   RadioRow(
                     value: TriggerMode.matches,
-                    title: "Every time it's updated and matches",
+                    title: l10n.automationModeMatches,
                   ),
                 ],
               ),
@@ -901,15 +924,12 @@ class _Conditions extends StatelessWidget {
         ],
         _HelpLine(
           icon: Icons.info_outline,
-          text:
-              'Runs on the device where the change is made, while Morkva is '
-              'open there. Offline changes run when they sync. Calculated '
-              "values don't trigger on their own.",
+          text: l10n.automationEventHelp,
         ),
         if (check != null)
           _HelpLine(
             icon: Icons.history,
-            lead: 'Last checked',
+            lead: l10n.automationLastChecked,
             text: '${check.cardLabel} · ${_clock(check.at)} · ${check.why}',
           ),
         const SizedBox(height: Spacing.md),
@@ -926,10 +946,16 @@ String _clock(DateTime t) {
 
 /// "Status is Shipped"; a relative condition written by Ask Morkva reads
 /// "Due · today".
-String _conditionLabel(Map<String, Object?> condition, Collection collection) {
+String _conditionLabel(
+  AppLocalizations l10n,
+  Map<String, Object?> condition,
+  Collection collection,
+) {
   final filter = filterOf(condition);
   if (filter != null) return filterLabel(filter, collection);
-  final field = collection.fieldById('${condition['field']}')?.name ?? 'Field';
+  final field =
+      collection.fieldById('${condition['field']}')?.name ??
+      l10n.automationFieldFallback;
   final value = condition['relative'] ?? condition['value'] ?? condition['op'];
   return '$field · $value';
 }
@@ -971,7 +997,7 @@ class _ConditionChip extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  tooltip: 'Remove $label',
+                  tooltip: context.l10n.automationRemoveCondition(label),
                   visualDensity: VisualDensity.compact,
                   icon: const Icon(Icons.close, size: 16),
                   onPressed: onRemove,
@@ -987,9 +1013,14 @@ class _ConditionChip extends StatelessWidget {
 
 /// The dashed "+ Condition".
 class _AddButton extends StatelessWidget {
-  const _AddButton({required this.label, required this.onPressed});
+  const _AddButton({
+    required this.label,
+    required this.semanticLabel,
+    required this.onPressed,
+  });
 
   final String label;
+  final String semanticLabel;
   final VoidCallback onPressed;
 
   @override
@@ -1000,7 +1031,7 @@ class _AddButton extends StatelessWidget {
     ).extension<MorkvaSemanticColors>()!.primaryText;
     return PressableScale(
       onPressed: onPressed,
-      semanticLabel: 'Add $label',
+      semanticLabel: semanticLabel,
       borderRadius: Radii.smAll,
       child: SizedBox(
         height: 44,
@@ -1114,6 +1145,7 @@ class _Do extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = state;
+    final l10n = context.l10n;
     final wide =
         MediaQuery.sizeOf(context).width >= AppShell.expandedBreakpoint;
     final module = DropdownButtonFormField<String>(
@@ -1122,7 +1154,7 @@ class _Do extends StatelessWidget {
       key: ValueKey('module/${s.moduleId}'),
       initialValue: s.moduleId,
       isExpanded: true,
-      hint: const Text('Pick a module'),
+      hint: Text(l10n.automationPickModule),
       decoration: const InputDecoration(),
       items: [
         for (final m in s.usableModules)
@@ -1153,7 +1185,7 @@ class _Do extends StatelessWidget {
       key: ValueKey('action/${s.moduleId}/${s.actionId}'),
       initialValue: s.actionId,
       isExpanded: true,
-      hint: const Text('Pick an action'),
+      hint: Text(l10n.automationPickAction),
       decoration: InputDecoration(
         errorText: s.problemAt('actionId'),
         errorMaxLines: 2,
@@ -1175,8 +1207,9 @@ class _Do extends StatelessWidget {
                   child: Text(
                     s.kind.fits(a.scope)
                         ? a.label
-                        : '${a.label} · Runs on a '
-                              '${a.scope == ActionScope.collection ? 'collection' : 'card'}',
+                        : a.scope == ActionScope.collection
+                        ? l10n.automationActionRunsOnCollection(a.label)
+                        : l10n.automationActionRunsOnCard(a.label),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -1197,15 +1230,21 @@ class _Do extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 3:2, so a module name fits (the mock's 252 / 168 px).
-              Expanded(flex: 3, child: _Labeled('Module', module)),
+              Expanded(
+                flex: 3,
+                child: _Labeled(l10n.automationModule, module),
+              ),
               const SizedBox(width: Spacing.sm),
-              Expanded(flex: 2, child: _Labeled('Action', action)),
+              Expanded(
+                flex: 2,
+                child: _Labeled(l10n.automationAction, action),
+              ),
             ],
           )
         else ...[
-          _Labeled('Module', module),
+          _Labeled(l10n.automationModule, module),
           const SizedBox(height: Spacing.sm),
-          _Labeled('Action', action),
+          _Labeled(l10n.automationAction, action),
         ],
         if (input != null)
           for (final MapEntry(:key, :value) in input.properties.entries)
@@ -1321,7 +1360,7 @@ class _ParamState extends State<_Param> {
     final hint =
         p.description ??
         (p.format == InputFormat.field && s.collection != null
-            ? 'Fields of ${s.collection!.name}.'
+            ? context.l10n.automationFieldsOf(s.collection!.name)
             : null);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1362,18 +1401,19 @@ class _ButtonLook extends StatelessWidget {
     final shown = s.label.trim().isEmpty
         ? s.defaultLabel
         : buttonLabelOf(s.label.trim());
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         MorkvaTextField(
           controller: label,
-          label: 'Label',
+          label: l10n.automationButtonLabel,
           hint: s.defaultLabel,
           suffixText: '${label.text.length}/${ButtonSpec.kMaxLabel}',
           onChanged: cubit.setLabel,
         ),
         const SizedBox(height: Spacing.md),
-        Text('Icon', style: theme.textTheme.labelMedium),
+        Text(l10n.automationButtonIcon, style: theme.textTheme.labelMedium),
         const SizedBox(height: Spacing.xxs),
         LayoutBuilder(
           builder: (context, c) => Wrap(
@@ -1416,14 +1456,14 @@ class _ButtonLook extends StatelessWidget {
           ),
         ),
         const SizedBox(height: Spacing.sm),
-        Text('Color', style: theme.textTheme.labelMedium),
+        Text(l10n.automationButtonColor, style: theme.textTheme.labelMedium),
         const SizedBox(height: Spacing.xxs),
         Wrap(
           children: [
             for (var i = 0; i < kButtonTintIds.length; i++)
               Semantics(
                 selected: s.tint == kButtonTintIds[i],
-                label: kButtonTintIds[i],
+                label: _tintName(l10n, kButtonTintIds[i]),
                 button: true,
                 child: InkWell(
                   customBorder: const CircleBorder(),
@@ -1453,7 +1493,7 @@ class _ButtonLook extends StatelessWidget {
           ],
         ),
         const SizedBox(height: Spacing.sm),
-        Text('Preview', style: theme.textTheme.labelMedium),
+        Text(l10n.automationButtonPreview, style: theme.textTheme.labelMedium),
         const SizedBox(height: Spacing.xxs),
         Align(
           alignment: Alignment.centerLeft,
@@ -1477,7 +1517,9 @@ class _ButtonLook extends StatelessWidget {
                 ),
                 const SizedBox(width: Spacing.xs),
                 Text(
-                  shown.isEmpty ? 'Button' : shortButtonLabel(shown),
+                  shown.isEmpty
+                      ? l10n.automationEditorButton
+                      : shortButtonLabel(shown),
                   style: theme.textTheme.labelLarge?.copyWith(
                     color: tint.foreground,
                   ),
@@ -1490,6 +1532,19 @@ class _ButtonLook extends StatelessWidget {
     );
   }
 }
+
+/// A button tint's spoken name.
+String _tintName(AppLocalizations l10n, String id) => switch (id) {
+  'carrot' => l10n.automationTintCarrot,
+  'leaf' => l10n.automationTintLeaf,
+  'sky' => l10n.automationTintSky,
+  'plum' => l10n.automationTintPlum,
+  'sand' => l10n.automationTintSand,
+  'rose' => l10n.automationTintRose,
+  'slate' => l10n.automationTintSlate,
+  'teal' => l10n.automationTintTeal,
+  _ => id,
+};
 
 /// "Apply": Ask first / Apply automatically, the latter disabled with its
 /// reason as visible text.
@@ -1508,6 +1563,7 @@ class _Apply extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = state;
     final available = s.autoAvailability == AutoAvailability.available;
+    final l10n = context.l10n;
     return RadioGroup<ApplyMode>(
       // A stored Auto the module no longer allows stays selected (disabled,
       // with the lock line); it asks first meanwhile and Save asks for a
@@ -1519,18 +1575,16 @@ class _Apply extends StatelessWidget {
         children: [
           RadioRow(
             value: ApplyMode.ask,
-            title: 'Ask first',
+            title: l10n.automationApplyAskFirst,
             hint: s.kind.isButton
-                ? 'You review each change in a preview.'
-                : 'Each card waits in Needs review.',
+                ? l10n.automationAskFirstButtonHint
+                : l10n.automationAskFirstEventHint,
           ),
           RadioRow(
             value: ApplyMode.auto,
             enabled: available,
-            title: 'Apply automatically',
-            hint:
-                'Small card creates and edits apply without asking. Bigger '
-                'changes, deletes and structure changes still wait.',
+            title: l10n.automationApplyAutomatically,
+            hint: l10n.automationApplyAutomaticallyHint,
           ),
           if (!available)
             Padding(
@@ -1546,16 +1600,15 @@ class _Apply extends StatelessWidget {
                   Flexible(
                     child: Text(
                       s.autoAvailability == AutoAvailability.alwaysAsks
-                          ? 'This module can delete or change structure, so '
-                                'it always asks.'
-                          : 'Turn on auto-apply for this module first.',
+                          ? l10n.automationAlwaysAsks
+                          : l10n.automationTurnOnAutoApplyFirst,
                       style: _muted(context),
                     ),
                   ),
                   if (s.autoAvailability == AutoAvailability.turnOnFirst &&
                       onModuleDetails != null)
                     TextActionButton(
-                      label: 'Module details',
+                      label: l10n.automationModuleDetails,
                       onPressed: onModuleDetails,
                     ),
                 ],
@@ -1615,9 +1668,10 @@ class _AdvancedState extends State<_Advanced> {
     final s = widget.state;
     final theme = Theme.of(context);
     final scope = s.scope;
+    final l10n = context.l10n;
     final summary = scope == null
-        ? "Collections it may touch: same as the module's access"
-        : 'Collections it may touch: ${scope.length}';
+        ? l10n.automationScopeSameAsModuleSummary
+        : l10n.automationScopeCountSummary(scope.length);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1630,7 +1684,7 @@ class _AdvancedState extends State<_Advanced> {
               children: [
                 Icon(_open ? Icons.expand_more : Icons.chevron_right, size: 20),
                 const SizedBox(width: Spacing.xs),
-                Text('Advanced', style: theme.textTheme.titleSmall),
+                Text(l10n.automationAdvanced, style: theme.textTheme.titleSmall),
                 const SizedBox(width: Spacing.sm),
                 Expanded(
                   child: Text(
@@ -1653,11 +1707,11 @@ class _AdvancedState extends State<_Advanced> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const RadioRow(
+                RadioRow(
                   value: false,
-                  title: "Same as the module's access",
+                  title: l10n.automationScopeSameAsModule,
                 ),
-                const RadioRow(value: true, title: 'Only these'),
+                RadioRow(value: true, title: l10n.automationOnlyThese),
                 if (scope != null)
                   for (final c in s.scopeChoices)
                     CheckboxListTile(
@@ -1694,6 +1748,6 @@ class _DeleteButton extends StatelessWidget {
     ),
     onPressed: onPressed,
     icon: const Icon(Icons.delete_outline, size: 18),
-    label: const Text('Delete'),
+    label: Text(context.l10n.commonDelete),
   );
 }

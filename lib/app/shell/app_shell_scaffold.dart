@@ -37,6 +37,7 @@ import '../../features/automation/widgets/collection_actions_menu.dart';
 import '../../features/automation/widgets/run_indicator.dart';
 import '../../features/collections/collections.dart';
 import '../../features/views/view_link.dart';
+import '../../l10n/l10n.dart';
 import 'app_shell.dart';
 import 'brand_wordmark.dart';
 import 'jump_to_dialog.dart';
@@ -290,7 +291,7 @@ class _ShellViewState extends State<_ShellView> {
           };
     final inAutomations = place == ShellPlace.automations;
     final avatar = Tooltip(
-      message: 'Account and settings',
+      message: context.l10n.shellAccountAndSettings,
       child: InkResponse(
         onTap: openSettings,
         radius: 22,
@@ -347,10 +348,10 @@ class _ShellViewState extends State<_ShellView> {
                 ),
           onDismissSidePanel: assistant?.panel.hide,
           title: inSettings
-              ? 'Settings'
+              ? context.l10n.commonSettings
               : inAutomations
-              ? 'Automations'
-              : 'Collections',
+              ? context.l10n.commonAutomations
+              : context.l10n.commonCollections,
           // Wide, All collections, Automations and Settings draw their own
           // header; a collection and the automation detail pages always do.
           header:
@@ -370,7 +371,8 @@ class _ShellViewState extends State<_ShellView> {
               : const BrandLogomark(size: 34),
           headerTrailing: Row(
             mainAxisSize: MainAxisSize.min,
-            spacing: Spacing.xxs,
+            // Phone header buttons need air between them (owner, 2026-11-14).
+            spacing: Spacing.xs,
             children: [
               // Phone: hidden while idle.
               if (!wide) const RunIndicatorButton(),
@@ -379,7 +381,7 @@ class _ShellViewState extends State<_ShellView> {
                   place == ShellPlace.allCollections &&
                   collections.isNotEmpty)
                 IconButton(
-                  tooltip: 'Jump to…',
+                  tooltip: context.l10n.shellJumpTo,
                   icon: const Icon(Icons.search_rounded),
                   onPressed: jumpTo,
                 ),
@@ -604,10 +606,10 @@ class AskMorkvaAction extends StatelessWidget {
     final theme = Theme.of(context);
     const radius = BorderRadius.all(Radius.circular(14));
     return Tooltip(
-      message: 'Ask Morkva',
+      message: context.l10n.shellAskMorkva,
       child: PressableScale(
         onPressed: onTap,
-        semanticLabel: 'Ask Morkva',
+        semanticLabel: context.l10n.shellAskMorkva,
         borderRadius: radius,
         child: Container(
           width: 44,
@@ -801,9 +803,9 @@ class _PinsBar extends StatelessWidget {
             icon: Icon(CollectionIcons.byKey(c.icon)),
             label: c.name,
           ),
-        const NavigationDestination(
-          icon: Icon(Icons.grid_view_rounded),
-          label: 'All',
+        NavigationDestination(
+          icon: const Icon(Icons.grid_view_rounded),
+          label: context.l10n.shellNavAll,
         ),
       ],
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../modes/table_mode.dart';
 import 'object_card.dart';
 import 'view_labels.dart';
@@ -185,7 +186,7 @@ class _FieldsEditorSheetState extends State<FieldsEditorSheet> {
                   ),
                   IconActionButton(
                     icon: Icons.close,
-                    tooltip: 'Close',
+                    tooltip: context.l10n.commonClose,
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
@@ -200,9 +201,13 @@ class _FieldsEditorSheetState extends State<FieldsEditorSheet> {
                   Spacing.sm,
                 ),
                 child: Text(
-                  'Choose which fields show '
-                  '${_tiles ? 'as tiles' : 'on each card'} in '
-                  '“${widget.view.name}” and drag to set their order.',
+                  _tiles
+                      ? context.l10n.viewWidgetsFieldsIntroTiles(
+                          widget.view.name,
+                        )
+                      : context.l10n.viewWidgetsFieldsIntroCard(
+                          widget.view.name,
+                        ),
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
@@ -216,7 +221,7 @@ class _FieldsEditorSheetState extends State<FieldsEditorSheet> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'PREVIEW',
+                      context.l10n.viewWidgetsPreviewHeading,
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: scheme.onSurfaceVariant,
                         letterSpacing: 0.8,
@@ -224,7 +229,7 @@ class _FieldsEditorSheetState extends State<FieldsEditorSheet> {
                     ),
                     const SizedBox(height: Spacing.xs),
                     Semantics(
-                      label: 'Preview',
+                      label: context.l10n.viewWidgetsPreview,
                       child: _columns
                           ? _ColumnsPreview(this)
                           : _CardPreview(this),
@@ -232,7 +237,7 @@ class _FieldsEditorSheetState extends State<FieldsEditorSheet> {
                     if (layout != null) ...[
                       const SizedBox(height: Spacing.xs),
                       Text(
-                        _layoutNote(layout),
+                        _layoutNote(context.l10n, layout),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: scheme.onSurfaceVariant,
                         ),
@@ -241,7 +246,7 @@ class _FieldsEditorSheetState extends State<FieldsEditorSheet> {
                     if (!_columns) ...[
                       const SizedBox(height: Spacing.xs),
                       Text(
-                        'Empty fields are skipped on the card.',
+                        context.l10n.viewWidgetsEmptyFieldsSkipped,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: scheme.onSurfaceVariant,
                         ),
@@ -263,7 +268,7 @@ class _FieldsEditorSheetState extends State<FieldsEditorSheet> {
                 child: SizedBox(
                   width: 48,
                   child: Text(
-                    'Show',
+                    context.l10n.viewWidgetsShowColumn,
                     textAlign: TextAlign.center,
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: scheme.onSurfaceVariant,
@@ -309,12 +314,12 @@ class _FieldsEditorSheetState extends State<FieldsEditorSheet> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextActionButton(
-                    label: 'Cancel',
+                    label: context.l10n.commonCancel,
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                   const SizedBox(width: Spacing.xs),
                   PrimaryButton(
-                    label: 'Save',
+                    label: context.l10n.commonSave,
                     onPressed: _dirty ? _save : null,
                   ),
                 ],
@@ -326,11 +331,12 @@ class _FieldsEditorSheetState extends State<FieldsEditorSheet> {
     );
   }
 
-  String _layoutNote(FieldDefinition layout) => switch (widget.view.mode) {
-    ViewModeIds.board => '${layout.name} is shown as the columns',
-    ViewModeIds.calendar => '${layout.name} places each card on its day',
-    _ => '${layout.name} is shown separately',
-  };
+  String _layoutNote(AppLocalizations l10n, FieldDefinition layout) =>
+      switch (widget.view.mode) {
+        ViewModeIds.board => l10n.viewWidgetsLayoutBoard(layout.name),
+        ViewModeIds.calendar => l10n.viewWidgetsLayoutCalendar(layout.name),
+        _ => l10n.viewWidgetsLayoutSeparate(layout.name),
+      };
 }
 
 class _TitleRow extends StatelessWidget {
@@ -350,9 +356,14 @@ class _TitleRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final label = columns ? 'Title column' : 'Card title';
+    final l10n = context.l10n;
+    final label = columns
+        ? l10n.viewWidgetsTitleColumn
+        : l10n.viewWidgetsCardTitle;
     return PopupMenuButton<String>(
-      tooltip: 'Change ${label.toLowerCase()}',
+      tooltip: columns
+          ? l10n.viewWidgetsChangeTitleColumn
+          : l10n.viewWidgetsChangeCardTitle,
       onSelected: onChanged,
       itemBuilder: (_) => [
         for (final f in candidates)
@@ -427,7 +438,7 @@ class _FieldRow extends StatelessWidget {
               ReorderableDragStartListener(
                 index: index,
                 child: Semantics(
-                  label: 'Reorder ${field.name}',
+                  label: context.l10n.viewWidgetsReorderField(field.name),
                   child: SizedBox(
                     width: 44,
                     height: 44,
@@ -454,19 +465,19 @@ class _FieldRow extends StatelessWidget {
                 ),
               ),
               PopupMenuButton<int>(
-                tooltip: 'Move ${field.name}',
+                tooltip: context.l10n.viewWidgetsMoveField(field.name),
                 icon: Icon(Icons.more_vert, color: scheme.onSurfaceVariant),
                 onSelected: onMove,
                 itemBuilder: (_) => [
                   PopupMenuItem(
                     value: index - 1,
                     enabled: index > 0,
-                    child: const Text('Move up'),
+                    child: Text(context.l10n.viewWidgetsMoveUp),
                   ),
                   PopupMenuItem(
                     value: index + 1,
                     enabled: index < count - 1,
-                    child: const Text('Move down'),
+                    child: Text(context.l10n.viewWidgetsMoveDown),
                   ),
                 ],
               ),

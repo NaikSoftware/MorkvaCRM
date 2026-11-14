@@ -104,9 +104,9 @@ RunRow runRowOf(
       : RunDisplay.plain;
 
   final copy = switch (display) {
-    RunDisplay.reviewNotHere => kReviewNotHereCopy,
+    RunDisplay.reviewNotHere => reviewNotHereCopy(),
     RunDisplay.outcomeUnknown when run.reason != RunReason.interrupted =>
-      kOutcomeUnknownCopy,
+      outcomeUnknownCopy(),
     RunDisplay.applyingHere => runCopy(RunStatus.applying, null),
     _ => runCopy(
       run.status,

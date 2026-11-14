@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/automation/runner_api.dart';
 import 'package:morkva_crm/core/domain/automation/automation.dart';
 import 'package:morkva_crm/features/automation/bloc/run_log_cubit.dart';
-import 'package:morkva_crm/features/automation/widgets/reason_copy.dart';
 
 import 'automation_fixtures.dart';
 
@@ -48,7 +47,7 @@ void main() {
         row(runRecord('r', status: RunStatus.awaitingReview)),
       ]) {
         expect(r.display, RunDisplay.reviewNotHere);
-        expect(r.copy, same(kReviewNotHereCopy));
+        expect(r.copy.row, 'Review not available here');
         expect(r.action, RunRowAction.runAgain);
       }
     });

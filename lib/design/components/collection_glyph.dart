@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
 import '../collection_icons.dart';
 import '../tokens/colors.dart';
 import '../tokens/radii.dart';
@@ -72,10 +73,10 @@ class CollectionGlyph extends StatelessWidget {
 
     return PressableScale(
       onPressed: onTap,
-      semanticLabel: tooltip ?? 'Change icon',
+      semanticLabel: tooltip ?? context.l10n.designChangeIcon,
       borderRadius: Radii.mdAll,
       child: Tooltip(
-        message: tooltip ?? 'Change icon',
+        message: tooltip ?? context.l10n.designChangeIcon,
         child: Stack(
           clipBehavior: Clip.none,
           children: [

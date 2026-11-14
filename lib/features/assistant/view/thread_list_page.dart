@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:intl/intl.dart';
 
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import 'widgets/assistant_header.dart';
 import 'widgets/assistant_scope.dart';
 import 'widgets/limit_banner.dart' show clockTime;
@@ -16,6 +18,7 @@ class ThreadSummary {
     required this.title,
     required this.updatedAt,
     this.snippet,
+    this.untitled = false,
   });
 
   /// Throws [FormatException] without an `id`; a bad date reads as epoch.
@@ -27,11 +30,11 @@ class ThreadSummary {
     final title = record['title'];
     final updated = record['updatedAt'] ?? record['createdAt'];
     final snippet = record['lastSnippet'];
+    final named = title is String && title.trim().isNotEmpty;
     return ThreadSummary(
       id: id,
-      title: title is String && title.trim().isNotEmpty
-          ? title.trim()
-          : 'New conversation',
+      title: named ? title.trim() : 'New conversation',
+      untitled: !named,
       updatedAt:
           (updated is String ? DateTime.tryParse(updated) : null)?.toLocal() ??
           DateTime.fromMillisecondsSinceEpoch(0),
@@ -47,22 +50,33 @@ class ThreadSummary {
 
   /// "3 changes applied", "chart".
   final String? snippet;
+
+  /// The record had no title: [title] is the English placeholder.
+  final bool untitled;
+
+  /// [title], or "New conversation" in [l10n]'s language.
+  String titleIn(AppLocalizations l10n) =>
+      untitled ? l10n.assistantNewConversation : title;
 }
 
-const _months = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', //
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-];
-
-/// "Today", "Yesterday", "3 Nov" (with the year when it differs).
-String dayLabel(DateTime day, DateTime now) {
+/// "Today", "Yesterday", "3 Nov" (with the year when it differs); English
+/// without [l10n], the date in [locale] (default: `Intl.defaultLocale`).
+String dayLabel(
+  DateTime day,
+  DateTime now, {
+  AppLocalizations? l10n,
+  String? locale,
+}) {
+  final t = l10n ?? lookupAppLocalizations(const Locale('en'));
   final d = DateTime(day.year, day.month, day.day);
   final today = DateTime(now.year, now.month, now.day);
   final diff = today.difference(d).inDays;
-  if (diff == 0) return 'Today';
-  if (diff == 1) return 'Yesterday';
-  final base = '${d.day} ${_months[d.month - 1]}';
-  return d.year == now.year ? base : '$base ${d.year}';
+  if (diff == 0) return t.commonToday;
+  if (diff == 1) return t.commonYesterday;
+  return DateFormat(
+    d.year == now.year ? 'd MMM' : 'd MMM y',
+    locale,
+  ).format(d);
 }
 
 /// The conversation list: search, grouped by day, delete with a confirm,
@@ -102,11 +116,11 @@ class _ThreadListViewState extends State<ThreadListView> {
   Future<void> _confirmDelete(ThreadSummary t) async {
     final ok = await MorkvaConfirmDialog.show(
       context,
-      title: 'Delete this conversation?',
-      message:
-          '“${t.title}” and its messages will be deleted. Changes it made '
-          'to your data stay.',
-      confirmLabel: 'Delete',
+      title: context.l10n.assistantDeleteThreadTitle,
+      message: context.l10n.assistantDeleteThreadBody(
+        t.titleIn(context.l10n),
+      ),
+      confirmLabel: context.l10n.commonDelete,
       destructive: true,
     );
     if (ok == true) widget.onDelete(t.id);
@@ -119,7 +133,7 @@ class _ThreadListViewState extends State<ThreadListView> {
     final shown = [
       for (final t in widget.threads)
         if (q.isEmpty ||
-            t.title.toLowerCase().contains(q) ||
+            t.titleIn(context.l10n).toLowerCase().contains(q) ||
             (t.snippet?.toLowerCase().contains(q) ?? false))
           t,
     ]..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
@@ -128,7 +142,12 @@ class _ThreadListViewState extends State<ThreadListView> {
     final children = <Widget>[];
     String? day;
     for (final t in shown) {
-      final label = dayLabel(t.updatedAt, now);
+      final label = dayLabel(
+        t.updatedAt,
+        now,
+        l10n: context.l10n,
+        locale: Localizations.localeOf(context).toString(),
+      );
       if (label != day) {
         day = label;
         children.add(_DayHeader(label));
@@ -151,9 +170,15 @@ class _ThreadListViewState extends State<ThreadListView> {
         child: LoadingIndicator(),
       );
     } else if (widget.threads.isEmpty) {
-      body = _Empty('No conversations yet', 'Ask something to start one.');
+      body = _Empty(
+        context.l10n.assistantNoThreads,
+        context.l10n.assistantNoThreadsBody,
+      );
     } else if (shown.isEmpty) {
-      body = _Empty('Nothing found', 'No conversations match “$_query”.');
+      body = _Empty(
+        context.l10n.assistantNothingFound,
+        context.l10n.assistantNoThreadsMatch(_query),
+      );
     } else {
       body = Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -168,14 +193,14 @@ class _ThreadListViewState extends State<ThreadListView> {
           Padding(
             padding: const EdgeInsets.only(bottom: Spacing.xs),
             child: Text(
-              'Applying changes… you can switch conversations when it’s done.',
+              context.l10n.assistantApplyingSwitchLater,
               style: theme.textTheme.bodySmall,
             ),
           ),
         if (widget.threads.isNotEmpty)
           SearchField(
             dense: true,
-            hintText: 'Search conversations',
+            hintText: context.l10n.assistantSearchThreads,
             onChanged: (v) => setState(() => _query = v),
           ),
         body,
@@ -237,6 +262,7 @@ class _ThreadTileState extends State<_ThreadTile> {
     final _ThreadTile(:thread, :current, :enabled, :onTap, :onDelete) = widget;
     final time = clockTime(thread.updatedAt);
     final meta = thread.snippet == null ? time : '$time · ${thread.snippet}';
+    final title = thread.titleIn(context.l10n);
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: MouseRegion(
@@ -254,7 +280,7 @@ class _ThreadTileState extends State<_ThreadTile> {
                 Expanded(
                   child: PressableScale(
                     onPressed: enabled ? onTap : null,
-                    semanticLabel: '${thread.title}, $meta',
+                    semanticLabel: '$title, $meta',
                     borderRadius: Radii.mdAll,
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(minHeight: 56),
@@ -270,7 +296,7 @@ class _ThreadTileState extends State<_ThreadTile> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              thread.title,
+                              title,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: theme.textTheme.titleSmall,
@@ -312,7 +338,7 @@ class _ThreadTileState extends State<_ThreadTile> {
                     onFocusChange: (f) => setState(() => _focused = f),
                     child: IconActionButton(
                       icon: Icons.delete_outline_rounded,
-                      tooltip: 'Delete “${thread.title}”',
+                      tooltip: context.l10n.assistantDeleteThreadTooltip(title),
                       onPressed: enabled ? onDelete : null,
                     ),
                   ),
@@ -376,7 +402,10 @@ class ThreadListPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            AssistantHeader(subtitle: 'Conversations', onBack: onBack),
+            AssistantHeader(
+              subtitle: context.l10n.assistantConversations,
+              onBack: onBack,
+            ),
             Expanded(
               child: ThreadListView(
                 threads: threads,

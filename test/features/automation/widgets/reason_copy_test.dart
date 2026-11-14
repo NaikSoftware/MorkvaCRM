@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart' show Icons;
+import 'package:flutter/material.dart' show Icons, Locale;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/automation/automation.dart';
 import 'package:morkva_crm/features/automation/widgets/reason_copy.dart';
+import 'package:morkva_crm/l10n/l10n.dart';
 
 import '../../../core/domain/automation/fixtures.dart';
 
@@ -39,9 +40,26 @@ void main() {
         expect(copy.row, isNotEmpty, reason: status.wire);
         expect(copy.detail, isNotEmpty, reason: status.wire);
       }
-      for (final copy in [kOutcomeUnknownCopy, kReviewNotHereCopy]) {
+      for (final copy in [outcomeUnknownCopy(), reviewNotHereCopy()]) {
         expect(copy.advice?.text, isNotEmpty);
       }
+    });
+
+    test('Ukrainian words every run state', () {
+      final uk = lookupAppLocalizations(const Locale('uk'));
+      for (final status in RunStatus.values) {
+        for (final reason in [null, ...RunReason.values]) {
+          final en = runCopy(status, reason);
+          final ua = runCopy(status, reason, l10n: uk);
+          final at = '${status.wire}/${reason?.wire}';
+          expect(ua.row, isNot(en.row), reason: at);
+          expect(ua.detail, isNot(en.detail), reason: at);
+          expect(ua.tone, en.tone, reason: at);
+          expect(ua.advice?.fix, en.advice?.fix, reason: at);
+        }
+      }
+      expect(RunFix.runAgain.labelIn(uk), 'Запустити знову');
+      expect(moduleChip(ModuleStatus.ok, l10n: uk).label, 'Встановлено');
     });
 
     test('tone follows the status; interrupted is amber', () {

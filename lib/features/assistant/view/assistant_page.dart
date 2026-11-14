@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../bloc/assistant_state.dart';
 import 'assistant_actions.dart';
 import 'widgets/assistant_header.dart';
@@ -70,14 +71,14 @@ class AssistantPage extends StatelessWidget {
                         if (onOpenHistory != null)
                           IconActionButton(
                             icon: Icons.history_rounded,
-                            tooltip: 'Conversation history',
+                            tooltip: context.l10n.assistantConversationHistory,
                             onPressed: onOpenHistory,
                           ),
                         if (state.items.isNotEmpty &&
                             state.availability.canSend)
                           IconActionButton(
                             icon: Icons.edit_square,
-                            tooltip: 'New conversation',
+                            tooltip: context.l10n.assistantNewConversation,
                             onPressed: actions.newThread,
                           ),
                       ],

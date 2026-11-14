@@ -1,6 +1,8 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/features/collections/field_editors/built_in_field_editors.dart';
+import 'package:morkva_crm/l10n/l10n.dart';
 
 void main() {
   final typeRegistry = defaultFieldTypeRegistry();
@@ -41,8 +43,9 @@ void main() {
 
     test('descriptors are non-empty', () {
       for (final editor in editorRegistry.all) {
+        final l10n = lookupAppLocalizations(const Locale('en'));
         expect(editor.displayLabel, isNotEmpty, reason: editor.typeId);
-        expect(editor.description, isNotEmpty, reason: editor.typeId);
+        expect(editor.description(l10n), isNotEmpty, reason: editor.typeId);
       }
     });
   });

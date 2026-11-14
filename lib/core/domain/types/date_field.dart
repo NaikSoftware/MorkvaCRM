@@ -90,6 +90,7 @@ class DateFieldDefinition extends FieldDefinition {
             fieldId: id,
             code: ValidationError.outOfRange,
             message: '$name must be on or after ${min!.toIso8601String()}',
+            minimum: min,
           ),
         );
       }
@@ -99,6 +100,7 @@ class DateFieldDefinition extends FieldDefinition {
             fieldId: id,
             code: ValidationError.outOfRange,
             message: '$name must be on or before ${max!.toIso8601String()}',
+            maximum: max,
           ),
         );
       }

@@ -5,11 +5,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/automation/apply_policy.dart';
+import '../../../core/automation/run_log_builder.dart' show kNoChangeText;
 import '../../../core/automation/runner_api.dart';
 import '../../../core/domain/automation/automation.dart';
 import '../../../core/domain/domain.dart';
 import '../../../core/harness/plan/plan_committer.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../bloc/modules_cubit.dart';
 import '../bloc/run_log_cubit.dart';
 import '../widgets/reason_copy.dart';
@@ -66,6 +68,7 @@ class _RunDetailPageState extends State<RunDetailPage>
       },
     );
     final pad = automationsExpanded(context) ? Spacing.xxl : Spacing.md;
+    final l10n = context.l10n;
     final Widget body;
     if (row != null) {
       body = _Detail(row: row, live: live, now: now);
@@ -76,7 +79,7 @@ class _RunDetailPageState extends State<RunDetailPage>
         future: _loading,
         builder: (context, snap) => state.loadFailed || snap.hasError
             ? AutomationLoadError(
-                title: "Couldn't load this run",
+                title: l10n.automationLoadRunFailed,
                 onRetry: () {
                   setState(() {
                     _loading = runLog.load(widget.runId);
@@ -86,10 +89,10 @@ class _RunDetailPageState extends State<RunDetailPage>
               )
             : snap.connectionState != ConnectionState.done || state.loading
             ? const Center(child: LoadingIndicator())
-            : const EmptyState(
+            : EmptyState(
                 icon: Icons.history,
-                title: 'This run isn\'t in the log',
-                message: 'It may have been removed with older runs.',
+                title: l10n.automationRunNotInLogTitle,
+                message: l10n.automationRunNotInLogMessage,
               ),
       );
     }
@@ -113,7 +116,7 @@ class _RunDetailPageState extends State<RunDetailPage>
                   Align(
                     alignment: Alignment.centerLeft,
                     child: TextActionButton(
-                      label: 'Runs',
+                      label: l10n.automationTabRuns,
                       icon: Icons.arrow_back,
                       onPressed: () =>
                           host.openAutomations(tab: AutomationsTab.runs),
@@ -131,18 +134,19 @@ class _RunDetailPageState extends State<RunDetailPage>
 }
 
 /// "Succeeded", "Failed", … for the header badge.
-String statusLabel(RunStatus status) => switch (status) {
-  RunStatus.queued => 'Queued',
-  RunStatus.running || RunStatus.sealing => 'Running',
-  RunStatus.applying => 'Applying',
-  RunStatus.awaitingReview => 'Needs review',
-  RunStatus.succeeded => 'Succeeded',
-  RunStatus.failed => 'Failed',
-  RunStatus.timedOut => 'Timed out',
-  RunStatus.skipped => 'Skipped',
-  RunStatus.rejected => 'Rejected',
-  RunStatus.expired => 'Expired',
-};
+String statusLabel(AppLocalizations l10n, RunStatus status) =>
+    switch (status) {
+      RunStatus.queued => l10n.automationQueued,
+      RunStatus.running || RunStatus.sealing => l10n.automationRunning,
+      RunStatus.applying => l10n.automationStatusApplying,
+      RunStatus.awaitingReview => l10n.automationStatusNeedsReview,
+      RunStatus.succeeded => l10n.automationStatusSucceeded,
+      RunStatus.failed => l10n.automationStatusFailed,
+      RunStatus.timedOut => l10n.automationStatusTimedOut,
+      RunStatus.skipped => l10n.automationStatusSkipped,
+      RunStatus.rejected => l10n.automationStatusRejected,
+      RunStatus.expired => l10n.automationStatusExpired,
+    };
 
 /// The header badge's glyph (succeeded ✓, failed ⊗, undone ↶).
 IconData? statusIcon(RunStatus status, {bool undone = false}) =>
@@ -164,6 +168,7 @@ class _LiveDetail extends StatelessWidget {
     final theme = Theme.of(context);
     final copy = runCopy(run.status, run.reason);
     final p = run.progress;
+    final l10n = context.l10n;
     return ListView(
       children: [
         const SizedBox(height: Spacing.sm),
@@ -171,7 +176,7 @@ class _LiveDetail extends StatelessWidget {
           spacing: Spacing.sm,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            HugChip(label: statusLabel(run.status), tone: copy.tone),
+            HugChip(label: statusLabel(l10n, run.status), tone: copy.tone),
             Text(run.label, style: theme.textTheme.headlineSmall),
           ],
         ),
@@ -179,7 +184,7 @@ class _LiveDetail extends StatelessWidget {
         Text(
           [
             copy.row,
-            if (run.queuedAhead != null) '${run.queuedAhead} ahead',
+            if (run.queuedAhead case final ahead?) l10n.automationAhead(ahead),
             if (p != null)
               '${p.done}/${p.total}${p.label == null ? '' : ' · ${p.label}'}',
           ].join(' · '),
@@ -194,7 +199,7 @@ class _LiveDetail extends StatelessWidget {
           Align(
             alignment: Alignment.centerLeft,
             child: SecondaryButton(
-              label: 'Stop',
+              label: l10n.automationStop,
               icon: Icons.stop_circle_outlined,
               onPressed: () => context.read<RunLogCubit>().stop(run.runId),
             ),
@@ -237,13 +242,16 @@ class _Detail extends StatelessWidget {
     final muted = theme.textTheme.bodyMedium?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
+    final l10n = context.l10n;
 
     final subtitle = [
       '${run.moduleName} v${run.moduleVersion} › ${run.actionLabel}',
-      run.apply == ApplyMode.auto ? 'Auto' : 'Ask first',
-      'on ${run.device}',
+      run.apply == ApplyMode.auto
+          ? l10n.automationApplyAuto
+          : l10n.automationApplyAskFirst,
+      l10n.automationOnDevice(run.device),
       '${dayMonth(run.startedAt)} ${clock(run.startedAt)}',
-      if (run.durationMs != null) durationLabel(run.durationMs),
+      if (run.durationMs != null) durationLabel(l10n, run.durationMs),
     ].join(' · ');
 
     Future<void> again() async {
@@ -267,8 +275,10 @@ class _Detail extends StatelessWidget {
             ));
     final notHere = row.display == RunDisplay.reviewNotHere;
     final undoLabel = row.undoUntil == null
-        ? 'Undo'
-        : 'Undo · ${_left(row.undoUntil!.difference(now))}';
+        ? l10n.commonUndo
+        : l10n.automationUndoWithTime(
+            _left(l10n, row.undoUntil!.difference(now)),
+          );
     final actions = Wrap(
       spacing: Spacing.xs,
       runSpacing: Spacing.xs,
@@ -276,50 +286,55 @@ class _Detail extends StatelessWidget {
       children: [
         if (row.undo == UndoState.available)
           SecondaryButton(
-            label: 'Undo',
+            label: l10n.commonUndo,
             icon: Icons.undo,
             onPressed: () => runLog.undo(run.id),
           ),
         if (row.action == RunRowAction.review)
           SecondaryButton(
-            label: 'Review',
+            label: l10n.automationReview,
             onPressed: () => host.review(run.id),
           ),
         // Tonal when it leads (a failed run); a link beside Undo.
         if (canRunAgain && row.undo == UndoState.available)
           TextActionButton(
-            label: card == null ? 'Run again' : 'Run again on $card',
+            label: card == null
+                ? l10n.automationRunAgain
+                : l10n.automationRunAgainOn(card),
             icon: Icons.refresh,
             onPressed: offline ? null : again,
           )
         else if (canRunAgain)
           SecondaryButton(
-            label: card == null ? 'Run again' : 'Run again on $card',
+            label: card == null
+                ? l10n.automationRunAgain
+                : l10n.automationRunAgainOn(card),
             icon: Icons.refresh,
             onPressed: offline ? null : again,
           ),
-        if (canRunAgain && offline) Text('Needs a connection', style: muted),
+        if (canRunAgain && offline)
+          Text(l10n.automationNeedsConnection, style: muted),
         if (live != null && live!.status != RunStatus.applying)
           TextActionButton(
-            label: 'Stop',
+            label: l10n.automationStop,
             icon: Icons.stop_circle_outlined,
             onPressed: () => runLog.stop(run.id),
           ),
         if (run.trigger.cardId case final cardId?
             when run.trigger.kind != TriggerKind.cardDeleted)
           TextActionButton(
-            label: 'Open card',
+            label: l10n.automationOpenCard,
             icon: Icons.open_in_new,
             onPressed: () => host.openCard(run.trigger.collectionId, cardId),
           ),
         if (run.automationId case final id?)
           TextActionButton(
-            label: 'Edit automation',
+            label: l10n.automationEditAutomation,
             icon: Icons.edit_outlined,
             onPressed: () => host.editAutomation(id),
           ),
         PopupMenuButton<void>(
-          tooltip: 'More',
+          tooltip: l10n.commonMore,
           icon: const Icon(Icons.more_horiz),
           // 44 px, like every other target here (the default is 40).
           style: IconButton.styleFrom(minimumSize: const Size.square(44)),
@@ -327,9 +342,9 @@ class _Detail extends StatelessWidget {
             PopupMenuItem(
               onTap: () {
                 Clipboard.setData(ClipboardData(text: runLogJson(run)));
-                showAutomationSnack(context, 'Copied the run log');
+                showAutomationSnack(context, l10n.automationCopiedRunLog);
               },
-              child: const Text('Copy log'),
+              child: Text(l10n.automationCopyLog),
             ),
           ],
         ),
@@ -342,8 +357,8 @@ class _Detail extends StatelessWidget {
     };
     final steps = <Widget>[
       _Step(
-        title: 'Trigger',
-        summary: whenLine(switch (run.trigger.kind) {
+        title: l10n.automationStepTrigger,
+        summary: whenLine(l10n, switch (run.trigger.kind) {
           TriggerKind.button => ButtonTrigger(
             scope: run.trigger.cardId == null
                 ? ButtonScope.collection
@@ -356,7 +371,10 @@ class _Detail extends StatelessWidget {
           ),
         }, collection),
         children: [
-          Text(triggerLine(run, collection), style: theme.textTheme.bodyMedium),
+          Text(
+            triggerLine(l10n, run, collection),
+            style: theme.textTheme.bodyMedium,
+          ),
           if (run.chain.length > 1) ...[
             const SizedBox(height: Spacing.xs),
             Wrap(
@@ -365,20 +383,22 @@ class _Detail extends StatelessWidget {
                 Text(
                   [
                     for (final id in run.chain.take(run.chain.length - 1))
-                      names[id] ?? 'An automation',
+                      names[id] ?? l10n.automationAnAutomation,
                   ].join(' › '),
                   style: muted,
                 ),
                 Text(' › ', style: muted),
                 Text(
-                  '${run.automationName ?? run.actionLabel} (this run)',
+                  l10n.automationThisRun(
+                    run.automationName ?? run.actionLabel,
+                  ),
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 if (run.parentRunId case final parent?)
                   TextActionButton(
-                    label: 'Previous run',
+                    label: l10n.automationPreviousRun,
                     onPressed: () => host.openRun(parent),
                   ),
               ],
@@ -397,7 +417,7 @@ class _Detail extends StatelessWidget {
       ),
       if (run.params case final params? when params.isNotEmpty)
         _Step(
-          title: 'Inputs',
+          title: l10n.automationStepInputs,
           children: [
             for (final MapEntry(:key, :value) in params.entries)
               Text.rich(
@@ -421,22 +441,25 @@ class _Detail extends StatelessWidget {
           ],
         ),
       _Step(
-        title: 'Calls',
+        title: l10n.automationStepCalls,
         count: log.calls.length,
         children: [
-          if (log.calls.isEmpty) Text('No calls', style: muted),
+          if (log.calls.isEmpty) Text(l10n.automationNoCalls, style: muted),
           for (final (i, c) in log.calls.indexed) ...[
             if (i > 0)
               Divider(height: 1, color: theme.colorScheme.outlineVariant),
             _CallRow(call: c, collections: collections, fallback: collection),
           ],
           if (log.dropped.calls > 0)
-            Text('+${log.dropped.calls} calls dropped', style: muted),
+            Text(
+              l10n.automationCallsDropped(log.dropped.calls),
+              style: muted,
+            ),
         ],
       ),
       if (log.console.isNotEmpty)
         _Step(
-          title: 'Console',
+          title: l10n.automationStepConsole,
           count: log.console.length,
           children: [
             Container(
@@ -459,7 +482,7 @@ class _Detail extends StatelessWidget {
                       ),
                     if (log.dropped.console > 0)
                       Text(
-                        '+${log.dropped.console} lines dropped',
+                        l10n.automationLinesDropped(log.dropped.console),
                         style: muted,
                       ),
                   ],
@@ -470,13 +493,13 @@ class _Detail extends StatelessWidget {
         ),
       if (log.plan.isNotEmpty)
         _Step(
-          title: 'Plan',
+          title: l10n.automationStepPlan,
           summary: [
-            changeCount(log),
+            changeCount(l10n, log),
             // A policy line means it asked first; applyStartedAt is the
             // approve.
             if (log.policy != null && run.applyStartedAt != null)
-              'approved by you at ${clock(run.applyStartedAt!)}',
+              l10n.automationApprovedAt(clock(run.applyStartedAt!)),
           ].join(' · '),
           children: [
             for (final p in log.plan)
@@ -494,14 +517,14 @@ class _Detail extends StatelessWidget {
         ),
       if (log.ui.isNotEmpty)
         _Step(
-          title: 'Links',
+          title: l10n.automationStepLinks,
           children: [
             Wrap(
               spacing: Spacing.xs,
               children: [
                 for (final l in log.ui)
                   TextActionButton(
-                    label: 'Open ${l.label}',
+                    label: l10n.automationOpenLink(l.label),
                     icon: Icons.open_in_new,
                     onPressed: () => host.openLink(l),
                   ),
@@ -511,10 +534,10 @@ class _Detail extends StatelessWidget {
         ),
       if (run.status == RunStatus.succeeded)
         _Step(
-          title: 'Outcome',
+          title: l10n.automationStepOutcome,
           last: true,
           tone: row.copy.tone,
-          summary: _appliedLine(run),
+          summary: _appliedLine(l10n, run),
           summaryIcon: Icon(
             Icons.check_circle_outline,
             size: 16,
@@ -529,7 +552,7 @@ class _Detail extends StatelessWidget {
               _UndoSlot(row: row, label: undoLabel),
             if ((run.receipt?.failed ?? 0) > 0)
               TextActionButton(
-                label: 'Retry failed',
+                label: l10n.automationRetryFailed,
                 icon: Icons.refresh,
                 onPressed: offline ? null : () => runLog.retryFailed(run.id),
               ),
@@ -537,7 +560,7 @@ class _Detail extends StatelessWidget {
         )
       else
         _Step(
-          title: 'Outcome',
+          title: l10n.automationStepOutcome,
           last: true,
           tone: row.copy.tone,
           children: [_Outcome(row: row, offline: offline)],
@@ -556,10 +579,10 @@ class _Detail extends StatelessWidget {
             // Another window's review: muted, like the Runs list's ring.
             HugChip(
               label: run.undoneAt != null
-                  ? 'Undone'
+                  ? l10n.automationUndone
                   : notHere
-                  ? 'Review elsewhere'
-                  : statusLabel(run.status),
+                  ? l10n.automationReviewElsewhere
+                  : statusLabel(l10n, run.status),
               tone: notHere ? CopyTone.muted : row.copy.tone,
               icon: notHere
                   ? Icons.radio_button_unchecked
@@ -583,28 +606,52 @@ class _Detail extends StatelessWidget {
 }
 
 /// "9 min left" / "40 s left".
-String _left(Duration d) => d.inMinutes >= 1
-    ? '${d.inMinutes + (d.inSeconds % 60 > 0 ? 1 : 0)} min left'
-    : '${d.inSeconds.clamp(0, 59)} s left';
+String _left(AppLocalizations l10n, Duration d) => d.inMinutes >= 1
+    ? l10n.automationMinutesLeft(
+        d.inMinutes + (d.inSeconds % 60 > 0 ? 1 : 0),
+      )
+    : l10n.automationSecondsLeft(d.inSeconds.clamp(0, 59));
 
 /// "Button pressed on #1042", "Status changed on #1042", …
-String triggerLine(RunRecord run, Collection? collection) {
+String triggerLine(
+  AppLocalizations l10n,
+  RunRecord run,
+  Collection? collection,
+) {
   final t = run.trigger;
-  final card = t.cardLabel ?? 'a card';
+  final card = t.cardLabel;
+  final fields = [
+    for (final f in t.changedFields) collection?.fieldById(f)?.name ?? f,
+  ].join(', ');
   final base = switch (t.kind) {
-    TriggerKind.button when t.cardId == null =>
-      'Button pressed on ${collection?.name ?? 'a collection'} · '
-          '${t.cardCount} ${t.cardCount == 1 ? 'card' : 'cards'}',
-    TriggerKind.button => 'Button pressed on $card',
-    TriggerKind.cardCreated => 'Created $card',
-    TriggerKind.cardDeleted => 'Deleted $card',
-    TriggerKind.cardUpdated when t.changedFields.isNotEmpty =>
-      '${[for (final f in t.changedFields) collection?.fieldById(f)?.name ?? f].join(', ')} changed on $card',
-    TriggerKind.cardUpdated => 'Updated $card',
+    TriggerKind.button when t.cardId == null => switch (collection) {
+      final c? => l10n.automationTriggerButtonCollection(t.cardCount, c.name),
+      null => l10n.automationTriggerButtonSomeCollection(t.cardCount),
+    },
+    TriggerKind.button =>
+      card == null
+          ? l10n.automationTriggerButtonSomeCard
+          : l10n.automationTriggerButtonCard(card),
+    TriggerKind.cardCreated =>
+      card == null
+          ? l10n.automationTriggerCreatedSomeCard
+          : l10n.automationTriggerCreated(card),
+    TriggerKind.cardDeleted =>
+      card == null
+          ? l10n.automationTriggerDeletedSomeCard
+          : l10n.automationTriggerDeleted(card),
+    TriggerKind.cardUpdated when fields.isNotEmpty =>
+      card == null
+          ? l10n.automationTriggerFieldsChangedSomeCard(fields)
+          : l10n.automationTriggerFieldsChanged(fields, card),
+    TriggerKind.cardUpdated =>
+      card == null
+          ? l10n.automationTriggerUpdatedSomeCard
+          : l10n.automationTriggerUpdated(card),
   };
   final changed = t.changedAt;
   return changed != null && run.startedAt.difference(changed).inMinutes >= 1
-      ? '$base · Changed offline ${clock(changed)} · ran ${clock(run.startedAt)}'
+      ? '$base · ${l10n.automationChangedOffline(clock(changed), clock(run.startedAt))}'
       : base;
 }
 
@@ -675,10 +722,16 @@ class _CallRow extends StatelessWidget {
       theme.textTheme.bodyMedium!.copyWith(fontSize: 13, height: 20 / 13),
     );
     final targets = callTargets(call.args, collections, fallback);
+    final l10n = context.l10n;
     final text = [
       if (targets.isNotEmpty) targets,
       if (!(call.ok && call.result == 'Done') || targets.isEmpty)
-        callResultCopy(call.result, collections),
+        // The log's own words; a harness summary shows as written.
+        switch (call.result) {
+          'Done' => l10n.automationCallDone,
+          kNoChangeText => l10n.automationCallNoChange,
+          final result => callResultCopy(result, collections),
+        },
     ].join(' · ');
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: Spacing.xs),
@@ -696,7 +749,7 @@ class _CallRow extends StatelessWidget {
             ),
           ),
           Text(
-            '${call.ms} ms',
+            l10n.automationDurationMs(call.ms),
             style: theme.textTheme.bodySmall?.copyWith(
               color: scheme.onSurfaceVariant,
             ),
@@ -717,14 +770,14 @@ class _CallRow extends StatelessWidget {
 
 /// "Applied 1 change · 12:05", "Updated 190, 10 failed · 12:05": a
 /// succeeded run's Outcome header.
-String _appliedLine(RunRecord run) {
+String _appliedLine(AppLocalizations l10n, RunRecord run) {
   final applied = run.receipt?.applied ?? 0;
   final failed = run.receipt?.failed ?? 0;
   final head = failed > 0
-      ? 'Updated $applied, $failed failed'
+      ? l10n.automationUpdatedFailed(applied, failed)
       : applied == 0
-      ? (run.summary ?? 'No changes')
-      : 'Applied $applied ${applied == 1 ? 'change' : 'changes'}';
+      ? runSummary(l10n, run.summary ?? 'No changes')
+      : l10n.automationAppliedChanges(applied);
   return [head, if (run.endedAt != null) clock(run.endedAt!)].join(' · ');
 }
 
@@ -742,19 +795,20 @@ class _UndoSlot extends StatelessWidget {
       color: theme.colorScheme.onSurfaceVariant,
     );
     final run = row.run;
+    final l10n = context.l10n;
     return switch (row.undo) {
       UndoState.available => SecondaryButton(
         label: label,
         icon: Icons.undo,
         onPressed: () => context.read<RunLogCubit>().undo(run.id),
       ),
-      UndoState.expired => Text('Undo expired', style: muted),
+      UndoState.expired => Text(l10n.automationUndoExpired, style: muted),
       UndoState.afterReload => Text(
-        "Undo isn't available after a reload",
+        l10n.automationUndoAfterReload,
         style: muted,
       ),
       UndoState.undone => Text(
-        'Reverted · ${clock(run.undoneAt!)}',
+        l10n.automationReverted(clock(run.undoneAt!)),
         style: muted,
       ),
       UndoState.none => const SizedBox.shrink(),
@@ -781,6 +835,7 @@ class _Outcome extends StatelessWidget {
     final muted = theme.textTheme.bodyMedium?.copyWith(
       color: scheme.onSurfaceVariant,
     );
+    final l10n = context.l10n;
 
     final error = run.error;
     final advice = copy.advice;
@@ -803,8 +858,10 @@ class _Outcome extends StatelessWidget {
             : null,
       RunFix.askMorkva => switch (host.askMorkva) {
         final ask? => () => ask(
-          'Fix the module "${run.moduleName}": '
-          '${error?.message ?? copy.row}',
+          l10n.automationAskFixPrefill(
+            run.moduleName,
+            error?.message ?? copy.row,
+          ),
         ),
         null => null,
       },
@@ -846,7 +903,7 @@ class _Outcome extends StatelessWidget {
         ),
         if (error != null && copy.tone == CopyTone.error) ...[
           const SizedBox(height: Spacing.xs),
-          Text(error.message, style: theme.textTheme.bodyMedium),
+          Text(errorMessage(l10n, error), style: theme.textTheme.bodyMedium),
           if (error.stack case final stack?) ...[
             const SizedBox(height: Spacing.xs),
             Container(
@@ -880,7 +937,7 @@ class _Outcome extends StatelessWidget {
               Text(advice.text, style: muted),
             if (error != null)
               TextActionButton(
-                label: 'Copy',
+                label: l10n.commonCopy,
                 icon: Icons.copy_outlined,
                 onPressed: () => Clipboard.setData(
                   ClipboardData(
@@ -897,6 +954,15 @@ class _Outcome extends StatelessWidget {
     );
   }
 }
+
+/// [error]'s message: the runner's own fixed sentences (by code) in the
+/// app's words; a module's or the harness's message as written.
+String errorMessage(AppLocalizations l10n, RunError error) =>
+    switch (error.code) {
+      'crashed' => l10n.automationErrorCrashed,
+      'interrupted' => l10n.automationErrorInterrupted,
+      _ => error.message,
+    };
 
 /// The failed Outcome step's error outline (the error card of UX §7).
 class _ErrorOutline extends StatelessWidget {

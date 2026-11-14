@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/shell/app_shell.dart';
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../modes/view_mode.dart';
 
 /// What the user asked [NewViewDialog] to create.
@@ -113,6 +114,7 @@ class _NewViewDialogState extends State<NewViewDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final wide =
         MediaQuery.sizeOf(context).width >= AppShell.expandedBreakpoint;
     final tiles = <Widget>[
@@ -127,11 +129,11 @@ class _NewViewDialogState extends State<NewViewDialog> {
           addFieldLabel: m.addFieldLabel,
           onAddField: _addField,
         ),
-      const _ModeTile(
+      _ModeTile(
         icon: Icons.photo_library_outlined,
-        label: 'Gallery',
-        description: 'Cards with pictures',
-        reason: 'Needs image files',
+        label: l10n.viewWidgetsModeGallery,
+        description: l10n.viewWidgetsModeGalleryDescription,
+        reason: l10n.viewWidgetsModeGalleryReason,
       ),
     ];
     final columns = wide ? 5 : 2;
@@ -141,7 +143,7 @@ class _NewViewDialogState extends State<NewViewDialog> {
         : MotionDurations.slow;
 
     return AlertDialog(
-      title: const Text('New view'),
+      title: Text(l10n.viewWidgetsNewView),
       content: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: wide ? 760 : 420),
         child: SizedBox(
@@ -153,8 +155,8 @@ class _NewViewDialogState extends State<NewViewDialog> {
               children: [
                 MorkvaTextField(
                   controller: _name,
-                  label: 'Name',
-                  hint: 'e.g. Pipeline',
+                  label: l10n.viewWidgetsName,
+                  hint: l10n.viewWidgetsNameHint,
                   autofocus: true,
                   textInputAction: TextInputAction.done,
                   onSubmitted: (_) => _submit(),
@@ -207,10 +209,13 @@ class _NewViewDialogState extends State<NewViewDialog> {
       ),
       actions: [
         TextActionButton(
-          label: 'Cancel',
+          label: l10n.commonCancel,
           onPressed: () => Navigator.of(context).pop(),
         ),
-        PrimaryButton(label: 'Create view', onPressed: _valid ? _submit : null),
+        PrimaryButton(
+          label: l10n.viewWidgetsCreateView,
+          onPressed: _valid ? _submit : null,
+        ),
       ],
     );
   }
@@ -264,7 +269,7 @@ class _ModeTile extends StatelessWidget {
     this.reason,
     this.selected = false,
     this.onSelect,
-    this.addFieldLabel = 'Add field',
+    this.addFieldLabel = '',
     this.onAddField,
   });
 

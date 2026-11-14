@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import 'field_value_editor.dart';
 
 /// number: keeps the raw text while typing, accepts '.' or ',' as the decimal
@@ -86,7 +87,7 @@ class _NumberInputState extends State<_NumberInput> {
     final (n, ok) = parseNumberInput(raw);
     _invalid = !ok;
     if (!ok) {
-      widget.ctx.onInputError('Enter a number');
+      widget.ctx.onInputError(context.l10n.objectsEnterNumber);
       return;
     }
     widget.ctx.onInputError(null);

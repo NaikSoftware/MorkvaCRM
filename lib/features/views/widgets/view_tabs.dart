@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../modes/view_mode.dart';
 import 'edge_fade.dart';
 
@@ -112,6 +113,7 @@ class _ViewTabsState extends State<ViewTabs> with TickerProviderStateMixin {
     final overlay =
         Overlay.of(context).context.findRenderObject()! as RenderBox;
     final canDelete = widget.views.length > 1;
+    final l10n = context.l10n;
     final action = await showMenu<_TabAction>(
       context: context,
       position: RelativeRect.fromRect(
@@ -120,23 +122,26 @@ class _ViewTabsState extends State<ViewTabs> with TickerProviderStateMixin {
         Offset.zero & overlay.size,
       ),
       items: [
-        const PopupMenuItem(
+        PopupMenuItem(
           value: _TabAction.rename,
-          child: _MenuRow(icon: Icons.edit_outlined, label: 'Rename'),
+          child: _MenuRow(icon: Icons.edit_outlined, label: l10n.commonRename),
         ),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: _TabAction.duplicate,
           child: _MenuRow(
             icon: Icons.content_copy_outlined,
-            label: 'Duplicate',
+            label: l10n.commonDuplicate,
           ),
         ),
         PopupMenuItem(
           value: _TabAction.delete,
           enabled: canDelete,
           child: Tooltip(
-            message: canDelete ? '' : "The last view can't be deleted",
-            child: const _MenuRow(icon: Icons.delete_outline, label: 'Delete'),
+            message: canDelete ? '' : l10n.viewWidgetsLastViewCantDelete,
+            child: _MenuRow(
+              icon: Icons.delete_outline,
+              label: l10n.commonDelete,
+            ),
           ),
         ),
       ],
@@ -189,7 +194,7 @@ class _ViewTabsState extends State<ViewTabs> with TickerProviderStateMixin {
         for (final v in widget.views) _tab(v),
         IconButton(
           onPressed: widget.onNewView,
-          tooltip: 'New view',
+          tooltip: context.l10n.viewWidgetsNewView,
           icon: const Icon(Icons.add, size: 20),
           color: scheme.onSurfaceVariant,
           constraints: const BoxConstraints.tightFor(width: 36, height: 36),
@@ -253,7 +258,7 @@ class _ViewTabsState extends State<ViewTabs> with TickerProviderStateMixin {
                   width: 32,
                   height: 32,
                   child: IconButton(
-                    tooltip: 'View options',
+                    tooltip: context.l10n.viewWidgetsViewOptions,
                     padding: EdgeInsets.zero,
                     iconSize: 18,
                     onPressed: () {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/domain/domain.dart';
 import '../../../../design/design.dart';
+import '../../../../l10n/l10n.dart';
 import '../../modes/view_mode.dart';
 import '../list_parts.dart';
 import '../object_card.dart';
@@ -126,7 +127,7 @@ class _CalendarAgendaState extends State<CalendarAgenda> {
                       child: Padding(
                         padding: const EdgeInsets.all(Spacing.lg),
                         child: Text(
-                          'Nothing scheduled yet',
+                          context.l10n.viewWidgetsNothingScheduled,
                           textAlign: TextAlign.center,
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: scheme.onSurfaceVariant,
@@ -157,7 +158,7 @@ class _CalendarAgendaState extends State<CalendarAgenda> {
                           onTap: () =>
                               setState(() => _undatedOpen = !_undatedOpen),
                           child: ListSectionHeader(
-                            label: 'No date',
+                            label: context.l10n.viewWidgetsNoDate,
                             count: undated.length,
                             trailing: Icon(
                               _undatedOpen
@@ -165,8 +166,8 @@ class _CalendarAgendaState extends State<CalendarAgenda> {
                                   : Icons.expand_more,
                               size: 20,
                               semanticLabel: _undatedOpen
-                                  ? 'Collapse'
-                                  : 'Expand',
+                                  ? context.l10n.viewWidgetsCollapse
+                                  : context.l10n.viewWidgetsExpand,
                               color: scheme.onSurfaceVariant,
                             ),
                           ),
@@ -244,7 +245,7 @@ class _StripDay extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  weekdayNames[day.weekday - 1].substring(0, 1),
+                  localDateFormat('EEEEE').format(day),
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: isSelected ? color : scheme.onSurfaceVariant,
                   ),
@@ -294,7 +295,7 @@ class _DayHeader extends SliverPersistentHeaderDelegate {
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlaps) =>
       ListSectionHeader(
-        label: today ? '$label · Today' : label,
+        label: today ? context.l10n.viewWidgetsDayToday(label) : label,
         count: count,
         color: today ? primaryTextColor(context) : null,
       );
@@ -323,7 +324,7 @@ class _AgendaRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final state = data.state;
     return Semantics(
-      onLongPressHint: 'Move to date',
+      onLongPressHint: context.l10n.viewWidgetsMoveToDate,
       child: GestureDetector(
         onLongPress: () => _moveToDate(context),
         child: ObjectCard(
@@ -347,7 +348,7 @@ class _AgendaRow extends StatelessWidget {
   Future<void> _moveToDate(BuildContext context) async {
     final picked = await showDatePicker(
       context: context,
-      helpText: 'Move to date',
+      helpText: context.l10n.viewWidgetsMoveToDate,
       initialDate: _clamp(day ?? today),
       firstDate: _first,
       lastDate: _last,

@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../field_editors/field_editor.dart';
 import '../field_editors/widgets/preview_affordances.dart';
 import 'add_field_sheet.dart';
@@ -189,7 +190,7 @@ class LayoutCanvas extends StatelessWidget {
                         // Collection title
                         Text(
                           collection.name.trim().isEmpty
-                              ? 'Untitled collection'
+                              ? context.l10n.collectionsUntitledCollection
                               : collection.name,
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
@@ -216,9 +217,11 @@ class LayoutCanvas extends StatelessWidget {
                             key: const Key('add_section'),
                             onPressed: () => context
                                 .read<CollectionEditorCubit>()
-                                .addSection(title: 'New group'),
+                                .addSection(
+                                  title: context.l10n.collectionsNewGroup,
+                                ),
                             icon: const Icon(Icons.add, size: 18),
-                            label: const Text('Add group'),
+                            label: Text(context.l10n.collectionsAddGroup),
                           ),
                         ),
                       ],
@@ -442,7 +445,7 @@ class _SectionDragFeedback extends StatelessWidget {
                 const SizedBox(width: Spacing.xs),
                 Flexible(
                   child: Text(
-                    section.title ?? 'Group',
+                    section.title ?? context.l10n.collectionsGroup,
                     style: theme.textTheme.titleSmall,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -582,7 +585,7 @@ class _SectionBody extends StatelessWidget {
                     horizontal: Spacing.xs,
                   ),
                   child: Text(
-                    'Drop a field here',
+                    context.l10n.collectionsDropFieldHere,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: scheme.onSurfaceVariant,
                       fontStyle: FontStyle.italic,
@@ -623,6 +626,7 @@ class _SectionBody extends StatelessWidget {
                   key: Key('add_field_${section.id}'),
                   onPressed: () async {
                     final cubit = context.read<CollectionEditorCubit>();
+                    final l10n = context.l10n;
                     final state = cubit.state;
                     if (state is! CollectionEditorReady) return;
                     // Capture existing field IDs before adding
@@ -634,7 +638,10 @@ class _SectionBody extends StatelessWidget {
                       editors: registry.all,
                     );
                     if (typeId == null) return;
-                    cubit.addField(typeId);
+                    cubit.addField(
+                      typeId,
+                      label: registry.forType(typeId)?.label(l10n),
+                    );
                     // Identify the new field id from the updated state
                     final newState = cubit.state;
                     if (newState is! CollectionEditorReady) return;
@@ -649,7 +656,7 @@ class _SectionBody extends StatelessWidget {
                     );
                   },
                   icon: const Icon(Icons.add, size: 16),
-                  label: const Text('Add field'),
+                  label: Text(context.l10n.collectionsAddField),
                   style: TextButton.styleFrom(
                     visualDensity: VisualDensity.compact,
                   ),
@@ -779,7 +786,9 @@ class _SectionTitleState extends State<_SectionTitle> {
           vertical: Spacing.xxs,
         ),
         child: Text(
-          isPlaceholder ? 'Untitled section' : widget.section.title!,
+          isPlaceholder
+              ? context.l10n.collectionsUntitledSection
+              : widget.section.title!,
           style: theme.textTheme.titleSmall?.copyWith(
             color: isPlaceholder ? scheme.onSurfaceVariant : scheme.onSurface,
             fontStyle: isPlaceholder ? FontStyle.italic : FontStyle.normal,
@@ -1009,7 +1018,9 @@ class _LayoutCellTile extends StatelessWidget {
                 Flexible(
                   child: Text.rich(
                     TextSpan(
-                      text: f.name.trim().isEmpty ? 'Untitled field' : f.name,
+                      text: f.name.trim().isEmpty
+                          ? context.l10n.collectionsUntitledField
+                          : f.name,
                       style: theme.textTheme.labelMedium?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),

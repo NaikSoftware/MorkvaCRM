@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../../views/widgets/view_labels.dart';
 import '../field_editors/field_editor.dart';
 import 'add_field_sheet.dart';
@@ -39,7 +40,10 @@ class FirstRunSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Fields', style: theme.textTheme.titleMedium),
+        Text(
+          context.l10n.collectionsFields,
+          style: theme.textTheme.titleMedium,
+        ),
         const SizedBox(height: Spacing.sm),
         FirstRunFields(collection: collection, registry: registry),
         const SizedBox(height: Spacing.sm),
@@ -67,7 +71,12 @@ class FirstRunFields extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final cubit = context.read<CollectionEditorCubit>();
+    final l10n = context.l10n;
     final used = {for (final f in collection.fields) f.name.toLowerCase()};
+    // itemLabelOf singularizes English names; other languages quote the name.
+    final item = l10n.localeName == 'en'
+        ? itemLabelOf(collection)
+        : collection.name;
 
     return Container(
       key: const Key('first_run_card'),
@@ -82,12 +91,12 @@ class FirstRunFields extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'What do you track for each ${itemLabelOf(collection)}?',
+            l10n.collectionsFirstRunQuestion(item),
             style: theme.textTheme.titleMedium,
           ),
           const SizedBox(height: Spacing.xxs),
           Text(
-            'Tap to add — you can rename or tweak any field afterwards.',
+            l10n.collectionsFirstRunHint,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: scheme.onSurfaceVariant,
             ),
@@ -111,10 +120,10 @@ class FirstRunFields extends StatelessWidget {
                 spacing: Spacing.xs,
                 runSpacing: Spacing.xs,
                 children: [
-                  for (final s in _suggestions)
+                  for (final s in _suggestions(l10n))
                     if (!used.contains(s.name.toLowerCase()))
                       ActionChip(
-                        key: Key('suggest_${s.name}'),
+                        key: Key('suggest_${s.id}'),
                         avatar: Icon(s.icon, size: 18),
                         label: label('${s.name} · ${s.hint}'),
                         onPressed: () => _add(cubit, s),
@@ -122,13 +131,18 @@ class FirstRunFields extends StatelessWidget {
                   ActionChip(
                     key: const Key('suggest_custom'),
                     avatar: const Icon(Icons.add, size: 18),
-                    label: label('Custom field'),
+                    label: label(l10n.collectionsCustomField),
                     onPressed: () async {
                       final typeId = await AddFieldSheet.show(
                         context,
                         editors: registry.all,
                       );
-                      if (typeId != null) cubit.addField(typeId);
+                      if (typeId != null) {
+                        cubit.addField(
+                          typeId,
+                          label: registry.forType(typeId)?.label(l10n),
+                        );
+                      }
                     },
                   ),
                 ],
@@ -168,12 +182,16 @@ class FirstRunFields extends StatelessWidget {
 
 class _Suggestion {
   const _Suggestion(
+    this.id,
     this.name,
     this.hint,
     this.typeId,
     this.icon, [
     this.options,
   ]);
+
+  /// A stable English id for the chip's key.
+  final String id;
   final String name;
   final String hint;
   final String typeId;
@@ -181,14 +199,45 @@ class _Suggestion {
   final List<String>? options;
 }
 
-const _suggestions = [
-  _Suggestion('Status', 'choice', kSingleSelectFieldType, Icons.flag_outlined, [
-    'To do',
-    'In progress',
-    'Done',
-  ]),
-  _Suggestion('Due date', 'date', kDateFieldType, Icons.event_outlined),
-  _Suggestion('Amount', 'number', kNumberFieldType, Icons.pin_outlined),
-  _Suggestion('Customer', 'reference', kReferenceFieldType, Icons.link),
-  _Suggestion('Notes', 'text', kTextFieldType, Icons.notes),
+List<_Suggestion> _suggestions(AppLocalizations l10n) => [
+  _Suggestion(
+    'Status',
+    l10n.collectionsSuggestStatus,
+    l10n.collectionsSuggestStatusHint,
+    kSingleSelectFieldType,
+    Icons.flag_outlined,
+    [
+      l10n.collectionsSuggestToDo,
+      l10n.collectionsSuggestInProgress,
+      l10n.collectionsSuggestDone,
+    ],
+  ),
+  _Suggestion(
+    'Due date',
+    l10n.collectionsSuggestDueDate,
+    l10n.collectionsSuggestDueDateHint,
+    kDateFieldType,
+    Icons.event_outlined,
+  ),
+  _Suggestion(
+    'Amount',
+    l10n.collectionsSuggestAmount,
+    l10n.collectionsSuggestAmountHint,
+    kNumberFieldType,
+    Icons.pin_outlined,
+  ),
+  _Suggestion(
+    'Customer',
+    l10n.collectionsSuggestCustomer,
+    l10n.collectionsSuggestCustomerHint,
+    kReferenceFieldType,
+    Icons.link,
+  ),
+  _Suggestion(
+    'Notes',
+    l10n.collectionsSuggestNotes,
+    l10n.collectionsSuggestNotesHint,
+    kTextFieldType,
+    Icons.notes,
+  ),
 ];

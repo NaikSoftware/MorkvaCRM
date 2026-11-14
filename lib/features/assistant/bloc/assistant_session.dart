@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart' show basicLocaleListResolution;
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../api/ai/gemini_llm_client.dart';
@@ -13,6 +14,7 @@ import '../../../core/harness/cache/workspace_cache.dart';
 import '../../../core/harness/harness.dart';
 import '../../../core/harness/query/workspace_digest.dart';
 import '../../../core/harness/session/harness_session.dart';
+import '../../../l10n/l10n.dart';
 import '../host/result_reader.dart';
 import 'assistant_bloc.dart';
 import 'assistant_focus.dart';
@@ -51,6 +53,14 @@ class AssistantSession {
       harness: harnessSession.harness,
       workspace: _CacheWorkspace(cache),
       grants: Grants(kAssistantCaps),
+      // The app's language as MaterialApp resolves it (no custom callback);
+      // Intl.defaultLocale is not set yet while the app builds this.
+      // shortcut: fixed until restart; a device language switch mid-session
+      // needs a locale setter on AgentLoop (lib/core/agent).
+      locale: basicLocaleListResolution(
+        PlatformDispatcher.instance.locales,
+        AppLocalizations.supportedLocales,
+      ).languageCode,
       now: _now,
     );
     bloc = AssistantBloc(
@@ -62,6 +72,7 @@ class AssistantSession {
       results: ResultReader(
         queries: harnessSession.queries,
         aggregates: harnessSession.aggregates,
+        strings: currentAppStrings,
       ),
       collectionNames: () => [for (final c in cache.collections) c.name],
       online: syncStatus.stream.map((s) => s is! SyncOffline),

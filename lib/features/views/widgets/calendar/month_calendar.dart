@@ -5,6 +5,7 @@ import 'package:flutter/rendering.dart';
 
 import '../../../../core/domain/domain.dart';
 import '../../../../design/design.dart';
+import '../../../../l10n/l10n.dart';
 import '../../modes/view_mode.dart';
 import '../list_parts.dart';
 import '../object_card.dart';
@@ -63,7 +64,8 @@ class _MonthCalendarState extends State<MonthCalendar> {
         children: [
           Expanded(
             child: Text(
-              MaterialLocalizations.of(context).formatMonthYear(first),
+              // Stand-alone month: «листопад 2026», not the genitive.
+              localDateFormat('LLLL y').format(first),
               style: theme.textTheme.headlineSmall,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -71,17 +73,17 @@ class _MonthCalendarState extends State<MonthCalendar> {
           ),
           IconActionButton(
             icon: Icons.chevron_left,
-            tooltip: 'Previous month',
+            tooltip: context.l10n.viewWidgetsPreviousMonth,
             onPressed: () => _shift(-1),
           ),
           IconActionButton(
             icon: Icons.chevron_right,
-            tooltip: 'Next month',
+            tooltip: context.l10n.viewWidgetsNextMonth,
             onPressed: () => _shift(1),
           ),
           const SizedBox(width: Spacing.xs),
           ActionChip(
-            label: const Text('Today'),
+            label: Text(context.l10n.commonToday),
             onPressed: isCurrentMonth
                 ? null
                 : () => setState(
@@ -108,7 +110,7 @@ class _MonthCalendarState extends State<MonthCalendar> {
                 height: MonthCalendar.weekdayRowHeight,
                 child: Row(
                   children: [
-                    for (final name in weekdayNames)
+                    for (final name in weekdayNames())
                       Expanded(
                         child: Center(
                           child: Text(
@@ -179,7 +181,9 @@ class _MonthCalendarState extends State<MonthCalendar> {
                       IgnorePointer(
                         child: Center(
                           child: Text(
-                            'Click a day to add a ${widget.data.itemLabel}',
+                            context.l10n.viewWidgetsClickDayToAdd(
+                              widget.data.itemLabel,
+                            ),
                             style: theme.textTheme.labelLarge?.copyWith(
                               color: scheme.onSurfaceVariant,
                             ),
@@ -343,7 +347,10 @@ class _DayCellState extends State<_DayCell> {
                                 onFocusChange: (f) =>
                                     setState(() => _addFocused = f),
                                 child: Tooltip(
-                                  message: 'New ${data.itemLabel} on $label',
+                                  message: context.l10n.viewWidgetsNewItemOnDay(
+                                    data.itemLabel,
+                                    label,
+                                  ),
                                   child: IconButton(
                                     onPressed: () => data.quickAdd(day: day),
                                     icon: const Icon(Icons.add, size: 18),
@@ -452,7 +459,7 @@ class _MoreButton extends StatelessWidget {
     final theme = Theme.of(context);
     return Semantics(
       button: true,
-      label: 'Show all, $count more',
+      label: context.l10n.viewWidgetsShowAllMore(count),
       excludeSemantics: true,
       child: Material(
         type: MaterialType.transparency,
@@ -464,7 +471,7 @@ class _MoreButton extends StatelessWidget {
             alignment: Alignment.centerLeft,
             padding: const EdgeInsets.symmetric(horizontal: Spacing.xxs),
             child: Text(
-              '+$count more',
+              context.l10n.viewWidgetsMoreCount(count),
               style: theme.textTheme.labelMedium?.copyWith(
                 color: primaryTextColor(context),
                 fontWeight: FontWeight.w600,
@@ -514,7 +521,7 @@ Future<void> _showDay(
                   ),
                   IconActionButton(
                     icon: Icons.close,
-                    tooltip: 'Close',
+                    tooltip: dialogContext.l10n.commonClose,
                     onPressed: () => Navigator.of(dialogContext).pop(),
                   ),
                 ],

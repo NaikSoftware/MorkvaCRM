@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../../views/widgets/option_pill.dart';
 import '../../views/widgets/view_labels.dart';
 import 'field_value_editor.dart';
@@ -40,13 +41,13 @@ class SingleSelectValueEditor extends FieldValueEditor {
             child: OptionPill(label: o.label, color: optionColor(field, o.id)),
           ),
         if (field.options.isEmpty)
-          const MenuItemButton(child: Text('No options yet')),
+          MenuItemButton(child: Text(context.l10n.objectsNoOptions)),
         if (selected != null) ...[
           const Divider(height: 1),
           MenuItemButton(
             leadingIcon: const Icon(Icons.close, size: 18),
             onPressed: () => ctx.onChanged(const SingleSelectFieldValue(null)),
-            child: const Text('Clear'),
+            child: Text(context.l10n.commonClear),
           ),
         ],
       ],
@@ -62,7 +63,7 @@ class SingleSelectValueEditor extends FieldValueEditor {
             isEmpty: option == null,
             decoration: InputDecoration(
               enabled: ctx.enabled,
-              hintText: 'Choose…',
+              hintText: context.l10n.objectsChoose,
               error: ctx.error == null ? null : const SizedBox.shrink(),
               suffixIcon: Icon(
                 Icons.expand_more,
@@ -160,7 +161,7 @@ class _MultiSelectChipsState extends State<_MultiSelectChips> {
                   label: option.label,
                   color: _tint(scheme, optionColor(field, id)),
                   shape: const StadiumBorder(),
-                  deleteTooltip: 'Remove ${option.label}',
+                  deleteTooltip: context.l10n.objectsRemoveNamed(option.label),
                   onDeleted: ctx.enabled ? () => toggle(id) : null,
                 ),
             // In the menu's tap group, so a second tap closes rather than
@@ -169,7 +170,7 @@ class _MultiSelectChipsState extends State<_MultiSelectChips> {
               groupId: _menu,
               child: Builder(
                 builder: (addContext) => AddValueButton(
-                  label: 'Add',
+                  label: context.l10n.commonAdd,
                   onPressed: ctx.enabled ? () => _toggleMenu(addContext) : null,
                 ),
               ),
@@ -195,7 +196,7 @@ class _MultiSelectChipsState extends State<_MultiSelectChips> {
                   ),
                 ),
               if (field.options.isEmpty)
-                const MenuItemButton(child: Text('No options yet')),
+                MenuItemButton(child: Text(context.l10n.objectsNoOptions)),
             ],
             child: const SizedBox.shrink(),
           ),

@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/automation/runner_api.dart';
 import '../../../core/domain/automation/automation.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../bloc/automation_runs_cubit.dart';
 import '../bloc/modules_cubit.dart';
 import '../view/review_sheet.dart';
@@ -113,13 +114,17 @@ String shortButtonLabel(String label) =>
     label.length <= 16 ? label : '${label.substring(0, 15)}…';
 
 /// "Running… 2/3", "Applying…", "Queued · 3 ahead".
-String liveRunLabel(RunView run) {
+String liveRunLabel(RunView run, AppLocalizations l10n) {
   if (run.status == RunStatus.queued) {
     final ahead = run.queuedAhead;
-    return ahead == null || ahead == 0 ? 'Queued' : 'Queued · $ahead ahead';
+    return ahead == null || ahead == 0
+        ? l10n.automationWidgetsRunQueued
+        : l10n.automationWidgetsQueuedAhead(ahead);
   }
   final p = run.progress;
-  final base = run.status == RunStatus.applying ? 'Applying…' : 'Running…';
+  final base = run.status == RunStatus.applying
+      ? l10n.automationWidgetsRunApplying
+      : l10n.automationWidgetsRunRunning;
   return p == null || p.total <= 0 ? base : '$base ${p.done}/${p.total}';
 }
 
@@ -128,7 +133,20 @@ String liveRunLabel(RunView run) {
 // -----------------------------------------------------------------------------
 
 /// What a finish notice offers.
-enum NoticeAction { undo, viewRun, review, runAgain }
+enum NoticeAction {
+  undo,
+  viewRun,
+  review,
+  runAgain;
+
+  /// The action button's words.
+  String labelIn(AppLocalizations l10n) => switch (this) {
+    undo => l10n.commonUndo,
+    viewRun => l10n.automationWidgetsViewRun,
+    review => l10n.automationWidgetsReview,
+    runAgain => l10n.automationWidgetsFixRunAgain,
+  };
+}
 
 /// The words and actions of a finished run (UX §4 banner, §5 snackbar).
 typedef NoticeCopy = ({String text, List<NoticeAction> actions, bool error});
@@ -136,13 +154,22 @@ typedef NoticeCopy = ({String text, List<NoticeAction> actions, bool error});
 /// [card] names the card when the notice is about another card than the
 /// one on screen ("Spin forever on Order #1042 timed out after 20 s").
 /// [runnable]: the automation may run again (neither needs consent nor is
-/// broken), as the run log's Run again rule.
-NoticeCopy runNoticeCopy(RunView run, {String? card, bool runnable = false}) {
-  final label = card == null ? run.label : '${run.label} on $card';
+/// broken), as the run log's Run again rule. [l10n] defaults to the app's
+/// language.
+NoticeCopy runNoticeCopy(
+  RunView run, {
+  String? card,
+  bool runnable = false,
+  AppLocalizations? l10n,
+}) {
+  final t = l10n ?? currentAppStrings();
+  final label = card == null
+      ? run.label
+      : t.automationWidgetsRunOnCard(run.label, card);
   switch (run.status) {
     case RunStatus.awaitingReview:
       return (
-        text: '$label needs your review',
+        text: t.automationWidgetsNoticeNeedsReview(label),
         actions: const [NoticeAction.review],
         error: false,
       );
@@ -150,15 +177,22 @@ NoticeCopy runNoticeCopy(RunView run, {String? card, bool runnable = false}) {
       final changed = run.planId != null;
       // The host's count first ("1 order updated"): the module's own words
       // may carry raw values (an ISO date).
+      // shortcut: core stores its fallback summaries in English; word the
+      // two known ones here until runs carry a summary code.
+      final summary = switch (run.summary) {
+        'No changes' => t.automationWidgetsNoChanges,
+        'Done' => t.commonDone,
+        final s => s,
+      };
       return (
         text:
-            '$label · ${run.outcome ?? run.summary ?? (changed ? 'Done' : 'No changes')}',
+            '$label · ${run.outcome ?? summary ?? (changed ? t.commonDone : t.automationWidgetsNoChanges)}',
         actions: [if (changed) NoticeAction.undo, NoticeAction.viewRun],
         error: false,
       );
     case RunStatus.timedOut:
       return (
-        text: '$label timed out after 20 s',
+        text: t.automationWidgetsNoticeTimedOut(label),
         // View run first: the snackbar offers only the first.
         actions: [
           NoticeAction.viewRun,
@@ -171,34 +205,36 @@ NoticeCopy runNoticeCopy(RunView run, {String? card, bool runnable = false}) {
       );
     case RunStatus.failed when run.reason == RunReason.cancelled:
       return (
-        text: '$label was stopped. Nothing was changed.',
+        text: t.automationWidgetsNoticeStopped(label),
         actions: const [],
         error: false,
       );
     case RunStatus.failed when run.reason == RunReason.offline:
       return (
         text: card == null
-            ? "Couldn't apply — you're offline"
-            : "Couldn't apply $label — you're offline",
+            ? t.automationWidgetsNoticeOffline
+            : t.automationWidgetsNoticeOfflineOn(label),
         actions: const [NoticeAction.runAgain],
         error: true,
       );
     case RunStatus.failed:
       final message = run.error?.message;
       return (
-        text: message == null ? '$label failed' : '$label failed — $message',
+        text: message == null
+            ? t.automationWidgetsNoticeFailed(label)
+            : t.automationWidgetsNoticeFailedMessage(label, message),
         actions: const [NoticeAction.viewRun],
         error: true,
       );
     case RunStatus.skipped when run.reason == RunReason.engineUnavailable:
       return (
-        text: "Automations can't run on this device",
+        text: t.automationWidgetsCantRunOnDevice,
         actions: const [NoticeAction.viewRun],
         error: true,
       );
     case _:
       return (
-        text: '$label · ${runCopy(run.status, run.reason).row}',
+        text: '$label · ${runCopy(run.status, run.reason, l10n: t).row}',
         actions: const [NoticeAction.viewRun],
         error: false,
       );
@@ -461,6 +497,7 @@ class HeaderActionButtons extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final iconOnly = headerWidth < 560;
+    final l10n = context.l10n;
     final style = Theme.of(context).textTheme.labelLarge;
     final scaler = MediaQuery.textScalerOf(context);
     double textWidth(String text) {
@@ -475,7 +512,7 @@ class HeaderActionButtons extends StatelessWidget {
 
     double widthOf(ButtonView v) => iconOnly
         ? 44
-        : _ActionButton.chrome + textWidth(_ActionButton.textOf(v));
+        : _ActionButton.chrome + textWidth(_ActionButton.textOf(v, l10n));
     final budget = headerWidth * 0.45;
     final widths = [for (final v in views) widthOf(v)];
     final all = widths.fold<double>(0, (s, w) => s + w + _gap);
@@ -485,7 +522,9 @@ class HeaderActionButtons extends StatelessWidget {
       final icon = loud == null ? 0.0 : 18.0 + Spacing.xs;
       return iconOnly
           ? 44 + icon
-          : _MoreButton.chrome + icon + textWidth(_MoreButton.textOf(loud));
+          : _MoreButton.chrome +
+                icon +
+                textWidth(_MoreButton.textOf(loud, l10n));
     }
 
     var shown = views.length;
@@ -540,14 +579,14 @@ Color? _dotColor(BuildContext context, ButtonView view) {
 }
 
 /// The words a screen reader hears for a button's state.
-String _stateWord(ButtonView v) => switch (v.phase) {
-  ButtonPhase.idle => v.dirty ? 'saves first' : '',
-  ButtonPhase.needsConsent => 'needs consent',
+String _stateWord(ButtonView v, AppLocalizations l10n) => switch (v.phase) {
+  ButtonPhase.idle => v.dirty ? l10n.automationWidgetsStateSavesFirst : '',
+  ButtonPhase.needsConsent => l10n.automationWidgetsStateNeedsConsent,
   // The phase only: progress ticks are never announced.
-  ButtonPhase.queued => 'queued',
-  ButtonPhase.running => 'running',
-  ButtonPhase.review => 'waiting for review',
-  ButtonPhase.failed => 'last run failed',
+  ButtonPhase.queued => l10n.automationWidgetsStateQueued,
+  ButtonPhase.running => l10n.automationWidgetsStateRunning,
+  ButtonPhase.review => l10n.automationWidgetsStateWaitingForReview,
+  ButtonPhase.failed => l10n.automationWidgetsStateLastRunFailed,
 };
 
 /// The icon slot: a 14 px spinner while running, a clock while queued, else
@@ -624,8 +663,8 @@ class _ActionButton extends StatefulWidget {
   /// Horizontal padding, icon and gap around the label.
   static const double chrome = Spacing.sm * 2 + 18 + Spacing.xs;
 
-  static String textOf(ButtonView v) =>
-      v.busy ? liveRunLabel(v.run!) : shortButtonLabel(v.label);
+  static String textOf(ButtonView v, AppLocalizations l10n) =>
+      v.busy ? liveRunLabel(v.run!, l10n) : shortButtonLabel(v.label);
 
   @override
   State<_ActionButton> createState() => _ActionButtonState();
@@ -657,7 +696,8 @@ class _ActionButtonState extends State<_ActionButton> {
       if (widget.iconOnly || view.label.length > 16) view.label,
       ?description,
     ].join(' — ');
-    final state = _stateWord(view);
+    final l10n = context.l10n;
+    final state = _stateWord(view, l10n);
     final pill = Container(
       height: 36,
       padding: EdgeInsets.symmetric(
@@ -674,7 +714,7 @@ class _ActionButtonState extends State<_ActionButton> {
           if (!widget.iconOnly) ...[
             const SizedBox(width: Spacing.xs),
             Text(
-              _ActionButton.textOf(view),
+              _ActionButton.textOf(view, l10n),
               maxLines: 1,
               style: theme.textTheme.labelLarge?.copyWith(
                 color: tint.foreground,
@@ -707,7 +747,7 @@ class _ActionButtonState extends State<_ActionButton> {
               MenuItemButton(
                 leadingIcon: const Icon(Icons.stop_circle_outlined),
                 onPressed: widget.onStop,
-                child: const Text('Stop'),
+                child: Text(l10n.automationWidgetsStop),
               ),
             ]
           : [
@@ -736,6 +776,7 @@ class _SaveAndRunMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     return SizedBox(
       width: 232,
       child: Column(
@@ -749,7 +790,7 @@ class _SaveAndRunMenu extends StatelessWidget {
               0,
             ),
             child: PrimaryButton(
-              label: 'Save and run',
+              label: l10n.automationWidgetsSaveAndRun,
               icon: Icons.bolt_rounded,
               expand: true,
               onPressed: onSaveAndRun,
@@ -763,14 +804,14 @@ class _SaveAndRunMenu extends StatelessWidget {
               Spacing.xs,
             ),
             child: Text(
-              'The action works on the saved card.',
+              l10n.automationWidgetsWorksOnSavedCard,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ),
           const Divider(height: 1),
-          MenuItemButton(onPressed: onCancel, child: const Text('Cancel')),
+          MenuItemButton(onPressed: onCancel, child: Text(l10n.commonCancel)),
         ],
       ),
     );
@@ -809,8 +850,10 @@ class _MoreButton extends StatefulWidget {
 
   static const double chrome = Spacing.sm * 2 + Spacing.xxs + 18;
 
-  static String textOf(ButtonView? loud) =>
-      loud != null && loud.busy ? liveRunLabel(loud.run!) : 'More';
+  static String textOf(ButtonView? loud, AppLocalizations l10n) =>
+      loud != null && loud.busy
+      ? liveRunLabel(loud.run!, l10n)
+      : l10n.commonMore;
 
   @override
   State<_MoreButton> createState() => _MoreButtonState();
@@ -828,6 +871,7 @@ class _MoreButtonState extends State<_MoreButton> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final loud = _loudest(views);
+    final l10n = context.l10n;
     final dot = loud == null ? null : _dotColor(context, loud);
     final state = switch (loud?.phase) {
       // `info`, as every other running spinner.
@@ -856,8 +900,11 @@ class _MoreButtonState extends State<_MoreButton> {
       _ => null,
     };
     final said = loud == null
-        ? 'More actions'
-        : 'More actions, ${loud.label} ${_stateWord(loud)}';
+        ? l10n.automationWidgetsMoreActions
+        : l10n.automationWidgetsMoreActionsState(
+            loud.label,
+            _stateWord(loud, l10n),
+          );
     // A row shows its automation as it stands now (it may have moved to the
     // header); a Stop row whose run ended stays, disabled.
     ButtonView now(ButtonView was) =>
@@ -878,21 +925,21 @@ class _MoreButtonState extends State<_MoreButton> {
             leadingIcon: _ButtonIcon(view: v, color: scheme.onSurface),
             onPressed: () => widget.onPressed(v),
             child: Text(
-              v.busy ? '${v.label} · ${liveRunLabel(v.run!)}' : v.label,
+              v.busy ? '${v.label} · ${liveRunLabel(v.run!, l10n)}' : v.label,
             ),
           ),
           if (was.busy)
             MenuItemButton(
               leadingIcon: const Icon(Icons.stop_circle_outlined),
               onPressed: v.busy ? () => widget.onStop(v.run!.runId) : null,
-              child: Text('Stop ${v.label}'),
+              child: Text(l10n.automationWidgetsStopLabel(v.label)),
             ),
         ],
       ],
       builder: (context, controller, _) => Tooltip(
         message: loud == null
-            ? 'More actions'
-            : '${loud.label} · ${loud.busy ? liveRunLabel(loud.run!) : _stateWord(loud)}',
+            ? l10n.automationWidgetsMoreActions
+            : '${loud.label} · ${loud.busy ? liveRunLabel(loud.run!, l10n) : _stateWord(loud, l10n)}',
         child: PressableScale(
           onPressed: () =>
               controller.isOpen ? controller.close() : controller.open(),
@@ -917,7 +964,7 @@ class _MoreButtonState extends State<_MoreButton> {
                     ],
                     if (!widget.iconOnly) ...[
                       Text(
-                        _MoreButton.textOf(loud),
+                        _MoreButton.textOf(loud, l10n),
                         style: theme.textTheme.labelLarge,
                       ),
                       const SizedBox(width: Spacing.xxs),
@@ -953,10 +1000,11 @@ class PhoneActionsButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final live = views.where((v) => v.busy).map((v) => v.run!).firstOrNull;
+    final l10n = context.l10n;
     if (live == null) {
       return IconActionButton(
         icon: Icons.bolt_rounded,
-        tooltip: 'Actions',
+        tooltip: l10n.automationWidgetsActions,
         onPressed: onOpen,
       );
     }
@@ -967,10 +1015,13 @@ class PhoneActionsButton extends StatelessWidget {
     final p = live.progress;
     final value = p == null || p.total <= 0 ? null : p.done / p.total;
     return Tooltip(
-      message: '${live.label} · ${liveRunLabel(live)}',
+      message: '${live.label} · ${liveRunLabel(live, l10n)}',
       child: PressableScale(
         onPressed: onOpen,
-        semanticLabel: 'Actions, ${live.label} ${liveRunLabel(live)}',
+        semanticLabel: l10n.automationWidgetsActionsLive(
+          live.label,
+          liveRunLabel(live, l10n),
+        ),
         borderRadius: Radii.fullAll,
         child: Container(
           height: 44,
@@ -1076,7 +1127,7 @@ Future<void> showActionsSheet(
   required ModulesCubit modules,
   required List<ButtonView> Function(AutomationRunsState, ModulesState) build,
   required ValueChanged<ButtonView> onSelect,
-  String subtitle = 'The action works on the saved card.',
+  String? subtitle,
   String tintSeed = '',
 }) => showModalBottomSheet<void>(
   context: context,
@@ -1108,14 +1159,16 @@ Future<void> showActionsSheet(
 class _ActionsSheet extends StatelessWidget {
   const _ActionsSheet({
     required this.views,
-    required this.subtitle,
+    this.subtitle,
     required this.tintSeed,
     required this.onSelect,
     required this.onStop,
   });
 
   final List<ButtonView> views;
-  final String subtitle;
+
+  /// Null: "The action works on the saved card.".
+  final String? subtitle;
   final String tintSeed;
   final ValueChanged<ButtonView> onSelect;
   final ValueChanged<String> onStop;
@@ -1137,10 +1190,13 @@ class _ActionsSheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Actions', style: theme.textTheme.headlineSmall),
+            Text(
+              context.l10n.automationWidgetsActions,
+              style: theme.textTheme.headlineSmall,
+            ),
             const SizedBox(height: Spacing.xxs),
             Text(
-              subtitle,
+              subtitle ?? context.l10n.automationWidgetsWorksOnSavedCard,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
@@ -1150,7 +1206,7 @@ class _ActionsSheet extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: Spacing.md),
                 child: Text(
-                  'No buttons yet.',
+                  context.l10n.automationWidgetsNoButtons,
                   style: theme.textTheme.bodyMedium,
                 ),
               ),
@@ -1191,12 +1247,14 @@ class _SheetRow extends StatelessWidget {
       theme.brightness,
     );
     final module = view.entry.module?.module.name ?? view.entry.automation.name;
+    final l10n = context.l10n;
     final lead = switch (view.phase) {
-      ButtonPhase.needsConsent => 'Needs consent',
-      ButtonPhase.review => 'Needs review',
-      ButtonPhase.failed => 'Last run failed',
-      ButtonPhase.queued || ButtonPhase.running => liveRunLabel(view.run!),
-      ButtonPhase.idle => view.dirty ? 'Save and run' : null,
+      ButtonPhase.needsConsent => l10n.automationWidgetsNeedsConsent,
+      ButtonPhase.review => l10n.automationWidgetsNeedsReview,
+      ButtonPhase.failed => l10n.automationWidgetsLastRunFailed,
+      ButtonPhase.queued ||
+      ButtonPhase.running => liveRunLabel(view.run!, l10n),
+      ButtonPhase.idle => view.dirty ? l10n.automationWidgetsSaveAndRun : null,
     };
     final muted = theme.textTheme.bodySmall?.copyWith(
       color: scheme.onSurfaceVariant,
@@ -1257,7 +1315,10 @@ class _SheetRow extends StatelessWidget {
                 ),
               ),
               if (view.busy && onStop != null)
-                TextActionButton(label: 'Stop', onPressed: onStop),
+                TextActionButton(
+                  label: l10n.automationWidgetsStop,
+                  onPressed: onStop,
+                ),
             ],
           ),
         ),
