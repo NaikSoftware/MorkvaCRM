@@ -28,7 +28,7 @@ class CalendarMode extends ViewMode {
   String get label => l10n.viewsModeCalendar;
 
   @override
-  IconData get icon => Icons.calendar_month_outlined;
+  IconData get icon => MorkvaIcons.calendarMonth;
 
   @override
   String get description => l10n.viewsModeCalendarDescription;
@@ -68,7 +68,7 @@ class CalendarMode extends ViewMode {
         for (final f in fields)
           MenuItemButton(
             leadingIcon: Icon(
-              f.id == current?.id ? Icons.check : Icons.event_outlined,
+              f.id == current?.id ? MorkvaIcons.check : MorkvaIcons.event,
               size: 18,
             ),
             onPressed: () =>
@@ -77,7 +77,7 @@ class CalendarMode extends ViewMode {
           ),
       ],
       builder: (context, controller, _) => ToolbarButton(
-        icon: Icons.event_outlined,
+        icon: MorkvaIcons.event,
         label: current is DateFieldDefinition
             ? context.l10n.viewsDateChip(current.name)
             : context.l10n.viewsDateChipEmpty,
@@ -105,18 +105,18 @@ class CalendarBody extends StatelessWidget {
           .toList();
       if (dateFields.isEmpty) {
         return EmptyState(
-          icon: Icons.calendar_month_outlined,
+          icon: MorkvaIcons.calendarMonth,
           title: context.l10n.viewsCalendarNeedsDate,
           message: context.l10n.viewsCalendarNeedsDateMessage(data.itemLabel),
           action: PrimaryButton(
             label: context.l10n.viewsAddDateField,
-            icon: Icons.add,
+            icon: MorkvaIcons.add,
             onPressed: () => context.go('/collections/${collection.id}/edit'),
           ),
         );
       }
       return EmptyState(
-        icon: Icons.calendar_month_outlined,
+        icon: MorkvaIcons.calendarMonth,
         title: context.l10n.viewsCalendarChooseDate,
         message: context.l10n.viewsCalendarChooseDateMessage(
           data.itemLabel,
@@ -129,7 +129,7 @@ class CalendarBody extends StatelessWidget {
             for (final f in dateFields)
               SecondaryButton(
                 label: f.name,
-                icon: Icons.event_outlined,
+                icon: MorkvaIcons.event,
                 onPressed: () =>
                     context.read<CollectionViewsCubit>().setLayoutField(f.id),
               ),

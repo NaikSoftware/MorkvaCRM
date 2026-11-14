@@ -442,7 +442,7 @@ class _ThreadTileState extends State<_ThreadTile> {
                       skipTraversal: true,
                       onFocusChange: (f) => setState(() => _focused = f),
                       child: IconActionButton(
-                        icon: Icons.delete_outline_rounded,
+                        icon: MorkvaIcons.delete,
                         tooltip: context.l10n.assistantDeleteThreadTooltip(
                           title,
                         ),
@@ -471,7 +471,7 @@ class _Empty extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(top: Spacing.xl),
     child: EmptyState(
-      icon: Icons.forum_outlined,
+      icon: MorkvaIcons.forum,
       title: title,
       message: message,
     ),

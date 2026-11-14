@@ -56,7 +56,7 @@ class ReferenceValueEditor extends FieldValueEditor {
                 RemovableChip(
                   label: labels[id] ?? l10n.objectsUnknownItem(item),
                   leading: Icon(
-                    Icons.link,
+                    MorkvaIcons.link,
                     size: 16,
                     color: scheme.onSurfaceVariant,
                   ),

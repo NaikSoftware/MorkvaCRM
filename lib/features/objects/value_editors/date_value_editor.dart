@@ -89,14 +89,14 @@ class _DateBox extends StatelessWidget {
                 : context.l10n.objectsPickDate,
             error: ctx.error == null ? null : const SizedBox.shrink(),
             prefixIcon: Icon(
-              Icons.calendar_today_outlined,
+              MorkvaIcons.calendarDay,
               size: 18,
               color: scheme.onSurfaceVariant,
             ),
             suffixIcon: text.isEmpty
                 ? null
                 : IconActionButton(
-                    icon: Icons.close,
+                    icon: MorkvaIcons.close,
                     tooltip: context.l10n.objectsClearNamed(ctx.field.name),
                     onPressed: enabled
                         ? () => ctx.onChanged(const DateFieldValue(null))

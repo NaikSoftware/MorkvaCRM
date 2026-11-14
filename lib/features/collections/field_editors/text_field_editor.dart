@@ -5,6 +5,7 @@ import '../../../l10n/l10n.dart';
 import 'field_editor.dart';
 import 'widgets/config_controls.dart';
 import 'widgets/preview_affordances.dart';
+import 'package:morkva_crm/design/morkva_icons.dart';
 
 /// [FieldEditor] for the free-text field type.
 class TextFieldEditor extends FieldEditor {
@@ -21,7 +22,7 @@ class TextFieldEditor extends FieldEditor {
       l10n.collectionsTypeTextDescription;
 
   @override
-  IconData get icon => Icons.text_fields;
+  IconData get icon => MorkvaIcons.textFields;
 
   @override
   FieldDefinition createDefault({required String id, required String name}) =>

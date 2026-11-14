@@ -75,7 +75,7 @@ class _SyncChipSpec {
       SyncSynced() => _SyncChipSpec(
         label: l10n.shellSyncSynced,
         foreground: scheme.onSurfaceVariant,
-        icon: Icons.cloud_done_outlined,
+        icon: MorkvaIcons.cloudDone,
       ),
       SyncPending() => _SyncChipSpec(
         label: l10n.shellSyncSyncing,
@@ -85,17 +85,17 @@ class _SyncChipSpec {
       SyncOffline() => _SyncChipSpec(
         label: l10n.shellSyncOffline,
         foreground: scheme.onSurfaceVariant,
-        icon: Icons.cloud_off_outlined,
+        icon: MorkvaIcons.cloudOff,
       ),
       SyncConflict() => _SyncChipSpec(
         label: l10n.shellSyncConflict,
         foreground: semantic.warning,
-        icon: Icons.warning_amber_rounded,
+        icon: MorkvaIcons.warning,
       ),
       SyncError() => _SyncChipSpec(
         label: l10n.shellSyncError,
         foreground: scheme.error,
-        icon: Icons.error_outline_rounded,
+        icon: MorkvaIcons.error,
       ),
     };
   }

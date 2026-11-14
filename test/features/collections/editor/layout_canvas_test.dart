@@ -11,6 +11,7 @@ import 'package:morkva_crm/features/collections/editor/collection_editor_cubit.d
 import 'package:morkva_crm/features/collections/editor/collection_editor_state.dart';
 import 'package:morkva_crm/features/collections/field_editors/built_in_field_editors.dart';
 import 'package:morkva_crm/api/data/data_repository.dart';
+import 'package:morkva_crm/design/morkva_icons.dart';
 
 // ---------------------------------------------------------------------------
 // Minimal fake repository
@@ -273,7 +274,7 @@ void main() {
     // Verify at least one close icon is present in the tree
     expect(
       find.byWidgetPredicate(
-        (w) => w is Icon && w.icon == Icons.close && w.size == 14,
+        (w) => w is Icon && w.icon == MorkvaIcons.close && w.size == 14,
       ),
       findsOneWidget,
     );

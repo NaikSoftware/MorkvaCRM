@@ -60,12 +60,12 @@ class _SortMenuState extends State<SortMenu> {
     final selected = _sort?.fieldId;
     final rows = <(String?, String, IconData)>[
       if (widget.allowManual)
-        (null, l10n.viewWidgetsSortManual, Icons.drag_indicator),
+        (null, l10n.viewWidgetsSortManual, MorkvaIcons.dragHandle),
       for (final f in widget.collection.fields)
         // Files have no meaningful order (only their count would sort).
         if (f is! FileFieldDefinition) (f.id, f.name, fieldTypeIcon(f)),
-      (ViewSort.createdAt, l10n.viewWidgetsSortCreated, Icons.schedule),
-      (ViewSort.updatedAt, l10n.viewWidgetsSortUpdated, Icons.update),
+      (ViewSort.createdAt, l10n.viewWidgetsSortCreated, MorkvaIcons.schedule),
+      (ViewSort.updatedAt, l10n.viewWidgetsSortUpdated, MorkvaIcons.update),
     ];
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -92,13 +92,13 @@ class _SortMenuState extends State<SortMenu> {
                 segments: [
                   ButtonSegment(
                     value: true,
-                    icon: const Icon(Icons.arrow_upward, size: 18),
+                    icon: const Icon(MorkvaIcons.arrowUp, size: 18),
                     label: Text(l10n.viewWidgetsSortAsc),
                     tooltip: l10n.viewWidgetsSortAscending,
                   ),
                   ButtonSegment(
                     value: false,
-                    icon: const Icon(Icons.arrow_downward, size: 18),
+                    icon: const Icon(MorkvaIcons.arrowDown, size: 18),
                     label: Text(l10n.viewWidgetsSortDesc),
                     tooltip: l10n.viewWidgetsSortDescending,
                   ),
@@ -183,7 +183,7 @@ class _SortRow extends StatelessWidget {
                     ),
                     if (selected)
                       Icon(
-                        Icons.check,
+                        MorkvaIcons.check,
                         size: 20,
                         color: scheme.onSecondaryContainer,
                       ),

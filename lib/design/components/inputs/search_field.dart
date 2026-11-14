@@ -4,6 +4,7 @@ import '../../../l10n/l10n.dart';
 import '../../tokens/radii.dart';
 import '../../tokens/spacing.dart';
 import 'morkva_text_field.dart';
+import 'package:morkva_crm/design/morkva_icons.dart';
 
 /// A search-styled [MorkvaTextField]: a leading search icon, a "Search" hint,
 /// and a trailing clear (✕) button that appears only while there is text and
@@ -91,10 +92,10 @@ class _SearchFieldState extends State<SearchField> {
       hint: widget.hintText ?? context.l10n.commonSearch,
       onChanged: widget.onChanged,
       textInputAction: TextInputAction.search,
-      prefixIcon: Icon(Icons.search, size: iconSize),
+      prefixIcon: Icon(MorkvaIcons.search, size: iconSize),
       suffixIcon: hasText
           ? IconButton(
-              icon: Icon(Icons.close, size: iconSize),
+              icon: Icon(MorkvaIcons.close, size: iconSize),
               tooltip: context.l10n.commonClear,
               onPressed: _clear,
               constraints: dense ? _denseIcon : null,

@@ -5,6 +5,7 @@ import '../../bloc/chat_item.dart';
 import 'assistant_scope.dart';
 import 'chip_button.dart';
 import 'dashed_border.dart';
+import 'package:morkva_crm/design/morkva_icons.dart';
 
 /// A failed turn: a dashed card that says whether anything changed, with
 /// "Try again" re-running the last turn when it can.
@@ -39,8 +40,8 @@ class ErrorRow extends StatelessWidget {
             children: [
               Icon(
                 item.kind == ChatErrorKind.blocked
-                    ? Icons.block_rounded
-                    : Icons.error_outline_rounded,
+                    ? MorkvaIcons.block
+                    : MorkvaIcons.error,
                 size: 16,
                 color: scheme.error,
               ),

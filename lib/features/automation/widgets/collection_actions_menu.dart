@@ -154,7 +154,7 @@ class CollectionActionsMenu extends StatelessWidget {
                     ),
                   if (views.isNotEmpty) const Divider(height: Spacing.xs),
                   MenuItemButton(
-                    leadingIcon: const Icon(Icons.bolt_rounded, size: 20),
+                    leadingIcon: const Icon(MorkvaIcons.bolt, size: 20),
                     onPressed: () => GoRouter.maybeOf(
                       context,
                     )?.go(AutomationPaths.automationsOf(collection.id)),
@@ -163,7 +163,7 @@ class CollectionActionsMenu extends StatelessWidget {
                     ),
                   ),
                   MenuItemButton(
-                    leadingIcon: const Icon(Icons.add, size: 20),
+                    leadingIcon: const Icon(MorkvaIcons.add, size: 20),
                     onPressed: () => showAutomationEditor(
                       context,
                       collectionId: collection.id,
@@ -180,12 +180,12 @@ class CollectionActionsMenu extends StatelessWidget {
                     return IconButton.outlined(
                       tooltip: l10n.automationWidgetsActions,
                       onPressed: toggle,
-                      icon: const Icon(Icons.bolt_rounded, size: 18),
+                      icon: const Icon(MorkvaIcons.bolt, size: 18),
                     );
                   }
                   return OutlinedButton.icon(
                     onPressed: toggle,
-                    icon: const Icon(Icons.bolt_rounded, size: 18),
+                    icon: const Icon(MorkvaIcons.bolt, size: 18),
                     label: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -193,8 +193,8 @@ class CollectionActionsMenu extends StatelessWidget {
                         const SizedBox(width: Spacing.xxs),
                         Icon(
                           controller.isOpen
-                              ? Icons.expand_less_rounded
-                              : Icons.expand_more_rounded,
+                              ? MorkvaIcons.expandLess
+                              : MorkvaIcons.expandMore,
                           size: 18,
                         ),
                       ],
@@ -381,13 +381,13 @@ List<PopupMenuEntry<void>> collectionPhoneMenuItems(
           build: (r, m) => _collectionViews(m, r, id),
           onSelect: (v) => pressCollectionButton(context, v, scope, runs: runs),
         ),
-        child: row(Icons.bolt_rounded, l10n.automationWidgetsRunAction),
+        child: row(MorkvaIcons.bolt, l10n.automationWidgetsRunAction),
       ),
     PopupMenuItem(
       onTap: () =>
           GoRouter.maybeOf(context)?.go(AutomationPaths.automationsOf(id)),
       child: row(
-        Icons.auto_mode_rounded,
+        MorkvaIcons.autoMode,
         l10n.automationWidgetsAutomationsEllipsis,
       ),
     ),

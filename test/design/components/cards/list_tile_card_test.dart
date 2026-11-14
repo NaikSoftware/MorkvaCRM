@@ -23,12 +23,12 @@ void main() {
         wrap(const ListTileCard(
           title: 'With slots',
           leading: Icon(Icons.person),
-          trailing: Icon(Icons.chevron_right),
+          trailing: Icon(MorkvaIcons.chevronRight),
         )),
       );
 
       expect(find.byIcon(Icons.person), findsOneWidget);
-      expect(find.byIcon(Icons.chevron_right), findsOneWidget);
+      expect(find.byIcon(MorkvaIcons.chevronRight), findsOneWidget);
     });
 
     testWidgets('fires onTap when pressed', (tester) async {

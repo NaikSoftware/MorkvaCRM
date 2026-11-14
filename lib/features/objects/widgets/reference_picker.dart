@@ -127,7 +127,7 @@ class _ReferencePickerState extends State<ReferencePicker> {
               MorkvaTextField(
                 autofocus: true,
                 hint: l10n.objectsSearchItems(items),
-                prefixIcon: const Icon(Icons.search),
+                prefixIcon: const Icon(MorkvaIcons.search),
                 suffixText: q.isEmpty
                     ? null
                     : l10n.objectsShownOf(rows.length, labels.length),
@@ -282,7 +282,7 @@ class _Row extends StatelessWidget {
                   Expanded(child: text),
                   if (!multiple && checked)
                     Icon(
-                      Icons.check,
+                      MorkvaIcons.check,
                       color: scheme.primary,
                       semanticLabel: context.l10n.objectsLinked,
                     ),

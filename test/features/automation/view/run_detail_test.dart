@@ -250,7 +250,7 @@ void main() {
     await pump(tester, 'r_rev');
     expect(find.text('Review elsewhere'), findsOneWidget);
     expect(find.text('Needs review'), findsNothing);
-    expect(find.byIcon(Icons.radio_button_unchecked), findsOneWidget);
+    expect(find.byIcon(MorkvaIcons.radioOff), findsOneWidget);
   });
 
   // On web the steps' intrinsic text height came out 1 px short of their
@@ -307,7 +307,7 @@ void main() {
     );
     await pump(tester, 'r_bad');
     expect(find.text('Failed'), findsOneWidget);
-    expect(find.byIcon(Icons.cancel_outlined), findsWidgets);
+    expect(find.byIcon(MorkvaIcons.cancel), findsWidgets);
     final stack = find.text(
       'at stamp (morkva-module/stamp-shipped-date.js:12:7)',
     );
@@ -326,7 +326,7 @@ void main() {
     expect(find.byKey(const ValueKey('step-error-fill')), findsOneWidget);
     expect(find.text('module_error'), findsOneWidget);
     expect(
-      find.widgetWithIcon(TextActionButton, Icons.auto_awesome_outlined),
+      find.widgetWithIcon(TextActionButton, MorkvaIcons.sparkle),
       findsOneWidget,
     );
     // Run again leads the header as the tonal button.

@@ -143,7 +143,7 @@ class _OptionSetEditorState extends State<OptionSetEditor> {
           alignment: Alignment.centerLeft,
           child: TextActionButton(
             label: context.l10n.collectionsAddOption,
-            icon: Icons.add,
+            icon: MorkvaIcons.add,
             onPressed: _addOption,
           ),
         ),
@@ -182,7 +182,7 @@ class _OptionRow extends StatelessWidget {
               ReorderableDragStartListener(
                 index: index,
                 child: IconActionButton(
-                  icon: Icons.drag_indicator,
+                  icon: MorkvaIcons.dragHandle,
                   tooltip: context.l10n.collectionsDragToReorder,
                   // Reordering is driven by the wrapping listener, not a tap.
                   onPressed: () {},
@@ -206,7 +206,7 @@ class _OptionRow extends StatelessWidget {
               ),
               const SizedBox(width: Spacing.xxs),
               IconActionButton(
-                icon: Icons.close,
+                icon: MorkvaIcons.close,
                 tooltip: context.l10n.collectionsRemoveOption,
                 onPressed: onRemove,
               ),

@@ -382,7 +382,7 @@ class _ShellViewState extends State<_ShellView> {
                   collections.isNotEmpty)
                 IconButton(
                   tooltip: context.l10n.shellJumpTo,
-                  icon: const Icon(Icons.search_rounded),
+                  icon: const Icon(MorkvaIcons.search),
                   onPressed: jumpTo,
                 ),
               ?ask,
@@ -802,7 +802,7 @@ class _PinsBar extends StatelessWidget {
             label: c.name,
           ),
         NavigationDestination(
-          icon: const Icon(Icons.grid_view_rounded),
+          icon: const Icon(MorkvaIcons.gridView),
           label: context.l10n.shellNavAll,
         ),
       ],

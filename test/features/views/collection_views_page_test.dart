@@ -84,7 +84,7 @@ void main() {
         'Globex pilot',
         'Acme renewal',
       ]);
-      expect(find.byIcon(Icons.arrow_upward), findsWidgets);
+      expect(find.byIcon(MorkvaIcons.arrowUp), findsWidgets);
 
       await tester.tap(find.bySemanticsLabel('Sort by Amount'));
       await tester.pumpAndSettle();
@@ -235,7 +235,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byType(FloatingActionButton),
-          matching: find.byIcon(Icons.add),
+          matching: find.byIcon(MorkvaIcons.add),
         ),
         findsOneWidget,
       );

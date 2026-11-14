@@ -16,6 +16,7 @@ import 'package:morkva_crm/features/assistant/view/widgets/tool_steps.dart';
 
 import '../fakes/assistant_seeds.dart';
 import 'assistant_view_harness.dart';
+import 'package:morkva_crm/design/morkva_icons.dart';
 
 T _item<T extends ChatItem>(AssistantState state) =>
     state.items.whereType<T>().first;
@@ -124,7 +125,7 @@ void main() {
         find.text('Reading Orders — no such field “Paid on”'),
         findsOneWidget,
       );
-      expect(find.byIcon(Icons.error_outline_rounded), findsOneWidget);
+      expect(find.byIcon(MorkvaIcons.error), findsOneWidget);
     });
   });
 
@@ -524,8 +525,8 @@ void main() {
         AppliedCard(item: applied.copyWith(undoState: UndoState.undone)),
         actions: actions,
       );
-      expect(find.byIcon(Icons.undo_rounded), findsOneWidget);
-      expect(find.byIcon(Icons.check_rounded), findsNothing);
+      expect(find.byIcon(MorkvaIcons.undo), findsOneWidget);
+      expect(find.byIcon(MorkvaIcons.check), findsNothing);
     });
 
     testWidgets('undone and partial failure states', (tester) async {

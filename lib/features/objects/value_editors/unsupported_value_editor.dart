@@ -27,7 +27,7 @@ class UnsupportedValueEditor extends FieldValueEditor {
       constraints: const BoxConstraints(minHeight: 48),
       child: Row(
         children: [
-          Icon(Icons.block, size: 18, color: muted),
+          Icon(MorkvaIcons.block, size: 18, color: muted),
           const SizedBox(width: Spacing.xs),
           Expanded(
             child: Text(

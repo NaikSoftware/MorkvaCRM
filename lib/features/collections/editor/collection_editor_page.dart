@@ -99,12 +99,12 @@ class _NotFoundView extends StatelessWidget {
   Widget build(BuildContext context) {
     return _EditorScaffold(
       child: EmptyState(
-        icon: Icons.search_off_outlined,
+        icon: MorkvaIcons.searchOff,
         title: context.l10n.collectionsNotFoundTitle,
         message: context.l10n.collectionsNotFoundMessage,
         action: PrimaryButton(
           label: context.l10n.collectionsBackToCollections,
-          icon: Icons.arrow_back,
+          icon: MorkvaIcons.arrowBack,
           onPressed: () => context.go('/'),
         ),
       ),
@@ -336,7 +336,7 @@ class _EditorHeaderState extends State<_EditorHeader> {
       child: Row(
         children: [
           IconActionButton(
-            icon: Icons.close,
+            icon: MorkvaIcons.close,
             tooltip: l10n.commonClose,
             onPressed: _back,
           ),
@@ -361,7 +361,7 @@ class _EditorHeaderState extends State<_EditorHeader> {
                     Padding(
                       padding: const EdgeInsets.only(bottom: 5),
                       child: Icon(
-                        Icons.tune,
+                        MorkvaIcons.tune,
                         size: 20,
                         color: scheme.primary,
                         // The visible "Customizing · " text names it when wide.
@@ -572,7 +572,7 @@ class _SaveControl extends StatelessWidget {
     if (compact) {
       if (!state.dirty || state.saving) return const SizedBox.shrink();
       return IconActionButton(
-        icon: Icons.save_outlined,
+        icon: MorkvaIcons.save,
         tooltip: context.l10n.commonSave,
         onPressed: () => context.read<CollectionEditorCubit>().save(),
       );
@@ -582,7 +582,7 @@ class _SaveControl extends StatelessWidget {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.check_circle_outline, size: 18, color: scheme.secondary),
+          Icon(MorkvaIcons.checkCircle, size: 18, color: scheme.secondary),
           const SizedBox(width: Spacing.xxs),
           Text(
             context.l10n.collectionsSaved,
@@ -597,7 +597,7 @@ class _SaveControl extends StatelessWidget {
     // Secondary: Done is the header's one primary action.
     return SecondaryButton(
       label: context.l10n.commonSave,
-      icon: Icons.save_outlined,
+      icon: MorkvaIcons.save,
       loading: state.saving,
       onPressed: () => context.read<CollectionEditorCubit>().save(),
     );
@@ -994,7 +994,7 @@ class _ConfigSheet extends StatelessWidget {
                 ),
               ),
               IconActionButton(
-                icon: Icons.close,
+                icon: MorkvaIcons.close,
                 tooltip: context.l10n.commonClose,
                 onPressed: () => Navigator.of(context).maybePop(),
               ),
@@ -1043,10 +1043,10 @@ class _SheetSaveStatus extends StatelessWidget {
         theme.extension<MorkvaSemanticColors>()?.primaryText ?? scheme.primary;
     final l10n = context.l10n;
     final (IconData icon, String label, Color color) = state.saving
-        ? (Icons.sync, l10n.collectionsSaving, scheme.onSurfaceVariant)
+        ? (MorkvaIcons.sync, l10n.collectionsSaving, scheme.onSurfaceVariant)
         : state.dirty
-        ? (Icons.edit_outlined, l10n.collectionsUnsavedChanges, primaryText)
-        : (Icons.check_circle_outline, l10n.collectionsSaved, scheme.secondary);
+        ? (MorkvaIcons.edit, l10n.collectionsUnsavedChanges, primaryText)
+        : (MorkvaIcons.checkCircle, l10n.collectionsSaved, scheme.secondary);
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -1113,7 +1113,7 @@ class _ConfigRegion extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.tune,
+              MorkvaIcons.tune,
               size: 32,
               color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
             ),

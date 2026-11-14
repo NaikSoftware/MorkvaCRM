@@ -26,7 +26,7 @@ class ListMode extends ViewMode {
   String get label => l10n.viewsModeList;
 
   @override
-  IconData get icon => Icons.view_list_outlined;
+  IconData get icon => MorkvaIcons.viewList;
 
   @override
   String get description => l10n.viewsModeListDescription;
@@ -53,7 +53,7 @@ class ListMode extends ViewMode {
     final cubit = context.read<CollectionViewsCubit>();
     return Builder(
       builder: (context) => ToolbarButton(
-        icon: Icons.view_agenda_outlined,
+        icon: MorkvaIcons.viewCards,
         label: current != null
             ? context.l10n.viewsGroupChip(current.name)
             : context.l10n.viewsGroupChipNone,
@@ -400,7 +400,7 @@ class _AddRow extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
             child: Row(
               children: [
-                Icon(Icons.add, size: 20, color: link),
+                Icon(MorkvaIcons.add, size: 20, color: link),
                 const SizedBox(width: Spacing.xs),
                 Text(
                   label,
@@ -468,7 +468,7 @@ class _ObjectRowState extends State<_ObjectRow> {
                 width: 44,
                 height: 44,
                 child: Icon(
-                  Icons.drag_indicator,
+                  MorkvaIcons.dragHandle,
                   size: 20,
                   semanticLabel: context.l10n.viewsDragToReorder,
                   color: scheme.onSurfaceVariant.withValues(

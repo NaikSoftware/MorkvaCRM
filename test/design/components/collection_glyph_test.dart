@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/design/collection_icons.dart';
 import 'package:morkva_crm/design/components/collection_glyph.dart';
+import 'package:morkva_crm/design/morkva_icons.dart';
 
 void main() {
   Widget host(Widget child) => MaterialApp(home: Scaffold(body: Center(child: child)));
@@ -19,7 +20,7 @@ void main() {
 
   testWidgets('without onTap it is not interactive (no edit badge)', (tester) async {
     await tester.pumpWidget(host(const CollectionGlyph(iconKey: 'truck')));
-    expect(find.byIcon(Icons.edit_outlined), findsNothing);
+    expect(find.byIcon(MorkvaIcons.edit), findsNothing);
   });
 
   testWidgets('with onTap it shows an edit badge and fires the callback',
@@ -28,7 +29,7 @@ void main() {
     await tester.pumpWidget(
       host(CollectionGlyph(iconKey: null, onTap: () => tapped = true)),
     );
-    expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
+    expect(find.byIcon(MorkvaIcons.edit), findsOneWidget);
     await tester.tap(find.byType(CollectionGlyph));
     expect(tapped, isTrue);
   });

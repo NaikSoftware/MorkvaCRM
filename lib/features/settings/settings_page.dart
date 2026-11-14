@@ -67,7 +67,7 @@ class SettingsPage extends StatelessWidget {
                 title: l10n.commonAutomations,
                 subtitle: l10n.settingsAutomationsSubtitle,
                 leading: _Tile(
-                  icon: Icons.bolt_rounded,
+                  icon: MorkvaIcons.bolt,
                   background: scheme.primaryContainer,
                   foreground: scheme.onPrimaryContainer,
                 ),
@@ -75,7 +75,7 @@ class SettingsPage extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     RunIndicatorPill(),
-                    Icon(Icons.chevron_right_rounded),
+                    Icon(MorkvaIcons.chevronRight),
                   ],
                 ),
                 onTap: () => context.go('/automations'),
@@ -86,11 +86,11 @@ class SettingsPage extends StatelessWidget {
                 title: 'Trello',
                 subtitle: l10n.settingsTrelloSubtitle,
                 leading: _Tile(
-                  icon: Icons.view_kanban_outlined,
+                  icon: MorkvaIcons.viewBoard,
                   background: sky.background,
                   foreground: sky.foreground,
                 ),
-                trailing: const Icon(Icons.chevron_right_rounded),
+                trailing: const Icon(MorkvaIcons.chevronRight),
                 onTap: () async {
                   // Browser Back mid-import leaves Settings while the
                   // sheet stays up; the router outlives this page.
@@ -108,7 +108,7 @@ class SettingsPage extends StatelessWidget {
                 alignment: AlignmentDirectional.centerStart,
                 child: SecondaryButton(
                   label: l10n.settingsSignOut,
-                  icon: Icons.logout_rounded,
+                  icon: MorkvaIcons.logout,
                   onPressed: () => context.read<AuthCubit>().signOut(),
                 ),
               ),
@@ -162,17 +162,17 @@ class _ThemeCard extends StatelessWidget {
       segments: [
         ButtonSegment(
           value: ThemeMode.light,
-          icon: const Icon(Icons.light_mode_outlined),
+          icon: const Icon(MorkvaIcons.lightMode),
           label: Text(l10n.settingsThemeLight),
         ),
         ButtonSegment(
           value: ThemeMode.dark,
-          icon: const Icon(Icons.dark_mode_outlined),
+          icon: const Icon(MorkvaIcons.darkMode),
           label: Text(l10n.settingsThemeDark),
         ),
         ButtonSegment(
           value: ThemeMode.system,
-          icon: const Icon(Icons.contrast_rounded),
+          icon: const Icon(MorkvaIcons.themeAuto),
           label: Text(l10n.settingsThemeSystem),
         ),
       ],
@@ -186,7 +186,7 @@ class _ThemeCard extends StatelessWidget {
     final title = Row(
       children: [
         _Tile(
-          icon: Icons.palette_outlined,
+          icon: MorkvaIcons.palette,
           background: plum.background,
           foreground: plum.foreground,
         ),
