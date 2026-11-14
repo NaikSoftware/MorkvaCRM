@@ -143,5 +143,9 @@
   "notificationsOff": 57485,
   "notificationsActive": 57486,
   "linkOff": 57487,
-  "taskAlt": 57488
+  "taskAlt": 57488,
+  "lightMode": 57489,
+  "darkMode": 57490,
+  "themeAuto": 57491,
+  "palette": 57492
 }

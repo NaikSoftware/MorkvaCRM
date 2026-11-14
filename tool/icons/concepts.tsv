@@ -109,7 +109,7 @@ tableRows	table_rows_outlined	frame split into horizontal rows; rows
 gridView	grid_view_rounded	2x2 squares; grid / gallery	
 mosaic	auto_awesome_mosaic_outlined	asymmetric tiles mosaic; gallery / layout	
 dashboard	dashboard_customize_outlined	3 squares plus a plus sign; customize / grid collection	
-spaceDashboard	space_dashboard_outlined	frame with 1 tall + 2 small panels; layout	
+spaceDashboard	space_dashboard_outlined,view_quilt_outlined	frame with 1 tall + 2 small panels; layout	
 cards	style_outlined	fanned stack of cards; collection of cards (default collection icon)	
 smartButton	smart_button_outlined	button pill with cursor/sparkle; action button	
 extension	extension_outlined	puzzle piece; module / plugin	
@@ -143,3 +143,7 @@ notificationsOff	notifications_off_outlined	bell with an off mark; notifications
 notificationsActive	notifications_active_outlined	bell with ring marks either side; reminders fired	
 linkOff	link_off	chain links broken apart; linked card missing	
 taskAlt	task_alt_rounded,task_alt	checkmark whose right arm breaks out of an open circle; task kind	
+lightMode	light_mode_outlined	sun with rays; light theme	
+darkMode	dark_mode_outlined	crescent moon; dark theme	
+themeAuto	contrast_rounded	circle split into a solid half and an open half; follow system theme	
+palette	palette_outlined	painter palette with thumb hole and paint dots; appearance / theme colours	

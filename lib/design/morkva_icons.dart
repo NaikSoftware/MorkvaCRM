@@ -44,10 +44,18 @@ abstract final class MorkvaIcons {
   static const IconData compose = IconData(0xe00b, fontFamily: _family);
 
   /// Navigate in / next.
-  static const IconData chevronRight = IconData(0xe00c, fontFamily: _family, matchTextDirection: true);
+  static const IconData chevronRight = IconData(
+    0xe00c,
+    fontFamily: _family,
+    matchTextDirection: true,
+  );
 
   /// Previous.
-  static const IconData chevronLeft = IconData(0xe00d, fontFamily: _family, matchTextDirection: true);
+  static const IconData chevronLeft = IconData(
+    0xe00d,
+    fontFamily: _family,
+    matchTextDirection: true,
+  );
 
   /// Expand / open dropdown.
   static const IconData expandMore = IconData(0xe00e, fontFamily: _family);
@@ -62,10 +70,18 @@ abstract final class MorkvaIcons {
   static const IconData unfoldLess = IconData(0xe011, fontFamily: _family);
 
   /// Back.
-  static const IconData arrowBack = IconData(0xe012, fontFamily: _family, matchTextDirection: true);
+  static const IconData arrowBack = IconData(
+    0xe012,
+    fontFamily: _family,
+    matchTextDirection: true,
+  );
 
   /// Forward / go.
-  static const IconData arrowForward = IconData(0xe013, fontFamily: _family, matchTextDirection: true);
+  static const IconData arrowForward = IconData(
+    0xe013,
+    fontFamily: _family,
+    matchTextDirection: true,
+  );
 
   /// Sort ascending / move up.
   static const IconData arrowUp = IconData(0xe014, fontFamily: _family);
@@ -80,7 +96,11 @@ abstract final class MorkvaIcons {
   static const IconData arrowInward = IconData(0xe017, fontFamily: _family);
 
   /// Nested / child item.
-  static const IconData subdirectory = IconData(0xe018, fontFamily: _family, matchTextDirection: true);
+  static const IconData subdirectory = IconData(
+    0xe018,
+    fontFamily: _family,
+    matchTextDirection: true,
+  );
 
   /// Reorder / sort.
   static const IconData swapVert = IconData(0xe019, fontFamily: _family);
@@ -98,7 +118,10 @@ abstract final class MorkvaIcons {
   static const IconData checkCircle = IconData(0xe01d, fontFamily: _family);
 
   /// Completed.
-  static const IconData checkCircleFilled = IconData(0xe01e, fontFamily: _family);
+  static const IconData checkCircleFilled = IconData(
+    0xe01e,
+    fontFamily: _family,
+  );
 
   /// Not done.
   static const IconData radioOff = IconData(0xe01f, fontFamily: _family);
@@ -287,7 +310,11 @@ abstract final class MorkvaIcons {
   static const IconData shield = IconData(0xe05c, fontFamily: _family);
 
   /// Sign out.
-  static const IconData logout = IconData(0xe05d, fontFamily: _family, matchTextDirection: true);
+  static const IconData logout = IconData(
+    0xe05d,
+    fontFamily: _family,
+    matchTextDirection: true,
+  );
 
   /// Offline.
   static const IconData cloudOff = IconData(0xe05e, fontFamily: _family);
@@ -431,16 +458,34 @@ abstract final class MorkvaIcons {
   static const IconData notifications = IconData(0xe08c, fontFamily: _family);
 
   /// Notifications blocked.
-  static const IconData notificationsOff = IconData(0xe08d, fontFamily: _family);
+  static const IconData notificationsOff = IconData(
+    0xe08d,
+    fontFamily: _family,
+  );
 
   /// Reminders fired.
-  static const IconData notificationsActive = IconData(0xe08e, fontFamily: _family);
+  static const IconData notificationsActive = IconData(
+    0xe08e,
+    fontFamily: _family,
+  );
 
   /// Linked card missing.
   static const IconData linkOff = IconData(0xe08f, fontFamily: _family);
 
   /// Task kind.
   static const IconData taskAlt = IconData(0xe090, fontFamily: _family);
+
+  /// Light theme.
+  static const IconData lightMode = IconData(0xe091, fontFamily: _family);
+
+  /// Dark theme.
+  static const IconData darkMode = IconData(0xe092, fontFamily: _family);
+
+  /// Follow system theme.
+  static const IconData themeAuto = IconData(0xe093, fontFamily: _family);
+
+  /// Appearance / theme colours.
+  static const IconData palette = IconData(0xe094, fontFamily: _family);
 
   /// Every icon by name, for previews and tests.
   static const Map<String, IconData> all = {
@@ -589,5 +634,9 @@ abstract final class MorkvaIcons {
     'notificationsActive': notificationsActive,
     'linkOff': linkOff,
     'taskAlt': taskAlt,
+    'lightMode': lightMode,
+    'darkMode': darkMode,
+    'themeAuto': themeAuto,
+    'palette': palette,
   };
 }
