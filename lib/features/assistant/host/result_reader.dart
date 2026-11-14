@@ -150,7 +150,7 @@ final class ResultReader {
     final parts = [
       if (clauses.isNotEmpty) t.assistantResultWhere(clauses.join(', ')),
       if (search != null && search.isNotEmpty)
-        t.assistantResultMatching(quote(search)),
+        t.assistantResultMatching(_shaper.name(search)),
     ];
     return parts.isEmpty ? null : parts.join(' ');
   }

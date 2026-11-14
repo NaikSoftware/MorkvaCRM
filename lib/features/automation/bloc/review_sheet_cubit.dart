@@ -5,7 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/automation/runner_api.dart';
 import '../../../core/domain/automation/automation.dart';
-import '../../assistant/bloc/assistant_bloc.dart' show currentAppStrings;
+import '../../../l10n/l10n.dart';
 
 /// Where the review sheet is (UX §6).
 enum ReviewPhase {

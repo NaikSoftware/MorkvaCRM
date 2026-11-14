@@ -880,7 +880,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String assistantResultMatching(String query) {
-    return 'matching $query';
+    return 'matching “$query”';
   }
 
   @override
@@ -1302,6 +1302,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get automationEditAutomation => 'Edit automation';
+
+  @override
+  String get automationEditAction => 'Edit automation';
 
   @override
   String automationChangeCount(int count) {
@@ -5384,6 +5387,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get viewWidgetsUnknownItem => 'Unknown item';
+
+  @override
+  String viewWidgetsFilterChip(String field, String condition) {
+    return '$field $condition';
+  }
 
   @override
   String get viewWidgetsOpIs => 'is';

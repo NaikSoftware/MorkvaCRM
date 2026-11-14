@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../core/domain/domain.dart';
 import '../../../l10n/l10n.dart';
-import '../../assistant/bloc/assistant_bloc.dart' show currentAppStrings;
 import '../collection_views_cubit.dart';
 import '../collection_views_state.dart';
 

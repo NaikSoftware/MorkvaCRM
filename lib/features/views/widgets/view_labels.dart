@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/domain/domain.dart';
-import '../../assistant/bloc/assistant_bloc.dart' show currentAppStrings;
 import '../../collections/field_editors/built_in_field_editors.dart';
 import '../../../design/design.dart';
 import '../../../l10n/l10n.dart';
@@ -208,7 +207,12 @@ String filterLabel(
       has ? t.viewWidgetsOpHasNo : t.viewWidgetsOpIsNot,
     final op => operatorLabel(op, field, l10n: t),
   };
-  return [field.name, op, if (value.isNotEmpty) value].join(' ');
+  // Ukrainian reads "Стадія: Лід" / "Теги: містить VIP" — the colon carries
+  // "is" and keeps the verb clear of the field name's number.
+  return t.viewWidgetsFilterChip(
+    field.name,
+    [op, value].where((s) => s.isNotEmpty).join(' '),
+  );
 }
 
 /// The words for [op] on [field], shared by filter chips and the builder.

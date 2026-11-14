@@ -73,7 +73,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get shellSyncConflict => 'Конфлікт';
 
   @override
-  String get shellSyncError => 'Збій синхронізації';
+  String get shellSyncError => 'Помилка синхронізації';
 
   @override
   String shellSyncStatus(String status) {
@@ -199,7 +199,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String assistantIntroOne(String name) {
-    return 'Я можу читати вашу колекцію «$name», рахувати показники та вносити зміни — ви підтверджуєте кожну зміну, перш ніж вона станеться.';
+    return 'Я можу читати вашу колекцію «$name», рахувати показники та вносити зміни — кожну зміну ви підтверджуєте заздалегідь.';
   }
 
   @override
@@ -208,15 +208,15 @@ class AppLocalizationsUk extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'Я можу читати всі $count ваших колекцій, рахувати показники та вносити зміни — ви підтверджуєте кожну зміну, перш ніж вона станеться.',
+          'Я можу читати всі $count ваших колекцій, рахувати показники та вносити зміни — кожну зміну ви підтверджуєте заздалегідь.',
       many:
-          'Я можу читати всі $count ваших колекцій, рахувати показники та вносити зміни — ви підтверджуєте кожну зміну, перш ніж вона станеться.',
+          'Я можу читати всі $count ваших колекцій, рахувати показники та вносити зміни — кожну зміну ви підтверджуєте заздалегідь.',
       few:
-          'Я можу читати всі $count ваші колекції, рахувати показники та вносити зміни — ви підтверджуєте кожну зміну, перш ніж вона станеться.',
+          'Я можу читати всі $count ваші колекції, рахувати показники та вносити зміни — кожну зміну ви підтверджуєте заздалегідь.',
       one:
-          'Я можу читати всі ваші колекції ($count), рахувати показники та вносити зміни — ви підтверджуєте кожну зміну, перш ніж вона станеться.',
+          'Я можу читати всі ваші колекції ($count), рахувати показники та вносити зміни — кожну зміну ви підтверджуєте заздалегідь.',
       zero:
-          'Я допоможу створити колекції, порахувати показники та внести зміни — ви підтверджуєте кожну зміну, перш ніж вона станеться.',
+          'Я допоможу створити колекції, порахувати показники та внести зміни — кожну зміну ви підтверджуєте заздалегідь.',
     );
     return '$_temp0';
   }
@@ -235,11 +235,11 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get assistantSuggestCreateClients =>
-      'Створи колекцію «Клієнти» з полями ім’я, телефон і місто';
+      'Створи колекцію «Клієнти» з полями: ім’я, телефон, місто';
 
   @override
   String get assistantSuggestSetUpOrders =>
-      'Налаштуй колекцію «Замовлення», пов’язану з «Клієнти»';
+      'Налаштуй колекцію «Замовлення», пов’язану з колекцією «Клієнти»';
 
   @override
   String assistantSuggestHowMany(String name) {
@@ -328,31 +328,32 @@ class AppLocalizationsUk extends AppLocalizations {
   }
 
   @override
-  String get assistantJumpToLatest => 'До останніх';
+  String get assistantJumpToLatest => 'До останніх повідомлень';
 
   @override
   String get assistantThinking => 'Думаю…';
 
   @override
   String assistantWaitLarge(int seconds) {
-    return 'Розмова велика; чекаємо $seconds с.';
+    return 'Розмова велика, тож чекаємо $seconds с.';
   }
 
   @override
-  String get assistantBusyRetryingNow => 'Gemini перевантажений. Повторюємо…';
+  String get assistantBusyRetryingNow =>
+      'Gemini зараз перевантажено. Повторюємо…';
 
   @override
   String assistantBusyRetryingIn(int seconds) {
-    return 'Gemini перевантажений. Повтор через $seconds с.';
+    return 'Gemini перевантажено. Повтор через $seconds с.';
   }
 
   @override
   String get assistantWaitLargeSpoken =>
-      'Розмова велика; чекаємо, перш ніж продовжити.';
+      'Розмова велика, тож трохи зачекаємо, перш ніж продовжити.';
 
   @override
   String get assistantBusyRetryingShortly =>
-      'Gemini перевантажений. Незабаром повторимо.';
+      'Gemini перевантажено. Незабаром повторимо.';
 
   @override
   String assistantDailyLimit(String time) {
@@ -367,7 +368,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String assistantDeleteThreadBody(String title) {
-    return 'Розмову «$title» і її повідомлення буде видалено. Зміни, які вона внесла у ваші дані, залишаться.';
+    return 'Розмову «$title» та її повідомлення буде видалено. Зміни, які вона внесла у ваші дані, залишаться.';
   }
 
   @override
@@ -679,23 +680,24 @@ class AppLocalizationsUk extends AppLocalizations {
   }
 
   @override
-  String get assistantUndoNone => 'Це незворотно.';
+  String get assistantUndoNone => 'Цю дію не можна скасувати.';
 
   @override
   String assistantUndoPartialFor(int minutes) {
-    return 'Частину змін можна буде повернути протягом $minutes хв.';
+    return 'Частину змін можна буде скасувати протягом $minutes хв.';
   }
 
   @override
-  String get assistantUndoPartialLater => 'Частину змін можна буде повернути.';
+  String get assistantUndoPartialLater =>
+      'Частину змін можна буде скасувати пізніше.';
 
   @override
   String assistantUndoFor(int minutes) {
-    return 'Повернути все можна протягом $minutes хв.';
+    return 'Скасувати зміни можна протягом $minutes хв.';
   }
 
   @override
-  String get assistantUndoLater => 'Потім зміни можна буде повернути.';
+  String get assistantUndoLater => 'Зміни можна буде скасувати пізніше.';
 
   @override
   String assistantNothingChangesUntilApproved(String undo) {
@@ -733,7 +735,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get assistantUpdateModule => 'Оновити модуль';
 
   @override
-  String get assistantInstallModule => 'Установити модуль';
+  String get assistantInstallModule => 'Встановити модуль';
 
   @override
   String assistantDeleteSomeOf(int count, int total) {
@@ -797,7 +799,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get assistantCouldNotApply => 'Не вдалося застосувати зміни';
 
   @override
-  String get assistantRebuild => 'Оновити перегляд';
+  String get assistantRebuild => 'Оновити';
 
   @override
   String get assistantErrorLoadPartial =>
@@ -825,7 +827,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get assistantErrorDailyLimit => 'Ліміт ШІ на сьогодні вичерпано.';
 
   @override
-  String get assistantErrorBusy => 'Gemini зараз перевантажений.';
+  String get assistantErrorBusy => 'Gemini зараз перевантажено.';
 
   @override
   String get assistantErrorDropped =>
@@ -901,7 +903,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String assistantResultMatching(String query) {
-    return 'за запитом $query';
+    return 'за запитом «$query»';
   }
 
   @override
@@ -998,7 +1000,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get authWelcomeBody =>
-      'Один охайний дім для ваших колекцій і карток — надійно синхронізований на всіх пристроях, де ви входите.';
+      'Усі ваші колекції й картки в одному охайному місці — надійно синхронізовані на всіх пристроях, де ви ввійшли.';
 
   @override
   String get authPrivacyNote =>
@@ -1165,7 +1167,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get automationEngineDownBody =>
-      'Запуски пропускаються й записуються в журнал.';
+      'Запуски не виконуються, але записуються в журнал.';
 
   @override
   String get automationPageSubtitle =>
@@ -1273,7 +1275,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String automationSkippedGroup(int count, String reason) {
-    return 'Пропущено: $count · $reason';
+    return 'Не запущено: $count · $reason';
   }
 
   @override
@@ -1301,10 +1303,10 @@ class AppLocalizationsUk extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Пропущено $count разу · $reason',
-      many: 'Пропущено $count разів · $reason',
-      few: 'Пропущено $count рази · $reason',
-      one: 'Пропущено $count раз · $reason',
+      other: 'Не запущено $count разу · $reason',
+      many: 'Не запущено $count разів · $reason',
+      few: 'Не запущено $count рази · $reason',
+      one: 'Не запущено $count раз · $reason',
     );
     return '$_temp0';
   }
@@ -1333,6 +1335,9 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get automationEditAutomation => 'Редагувати автоматизацію';
+
+  @override
+  String get automationEditAction => 'Редагувати';
 
   @override
   String automationChangeCount(int count) {
@@ -1463,7 +1468,7 @@ class AppLocalizationsUk extends AppLocalizations {
       'Модулі не мають доступу до інтернету, вашого облікового запису чи інших застосунків. Змінити або відкликати доступ можна пізніше на сторінці модуля.';
 
   @override
-  String get automationConsentAllowAndInstall => 'Дозволити й встановити';
+  String get automationConsentAllowAndInstall => 'Дозволити та встановити';
 
   @override
   String get automationConsentAllow => 'Дозволити';
@@ -1489,7 +1494,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get automationModuleNotInstalledMessage =>
-      'Його видалили, або посилання застаріло.';
+      'Його видалили або посилання застаріло.';
 
   @override
   String get automationModuleAllowTitle => 'Дозвольте цьому модулю працювати.';
@@ -1524,7 +1529,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String automationUninstallTitle(String name) {
-    return 'Видалити «$name»?';
+    return 'Видалити модуль «$name»?';
   }
 
   @override
@@ -1553,7 +1558,7 @@ class AppLocalizationsUk extends AppLocalizations {
   }
 
   @override
-  String get automationUninstall => 'Видалити';
+  String get automationUninstall => 'Видалити модуль';
 
   @override
   String automationUninstalledSnack(String name) {
@@ -1673,7 +1678,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get automationStatusApplying => 'Застосовується';
 
   @override
-  String get automationStatusNeedsReview => 'Потребує перевірки';
+  String get automationStatusNeedsReview => 'Чекає перевірки';
 
   @override
   String get automationStatusSucceeded => 'Успішно';
@@ -1685,7 +1690,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get automationStatusTimedOut => 'Час вичерпано';
 
   @override
-  String get automationStatusSkipped => 'Пропущено';
+  String get automationStatusSkipped => 'Не запущено';
 
   @override
   String get automationStatusRejected => 'Відхилено';
@@ -1790,7 +1795,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String automationApprovedAt(String time) {
-    return 'ви схвалили о $time';
+    return 'ви підтвердили о $time';
   }
 
   @override
@@ -1808,7 +1813,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get automationRetryFailed => 'Повторити невдалі';
 
   @override
-  String get automationReviewElsewhere => 'Перевірка деінде';
+  String get automationReviewElsewhere => 'Перевірка в іншому вікні';
 
   @override
   String automationTriggerButtonCollection(int count, String collection) {
@@ -1951,7 +1956,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get automationReviewExpiredBody =>
-      'Попередній перегляд зберігається, лише поки застосунок відкритий. Запустіть знову, щоб отримати свіжий перегляд на поточних даних.';
+      'Попередній перегляд зберігається, лише поки застосунок відкритий. Запустіть ще раз, щоб отримати новий попередній перегляд для поточних даних.';
 
   @override
   String get automationUndoneSentence => 'Скасовано.';
@@ -2000,10 +2005,10 @@ class AppLocalizationsUk extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Змінило б $count картки',
-      many: 'Змінило б $count карток',
-      few: 'Змінило б $count картки',
-      one: 'Змінило б $count картку',
+      other: 'Змінилося б $count картки',
+      many: 'Змінилося б $count карток',
+      few: 'Змінилися б $count картки',
+      one: 'Змінилася б $count картка',
     );
     return '$_temp0';
   }
@@ -2203,7 +2208,8 @@ class AppLocalizationsUk extends AppLocalizations {
       'Ви перевіряєте кожну зміну в попередньому перегляді.';
 
   @override
-  String get automationAskFirstEventHint => 'Кожна картка чекає на перевірку.';
+  String get automationAskFirstEventHint =>
+      'Кожна картка чекає у списку «Чекають перевірки».';
 
   @override
   String get automationApplyAutomatically => 'Застосовувати автоматично';
@@ -2271,7 +2277,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get automationTintRose => 'рожевий';
 
   @override
-  String get automationTintSlate => 'сланцевий';
+  String get automationTintSlate => 'графітовий';
 
   @override
   String get automationTintTeal => 'бірюзовий';
@@ -2313,7 +2319,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get automationWidgetsRunApplyingDetail => 'Зміни застосовуються.';
 
   @override
-  String get automationWidgetsRunAwaitingReview => 'Потрібна ваша перевірка';
+  String get automationWidgetsRunAwaitingReview => 'Чекає вашої перевірки';
 
   @override
   String get automationWidgetsRunAwaitingReviewDetail =>
@@ -2336,8 +2342,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get automationWidgetsRunRejected => 'Відхилено';
 
   @override
-  String get automationWidgetsRunRejectedDetail =>
-      'Ви відхилили попередній перегляд.';
+  String get automationWidgetsRunRejectedDetail => 'Ви відхилили зміни.';
 
   @override
   String get automationWidgetsRunExpired => 'Термін минув';
@@ -2382,7 +2387,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get automationWidgetsReasonCrashedAdvice =>
-      'Продовжити на сторінці автоматизації';
+      'Натисніть «Продовжити» на сторінці автоматизації';
 
   @override
   String get automationWidgetsPaused => 'Призупинено';
@@ -2456,7 +2461,7 @@ class AppLocalizationsUk extends AppLocalizations {
       'У черзі було забагато запусків.';
 
   @override
-  String get automationWidgetsReasonQueueFullAdvice => 'Запустити пізніше';
+  String get automationWidgetsReasonQueueFullAdvice => 'Запустіть пізніше';
 
   @override
   String get automationWidgetsReasonReviewBacklog =>
@@ -2548,7 +2553,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get automationWidgetsReasonOfflineAdvice =>
-      'Запустити знову, коли з’явиться з’єднання';
+      'Запустіть знову, коли з’явиться з’єднання';
 
   @override
   String get automationWidgetsReasonNotApplied => 'Нічого не застосовано';
@@ -2636,7 +2641,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String automationWidgetsNoticeNeedsReview(String label) {
-    return '$label: потрібна ваша перевірка';
+    return '$label: чекає вашої перевірки';
   }
 
   @override
@@ -2694,7 +2699,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get automationWidgetsStateRunning => 'виконується';
 
   @override
-  String get automationWidgetsStateWaitingForReview => 'чекає на перевірку';
+  String get automationWidgetsStateWaitingForReview => 'чекає перевірки';
 
   @override
   String get automationWidgetsStateLastRunFailed => 'останній запуск не вдався';
@@ -2734,7 +2739,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get automationWidgetsNoButtons => 'Кнопок ще немає.';
 
   @override
-  String get automationWidgetsNeedsReview => 'Потрібна перевірка';
+  String get automationWidgetsNeedsReview => 'Чекає перевірки';
 
   @override
   String get automationWidgetsLastRunFailed => 'Останній запуск не вдався';
@@ -2757,10 +2762,10 @@ class AppLocalizationsUk extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Для всіх $count картки',
-      many: 'Для всіх $count карток',
-      few: 'Для всіх $count карток',
-      one: 'Для всієї $count картки',
+      other: 'Для всіх карток ($count)',
+      many: 'Для всіх карток ($count)',
+      few: 'Для всіх карток ($count)',
+      one: 'Для всіх карток ($count)',
     );
     return '$_temp0';
   }
@@ -2891,7 +2896,7 @@ class AppLocalizationsUk extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count перевірки застаріли · Переглянути',
-      many: '$count перевірок застаріли · Переглянути',
+      many: '$count перевірок застаріло · Переглянути',
       few: '$count перевірки застаріли · Переглянути',
       one: '$count перевірка застаріла · Переглянути',
     );
@@ -3313,11 +3318,11 @@ class AppLocalizationsUk extends AppLocalizations {
   String get collectionsFunctions => 'Функції';
 
   @override
-  String get collectionsJoinChip => '& з’єднати';
+  String get collectionsJoinChip => '& об’єднати';
 
   @override
   String collectionsJoinTooltip(String open, String close) {
-    return 'З’єднує текст: $openІм’я$close & \" \" & $openПрізвище$close';
+    return 'Об’єднує текст: $openІм’я$close & \" \" & $openПрізвище$close';
   }
 
   @override
@@ -3461,7 +3466,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get collectionsRequiredHint =>
-      'Картка буде правильною, лише коли значення заповнено.';
+      'Картка дійсна, лише коли це поле заповнено.';
 
   @override
   String get collectionsOptions => 'Параметри';
@@ -3498,7 +3503,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get collectionsCollapsedByDefaultHint =>
-      'Група згорнута, коли відкриваєте картку.';
+      'Група буде згорнута, коли ви відкриєте картку.';
 
   @override
   String get collectionsDeleteGroup => 'Видалити групу';
@@ -3536,7 +3541,10 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String collectionsFirstRunQuestion(String item) {
-    return 'Що ви відстежуєте в кожній картці «$item»?';
+    String _temp0 = intl.Intl.selectLogic(item, {
+      'other': 'Що ви відстежуєте для кожної картки?',
+    });
+    return '$_temp0';
   }
 
   @override
@@ -3704,7 +3712,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String collectionsNoMatch(String query) {
-    return 'Жодна колекція не відповідає запиту «$query»';
+    return 'Не знайдено колекцій за запитом «$query»';
   }
 
   @override
@@ -3712,7 +3720,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String collectionsDeleteMessage(String name) {
-    return 'Колекцію «$name» і її структуру буде видалено назавжди. Картки в ній стануть недоступні. Цю дію не можна скасувати.';
+    return 'Колекцію «$name» та її структуру буде видалено назавжди. Картки в ній стануть недоступними. Цю дію не можна скасувати.';
   }
 
   @override
@@ -3723,14 +3731,14 @@ class AppLocalizationsUk extends AppLocalizations {
       'Колекції містять ваші картки — замовлення, клієнтів, склад, будь-що. Створіть першу, щоб упорядкувати свою роботу.';
 
   @override
-  String get collectionsStartFromTemplate => 'Почати із шаблону';
+  String get collectionsStartFromTemplate => 'Почати з шаблону';
 
   @override
   String get collectionsLoadErrorTitle => 'Не вдалося завантажити колекції';
 
   @override
   String collectionsLoadFailed(String error) {
-    return 'Помилка завантаження колекцій: $error';
+    return 'Не вдалося завантажити колекції: $error';
   }
 
   @override
@@ -4047,7 +4055,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String formulaErrorFieldNotUsable(String name) {
-    return 'Поле «$name» не можна використати у формулі — щоб підсумувати пов’язані картки, виберіть агрегацію';
+    return 'Поле «$name» не можна використати у формулі — щоб підсумувати пов’язані картки, скористайтеся режимом «Агрегація»';
   }
 
   @override
@@ -4225,7 +4233,7 @@ class AppLocalizationsUk extends AppLocalizations {
   }
 
   @override
-  String get templatesAdd => 'Додати в робочий простір';
+  String get templatesAdd => 'Додати до робочого простору';
 
   @override
   String templatesAddFailed(String name) {
@@ -5072,7 +5080,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get trelloImportStalled =>
-      'Застосунок не міг зв’язатися із сервером протягом 30 секунд. Перевірте з’єднання й повторіть спробу — уже записані картки не додадуться вдруге. Якщо закрити вікно, уже імпортоване залишиться.';
+      'Застосунку не вдалося зв’язатися з сервером протягом 30 секунд. Перевірте з’єднання й повторіть спробу — уже записані картки не додадуться вдруге. Якщо закрити вікно, уже імпортоване залишиться.';
 
   @override
   String get trelloImportRefused =>
@@ -5104,7 +5112,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get trelloImportButlerHint =>
-      'Користувалися Butler у Trello? Налаштуйте ті самі кроки як автоматизації.';
+      'Користувалися Butler у Trello? Відтворіть ті самі кроки за допомогою автоматизацій.';
 
   @override
   String get settingsWorkspaceSection => 'Робочий простір';
@@ -5441,20 +5449,20 @@ class AppLocalizationsUk extends AppLocalizations {
   }
 
   @override
-  String get viewsClearFilters => 'Очистити фільтри';
+  String get viewsClearFilters => 'Скинути фільтри';
 
   @override
   String viewsAssistantFiltersTooltip(String filters) {
-    return 'Фільтри від Моркви, не збережено: $filters';
+    return 'Фільтри від Моркви (не збережено): $filters';
   }
 
   @override
   String viewsFromAssistant(String filters) {
-    return 'Від асистента · $filters';
+    return 'Від Моркви · $filters';
   }
 
   @override
-  String get viewsClearAssistantFilters => 'Прибрати фільтри асистента';
+  String get viewsClearAssistantFilters => 'Прибрати фільтри Моркви';
 
   @override
   String viewsUnknownMode(String mode, String fallback) {
@@ -5466,7 +5474,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get viewsNotFoundMessage =>
-      'Можливо, цю колекцію видалено або посилання неправильне. Поверніться на головну, щоб вибрати іншу.';
+      'Можливо, цю колекцію видалено або посилання неправильне. Поверніться на головну й виберіть іншу.';
 
   @override
   String get viewsBackToCollections => 'До колекцій';
@@ -5602,10 +5610,15 @@ class AppLocalizationsUk extends AppLocalizations {
   String get viewWidgetsUnknownItem => 'Невідома картка';
 
   @override
-  String get viewWidgetsOpIs => '—';
+  String viewWidgetsFilterChip(String field, String condition) {
+    return '$field: $condition';
+  }
 
   @override
-  String get viewWidgetsOpIsNot => '— не';
+  String get viewWidgetsOpIs => '';
+
+  @override
+  String get viewWidgetsOpIsNot => 'не';
 
   @override
   String get viewWidgetsOpHas => 'містить';
@@ -5764,7 +5777,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get viewWidgetsName => 'Назва';
 
   @override
-  String get viewWidgetsNameHint => 'напр., Воронка';
+  String get viewWidgetsNameHint => 'напр. Воронка';
 
   @override
   String get viewWidgetsCreateView => 'Створити подання';
@@ -5783,7 +5796,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get viewWidgetsNothingMatchesFilters =>
-      'Немає збігів із цими фільтрами';
+      'Нічого не відповідає цим фільтрам';
 
   @override
   String get viewWidgetsClearFilters => 'Скинути фільтри';
@@ -5806,7 +5819,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String viewWidgetsEveryItemHasDate(String item) {
     String _temp0 = intl.Intl.selectLogic(item, {
       'other':
-          'Усі картки мають дату. Перетягніть картку сюди, щоб прибрати її дату.',
+          'У всіх карток є дата. Перетягніть картку сюди, щоб прибрати її дату.',
     });
     return '$_temp0';
   }
@@ -5878,7 +5891,7 @@ class AppLocalizationsUk extends AppLocalizations {
   @override
   String viewWidgetsNewItemInColumn(String item, String column) {
     String _temp0 = intl.Intl.selectLogic(item, {
-      'other': 'Нова картка в «$column»',
+      'other': 'Нова картка у стовпці «$column»',
     });
     return '$_temp0';
   }
@@ -5923,7 +5936,7 @@ class AppLocalizationsUk extends AppLocalizations {
   }
 
   @override
-  String get viewWidgetsViewSettings => 'Параметри подання';
+  String get viewWidgetsViewSettings => 'Налаштування подання';
 
   @override
   String get viewWidgetsMode => 'Режим';

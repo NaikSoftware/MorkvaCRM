@@ -8,7 +8,7 @@ import '../../../core/domain/automation/automation.dart';
 import '../../../core/domain/collection.dart';
 import '../../../core/domain/ids.dart';
 import '../../../core/domain/view/view_definition.dart';
-import '../../assistant/bloc/assistant_bloc.dart' show currentAppStrings;
+import '../../../l10n/l10n.dart';
 import 'modules_cubit.dart';
 
 /// The editor's "When" (UX §3.2).

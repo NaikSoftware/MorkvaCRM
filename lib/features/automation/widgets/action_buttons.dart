@@ -5,7 +5,6 @@ import '../../../core/automation/runner_api.dart';
 import '../../../core/domain/automation/automation.dart';
 import '../../../design/design.dart';
 import '../../../l10n/l10n.dart';
-import '../../assistant/bloc/assistant_bloc.dart' show currentAppStrings;
 import '../bloc/automation_runs_cubit.dart';
 import '../bloc/modules_cubit.dart';
 import '../view/review_sheet.dart';

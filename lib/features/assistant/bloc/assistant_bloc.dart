@@ -1,12 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
-import 'dart:ui' show Locale;
 
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
 
 
 import '../../../api/assistant/assistant_config.dart';
@@ -27,17 +25,6 @@ import 'chat_item.dart';
 import 'chat_item_codec.dart';
 
 part 'assistant_event.dart';
-
-/// The app's strings in the language it resolved last (`Intl.defaultLocale`,
-/// set by the app), for text written outside a widget; English when unset
-/// or unsupported.
-AppLocalizations currentAppStrings() {
-  final code = Intl.shortLocale(Intl.getCurrentLocale());
-  final known = AppLocalizations.supportedLocales.any(
-    (l) => l.languageCode == code,
-  );
-  return lookupAppLocalizations(Locale(known ? code : 'en'));
-}
 
 /// The Ask Morkva chat: runs user turns through the [AgentLoop], renders its
 /// events as [ChatItem]s, and is the **only** code that builds a user-actor

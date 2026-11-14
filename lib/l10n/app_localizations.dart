@@ -1397,7 +1397,7 @@ abstract class AppLocalizations {
   /// No description provided for @assistantResultMatching.
   ///
   /// In en, this message translates to:
-  /// **'matching {query}'**
+  /// **'matching “{query}”'**
   String assistantResultMatching(String query);
 
   /// No description provided for @assistantStepLookedAt.
@@ -2041,6 +2041,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Edit automation'**
   String get automationEditAutomation;
+
+  /// No description provided for @automationEditAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit automation'**
+  String get automationEditAction;
 
   /// No description provided for @automationChangeCount.
   ///
@@ -8284,6 +8290,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unknown item'**
   String get viewWidgetsUnknownItem;
+
+  /// No description provided for @viewWidgetsFilterChip.
+  ///
+  /// In en, this message translates to:
+  /// **'{field} {condition}'**
+  String viewWidgetsFilterChip(String field, String condition);
 
   /// No description provided for @viewWidgetsOpIs.
   ///

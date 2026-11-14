@@ -2,7 +2,6 @@ import 'package:flutter/material.dart' show IconData, Icons;
 
 import '../../../core/domain/automation/automation.dart';
 import '../../../l10n/l10n.dart';
-import '../../assistant/bloc/assistant_bloc.dart' show currentAppStrings;
 
 /// How a chip, row or banner is coloured (the widget picks the tokens).
 enum CopyTone {

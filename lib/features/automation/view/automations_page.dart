@@ -2047,7 +2047,8 @@ class RunRowTile extends StatelessWidget {
         onPressed: () => host.openModule(run.moduleId),
       ),
       RunRowAction.editAutomation => TextActionButton(
-        label: l10n.automationEditAutomation,
+        // Short in Ukrainian: the run-row action column is 200 px.
+        label: l10n.automationEditAction,
         icon: Icons.edit_outlined,
         onPressed: () => host.editAutomation(run.automationId!),
       ),

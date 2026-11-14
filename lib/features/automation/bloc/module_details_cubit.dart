@@ -6,7 +6,7 @@ import 'package:rxdart/rxdart.dart';
 
 import '../../../core/automation/runner_api.dart';
 import '../../../core/domain/automation/automation.dart';
-import '../../assistant/bloc/assistant_bloc.dart' show currentAppStrings;
+import '../../../l10n/l10n.dart';
 import 'modules_cubit.dart';
 
 /// The banner at the top of module details (UX §2).

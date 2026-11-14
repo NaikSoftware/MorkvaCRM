@@ -737,7 +737,7 @@
       }
     }
   },
-  "assistantResultMatching": "matching {query}",
+  "assistantResultMatching": "matching “{query}”",
   "@assistantResultMatching": {
     "placeholders": {
       "query": {
@@ -1110,6 +1110,7 @@
   },
   "automationReviewPermissions": "Review permissions",
   "automationEditAutomation": "Edit automation",
+  "automationEditAction": "Edit automation",
   "automationChangeCount": "{count, plural, =1{1 change} other{{count} changes}}",
   "@automationChangeCount": {
     "placeholders": {
@@ -4163,6 +4164,17 @@
   "viewWidgetsConditionSeparator": " and ",
   "viewWidgetsUnknownField": "Unknown field",
   "viewWidgetsUnknownItem": "Unknown item",
+  "viewWidgetsFilterChip": "{field} {condition}",
+  "@viewWidgetsFilterChip": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      },
+      "condition": {
+        "type": "String"
+      }
+    }
+  },
   "viewWidgetsOpIs": "is",
   "viewWidgetsOpIsNot": "is not",
   "viewWidgetsOpHas": "has",

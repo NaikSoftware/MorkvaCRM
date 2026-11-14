@@ -5,7 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../api/data/data_repository.dart';
 import '../../core/domain/domain.dart';
 import '../../core/harness/input/ref_resolver.dart';
-import '../assistant/bloc/assistant_bloc.dart' show currentAppStrings;
+import '../../l10n/l10n.dart';
 import '../collections/util/id_generator.dart';
 import 'collection_views_state.dart';
 import 'view_link.dart';
