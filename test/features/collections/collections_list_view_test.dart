@@ -166,7 +166,7 @@ void main() {
         expect(find.text('2 collections'), findsOneWidget);
         expect(
           find.text('All collections'),
-          width >= 640 ? findsOne : findsNothing,
+          width >= 840 ? findsOne : findsNothing,
         );
         expect(find.text('New collection'), labelled ? findsOne : findsNothing);
         expect(
