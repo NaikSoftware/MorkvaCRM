@@ -17,6 +17,7 @@ class PressableScale extends StatefulWidget {
     this.pressedScale = kPressedScale,
     this.semanticLabel,
     this.borderRadius,
+    this.onLongPress,
   });
 
   final Widget child;
@@ -24,6 +25,7 @@ class PressableScale extends StatefulWidget {
   final double pressedScale;
   final String? semanticLabel;
   final BorderRadius? borderRadius;
+  final VoidCallback? onLongPress;
 
   bool get _enabled => onPressed != null;
 
@@ -67,6 +69,7 @@ class _PressableScaleState extends State<PressableScale> {
           onTapUp: (_) => _setPressed(false),
           onTapCancel: () => _setPressed(false),
           onTap: widget.onPressed,
+          onLongPress: widget._enabled ? widget.onLongPress : null,
           child: AnimatedScale(
             scale: scale,
             duration: reduceMotion ? MotionDurations.none : MotionDurations.fast,

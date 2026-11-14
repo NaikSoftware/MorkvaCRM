@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:intl/intl.dart';
 
 import '../../../design/design.dart';
@@ -283,8 +282,8 @@ class _DayCard extends StatelessWidget {
   }
 }
 
-/// With a mouse, the delete button shows on hover or keyboard focus; on
-/// touch-only screens it is always there.
+/// The time sits at the end; with a mouse, hover or keyboard focus swaps it
+/// for the delete button. On touch, a long press asks to delete.
 class _ThreadTile extends StatefulWidget {
   const _ThreadTile({
     required this.thread,
@@ -331,6 +330,8 @@ class _ThreadTileState extends State<_ThreadTile> {
     final meta = snippet == null ? time : '$time · $snippet';
     final title = thread.titleIn(context.l10n);
     final hovered = _hovered && enabled;
+    // Touch has no hover: a long press on the row asks to delete instead.
+    final showDelete = _hovered || _focused;
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
@@ -362,6 +363,7 @@ class _ThreadTileState extends State<_ThreadTile> {
                   Expanded(
                     child: PressableScale(
                       onPressed: enabled ? onTap : null,
+                      onLongPress: onDelete,
                       semanticLabel: '$title, $meta',
                       child: ExcludeSemantics(
                         child: ConstrainedBox(
@@ -377,28 +379,11 @@ class _ThreadTileState extends State<_ThreadTile> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                Row(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.baseline,
-                                  textBaseline: TextBaseline.alphabetic,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        title,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: theme.textTheme.titleSmall,
-                                      ),
-                                    ),
-                                    const SizedBox(width: Spacing.xs),
-                                    Text(
-                                      time,
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                    ),
-                                  ],
+                                Text(
+                                  title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.titleSmall,
                                 ),
                                 if (snippet != null) ...[
                                   const SizedBox(height: 2),
@@ -416,39 +401,49 @@ class _ThreadTileState extends State<_ThreadTile> {
                       ),
                     ),
                   ),
-                  ListenableBuilder(
-                    listenable: RendererBinding.instance.mouseTracker,
-                    builder: (context, child) {
-                      final shown =
-                          _hovered ||
-                          _focused ||
-                          !RendererBinding
-                              .instance
-                              .mouseTracker
-                              .mouseIsConnected;
-                      // Hidden: no pointer hits, but still in the focus order;
-                      // focusing it reveals it.
-                      return IgnorePointer(
-                        ignoring: !shown,
+                  // The time, swapped for the delete button on hover or
+                  // keyboard focus. Hidden, the button takes no pointer hits
+                  // but stays in the focus order; focusing it reveals it.
+                  Stack(
+                    alignment: AlignmentDirectional.centerEnd,
+                    children: [
+                      IgnorePointer(
                         child: AnimatedOpacity(
-                          opacity: shown ? 1 : 0,
+                          opacity: showDelete ? 0 : 1,
                           duration: MotionDurations.fast,
-                          child: child,
+                          child: Padding(
+                            // Mirrors the title's 16 px inset with the 4 below.
+                            padding: const EdgeInsetsDirectional.only(end: 12),
+                            child: ExcludeSemantics(
+                              child: Text(
+                                time,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
-                      );
-                    },
-                    child: Focus(
-                      canRequestFocus: false,
-                      skipTraversal: true,
-                      onFocusChange: (f) => setState(() => _focused = f),
-                      child: IconActionButton(
-                        icon: MorkvaIcons.delete,
-                        tooltip: context.l10n.assistantDeleteThreadTooltip(
-                          title,
-                        ),
-                        onPressed: enabled ? onDelete : null,
                       ),
-                    ),
+                      IgnorePointer(
+                        ignoring: !showDelete,
+                        child: AnimatedOpacity(
+                          opacity: showDelete ? 1 : 0,
+                          duration: MotionDurations.fast,
+                          child: Focus(
+                            canRequestFocus: false,
+                            skipTraversal: true,
+                            onFocusChange: (f) => setState(() => _focused = f),
+                            child: IconActionButton(
+                              icon: MorkvaIcons.delete,
+                              tooltip: context.l10n
+                                  .assistantDeleteThreadTooltip(title),
+                              onPressed: enabled ? onDelete : null,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(width: 4),
                 ],
@@ -470,11 +465,7 @@ class _Empty extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(top: Spacing.xl),
-    child: EmptyState(
-      icon: MorkvaIcons.forum,
-      title: title,
-      message: message,
-    ),
+    child: EmptyState(icon: MorkvaIcons.forum, title: title, message: message),
   );
 }
 

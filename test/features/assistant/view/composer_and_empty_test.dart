@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -306,9 +307,47 @@ void main() {
       expect(find.text('No conversations match “zzz”.'), findsOneWidget);
     });
 
+    double opacityOf(WidgetTester tester, Finder f) => tester
+        .widget<AnimatedOpacity>(
+          find.ancestor(of: f, matching: find.byType(AnimatedOpacity)).first,
+        )
+        .opacity;
+
+    testWidgets('hover swaps the time for the delete button', (tester) async {
+      await pump(tester);
+      final time = find.text('10:05');
+      final delete = find.byTooltip('Delete “Revenue by month”');
+      expect(opacityOf(tester, time), 1);
+      expect(opacityOf(tester, delete), 0);
+
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      addTearDown(mouse.removePointer);
+      await mouse.addPointer(location: Offset.zero);
+      await mouse.moveTo(tester.getCenter(find.text('Revenue by month')));
+      await tester.pumpAndSettle();
+      expect(opacityOf(tester, time), 0);
+      expect(opacityOf(tester, delete), 1);
+    });
+
+    testWidgets('a long press asks to delete', (tester) async {
+      final deleted = <String>[];
+      await pump(tester, deleted: deleted);
+      await tester.longPress(find.text('Revenue by month'));
+      await tester.pumpAndSettle();
+      expect(find.text('Delete this conversation?'), findsOneWidget);
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+      expect(deleted, ['t_revenue']);
+    });
+
     testWidgets('delete asks first', (tester) async {
       final deleted = <String>[];
       await pump(tester, deleted: deleted);
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      addTearDown(mouse.removePointer);
+      await mouse.addPointer(location: Offset.zero);
+      await mouse.moveTo(tester.getCenter(find.text('Revenue by month')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Delete “Revenue by month”'));
       await tester.pumpAndSettle();
       expect(find.text('Delete this conversation?'), findsOneWidget);
