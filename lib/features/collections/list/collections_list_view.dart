@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/shell/app_shell.dart';
 import '../../../core/domain/domain.dart';
 import '../../templates/template_picker.dart';
 import '../../../design/design.dart';
@@ -105,11 +106,14 @@ class _CollectionsContent extends StatelessWidget {
         final isWide =
             constraints.maxWidth >= CollectionsListView._gridBreakpoint;
         final gutter = isWide ? Spacing.xl : Spacing.md;
+        // Below the shell's sidebar breakpoint its header carries the title.
+        final ownTitle =
+            MediaQuery.sizeOf(context).width >= AppShell.expandedBreakpoint;
         // Labelled buttons beside the title need room; else icon buttons.
         final labelled = constraints.maxWidth >= 760;
         final count =
             '${all.length} ${all.length == 1 ? 'collection' : 'collections'}'
-            '${pinned.isEmpty ? '' : ' · ${pinned.length} pinned${isWide ? ' to the sidebar' : ''}'}';
+            '${pinned.isEmpty ? '' : ' · ${pinned.length} pinned${ownTitle ? ' to the sidebar' : ''}'}';
         final countStyle = theme.textTheme.bodyMedium?.copyWith(
           color: scheme.onSurfaceVariant,
         );
@@ -173,18 +177,18 @@ class _CollectionsContent extends StatelessWidget {
             SliverPadding(
               padding: EdgeInsets.fromLTRB(
                 gutter,
-                isWide ? Spacing.xl : Spacing.xxs,
+                ownTitle ? Spacing.xl : Spacing.xxs,
                 gutter,
                 0,
               ),
               sliver: SliverToBoxAdapter(
                 child: Row(
-                  crossAxisAlignment: isWide
+                  crossAxisAlignment: ownTitle
                       ? CrossAxisAlignment.end
                       : CrossAxisAlignment.center,
                   children: [
                     Expanded(
-                      child: isWide
+                      child: ownTitle
                           ? Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -196,7 +200,6 @@ class _CollectionsContent extends StatelessWidget {
                                 Text(count, style: countStyle),
                               ],
                             )
-                          // Phone: the shell header carries the title.
                           : Text(count, style: countStyle),
                     ),
                     const SizedBox(width: Spacing.xs),
