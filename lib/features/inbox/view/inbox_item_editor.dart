@@ -6,6 +6,7 @@ import '../../../api/auth/auth_cubit.dart';
 import '../../../app/shell/app_shell.dart';
 import '../../../core/domain/inbox/inbox.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../bloc/inbox_cubit.dart';
 import '../bloc/inbox_page_cubit.dart';
 import '../reminders/reminder_platform.dart';
@@ -45,6 +46,7 @@ Future<void> showInboxItemEditor(
   final uid = inboxUid(context);
   if (item == null && uid == null) return;
   final messenger = ScaffoldMessenger.maybeOf(context);
+  final l10n = context.l10n;
   final wide = MediaQuery.sizeOf(context).width >= AppShell.expandedBreakpoint;
   final editor = BlocProvider(
     create: (_) => InboxDraftCubit(
@@ -69,7 +71,7 @@ Future<void> showInboxItemEditor(
               if (removed == null) return;
               showInboxSnack(
                 messenger,
-                'Deleted',
+                l10n.inboxDeleted,
                 onUndo: () => inbox.restore(removed),
               );
             },
@@ -105,7 +107,7 @@ Future<void> showInboxItemEditor(
   await showGeneralDialog<void>(
     context: context,
     barrierDismissible: true,
-    barrierLabel: 'Close editor',
+    barrierLabel: l10n.objectsCloseEditor,
     barrierColor: Colors.black54,
     transitionDuration: reduceMotion
         ? MotionDurations.none
@@ -245,12 +247,13 @@ class _InboxItemEditorState extends State<InboxItemEditor> {
           canPop: !dirty,
           onPopInvokedWithResult: (didPop, _) async {
             if (didPop) return;
+            final l10n = context.l10n;
             final discard = await MorkvaConfirmDialog.show(
               context,
-              title: 'Discard changes?',
-              message: "Your changes to this item haven't been saved.",
-              confirmLabel: 'Discard',
-              cancelLabel: 'Keep editing',
+              title: l10n.objectsDiscardTitle,
+              message: l10n.inboxDiscardMessage,
+              confirmLabel: l10n.objectsDiscard,
+              cancelLabel: l10n.objectsKeepEditing,
               destructive: true,
             );
             if (discard == true && context.mounted) {
@@ -266,6 +269,7 @@ class _InboxItemEditorState extends State<InboxItemEditor> {
   Widget _body(BuildContext context, InboxDraft draft) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
     final divider = Divider(height: 1, color: scheme.outlineVariant);
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -295,8 +299,8 @@ class _InboxItemEditorState extends State<InboxItemEditor> {
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
-                  decoration: const InputDecoration(
-                    hintText: 'Title',
+                  decoration: InputDecoration(
+                    hintText: l10n.inboxTitleHint,
                     border: InputBorder.none,
                     enabledBorder: InputBorder.none,
                     focusedBorder: InputBorder.none,
@@ -309,7 +313,7 @@ class _InboxItemEditorState extends State<InboxItemEditor> {
                 ),
               ),
               IconButton(
-                tooltip: 'Close',
+                tooltip: l10n.commonClose,
                 onPressed: () => Navigator.of(context).maybePop(),
                 icon: const Icon(Icons.close),
               ),
@@ -331,7 +335,7 @@ class _InboxItemEditorState extends State<InboxItemEditor> {
               children: [
                 MorkvaTextField(
                   controller: _details,
-                  hint: 'Details (optional)',
+                  hint: l10n.inboxDetailsHint,
                   minLines: 2,
                   maxLines: 6,
                   onChanged: (t) => _edit((d) => d.copyWith(details: t)),
@@ -362,11 +366,11 @@ class _InboxItemEditorState extends State<InboxItemEditor> {
                   ),
                   onPressed: _delete,
                   icon: const Icon(Icons.delete_outline, size: 20),
-                  label: const Text('Delete'),
+                  label: Text(l10n.commonDelete),
                 ),
               const Spacer(),
               PrimaryButton(
-                label: 'Save',
+                label: l10n.commonSave,
                 onPressed: draft.title.trim().isEmpty ? null : _save,
               ),
             ],
@@ -424,12 +428,13 @@ class _InboxItemEditorState extends State<InboxItemEditor> {
 
   Widget _dateRow(BuildContext context, InboxDraft draft) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     final now = widget.now();
     final date = draft.date;
     final presets = [
-      ('Today', InboxDatePresets.today(now)),
-      ('Tomorrow', InboxDatePresets.tomorrow(now)),
-      ('Next Mon', InboxDatePresets.nextMonday(now)),
+      (l10n.commonToday, InboxDatePresets.today(now)),
+      (l10n.inboxTomorrow, InboxDatePresets.tomorrow(now)),
+      (l10n.inboxNextMon, InboxDatePresets.nextMonday(now)),
     ];
     final minutes = draft.minutes;
     return _row(
@@ -441,19 +446,22 @@ class _InboxItemEditorState extends State<InboxItemEditor> {
             children: [
               Expanded(
                 child: date == null
-                    ? _muted('No date')
+                    ? _muted(l10n.inboxNoDate)
                     : Row(
                         children: [
                           Flexible(
                             child: Text(
-                              dayMonthLabel(date),
+                              dayMonthLabel(
+                                date,
+                                Localizations.localeOf(context).toString(),
+                              ),
                               style: theme.textTheme.bodyLarge?.copyWith(
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                           ),
                           IconButton(
-                            tooltip: 'Clear date',
+                            tooltip: l10n.inboxClearDate,
                             iconSize: 18,
                             color: theme.colorScheme.onSurfaceVariant,
                             onPressed: () => _edit((d) => d.withDate(null)),
@@ -466,16 +474,16 @@ class _InboxItemEditorState extends State<InboxItemEditor> {
                 icon: Icons.schedule,
                 label: minutes == null ? null : timeLabel(minutes),
                 tooltip: date == null
-                    ? 'Set a date to add a time'
+                    ? l10n.inboxSetDateForTime
                     : minutes == null
-                    ? 'Add a time'
+                    ? l10n.inboxAddTime
                     : null,
                 outlined: minutes == null,
                 onPressed: date == null ? null : _pickTime,
                 onClear: minutes == null
                     ? null
                     : () => _edit((d) => d.withMinutes(null)),
-                clearTooltip: 'Clear time',
+                clearTooltip: l10n.inboxClearTime,
               ),
             ],
           ),
@@ -489,7 +497,11 @@ class _InboxItemEditorState extends State<InboxItemEditor> {
                   outlined: date != day,
                   onPressed: () => _edit((d) => d.withDate(day)),
                 ),
-              InboxChip(label: 'Pick…', outlined: true, onPressed: _pickDate),
+              InboxChip(
+                label: l10n.inboxPickDate,
+                outlined: true,
+                onPressed: _pickDate,
+              ),
             ],
           ),
         ],
@@ -499,10 +511,11 @@ class _InboxItemEditorState extends State<InboxItemEditor> {
 
   Widget _reminderRow(BuildContext context, InboxDraft draft) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     if (draft.date == null) {
       return _row(
         Icons.notifications_none,
-        _muted('Set a date to add reminders'),
+        _muted(l10n.inboxSetDateForReminders),
       );
     }
     final available = [
@@ -514,13 +527,18 @@ class _InboxItemEditorState extends State<InboxItemEditor> {
     final muted = theme.textTheme.bodySmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
+    // The link sits mid-sentence: split the whole message around it.
+    final turnOn = l10n.inboxTurnOnNotifications;
+    final [before, after] = l10n
+        .inboxNotificationsDefault(turnOn)
+        .split(turnOn);
     final line = switch (_permission) {
       NotificationPermission.defaultState => Text.rich(
         TextSpan(
           children: [
-            const TextSpan(text: 'Reminders pop up while Morkva is open. '),
+            TextSpan(text: before),
             TextSpan(
-              text: 'Turn on notifications',
+              text: turnOn,
               recognizer: _turnOn,
               style: TextStyle(
                 color: theme.extension<MorkvaSemanticColors>()?.primaryText,
@@ -528,18 +546,17 @@ class _InboxItemEditorState extends State<InboxItemEditor> {
                 decoration: TextDecoration.underline,
               ),
             ),
-            const TextSpan(text: ' to see them in other tabs too.'),
+            TextSpan(text: after),
           ],
         ),
         style: muted,
       ),
       NotificationPermission.granted => Text(
-        'Reminders pop up while Morkva is open in a tab.',
+        l10n.inboxNotificationsGranted,
         style: muted,
       ),
       NotificationPermission.denied => Text(
-        'Notifications are blocked for this site — reminders show only '
-        'inside Morkva.',
+        l10n.inboxNotificationsDenied,
         style: muted,
       ),
       NotificationPermission.unsupported => null,
@@ -555,22 +572,22 @@ class _InboxItemEditorState extends State<InboxItemEditor> {
             children: [
               for (final r in draft.reminders)
                 InboxChip(
-                  label: reminderLabel(r),
+                  label: reminderLabel(l10n, r),
                   onClear: () => _edit((d) => d.toggleReminder(r)),
-                  clearTooltip: 'Remove reminder',
+                  clearTooltip: l10n.inboxRemoveReminder,
                 ),
               MenuAnchor(
                 menuChildren: [
                   for (final r in available)
                     MenuItemButton(
                       onPressed: () => _edit((d) => d.toggleReminder(r)),
-                      child: Text(reminderLabel(r)),
+                      child: Text(reminderLabel(l10n, r)),
                     ),
                 ],
                 builder: (context, controller, _) => InboxChip(
                   icon: Icons.add,
                   outlined: true,
-                  tooltip: 'Add a reminder',
+                  tooltip: l10n.inboxAddReminder,
                   onPressed: canAdd
                       ? () => controller.isOpen
                             ? controller.close()
@@ -597,7 +614,7 @@ class _InboxItemEditorState extends State<InboxItemEditor> {
       Align(
         alignment: Alignment.centerLeft,
         child: link == null
-            ? _muted('Link a card', onTap: _pickLink)
+            ? _muted(context.l10n.inboxLinkCard, onTap: _pickLink)
             : InboxLinkChip(
                 link: link,
                 onTap: _pickLink,
@@ -618,6 +635,7 @@ class _KindToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
     Widget segment(InboxKind k, String tooltip, Widget glyph) {
       final on = kind == k;
       return Tooltip(
@@ -659,10 +677,10 @@ class _KindToggle extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          segment(InboxKind.task, 'Task', const InboxTaskCircle()),
+          segment(InboxKind.task, l10n.inboxTask, const InboxTaskCircle()),
           segment(
             InboxKind.note,
-            'Note',
+            l10n.inboxNote,
             Icon(
               Icons.sticky_note_2_outlined,
               size: 18,

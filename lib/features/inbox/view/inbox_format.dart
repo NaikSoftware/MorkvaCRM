@@ -1,33 +1,33 @@
-import '../../../core/domain/inbox/inbox.dart';
+import 'package:intl/intl.dart';
 
-const _weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const _months = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-];
+import '../../../core/domain/inbox/inbox.dart';
+import '../../../l10n/l10n.dart';
+
+/// The date labels take the [locale] to word them in
+/// (`Localizations.localeOf(context).toString()`); null is `Intl`'s current
+/// one.
+DateFormat _format(String pattern, String? locale) {
+  final l = locale ?? Intl.getCurrentLocale();
+  return _formats.putIfAbsent((l, pattern), () => DateFormat(pattern, l));
+}
+
+final _formats = <(String, String), DateFormat>{};
 
 /// "Sat" for calendar day [d].
-String weekdayLabel(DateTime d) => _weekdays[d.weekday - 1];
+String weekdayLabel(DateTime d, [String? locale]) =>
+    _format('E', locale).format(d);
 
 /// "Sat 14".
-String dayLabel(DateTime d) => '${weekdayLabel(d)} ${d.day}';
+String dayLabel(DateTime d, [String? locale]) =>
+    _format('E d', locale).format(d);
 
 /// "Sat 14 Nov".
-String dayMonthLabel(DateTime d) =>
-    '${dayLabel(d)} ${_months[d.month - 1].substring(0, 3)}';
+String dayMonthLabel(DateTime d, [String? locale]) =>
+    _format('E d MMM', locale).format(d);
 
-/// "November 2026".
-String monthLabel(DateTime d) => '${_months[d.month - 1]} ${d.year}';
+/// "November 2026" (the stand-alone month: «листопад 2026»).
+String monthLabel(DateTime d, [String? locale]) =>
+    _format('LLLL y', locale).format(d);
 
 /// "09:30" for [minutes] after midnight.
 String timeLabel(int minutes) =>
@@ -45,12 +45,16 @@ int? itemMinutes(InboxItem item) {
 
 /// A reminder offset as a chip label ("15 min before"), or [short] for
 /// row meta and composer chips ("15 min").
-String reminderLabel(int offset, {bool short = false}) => switch (offset) {
-  InboxReminders.atTime => 'At time',
-  InboxReminders.min15 => short ? '15 min' : '15 min before',
-  InboxReminders.hour1 => short ? '1 h' : '1 h before',
-  InboxReminders.day1 => short ? '1 day' : '1 day before',
-  InboxReminders.morningOf => 'Morning of',
-  InboxReminders.dayBefore => 'Day before',
-  _ => '$offset min',
-};
+String reminderLabel(AppLocalizations l10n, int offset, {bool short = false}) =>
+    switch (offset) {
+      InboxReminders.atTime => l10n.inboxReminderAtTime,
+      InboxReminders.min15 =>
+        short ? l10n.inboxReminder15Min : l10n.inboxReminder15MinBefore,
+      InboxReminders.hour1 =>
+        short ? l10n.inboxReminder1Hour : l10n.inboxReminder1HourBefore,
+      InboxReminders.day1 =>
+        short ? l10n.inboxReminder1Day : l10n.inboxReminder1DayBefore,
+      InboxReminders.morningOf => l10n.inboxReminderMorningOf,
+      InboxReminders.dayBefore => l10n.inboxReminderDayBefore,
+      _ => l10n.inboxReminderMinutes(offset),
+    };

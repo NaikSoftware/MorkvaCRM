@@ -5778,4 +5778,352 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inboxTitle => 'Inbox';
+
+  @override
+  String inboxSaveFailed(String error) {
+    return 'Couldn\'t save — $error';
+  }
+
+  @override
+  String get inboxDone => 'Done';
+
+  @override
+  String inboxMovedToToday(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Moved $count tasks to today',
+      one: 'Moved 1 task to today',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get inboxEmptyTitle => 'Your Inbox is empty';
+
+  @override
+  String get inboxEmptyMessage =>
+      'Jot down notes, plan tasks and get reminded. Link anything to a card.';
+
+  @override
+  String get inboxLoadFailed => 'Couldn\'t load your Inbox.';
+
+  @override
+  String get inboxAddNote => 'Add a note…';
+
+  @override
+  String get inboxAddTask => 'Add a task…';
+
+  @override
+  String get inboxAddTaskToday => 'Add a task for today…';
+
+  @override
+  String inboxAddTaskFor(String day) {
+    return 'Add a task for $day…';
+  }
+
+  @override
+  String get inboxTaskSwitchToNote => 'Task — switch to note';
+
+  @override
+  String get inboxNoteSwitchToTask => 'Note — switch to task';
+
+  @override
+  String get inboxTask => 'Task';
+
+  @override
+  String get inboxNote => 'Note';
+
+  @override
+  String get inboxTitleHint => 'Title';
+
+  @override
+  String get inboxDetailsHint => 'Details (optional)';
+
+  @override
+  String get inboxDate => 'Date';
+
+  @override
+  String get inboxNoDate => 'No date';
+
+  @override
+  String get inboxClearDate => 'Clear date';
+
+  @override
+  String get inboxTomorrow => 'Tomorrow';
+
+  @override
+  String get inboxNextMonday => 'Next Monday';
+
+  @override
+  String get inboxNextMon => 'Next Mon';
+
+  @override
+  String get inboxPickDate => 'Pick…';
+
+  @override
+  String get inboxTime => 'Time';
+
+  @override
+  String get inboxAddTime => 'Add a time';
+
+  @override
+  String get inboxClearTime => 'Clear time';
+
+  @override
+  String get inboxSetDateForTime => 'Set a date to add a time';
+
+  @override
+  String get inboxReminder => 'Reminder';
+
+  @override
+  String get inboxReminders => 'Reminders';
+
+  @override
+  String get inboxNoReminders => 'No reminders';
+
+  @override
+  String get inboxAddReminder => 'Add a reminder';
+
+  @override
+  String get inboxRemoveReminder => 'Remove reminder';
+
+  @override
+  String get inboxSetDateForReminder => 'Set a date to add a reminder';
+
+  @override
+  String get inboxSetDateForReminders => 'Set a date to add reminders';
+
+  @override
+  String get inboxReminderAtTime => 'At time';
+
+  @override
+  String get inboxReminder15MinBefore => '15 min before';
+
+  @override
+  String get inboxReminder15Min => '15 min';
+
+  @override
+  String get inboxReminder1HourBefore => '1 h before';
+
+  @override
+  String get inboxReminder1Hour => '1 h';
+
+  @override
+  String get inboxReminder1DayBefore => '1 day before';
+
+  @override
+  String get inboxReminder1Day => '1 day';
+
+  @override
+  String get inboxReminderMorningOf => 'Morning of';
+
+  @override
+  String get inboxReminderDayBefore => 'Day before';
+
+  @override
+  String inboxReminderMinutes(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String inboxNotificationsDefault(String link) {
+    return 'Reminders pop up while Morkva is open. $link to see them in other tabs too.';
+  }
+
+  @override
+  String get inboxTurnOnNotifications => 'Turn on notifications';
+
+  @override
+  String get inboxNotificationsGranted =>
+      'Reminders pop up while Morkva is open in a tab.';
+
+  @override
+  String get inboxNotificationsDenied =>
+      'Notifications are blocked for this site — reminders show only inside Morkva.';
+
+  @override
+  String get inboxLinkCard => 'Link a card';
+
+  @override
+  String get inboxRemoveLink => 'Remove link';
+
+  @override
+  String inboxOpenLink(String label) {
+    return 'Open $label';
+  }
+
+  @override
+  String get inboxCardDeleted => 'Card deleted';
+
+  @override
+  String get inboxCollectionDeleted => 'Collection deleted';
+
+  @override
+  String get inboxDeleted => 'Deleted';
+
+  @override
+  String get inboxDiscardMessage =>
+      'Your changes to this item haven\'t been saved.';
+
+  @override
+  String get inboxOverdue => 'Overdue';
+
+  @override
+  String get inboxCompleted => 'Completed';
+
+  @override
+  String get inboxMoveAllToToday => 'Move all to today';
+
+  @override
+  String get inboxNothingForToday => 'Nothing for today';
+
+  @override
+  String inboxNothingFor(String day) {
+    return 'Nothing for $day';
+  }
+
+  @override
+  String inboxDaysLate(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days d late',
+      one: '1 d late',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get inboxMarkDone => 'Mark done';
+
+  @override
+  String get inboxMarkNotDone => 'Mark not done';
+
+  @override
+  String inboxPickDateIn(String month) {
+    return '$month, pick a date';
+  }
+
+  @override
+  String get inboxPreviousWeek => 'Previous week';
+
+  @override
+  String get inboxNextWeek => 'Next week';
+
+  @override
+  String inboxStripDay(String day, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$day, $count open',
+      one: '$day, 1 open',
+      zero: '$day',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String inboxStripDayToday(String day, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$day, today, $count open',
+      one: '$day, today, 1 open',
+      zero: '$day, today',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get inboxCardsLoadFailed => 'Couldn\'t load the cards';
+
+  @override
+  String get inboxSearchCollections => 'Search collections';
+
+  @override
+  String get inboxNoCollections => 'No collections yet';
+
+  @override
+  String inboxNoCollectionsMatch(String query) {
+    return 'No collections match “$query”';
+  }
+
+  @override
+  String inboxSearchIn(String name) {
+    return 'Search $name';
+  }
+
+  @override
+  String inboxShownOf(int shown, int total) {
+    return '$shown of $total';
+  }
+
+  @override
+  String inboxCollectionNoCards(String name) {
+    return '$name has no cards yet';
+  }
+
+  @override
+  String inboxNoCardsMatch(String query) {
+    return 'No cards match “$query”';
+  }
+
+  @override
+  String get inboxBackToCollections => 'Back to collections';
+
+  @override
+  String get inboxLinkStepCollection => 'Step 1 of 2 · Choose a collection';
+
+  @override
+  String get inboxLinkStepCard => 'Step 2 of 2 · Choose a card';
+
+  @override
+  String get inboxAddToInbox => 'Add to Inbox';
+
+  @override
+  String get inboxAddToInboxMenu => 'Add to Inbox…';
+
+  @override
+  String inboxCardOpenCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Inbox · $count open',
+      one: 'Inbox · 1 open',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String inboxDueCount(int count) {
+    return '$count due';
+  }
+
+  @override
+  String get inboxDismiss => 'Dismiss';
+
+  @override
+  String get inboxDismissAll => 'Dismiss all';
+
+  @override
+  String inboxReminderFor(String title) {
+    return 'Reminder: $title';
+  }
+
+  @override
+  String inboxRemindersAway(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count reminders while you were away',
+      one: '1 reminder while you were away',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String inboxMoreCount(int count) {
+    return '+$count more';
+  }
 }

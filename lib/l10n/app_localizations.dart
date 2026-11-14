@@ -8937,6 +8937,534 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Inbox'**
   String get inboxTitle;
+
+  /// No description provided for @inboxSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save — {error}'**
+  String inboxSaveFailed(String error);
+
+  /// No description provided for @inboxDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get inboxDone;
+
+  /// No description provided for @inboxMovedToToday.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Moved 1 task to today} other{Moved {count} tasks to today}}'**
+  String inboxMovedToToday(int count);
+
+  /// No description provided for @inboxEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Inbox is empty'**
+  String get inboxEmptyTitle;
+
+  /// No description provided for @inboxEmptyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Jot down notes, plan tasks and get reminded. Link anything to a card.'**
+  String get inboxEmptyMessage;
+
+  /// No description provided for @inboxLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your Inbox.'**
+  String get inboxLoadFailed;
+
+  /// No description provided for @inboxAddNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a note…'**
+  String get inboxAddNote;
+
+  /// No description provided for @inboxAddTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a task…'**
+  String get inboxAddTask;
+
+  /// No description provided for @inboxAddTaskToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a task for today…'**
+  String get inboxAddTaskToday;
+
+  /// No description provided for @inboxAddTaskFor.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a task for {day}…'**
+  String inboxAddTaskFor(String day);
+
+  /// No description provided for @inboxTaskSwitchToNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Task — switch to note'**
+  String get inboxTaskSwitchToNote;
+
+  /// No description provided for @inboxNoteSwitchToTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Note — switch to task'**
+  String get inboxNoteSwitchToTask;
+
+  /// No description provided for @inboxTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Task'**
+  String get inboxTask;
+
+  /// No description provided for @inboxNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get inboxNote;
+
+  /// No description provided for @inboxTitleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get inboxTitleHint;
+
+  /// No description provided for @inboxDetailsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Details (optional)'**
+  String get inboxDetailsHint;
+
+  /// No description provided for @inboxDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get inboxDate;
+
+  /// No description provided for @inboxNoDate.
+  ///
+  /// In en, this message translates to:
+  /// **'No date'**
+  String get inboxNoDate;
+
+  /// No description provided for @inboxClearDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear date'**
+  String get inboxClearDate;
+
+  /// No description provided for @inboxTomorrow.
+  ///
+  /// In en, this message translates to:
+  /// **'Tomorrow'**
+  String get inboxTomorrow;
+
+  /// No description provided for @inboxNextMonday.
+  ///
+  /// In en, this message translates to:
+  /// **'Next Monday'**
+  String get inboxNextMonday;
+
+  /// No description provided for @inboxNextMon.
+  ///
+  /// In en, this message translates to:
+  /// **'Next Mon'**
+  String get inboxNextMon;
+
+  /// No description provided for @inboxPickDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick…'**
+  String get inboxPickDate;
+
+  /// No description provided for @inboxTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Time'**
+  String get inboxTime;
+
+  /// No description provided for @inboxAddTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a time'**
+  String get inboxAddTime;
+
+  /// No description provided for @inboxClearTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear time'**
+  String get inboxClearTime;
+
+  /// No description provided for @inboxSetDateForTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Set a date to add a time'**
+  String get inboxSetDateForTime;
+
+  /// No description provided for @inboxReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminder'**
+  String get inboxReminder;
+
+  /// No description provided for @inboxReminders.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminders'**
+  String get inboxReminders;
+
+  /// No description provided for @inboxNoReminders.
+  ///
+  /// In en, this message translates to:
+  /// **'No reminders'**
+  String get inboxNoReminders;
+
+  /// No description provided for @inboxAddReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a reminder'**
+  String get inboxAddReminder;
+
+  /// No description provided for @inboxRemoveReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove reminder'**
+  String get inboxRemoveReminder;
+
+  /// No description provided for @inboxSetDateForReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Set a date to add a reminder'**
+  String get inboxSetDateForReminder;
+
+  /// No description provided for @inboxSetDateForReminders.
+  ///
+  /// In en, this message translates to:
+  /// **'Set a date to add reminders'**
+  String get inboxSetDateForReminders;
+
+  /// No description provided for @inboxReminderAtTime.
+  ///
+  /// In en, this message translates to:
+  /// **'At time'**
+  String get inboxReminderAtTime;
+
+  /// No description provided for @inboxReminder15MinBefore.
+  ///
+  /// In en, this message translates to:
+  /// **'15 min before'**
+  String get inboxReminder15MinBefore;
+
+  /// No description provided for @inboxReminder15Min.
+  ///
+  /// In en, this message translates to:
+  /// **'15 min'**
+  String get inboxReminder15Min;
+
+  /// No description provided for @inboxReminder1HourBefore.
+  ///
+  /// In en, this message translates to:
+  /// **'1 h before'**
+  String get inboxReminder1HourBefore;
+
+  /// No description provided for @inboxReminder1Hour.
+  ///
+  /// In en, this message translates to:
+  /// **'1 h'**
+  String get inboxReminder1Hour;
+
+  /// No description provided for @inboxReminder1DayBefore.
+  ///
+  /// In en, this message translates to:
+  /// **'1 day before'**
+  String get inboxReminder1DayBefore;
+
+  /// No description provided for @inboxReminder1Day.
+  ///
+  /// In en, this message translates to:
+  /// **'1 day'**
+  String get inboxReminder1Day;
+
+  /// No description provided for @inboxReminderMorningOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Morning of'**
+  String get inboxReminderMorningOf;
+
+  /// No description provided for @inboxReminderDayBefore.
+  ///
+  /// In en, this message translates to:
+  /// **'Day before'**
+  String get inboxReminderDayBefore;
+
+  /// No description provided for @inboxReminderMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min'**
+  String inboxReminderMinutes(int minutes);
+
+  /// No description provided for @inboxNotificationsDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminders pop up while Morkva is open. {link} to see them in other tabs too.'**
+  String inboxNotificationsDefault(String link);
+
+  /// No description provided for @inboxTurnOnNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on notifications'**
+  String get inboxTurnOnNotifications;
+
+  /// No description provided for @inboxNotificationsGranted.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminders pop up while Morkva is open in a tab.'**
+  String get inboxNotificationsGranted;
+
+  /// No description provided for @inboxNotificationsDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications are blocked for this site — reminders show only inside Morkva.'**
+  String get inboxNotificationsDenied;
+
+  /// No description provided for @inboxLinkCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Link a card'**
+  String get inboxLinkCard;
+
+  /// No description provided for @inboxRemoveLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove link'**
+  String get inboxRemoveLink;
+
+  /// No description provided for @inboxOpenLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Open {label}'**
+  String inboxOpenLink(String label);
+
+  /// No description provided for @inboxCardDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Card deleted'**
+  String get inboxCardDeleted;
+
+  /// No description provided for @inboxCollectionDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection deleted'**
+  String get inboxCollectionDeleted;
+
+  /// No description provided for @inboxDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted'**
+  String get inboxDeleted;
+
+  /// No description provided for @inboxDiscardMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Your changes to this item haven\'t been saved.'**
+  String get inboxDiscardMessage;
+
+  /// No description provided for @inboxOverdue.
+  ///
+  /// In en, this message translates to:
+  /// **'Overdue'**
+  String get inboxOverdue;
+
+  /// No description provided for @inboxCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get inboxCompleted;
+
+  /// No description provided for @inboxMoveAllToToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Move all to today'**
+  String get inboxMoveAllToToday;
+
+  /// No description provided for @inboxNothingForToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing for today'**
+  String get inboxNothingForToday;
+
+  /// No description provided for @inboxNothingFor.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing for {day}'**
+  String inboxNothingFor(String day);
+
+  /// No description provided for @inboxDaysLate.
+  ///
+  /// In en, this message translates to:
+  /// **'{days, plural, =1{1 d late} other{{days} d late}}'**
+  String inboxDaysLate(int days);
+
+  /// No description provided for @inboxMarkDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark done'**
+  String get inboxMarkDone;
+
+  /// No description provided for @inboxMarkNotDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark not done'**
+  String get inboxMarkNotDone;
+
+  /// No description provided for @inboxPickDateIn.
+  ///
+  /// In en, this message translates to:
+  /// **'{month}, pick a date'**
+  String inboxPickDateIn(String month);
+
+  /// No description provided for @inboxPreviousWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous week'**
+  String get inboxPreviousWeek;
+
+  /// No description provided for @inboxNextWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Next week'**
+  String get inboxNextWeek;
+
+  /// No description provided for @inboxStripDay.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{{day}} =1{{day}, 1 open} other{{day}, {count} open}}'**
+  String inboxStripDay(String day, int count);
+
+  /// No description provided for @inboxStripDayToday.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{{day}, today} =1{{day}, today, 1 open} other{{day}, today, {count} open}}'**
+  String inboxStripDayToday(String day, int count);
+
+  /// No description provided for @inboxCardsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the cards'**
+  String get inboxCardsLoadFailed;
+
+  /// No description provided for @inboxSearchCollections.
+  ///
+  /// In en, this message translates to:
+  /// **'Search collections'**
+  String get inboxSearchCollections;
+
+  /// No description provided for @inboxNoCollections.
+  ///
+  /// In en, this message translates to:
+  /// **'No collections yet'**
+  String get inboxNoCollections;
+
+  /// No description provided for @inboxNoCollectionsMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No collections match “{query}”'**
+  String inboxNoCollectionsMatch(String query);
+
+  /// No description provided for @inboxSearchIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Search {name}'**
+  String inboxSearchIn(String name);
+
+  /// No description provided for @inboxShownOf.
+  ///
+  /// In en, this message translates to:
+  /// **'{shown} of {total}'**
+  String inboxShownOf(int shown, int total);
+
+  /// No description provided for @inboxCollectionNoCards.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} has no cards yet'**
+  String inboxCollectionNoCards(String name);
+
+  /// No description provided for @inboxNoCardsMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No cards match “{query}”'**
+  String inboxNoCardsMatch(String query);
+
+  /// No description provided for @inboxBackToCollections.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to collections'**
+  String get inboxBackToCollections;
+
+  /// No description provided for @inboxLinkStepCollection.
+  ///
+  /// In en, this message translates to:
+  /// **'Step 1 of 2 · Choose a collection'**
+  String get inboxLinkStepCollection;
+
+  /// No description provided for @inboxLinkStepCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Step 2 of 2 · Choose a card'**
+  String get inboxLinkStepCard;
+
+  /// No description provided for @inboxAddToInbox.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to Inbox'**
+  String get inboxAddToInbox;
+
+  /// No description provided for @inboxAddToInboxMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to Inbox…'**
+  String get inboxAddToInboxMenu;
+
+  /// No description provided for @inboxCardOpenCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Inbox · 1 open} other{Inbox · {count} open}}'**
+  String inboxCardOpenCount(int count);
+
+  /// No description provided for @inboxDueCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} due'**
+  String inboxDueCount(int count);
+
+  /// No description provided for @inboxDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get inboxDismiss;
+
+  /// No description provided for @inboxDismissAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss all'**
+  String get inboxDismissAll;
+
+  /// No description provided for @inboxReminderFor.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminder: {title}'**
+  String inboxReminderFor(String title);
+
+  /// No description provided for @inboxRemindersAway.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 reminder while you were away} other{{count} reminders while you were away}}'**
+  String inboxRemindersAway(int count);
+
+  /// No description provided for @inboxMoreCount.
+  ///
+  /// In en, this message translates to:
+  /// **'+{count} more'**
+  String inboxMoreCount(int count);
 }
 
 class _AppLocalizationsDelegate

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/inbox/inbox.dart';
 import 'package:morkva_crm/design/design.dart';
+import 'package:morkva_crm/features/inbox/inbox.dart';
+import 'package:morkva_crm/features/inbox/reminders/reminder_toast_host.dart';
 
 import 'inbox_view_harness.dart';
 
@@ -309,14 +311,47 @@ void main() {
     expect(find.text('Your Inbox is empty'), findsOneWidget);
   });
 
-  testWidgets('a failed write shows a snackbar', (tester) async {
-    await rig.pump(tester);
+  testWidgets('a failed write shows one snackbar, from the shell host', (
+    tester,
+  ) async {
+    await rig.pump(
+      tester,
+      home: ReminderToastHost(
+        child: InboxPage(now: clock, notifier: rig.notifier),
+      ),
+    );
     rig.repo.failWrites = Exception('denied');
     await tester.tap(find.byType(TextField));
     await tester.enterText(find.byType(TextField), 'X');
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
     expect(find.textContaining("Couldn't save — "), findsOneWidget);
+  });
+
+  testWidgets('the page alone no longer reports failed writes', (tester) async {
+    await rig.pump(tester);
+    rig.repo.failWrites = Exception('denied');
+    await tester.tap(find.byType(TextField));
+    await tester.enterText(find.byType(TextField), 'X');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(find.textContaining("Couldn't save — "), findsNothing);
+  });
+
+  testWidgets('speaks Ukrainian under the uk locale', (tester) async {
+    rig.seed([
+      item('o', 'Call Iryna', due: DateTime(2026, 11, 12), allDay: true),
+      item('n', 'Door code', kind: InboxKind.note),
+    ]);
+    await rig.pump(tester, locale: const Locale('uk'));
+    expect(find.text('Вхідні'), findsOneWidget);
+    expect(find.text('ПРОСТРОЧЕНІ · 1'), findsOneWidget);
+    expect(find.text('СЬОГОДНІ'), findsOneWidget);
+    expect(find.text('БЕЗ ДАТИ · 1'), findsOneWidget);
+    expect(find.text('Перенести всі на сьогодні'), findsOneWidget);
+    expect(find.text('2 дн. прострочено'), findsOneWidget);
+    expect(find.text('листопад 2026'), findsOneWidget);
+    expect(find.text('сб'), findsOneWidget);
   });
 
   testWidgets('itemId opens its editor; an unknown id opens nothing', (

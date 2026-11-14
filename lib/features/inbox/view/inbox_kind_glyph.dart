@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/domain/inbox/inbox.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 
 /// A note's leading mark: a sand-tinted 24 px tile with a sticky-note glyph.
 class InboxNoteGlyph extends StatelessWidget {
@@ -13,7 +14,7 @@ class InboxNoteGlyph extends StatelessWidget {
         ? CollectionTints.light[4]
         : CollectionTints.dark[4];
     return Semantics(
-      label: 'Note',
+      label: context.l10n.inboxNote,
       child: Container(
         width: 24,
         height: 24,

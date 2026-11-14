@@ -145,7 +145,7 @@ class ShellSidebar extends StatelessWidget {
           const SizedBox(height: Spacing.xs),
           if (onInbox case final onInbox?)
             _NavRow(
-              label: 'Inbox',
+              label: l10n.inboxTitle,
               selected: place == ShellPlace.inbox,
               leading: const _ToolTile(Icons.inbox_rounded),
               trailing: const _InboxPill(),
@@ -270,7 +270,7 @@ class ShellSidebar extends StatelessWidget {
             ),
           if (onInbox case final onInbox?)
             _RailButton(
-              tooltip: 'Inbox',
+              tooltip: context.l10n.inboxTitle,
               selected: place == ShellPlace.inbox,
               onTap: onInbox,
               child: InboxBadgeIcon(
@@ -450,7 +450,7 @@ class _InboxPill extends StatelessWidget {
               ),
               child: Text(
                 '$count',
-                semanticsLabel: '$count due',
+                semanticsLabel: context.l10n.inboxDueCount(count),
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: scheme.onPrimaryContainer,
                   fontWeight: FontWeight.w700,

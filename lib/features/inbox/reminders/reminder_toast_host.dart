@@ -5,8 +5,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/domain/inbox/inbox.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../../automation/widgets/action_buttons.dart' show maybeRead;
 import '../bloc/inbox_cubit.dart';
+import '../view/inbox_chips.dart' show showInboxSnack;
 import '../view/inbox_format.dart';
 import '../view/inbox_item_editor.dart';
 import '../view/inbox_link_chip.dart';
@@ -19,6 +21,9 @@ import 'reminder_scheduler.dart';
 ///
 /// Mount exactly one (the shell does). Renders just [child] where no
 /// [ReminderScheduler] or [InboxCubit] is provided.
+///
+/// Also the app's one "Couldn't save — …" snackbar for failed Inbox writes
+/// (page, toasts, card button), wherever an [InboxCubit] is provided.
 class ReminderToastHost extends StatelessWidget {
   const ReminderToastHost({super.key, required this.child});
 
@@ -35,15 +40,67 @@ class ReminderToastHost extends StatelessWidget {
     final scheduler = maybeRead<ReminderScheduler>(context);
     final inbox = maybeRead<InboxCubit>(context);
     // Always a Stack, so the toasts coming and going never remount the page.
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        child,
-        if (scheduler != null && inbox != null)
-          _Toasts(scheduler: scheduler, inbox: inbox),
-      ],
+    return _SaveErrors(
+      inbox: inbox,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          child,
+          if (scheduler != null && inbox != null)
+            _Toasts(scheduler: scheduler, inbox: inbox),
+        ],
+      ),
     );
   }
+}
+
+/// Shows [InboxCubit.errors] as "Couldn't save — …" snackbars.
+class _SaveErrors extends StatefulWidget {
+  const _SaveErrors({required this.inbox, required this.child});
+
+  final InboxCubit? inbox;
+  final Widget child;
+
+  @override
+  State<_SaveErrors> createState() => _SaveErrorsState();
+}
+
+class _SaveErrorsState extends State<_SaveErrors> {
+  StreamSubscription<String>? _sub;
+
+  @override
+  void initState() {
+    super.initState();
+    _listen();
+  }
+
+  @override
+  void didUpdateWidget(_SaveErrors old) {
+    super.didUpdateWidget(old);
+    if (old.inbox != widget.inbox) {
+      unawaited(_sub?.cancel());
+      _listen();
+    }
+  }
+
+  void _listen() {
+    _sub = widget.inbox?.errors.listen((e) {
+      if (!mounted) return;
+      showInboxSnack(
+        ScaffoldMessenger.maybeOf(context),
+        context.l10n.inboxSaveFailed(e),
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    unawaited(_sub?.cancel());
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 class _Toasts extends StatefulWidget {
@@ -141,7 +198,7 @@ class _ToastsState extends State<_Toasts> {
       child: SafeArea(
         child: Semantics(
           container: true,
-          label: 'Reminders',
+          label: context.l10n.inboxReminders,
           child: SizedBox(
             width: wide ? ReminderToastHost.width : null,
             child: column,
@@ -233,14 +290,16 @@ class _KindTile extends StatelessWidget {
 }
 
 class _DismissButton extends StatelessWidget {
-  const _DismissButton({required this.onPressed, this.tooltip = 'Dismiss'});
+  const _DismissButton({required this.onPressed, this.tooltip});
 
   final VoidCallback onPressed;
-  final String tooltip;
+
+  /// Null: "Dismiss".
+  final String? tooltip;
 
   @override
   Widget build(BuildContext context) => IconButton(
-    tooltip: tooltip,
+    tooltip: tooltip ?? context.l10n.inboxDismiss,
     icon: const Icon(Icons.close_rounded, size: 18),
     color: Theme.of(context).colorScheme.onSurfaceVariant,
     onPressed: onPressed,
@@ -266,12 +325,13 @@ class _ReminderToast extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     final minutes = itemMinutes(item);
     final link = item.link;
     return Semantics(
       container: true,
       liveRegion: true,
-      label: 'Reminder: ${item.title}',
+      label: l10n.inboxReminderFor(item.title),
       child: _Card(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -331,9 +391,9 @@ class _ReminderToast extends StatelessWidget {
                     TextButton.icon(
                       onPressed: onDone,
                       icon: const Icon(Icons.check_rounded, size: 16),
-                      label: const Text('Done'),
+                      label: Text(l10n.inboxDone),
                     ),
-                  TextButton(onPressed: onOpen, child: const Text('Open')),
+                  TextButton(onPressed: onOpen, child: Text(l10n.commonOpen)),
                 ],
               ),
             ),
@@ -364,8 +424,10 @@ class _AwayToast extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
+    final locale = Localizations.localeOf(context).toString();
     final n = entries.length;
-    final title = '$n reminder${n == 1 ? '' : 's'} while you were away';
+    final title = l10n.inboxRemindersAway(n);
     final now = DateTime.now();
     final meta = theme.textTheme.labelMedium?.copyWith(
       color: scheme.onSurfaceVariant,
@@ -391,7 +453,10 @@ class _AwayToast extends StatelessWidget {
                     ),
                   ),
                 ),
-                _DismissButton(onPressed: onDismiss, tooltip: 'Dismiss all'),
+                _DismissButton(
+                  onPressed: onDismiss,
+                  tooltip: l10n.inboxDismissAll,
+                ),
               ],
             ),
             Padding(
@@ -428,7 +493,10 @@ class _AwayToast extends StatelessWidget {
                                   style: theme.textTheme.bodyMedium,
                                 ),
                               ),
-                              Text(_when(t.item, now), style: meta),
+                              Text(
+                                _when(t.item, now, l10n, locale),
+                                style: meta,
+                              ),
                             ],
                           ),
                         ),
@@ -437,7 +505,10 @@ class _AwayToast extends StatelessWidget {
                   if (n > maxRows)
                     Padding(
                       padding: const EdgeInsets.all(Spacing.sm),
-                      child: Text('+${n - maxRows} more', style: meta),
+                      child: Text(
+                        l10n.inboxMoreCount(n - maxRows),
+                        style: meta,
+                      ),
                     ),
                 ],
               ),
@@ -450,10 +521,16 @@ class _AwayToast extends StatelessWidget {
 }
 
 /// "Today", "Sun 15 · 09:00".
-String _when(InboxItem item, DateTime now) {
+String _when(
+  InboxItem item,
+  DateTime now,
+  AppLocalizations l10n,
+  String locale,
+) {
   final day = item.day;
   return [
-    if (day != null) day == localDay(now) ? 'Today' : dayLabel(day),
+    if (day != null)
+      day == localDay(now) ? l10n.commonToday : dayLabel(day, locale),
     if (itemMinutes(item) case final m?) timeLabel(m),
   ].join(' · ');
 }
@@ -478,7 +555,7 @@ class _MoreLabel extends StatelessWidget {
           borderRadius: Radii.fullAll,
         ),
         child: Text(
-          '+$count more',
+          context.l10n.inboxMoreCount(count),
           style: theme.textTheme.labelMedium?.copyWith(
             color: theme.colorScheme.onInverseSurface,
           ),

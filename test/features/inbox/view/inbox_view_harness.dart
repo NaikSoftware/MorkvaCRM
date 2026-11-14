@@ -6,6 +6,7 @@ library;
 
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -18,6 +19,7 @@ import 'package:morkva_crm/core/domain/inbox/inbox.dart';
 import 'package:morkva_crm/design/design.dart';
 import 'package:morkva_crm/features/inbox/inbox.dart';
 import 'package:morkva_crm/features/inbox/reminders/reminder_scheduler.dart';
+import 'package:morkva_crm/l10n/l10n.dart';
 
 import '../../collections/fake_data_repository.dart';
 import '../fake_inbox_repository.dart';
@@ -117,13 +119,15 @@ final class InboxRig {
   final notifier = FakeNotifier(NotificationPermission.defaultState);
   late GoRouter router;
 
-  /// Pumps [home] (default: the Inbox page) at [size] and settles.
+  /// Pumps [home] (default: the Inbox page) at [size] in [locale] (the
+  /// device's, i.e. English, when null) and settles.
   Future<void> pump(
     WidgetTester tester, {
     Size size = kWide,
     Widget? home,
     String? itemId,
     DateTime? day,
+    Locale? locale,
   }) async {
     data = FakeDataRepository([kOrders])
       ..seedObjects('orders', [order('o1', '#1042'), order('o2', '#1043')]);
@@ -171,6 +175,14 @@ final class InboxRig {
           child: MaterialApp.router(
             theme: AppTheme.light,
             routerConfig: router,
+            locale: locale,
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: AppLocalizations.supportedLocales,
           ),
         ),
       ),

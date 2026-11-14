@@ -6,6 +6,7 @@ import '../../../app/shell/app_shell.dart';
 import '../../../core/domain/domain.dart';
 import '../../../core/domain/inbox/inbox.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../../objects/value_editors/field_value_editor.dart'
     show ReferenceChoices;
 import 'inbox_link_chip.dart' show CollectionsWatcher;
@@ -98,8 +99,8 @@ class _CardLinkPickerState extends State<CardLinkPicker> {
                   future: _cards,
                   builder: (context, snap) => switch (snap) {
                     AsyncSnapshot(:final data?) => _cardList(collection, data),
-                    AsyncSnapshot(hasError: true) => const _Notice(
-                      "Couldn't load the cards",
+                    AsyncSnapshot(hasError: true) => _Notice(
+                      context.l10n.inboxCardsLoadFailed,
                     ),
                     _ => const Center(child: LoadingIndicator()),
                   },
@@ -125,6 +126,7 @@ class _CardLinkPickerState extends State<CardLinkPicker> {
 
   Widget _collections(Iterable<Collection>? all) {
     if (all == null) return const Center(child: LoadingIndicator());
+    final l10n = context.l10n;
     final q = _query.trim().toLowerCase();
     final rows = [
       for (final c in all)
@@ -133,13 +135,13 @@ class _CardLinkPickerState extends State<CardLinkPicker> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _search(hint: 'Search collections'),
+        _search(hint: l10n.inboxSearchCollections),
         Expanded(
           child: rows.isEmpty
               ? _Notice(
                   all.isEmpty
-                      ? 'No collections yet'
-                      : 'No collections match “${_query.trim()}”',
+                      ? l10n.inboxNoCollections
+                      : l10n.inboxNoCollectionsMatch(_query.trim()),
                 )
               : ListView.builder(
                   padding: const EdgeInsets.fromLTRB(
@@ -170,6 +172,7 @@ class _CardLinkPickerState extends State<CardLinkPicker> {
   }
 
   Widget _cardList(Collection collection, ReferenceChoices choices) {
+    final l10n = context.l10n;
     final labels = choices.labels[collection.id] ?? const {};
     final q = _query.trim().toLowerCase();
     final rows = [
@@ -180,15 +183,17 @@ class _CardLinkPickerState extends State<CardLinkPicker> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _search(
-          hint: 'Search ${collection.name.toLowerCase()}',
-          suffix: q.isEmpty ? null : '${rows.length} of ${labels.length}',
+          hint: l10n.inboxSearchIn(collection.name.toLowerCase()),
+          suffix: q.isEmpty
+              ? null
+              : l10n.inboxShownOf(rows.length, labels.length),
         ),
         Expanded(
           child: rows.isEmpty
               ? _Notice(
                   labels.isEmpty
-                      ? '${collection.name} has no cards yet'
-                      : 'No cards match “${_query.trim()}”',
+                      ? l10n.inboxCollectionNoCards(collection.name)
+                      : l10n.inboxNoCardsMatch(_query.trim()),
                 )
               : ListView.builder(
                   padding: const EdgeInsets.fromLTRB(
@@ -230,6 +235,7 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     final c = collection;
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -244,7 +250,7 @@ class _Header extends StatelessWidget {
             const SizedBox(width: Spacing.sm)
           else ...[
             IconButton(
-              tooltip: 'Back to collections',
+              tooltip: l10n.inboxBackToCollections,
               onPressed: onBack,
               icon: const Icon(Icons.arrow_back),
             ),
@@ -256,15 +262,15 @@ class _Header extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  c?.name ?? 'Link a card',
+                  c?.name ?? l10n.inboxLinkCard,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.titleLarge,
                 ),
                 Text(
                   c == null
-                      ? 'Step 1 of 2 · Choose a collection'
-                      : 'Step 2 of 2 · Choose a card',
+                      ? l10n.inboxLinkStepCollection
+                      : l10n.inboxLinkStepCard,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -273,7 +279,7 @@ class _Header extends StatelessWidget {
             ),
           ),
           IconButton(
-            tooltip: 'Close',
+            tooltip: l10n.commonClose,
             onPressed: () => Navigator.of(context).pop(),
             icon: const Icon(Icons.close),
           ),

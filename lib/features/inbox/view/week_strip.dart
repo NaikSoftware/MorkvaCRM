@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import 'inbox_format.dart';
 
 /// The Inbox's day picker: "November 2026 ▾" (the date picker) and
@@ -41,6 +42,8 @@ class WeekStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
+    final locale = Localizations.localeOf(context).toString();
     final monday = _shift(1 - selected.weekday);
     final isToday = selected == today;
 
@@ -63,10 +66,12 @@ class WeekStrip extends StatelessWidget {
               children: [
                 Flexible(
                   child: Text(
-                    monthLabel(selected),
+                    monthLabel(selected, locale),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    semanticsLabel: '${monthLabel(selected)}, pick a date',
+                    semanticsLabel: l10n.inboxPickDateIn(
+                      monthLabel(selected, locale),
+                    ),
                   ),
                 ),
                 const SizedBox(width: Spacing.xxs),
@@ -79,7 +84,7 @@ class WeekStrip extends StatelessWidget {
         IconButton(
           constraints: const BoxConstraints.tightFor(width: 44, height: 44),
           padding: EdgeInsets.zero,
-          tooltip: 'Previous week',
+          tooltip: l10n.inboxPreviousWeek,
           onPressed: () => onSelect(_shift(-7)),
           icon: const Icon(Icons.chevron_left),
         ),
@@ -93,12 +98,12 @@ class WeekStrip extends StatelessWidget {
             foregroundColor: scheme.onSurface,
             side: BorderSide(color: scheme.outline),
           ),
-          child: const Text('Today'),
+          child: Text(l10n.commonToday),
         ),
         IconButton(
           constraints: const BoxConstraints.tightFor(width: 44, height: 44),
           padding: EdgeInsets.zero,
-          tooltip: 'Next week',
+          tooltip: l10n.inboxNextWeek,
           onPressed: () => onSelect(_shift(7)),
           icon: const Icon(Icons.chevron_right),
         ),
@@ -163,6 +168,8 @@ class _DayCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
+    final locale = Localizations.localeOf(context).toString();
     final isSelected = day == selected;
     final isToday = day == today;
     final count = dots[day] ?? 0;
@@ -171,9 +178,9 @@ class _DayCell extends StatelessWidget {
     return Semantics(
       button: true,
       selected: isSelected,
-      label:
-          '${dayMonthLabel(day)}${isToday ? ', today' : ''}'
-          '${count > 0 ? ', $count open' : ''}',
+      label: isToday
+          ? l10n.inboxStripDayToday(dayMonthLabel(day, locale), count)
+          : l10n.inboxStripDay(dayMonthLabel(day, locale), count),
       excludeSemantics: true,
       child: Center(
         child: Material(
@@ -199,7 +206,7 @@ class _DayCell extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    weekdayLabel(day),
+                    weekdayLabel(day, locale),
                     style: theme.textTheme.labelSmall?.copyWith(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,

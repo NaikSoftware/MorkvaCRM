@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../app/shell/app_shell.dart';
 import '../../../core/domain/inbox/inbox.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../bloc/inbox_cubit.dart';
 import '../bloc/inbox_page_cubit.dart';
 import '../reminders/reminder_scheduler.dart';
@@ -66,20 +67,13 @@ class _InboxView extends StatefulWidget {
 }
 
 class _InboxViewState extends State<_InboxView> {
-  StreamSubscription<String>? _errors;
-
   /// The `itemId` whose editor was opened (or found unknown).
   String? _handledItemId;
 
   @override
   void initState() {
     super.initState();
-    final inbox = context.read<InboxCubit>();
-    _errors = inbox.errors.listen((e) {
-      if (!mounted) return;
-      showInboxSnack(ScaffoldMessenger.maybeOf(context), "Couldn't save — $e");
-    });
-    _openItem(inbox.state);
+    _openItem(context.read<InboxCubit>().state);
   }
 
   @override
@@ -93,12 +87,6 @@ class _InboxViewState extends State<_InboxView> {
       _handledItemId = null;
       _openItem(context.read<InboxCubit>().state);
     }
-  }
-
-  @override
-  void dispose() {
-    unawaited(_errors?.cancel());
-    super.dispose();
   }
 
   void _openItem(InboxState state) {
@@ -127,7 +115,7 @@ class _InboxViewState extends State<_InboxView> {
     if (done) {
       showInboxSnack(
         ScaffoldMessenger.maybeOf(context),
-        'Done',
+        context.l10n.inboxDone,
         onUndo: () => inbox.setDone(item.id, false),
       );
     }
@@ -137,10 +125,9 @@ class _InboxViewState extends State<_InboxView> {
     final inbox = context.read<InboxCubit>();
     final previous = inbox.moveAllOverdueToToday();
     if (previous.isEmpty) return;
-    final n = previous.length;
     showInboxSnack(
       ScaffoldMessenger.maybeOf(context),
-      'Moved $n ${n == 1 ? 'task' : 'tasks'} to today',
+      context.l10n.inboxMovedToToday(previous.length),
       onUndo: () => inbox.restoreDueAts(previous),
     );
   }
@@ -151,6 +138,7 @@ class _InboxViewState extends State<_InboxView> {
         MediaQuery.sizeOf(context).width < AppShell.expandedBreakpoint;
     final gutter = compact ? Spacing.md : Spacing.xxl;
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     return BlocListener<InboxCubit, InboxState>(
       listener: (_, state) => _openItem(state),
       child: Material(
@@ -180,7 +168,10 @@ class _InboxViewState extends State<_InboxView> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         if (!compact) ...[
-                          Text('Inbox', style: theme.textTheme.headlineSmall),
+                          Text(
+                            l10n.inboxTitle,
+                            style: theme.textTheme.headlineSmall,
+                          ),
                           const SizedBox(height: Spacing.md),
                         ],
                         WeekStrip(
@@ -206,14 +197,12 @@ class _InboxViewState extends State<_InboxView> {
                             ),
                           ],
                           InboxReady(:final items) when items.isEmpty => [
-                            const Padding(
-                              padding: EdgeInsets.only(top: Spacing.xl),
+                            Padding(
+                              padding: const EdgeInsets.only(top: Spacing.xl),
                               child: EmptyState(
                                 icon: Icons.inbox_outlined,
-                                title: 'Your Inbox is empty',
-                                message:
-                                    'Jot down notes, plan tasks and get '
-                                    'reminded. Link anything to a card.',
+                                title: l10n.inboxEmptyTitle,
+                                message: l10n.inboxEmptyMessage,
                               ),
                             ),
                           ],
@@ -255,6 +244,7 @@ class _LoadError extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: Spacing.lg),
       child: Row(
@@ -263,11 +253,11 @@ class _LoadError extends StatelessWidget {
           const SizedBox(width: Spacing.sm),
           Expanded(
             child: Text(
-              "Couldn't load your Inbox.",
+              l10n.inboxLoadFailed,
               style: theme.textTheme.bodyMedium,
             ),
           ),
-          TextActionButton(label: 'Retry', onPressed: onRetry),
+          TextActionButton(label: l10n.commonRetry, onPressed: onRetry),
         ],
       ),
     );
@@ -365,17 +355,19 @@ class _ComposerState extends State<_Composer> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
+    final locale = Localizations.localeOf(context).toString();
     final state = context.watch<InboxPageCubit>().state;
     final draft = state.composer;
     final date = draft.date;
     final isTask = draft.kind == InboxKind.task;
     final placeholder = !isTask
-        ? 'Add a note…'
+        ? l10n.inboxAddNote
         : date == null
-        ? 'Add a task…'
-        : date == state.today
-        ? 'Add a task for ${state.day == state.today ? dayLabel(date) : 'today'}…'
-        : 'Add a task for ${dayLabel(date)}…';
+        ? l10n.inboxAddTask
+        : date == state.today && state.day != state.today
+        ? l10n.inboxAddTaskToday
+        : l10n.inboxAddTaskFor(dayLabel(date, locale));
     final focused = _focus.hasFocus;
     final showChips =
         focused ||
@@ -411,8 +403,8 @@ class _ComposerState extends State<_Composer> {
                   child: IconButton(
                     padding: EdgeInsets.zero,
                     tooltip: isTask
-                        ? 'Task — switch to note'
-                        : 'Note — switch to task',
+                        ? l10n.inboxTaskSwitchToNote
+                        : l10n.inboxNoteSwitchToTask,
                     onPressed: _page.toggleKind,
                     icon: InboxKindGlyph(kind: draft.kind),
                   ),
@@ -452,7 +444,7 @@ class _ComposerState extends State<_Composer> {
                   spacing: Spacing.xxs,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    _dateChip(state, date),
+                    _dateChip(state, date, l10n, locale),
                     InboxChip(
                       icon: Icons.schedule,
                       label: draft.minutes == null
@@ -460,17 +452,17 @@ class _ComposerState extends State<_Composer> {
                           : timeLabel(draft.minutes!),
                       outlined: draft.minutes == null,
                       tooltip: date == null
-                          ? 'Set a date to add a time'
+                          ? l10n.inboxSetDateForTime
                           : draft.minutes == null
-                          ? 'Time'
+                          ? l10n.inboxTime
                           : null,
                       onPressed: date == null ? null : _pickTime,
                       onClear: draft.minutes == null
                           ? null
                           : () => _page.setMinutes(null),
-                      clearTooltip: 'Clear time',
+                      clearTooltip: l10n.inboxClearTime,
                     ),
-                    _reminderChip(draft),
+                    _reminderChip(draft, l10n),
                     if (draft.link case final link?)
                       InboxLinkChip(
                         link: link,
@@ -482,7 +474,7 @@ class _ComposerState extends State<_Composer> {
                       InboxChip(
                         icon: Icons.link,
                         outlined: true,
-                        tooltip: 'Link a card',
+                        tooltip: l10n.inboxLinkCard,
                         onPressed: _pickLink,
                       ),
                   ],
@@ -494,7 +486,12 @@ class _ComposerState extends State<_Composer> {
     );
   }
 
-  Widget _dateChip(InboxPageState state, DateTime? date) {
+  Widget _dateChip(
+    InboxPageState state,
+    DateTime? date,
+    AppLocalizations l10n,
+    String locale,
+  ) {
     final now = _page.now;
     return MenuAnchor(
       onOpen: () => setState(() => _busy++),
@@ -504,31 +501,31 @@ class _ComposerState extends State<_Composer> {
       },
       menuChildren: [
         for (final (label, day) in [
-          ('Today', InboxDatePresets.today(now)),
-          ('Tomorrow', InboxDatePresets.tomorrow(now)),
-          ('Next Monday', InboxDatePresets.nextMonday(now)),
+          (l10n.commonToday, InboxDatePresets.today(now)),
+          (l10n.inboxTomorrow, InboxDatePresets.tomorrow(now)),
+          (l10n.inboxNextMonday, InboxDatePresets.nextMonday(now)),
         ])
           MenuItemButton(
             onPressed: () => _page.setDate(day),
-            trailingIcon: Text(dayLabel(day)),
+            trailingIcon: Text(dayLabel(day, locale)),
             child: Text(label),
           ),
-        MenuItemButton(onPressed: _pickDate, child: const Text('Pick…')),
+        MenuItemButton(onPressed: _pickDate, child: Text(l10n.inboxPickDate)),
       ],
       builder: (context, controller, _) => InboxChip(
         icon: Icons.calendar_today_outlined,
-        label: date == null ? null : dayLabel(date),
+        label: date == null ? null : dayLabel(date, locale),
         outlined: date == null,
-        tooltip: date == null ? 'Date' : null,
+        tooltip: date == null ? l10n.inboxDate : null,
         onPressed: () =>
             controller.isOpen ? controller.close() : controller.open(),
         onClear: date == null ? null : () => _page.setDate(null),
-        clearTooltip: 'No date',
+        clearTooltip: l10n.inboxNoDate,
       ),
     );
   }
 
-  Widget _reminderChip(InboxDraft draft) {
+  Widget _reminderChip(InboxDraft draft, AppLocalizations l10n) {
     final reminders = draft.reminders;
     final enabled = draft.date != null;
     return MenuAnchor(
@@ -549,19 +546,19 @@ class _ComposerState extends State<_Composer> {
                 reminders.contains(r) || reminders.length < InboxReminders.max
                 ? () => _page.toggleReminder(r)
                 : null,
-            child: Text(reminderLabel(r)),
+            child: Text(reminderLabel(l10n, r)),
           ),
       ],
       builder: (context, controller, _) => InboxChip(
         icon: Icons.notifications_none,
         label: reminders.isEmpty
             ? null
-            : '${reminderLabel(reminders.first, short: true)}'
+            : '${reminderLabel(l10n, reminders.first, short: true)}'
                   '${reminders.length > 1 ? ' +${reminders.length - 1}' : ''}',
         outlined: reminders.isEmpty,
         tooltip: enabled
-            ? (reminders.isEmpty ? 'Reminder' : null)
-            : 'Set a date to add a reminder',
+            ? (reminders.isEmpty ? l10n.inboxReminder : null)
+            : l10n.inboxSetDateForReminder,
         onPressed: enabled
             ? () => controller.isOpen ? controller.close() : controller.open()
             : null,
@@ -572,7 +569,7 @@ class _ComposerState extends State<_Composer> {
                   _page.toggleReminder(r);
                 }
               },
-        clearTooltip: 'No reminders',
+        clearTooltip: l10n.inboxNoReminders,
       ),
     );
   }
@@ -623,16 +620,19 @@ class _SectionsState extends State<_Sections> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
     final s = widget.sections;
     final isToday = widget.day == widget.today;
-    final dayName = isToday ? 'Today' : dayLabel(widget.day);
+    final dayName = isToday
+        ? l10n.commonToday
+        : dayLabel(widget.day, Localizations.localeOf(context).toString());
     final timed = s.day.any((i) => !i.allDay);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (s.overdue.isNotEmpty) ...[
           _SectionHeader(
-            caption: 'Overdue',
+            caption: l10n.inboxOverdue,
             count: s.overdue.length,
             color: scheme.error,
             trailing: TextButton(
@@ -646,7 +646,7 @@ class _SectionsState extends State<_Sections> {
                 ),
               ),
               onPressed: widget.onMoveAll,
-              child: const Text('Move all to today'),
+              child: Text(l10n.inboxMoveAllToToday),
             ),
           ),
           _RowList([
@@ -662,12 +662,14 @@ class _SectionsState extends State<_Sections> {
               : null,
         ),
         if (s.day.isEmpty)
-          _QuietLine('Nothing for ${isToday ? 'today' : dayName}')
+          _QuietLine(
+            isToday ? l10n.inboxNothingForToday : l10n.inboxNothingFor(dayName),
+          )
         else
           _RowList([for (final i in s.day) _row(i, timeColumn: timed)]),
         if (s.noDate.isNotEmpty) ...[
           _SectionHeader(
-            caption: 'No date',
+            caption: l10n.inboxNoDate,
             count: s.noDate.length,
             open: _noDateOpen,
             onToggle: () => setState(() => _noDateOpen = !_noDateOpen),
@@ -676,7 +678,7 @@ class _SectionsState extends State<_Sections> {
         ],
         if (s.completed.isNotEmpty) ...[
           _SectionHeader(
-            caption: 'Completed',
+            caption: l10n.inboxCompleted,
             count: s.completed.length,
             open: _completedOpen,
             onToggle: () => setState(() => _completedOpen = !_completedOpen),
@@ -866,6 +868,7 @@ class _ItemRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
     final minutes = daysLate == null ? itemMinutes(item) : null;
     final late = minutes != null && item.isOpen && item.dueAt!.isBefore(now);
     final metaStyle = theme.textTheme.labelMedium?.copyWith(
@@ -877,7 +880,10 @@ class _ItemRow extends StatelessWidget {
     final reminders = item.dueAt == null ? const <int>[] : item.reminders;
     final meta = <Widget>[
       if (daysLate case final d?)
-        Text('$d d late', style: metaStyle?.copyWith(color: scheme.error)),
+        Text(
+          l10n.inboxDaysLate(d),
+          style: metaStyle?.copyWith(color: scheme.error),
+        ),
       if (reminders.isNotEmpty)
         Row(
           mainAxisSize: MainAxisSize.min,
@@ -889,7 +895,7 @@ class _ItemRow extends StatelessWidget {
             ),
             const SizedBox(width: 2),
             Text(
-              '${reminderLabel(reminders.first, short: true)}'
+              '${reminderLabel(l10n, reminders.first, short: true)}'
               '${reminders.length > 1 ? ' +${reminders.length - 1}' : ''}',
               style: metaStyle,
             ),
@@ -901,7 +907,7 @@ class _ItemRow extends StatelessWidget {
       dimension: 44,
       child: item.isTask
           ? IconButton(
-              tooltip: item.done ? 'Mark not done' : 'Mark done',
+              tooltip: item.done ? l10n.inboxMarkNotDone : l10n.inboxMarkDone,
               onPressed: () => onDone(!item.done),
               icon: InboxTaskCircle(done: item.done),
             )

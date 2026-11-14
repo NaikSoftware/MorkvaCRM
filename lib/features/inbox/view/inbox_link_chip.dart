@@ -8,6 +8,7 @@ import '../../../api/data/data_repository.dart';
 import '../../../core/domain/domain.dart';
 import '../../../core/domain/inbox/inbox.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../../views/view_link.dart';
 
 /// The workspace collections by id, live; null until the first snapshot.
@@ -101,6 +102,7 @@ class _InboxLinkChipState extends State<InboxLinkChip> {
   Future<void> _open(Collection collection) async {
     final router = GoRouter.of(context);
     final messenger = ScaffoldMessenger.maybeOf(context);
+    final cardDeleted = context.l10n.inboxCardDeleted;
     final link = widget.link;
     MorkvaObject? card;
     try {
@@ -118,11 +120,11 @@ class _InboxLinkChipState extends State<InboxLinkChip> {
       if (mounted) setState(() => _cardDeleted = true);
       messenger?.hideCurrentSnackBar();
       messenger?.showSnackBar(
-        const SnackBar(
-          content: Text('Card deleted'),
+        SnackBar(
+          content: Text(cardDeleted),
           behavior: SnackBarBehavior.floating,
           persist: false,
-          duration: Duration(seconds: 4),
+          duration: const Duration(seconds: 4),
         ),
       );
       return;
@@ -145,8 +147,9 @@ class _InboxLinkChipState extends State<InboxLinkChip> {
     final collection = collections?[link.collectionId];
     final collectionDeleted = collections != null && collection == null;
     final muted = collectionDeleted || _cardDeleted;
+    final l10n = context.l10n;
     final label = collectionDeleted
-        ? 'Collection deleted'
+        ? l10n.inboxCollectionDeleted
         : widget.compact || collection == null
         ? link.label
         : '${collection.name} · ${link.label}';
@@ -209,7 +212,7 @@ class _InboxLinkChipState extends State<InboxLinkChip> {
               child: IconButton(
                 padding: EdgeInsets.zero,
                 iconSize: 16,
-                tooltip: 'Remove link',
+                tooltip: l10n.inboxRemoveLink,
                 color: scheme.onSurfaceVariant,
                 onPressed: clear,
                 icon: const Icon(Icons.close),
@@ -224,7 +227,7 @@ class _InboxLinkChipState extends State<InboxLinkChip> {
         (collection == null || muted ? null : () => _open(collection));
     return Semantics(
       button: onTap != null,
-      label: muted ? label : 'Open $label',
+      label: muted ? label : l10n.inboxOpenLink(label),
       excludeSemantics: widget.onClear == null,
       child: InkWell(
         onTap: onTap,

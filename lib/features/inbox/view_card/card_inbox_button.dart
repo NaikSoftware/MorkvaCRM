@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/domain/inbox/inbox.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../../automation/widgets/action_buttons.dart' show maybeRead;
 import '../bloc/inbox_cubit.dart';
 import '../view/inbox_format.dart';
@@ -70,7 +71,7 @@ class CardInboxButton extends StatelessWidget {
         if (linked.isEmpty) {
           return IconActionButton(
             icon: Icons.inbox_outlined,
-            tooltip: 'Add to Inbox',
+            tooltip: context.l10n.inboxAddToInbox,
             onPressed: add,
           );
         }
@@ -95,7 +96,7 @@ class CardInboxButton extends StatelessWidget {
                   MenuItemButton(
                     leadingIcon: const Icon(Icons.add_rounded),
                     onPressed: add,
-                    child: const Text('Add to Inbox…'),
+                    child: Text(context.l10n.inboxAddToInboxMenu),
                   ),
                 ],
               ),
@@ -105,7 +106,7 @@ class CardInboxButton extends StatelessWidget {
             count: linked.length,
             child: IconActionButton(
               icon: Icons.inbox_outlined,
-              tooltip: 'Inbox · ${linked.length} open',
+              tooltip: context.l10n.inboxCardOpenCount(linked.length),
               filled: menu.isOpen,
               onPressed: () => menu.isOpen ? menu.close() : menu.open(),
             ),
@@ -181,14 +182,20 @@ class _ItemEntry extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
     final now = DateTime.now();
     final today = localDay(now);
     final day = item.day;
     final late = item.isTask && day != null && day.isBefore(today);
     final when = [
-      if (day == null) 'No date' else day == today ? 'Today' : dayLabel(day),
+      if (day == null)
+        l10n.inboxNoDate
+      else if (day == today)
+        l10n.commonToday
+      else
+        dayLabel(day, Localizations.localeOf(context).toString()),
       if (late)
-        '${daysBetween(day, today)} d late'
+        l10n.inboxDaysLate(daysBetween(day, today))
       else if (itemMinutes(item) case final m?)
         timeLabel(m),
     ].join(' · ');

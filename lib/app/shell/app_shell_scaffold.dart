@@ -847,9 +847,9 @@ class _PinsBar extends StatelessWidget {
       },
       destinations: [
         if (onInbox != null)
-          const NavigationDestination(
-            icon: InboxBadgeIcon(icon: Icon(Icons.inbox_rounded)),
-            label: 'Inbox',
+          NavigationDestination(
+            icon: const InboxBadgeIcon(icon: Icon(Icons.inbox_rounded)),
+            label: context.l10n.inboxTitle,
           ),
         for (final c in shown)
           NavigationDestination(

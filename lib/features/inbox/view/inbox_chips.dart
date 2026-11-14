@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 
 /// A 32 px value chip in a 44 px hit box: an optional [icon], a [label]
 /// (none = icon-only), an optional × ([onClear]). [selected] fills it
@@ -89,7 +90,7 @@ class InboxChip extends StatelessWidget {
               child: IconButton(
                 padding: EdgeInsets.zero,
                 iconSize: 16,
-                tooltip: clearTooltip ?? 'Clear',
+                tooltip: clearTooltip ?? context.l10n.commonClear,
                 color: scheme.onSurfaceVariant,
                 onPressed: clear,
                 icon: const Icon(Icons.close),
@@ -124,8 +125,9 @@ void showInboxSnack(
   String text, {
   VoidCallback? onUndo,
 }) {
-  messenger?.hideCurrentSnackBar();
-  messenger?.showSnackBar(
+  if (messenger == null) return;
+  messenger.hideCurrentSnackBar();
+  messenger.showSnackBar(
     SnackBar(
       content: Text(text),
       behavior: SnackBarBehavior.floating,
@@ -133,7 +135,10 @@ void showInboxSnack(
       duration: const Duration(seconds: 5),
       action: onUndo == null
           ? null
-          : SnackBarAction(label: 'Undo', onPressed: onUndo),
+          : SnackBarAction(
+              label: messenger.context.l10n.commonUndo,
+              onPressed: onUndo,
+            ),
     ),
   );
 }
