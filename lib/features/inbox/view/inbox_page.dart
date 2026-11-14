@@ -404,7 +404,7 @@ class _ComposerState extends State<_Composer> {
         ? l10n.inboxAddNote
         : date == null
         ? l10n.inboxAddTask
-        : date == state.today && state.day != state.today
+        : date == state.today
         ? l10n.inboxAddTaskToday
         : l10n.inboxAddTaskFor(dayLabel(date, locale));
     final focused = _focus.hasFocus;

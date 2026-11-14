@@ -217,7 +217,7 @@ void main() {
       tester,
     ) async {
       await rig.pump(tester);
-      expect(find.text('Add a task for Sat 14…'), findsOneWidget);
+      expect(find.text('Add a task for today…'), findsOneWidget);
 
       await type(tester, '  Buy fabric ');
 
@@ -275,11 +275,11 @@ void main() {
       expect(note.dueAt, allDayDue(DateTime(2026, 11, 15)));
     });
 
-    testWidgets('a past day defaults the task to today', (tester) async {
+    testWidgets('a past day adds the task to that day', (tester) async {
       await rig.pump(tester, day: DateTime(2026, 11, 10));
-      expect(find.text('Add a task for today…'), findsOneWidget);
+      expect(find.text('Add a task for Tue 10…'), findsOneWidget);
       await type(tester, 'Late idea');
-      expect(created().dueAt, allDayDue(DateTime(2026, 11, 14)));
+      expect(created().dueAt, allDayDue(DateTime(2026, 11, 10)));
     });
 
     testWidgets('reminder chip sets reminders; a link chip links a card', (

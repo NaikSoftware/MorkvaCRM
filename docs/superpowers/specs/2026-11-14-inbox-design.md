@@ -129,7 +129,7 @@ November 2026 ▾                                    ‹   Today   ›
  Mon 9  Tue 10  Wed 11  Thu 12  Fri 13  [Sat 14]  Sun 15
    ·              ··                       ●
 ┌─────────────────────────────────────────────────────────────────┐
-│ ○  Add a task for Sat 14…                                        │
+│ ○  Add a task for today…                                         │
 │    [📅 Sat 14 ×] [🕘] [🔔] [🔗]                          (on focus)│
 └─────────────────────────────────────────────────────────────────┘
 OVERDUE · 2                                         Move all to today
@@ -149,7 +149,7 @@ Completed · 2 ▸
   "November 2026 ▾" opens Material `showDatePicker` in `MondayFirst` (as `calendar_agenda.dart`).
   Phone: swipe moves a week. Reuse `calendar_common.dart` helpers and the `_StripDay` look.
 - **Composer:** one input; the leading icon toggles task/note. Placeholder names what will be made
-  ("Add a task for Sat 14…" / "Add a note…"). Enter adds and keeps focus. On focus a row of
+  ("Add a task for today…", "Add a task for Fri 13…" on another day, "Add a note…"). Enter adds and keeps focus. On focus a row of
   **icon-only** chips appears: date (task: the selected day; note: empty = No date), time, reminder,
   link; a chip shows its value once set ("Sat 14", "10:00", "15 min", "Orders · #1042"); × clears.
   *my call:* icons, not labelled buttons (owner: "transform button to icon").
@@ -243,9 +243,9 @@ Mockups: Claude Design canvas https://claude.ai/artifact/5CRWtUY879wwWW71a4RK6x,
 - **Toasts anchor bottom-right on wide** (*my call*): a stack top-right covered the strip's ‹ Today ›
   and "Move all to today"; snackbars stay bottom-centre. Phone: top. Toast leading tile = kind glyph
   (a hollow circle read as a second checkbox).
-- **Past selected day:** the composer's task date defaults to **today**, not the past day (a task
-  must not be born overdue); placeholder "Add a task for today…". Pick a past date explicitly in
-  the editor.
+- **Selected day is the target** (owner, 2026-11-14, replacing "a past day defaults to today"):
+  the composer's task date is the selected day, past days included; placeholder "Add a task for
+  today…" when that day is today, else "Add a task for Tue 10…".
 - **Phone composer chips wrap** to a second line.
 - **Editor date row** shows the date only ("Sat 14 Nov"); the time lives in its own chip.
 - **Collapse chevrons** sit left of the section caption for both No date and Completed.

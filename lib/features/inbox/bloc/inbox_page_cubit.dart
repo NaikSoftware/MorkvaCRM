@@ -203,12 +203,12 @@ final class InboxPageState extends Equatable {
   /// The user picked or cleared the date: a kind toggle keeps it.
   final bool dateTouched;
 
-  /// A task defaults to the selected day (today when that is past, so a
-  /// task is never born overdue); a note to No date.
+  /// A task defaults to the selected day (owner: the day you look at is
+  /// the day you add to, past days too); a note to No date.
   DateTime? get composerDate {
     if (dateTouched) return draft.date;
     if (draft.kind == InboxKind.note) return null;
-    return day.isBefore(today) ? today : day;
+    return day;
   }
 
   /// The composer's draft with its effective date.
