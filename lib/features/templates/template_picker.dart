@@ -100,7 +100,7 @@ class _TemplatePickerState extends State<TemplatePicker> {
                   ),
                   IconButton(
                     tooltip: context.l10n.commonClose,
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(MorkvaIcons.close),
                     onPressed: _adding == null
                         ? () => Navigator.of(context).pop()
                         : null,
@@ -240,7 +240,7 @@ class _TemplateCard extends StatelessWidget {
               ),
               SecondaryButton(
                 label: context.l10n.templatesAdd,
-                icon: Icons.add,
+                icon: MorkvaIcons.add,
                 loading: adding,
                 onPressed: onAdd,
               ),

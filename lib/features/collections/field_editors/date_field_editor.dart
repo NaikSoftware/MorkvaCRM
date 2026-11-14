@@ -22,7 +22,7 @@ class DateFieldEditor extends FieldEditor {
       l10n.collectionsTypeDateDescription;
 
   @override
-  IconData get icon => Icons.event_outlined;
+  IconData get icon => MorkvaIcons.event;
 
   @override
   FieldDefinition createDefault({required String id, required String name}) =>
@@ -92,7 +92,7 @@ class DateFieldEditor extends FieldEditor {
   Widget buildPreviewAffordance(
     BuildContext context,
     FieldDefinition definition,
-  ) => const PreviewStubInput(icon: Icons.calendar_today_outlined, height: 36);
+  ) => const PreviewStubInput(icon: MorkvaIcons.calendarDay, height: 36);
 }
 
 class _DateBoundRow extends StatelessWidget {
@@ -120,7 +120,7 @@ class _DateBoundRow extends StatelessWidget {
           SizedBox(width: 88, child: Text(label)),
           SecondaryButton(
             label: text,
-            icon: Icons.event_outlined,
+            icon: MorkvaIcons.event,
             onPressed: () async {
               final picked = await showDatePicker(
                 context: context,
@@ -136,7 +136,7 @@ class _DateBoundRow extends StatelessWidget {
           ),
           if (value != null)
             IconActionButton(
-              icon: Icons.clear,
+              icon: MorkvaIcons.close,
               tooltip: context.l10n.commonClear,
               onPressed: () => onChanged(null),
             ),

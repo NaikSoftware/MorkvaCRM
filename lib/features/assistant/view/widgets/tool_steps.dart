@@ -71,7 +71,7 @@ class _ToolStepsState extends State<ToolSteps> {
                   ),
                   const SizedBox(width: Spacing.xs),
                   Icon(
-                    Icons.expand_more_rounded,
+                    MorkvaIcons.expandMore,
                     size: 16,
                     color: scheme.onSurfaceVariant,
                   ),
@@ -179,18 +179,18 @@ class _StepGlyph extends StatelessWidget {
       dimension: 14,
       child: switch (status) {
         StepStatus.done => Icon(
-          Icons.check_rounded,
+          MorkvaIcons.check,
           size: 14,
           color: semantic?.success ?? scheme.primary,
         ),
         StepStatus.failed => Icon(
-          Icons.error_outline_rounded,
+          MorkvaIcons.error,
           size: 14,
           color: scheme.error,
         ),
         StepStatus.running =>
           MediaQuery.disableAnimationsOf(context)
-              ? Icon(Icons.more_horiz_rounded, size: 14, color: scheme.primary)
+              ? Icon(MorkvaIcons.moreHoriz, size: 14, color: scheme.primary)
               : Padding(
                   padding: const EdgeInsets.all(1),
                   child: CircularProgressIndicator(

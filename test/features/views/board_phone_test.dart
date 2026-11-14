@@ -140,7 +140,7 @@ void main() {
       );
       expect(tester.getSize(jump).height, 44);
       expect(
-        find.descendant(of: jump, matching: find.byIcon(Icons.arrow_drop_down)),
+        find.descendant(of: jump, matching: find.byIcon(MorkvaIcons.expandMore)),
         findsOneWidget,
       );
 
@@ -198,7 +198,7 @@ void main() {
       final count = find.descendant(of: button, matching: find.text('2'));
       final caret = find.descendant(
         of: button,
-        matching: find.byIcon(Icons.arrow_drop_down),
+        matching: find.byIcon(MorkvaIcons.expandMore),
       );
       expect(
         tester.getCenter(caret).dx,

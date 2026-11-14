@@ -162,8 +162,8 @@ class _CalendarAgendaState extends State<CalendarAgenda> {
                             count: undated.length,
                             trailing: Icon(
                               _undatedOpen
-                                  ? Icons.expand_less
-                                  : Icons.expand_more,
+                                  ? MorkvaIcons.expandLess
+                                  : MorkvaIcons.expandMore,
                               size: 20,
                               semanticLabel: _undatedOpen
                                   ? context.l10n.viewWidgetsCollapse

@@ -13,7 +13,7 @@ void main() {
       await tester.pumpWidget(wrap(const SearchField(dense: true)));
 
       expect(tester.getSize(find.byType(TextField)).height, 44);
-      expect(tester.widget<Icon>(find.byIcon(Icons.search)).size, 16);
+      expect(tester.widget<Icon>(find.byIcon(MorkvaIcons.search)).size, 16);
     });
 
     testWidgets('shows the default "Search" hint and search icon', (
@@ -22,7 +22,7 @@ void main() {
       await tester.pumpWidget(wrap(const SearchField()));
 
       expect(find.text('Search'), findsOneWidget);
-      expect(find.byIcon(Icons.search), findsOneWidget);
+      expect(find.byIcon(MorkvaIcons.search), findsOneWidget);
     });
 
     testWidgets('clear button appears only when there is text and clears it', (
@@ -39,18 +39,18 @@ void main() {
       );
 
       // No clear button while empty.
-      expect(find.byIcon(Icons.close), findsNothing);
+      expect(find.byIcon(MorkvaIcons.close), findsNothing);
 
       await tester.enterText(find.byType(TextField), 'carrots');
       await tester.pump();
-      expect(find.byIcon(Icons.close), findsOneWidget);
+      expect(find.byIcon(MorkvaIcons.close), findsOneWidget);
 
-      await tester.tap(find.byIcon(Icons.close));
+      await tester.tap(find.byIcon(MorkvaIcons.close));
       await tester.pump();
 
       expect(controller.text, isEmpty);
       expect(cleared, isTrue);
-      expect(find.byIcon(Icons.close), findsNothing);
+      expect(find.byIcon(MorkvaIcons.close), findsNothing);
     });
 
     testWidgets('fires onChanged as the user types', (tester) async {

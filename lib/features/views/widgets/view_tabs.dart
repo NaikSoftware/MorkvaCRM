@@ -124,12 +124,12 @@ class _ViewTabsState extends State<ViewTabs> with TickerProviderStateMixin {
       items: [
         PopupMenuItem(
           value: _TabAction.rename,
-          child: _MenuRow(icon: Icons.edit_outlined, label: l10n.commonRename),
+          child: _MenuRow(icon: MorkvaIcons.edit, label: l10n.commonRename),
         ),
         PopupMenuItem(
           value: _TabAction.duplicate,
           child: _MenuRow(
-            icon: Icons.content_copy_outlined,
+            icon: MorkvaIcons.copy,
             label: l10n.commonDuplicate,
           ),
         ),
@@ -139,7 +139,7 @@ class _ViewTabsState extends State<ViewTabs> with TickerProviderStateMixin {
           child: Tooltip(
             message: canDelete ? '' : l10n.viewWidgetsLastViewCantDelete,
             child: _MenuRow(
-              icon: Icons.delete_outline,
+              icon: MorkvaIcons.delete,
               label: l10n.commonDelete,
             ),
           ),
@@ -195,7 +195,7 @@ class _ViewTabsState extends State<ViewTabs> with TickerProviderStateMixin {
         IconButton(
           onPressed: widget.onNewView,
           tooltip: context.l10n.viewWidgetsNewView,
-          icon: const Icon(Icons.add, size: 20),
+          icon: const Icon(MorkvaIcons.add, size: 20),
           color: scheme.onSurfaceVariant,
           constraints: const BoxConstraints.tightFor(width: 36, height: 36),
           padding: EdgeInsets.zero,
@@ -268,7 +268,7 @@ class _ViewTabsState extends State<ViewTabs> with TickerProviderStateMixin {
                         box.localToGlobal(box.size.bottomLeft(Offset.zero)),
                       );
                     },
-                    icon: const Icon(Icons.more_horiz),
+                    icon: const Icon(MorkvaIcons.moreHoriz),
                   ),
                 ),
               ),

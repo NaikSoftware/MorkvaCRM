@@ -215,27 +215,27 @@ class _CollectionsContent extends StatelessWidget {
                     if (labelled) ...[
                       SecondaryButton(
                         label: l10n.collectionsFromTemplate,
-                        icon: Icons.auto_awesome_mosaic_outlined,
+                        icon: MorkvaIcons.mosaic,
                         onPressed: () =>
                             CollectionsListView._fromTemplate(context),
                       ),
                       const SizedBox(width: Spacing.xs),
                       PrimaryButton(
                         label: l10n.collectionsNewCollection,
-                        icon: Icons.add,
+                        icon: MorkvaIcons.add,
                         onPressed: () => CollectionsListView._create(context),
                       ),
                     ] else ...[
                       IconButton.outlined(
                         tooltip: l10n.collectionsFromTemplate,
-                        icon: const Icon(Icons.auto_awesome_mosaic_outlined),
+                        icon: const Icon(MorkvaIcons.mosaic),
                         onPressed: () =>
                             CollectionsListView._fromTemplate(context),
                       ),
                       const SizedBox(width: Spacing.sm),
                       IconButton.filled(
                         tooltip: l10n.collectionsNewCollection,
-                        icon: const Icon(Icons.add),
+                        icon: const Icon(MorkvaIcons.add),
                         onPressed: () => CollectionsListView._create(context),
                       ),
                     ],
@@ -244,7 +244,7 @@ class _CollectionsContent extends StatelessWidget {
               ),
             ),
             if (pinned.isNotEmpty) ...[
-              caption(l10n.shellPinnedHeader, icon: Icons.push_pin),
+              caption(l10n.shellPinnedHeader, icon: MorkvaIcons.pinFilled),
               grid(pinned),
             ],
             if (others.isNotEmpty) ...[
@@ -328,7 +328,7 @@ class _EmptyCollections extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return EmptyState(
-      icon: Icons.dashboard_customize_outlined,
+      icon: MorkvaIcons.dashboard,
       title: context.l10n.collectionsEmptyTitle,
       message: context.l10n.collectionsEmptyMessage,
       action: Wrap(
@@ -338,12 +338,12 @@ class _EmptyCollections extends StatelessWidget {
         children: [
           SecondaryButton(
             label: context.l10n.collectionsStartFromTemplate,
-            icon: Icons.auto_awesome_mosaic_outlined,
+            icon: MorkvaIcons.mosaic,
             onPressed: onTemplate,
           ),
           PrimaryButton(
             label: context.l10n.collectionsNewCollection,
-            icon: Icons.add,
+            icon: MorkvaIcons.add,
             onPressed: onCreate,
           ),
         ],
@@ -361,12 +361,12 @@ class _ErrorState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return EmptyState(
-      icon: Icons.cloud_off_outlined,
+      icon: MorkvaIcons.cloudOff,
       title: context.l10n.collectionsLoadErrorTitle,
       message: context.l10n.collectionsLoadFailed(message),
       action: SecondaryButton(
         label: context.l10n.commonRetry,
-        icon: Icons.refresh,
+        icon: MorkvaIcons.refresh,
         onPressed: () => context.read<CollectionsListCubit>().initialize(),
       ),
     );

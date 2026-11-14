@@ -243,7 +243,7 @@ void main() {
   testWidgets('selects use the house chevron at 14 px', (tester) async {
     await pump(tester, build());
     expect(find.byIcon(Icons.arrow_drop_down), findsNothing);
-    expect(find.byIcon(Icons.expand_more), findsWidgets);
+    expect(find.byIcon(MorkvaIcons.expandMore), findsWidgets);
     final module = tester.widget<DropdownButton<String>>(
       find.byType(DropdownButton<String>).at(1),
     );

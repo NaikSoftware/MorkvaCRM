@@ -36,7 +36,7 @@ class SingleSelectValueEditor extends FieldValueEditor {
           MenuItemButton(
             onPressed: () => ctx.onChanged(SingleSelectFieldValue(o.id)),
             trailingIcon: o.id == selected
-                ? Icon(Icons.check, size: 18, color: scheme.primary)
+                ? Icon(MorkvaIcons.check, size: 18, color: scheme.primary)
                 : null,
             child: OptionPill(label: o.label, color: optionColor(field, o.id)),
           ),
@@ -45,7 +45,7 @@ class SingleSelectValueEditor extends FieldValueEditor {
         if (selected != null) ...[
           const Divider(height: 1),
           MenuItemButton(
-            leadingIcon: const Icon(Icons.close, size: 18),
+            leadingIcon: const Icon(MorkvaIcons.close, size: 18),
             onPressed: () => ctx.onChanged(const SingleSelectFieldValue(null)),
             child: Text(context.l10n.commonClear),
           ),
@@ -66,7 +66,7 @@ class SingleSelectValueEditor extends FieldValueEditor {
               hintText: context.l10n.objectsChoose,
               error: ctx.error == null ? null : const SizedBox.shrink(),
               suffixIcon: Icon(
-                Icons.expand_more,
+                MorkvaIcons.expandMore,
                 color: scheme.onSurfaceVariant,
               ),
             ),

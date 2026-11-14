@@ -383,7 +383,7 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.descendant(of: banner, matching: find.byIcon(Icons.error_outline)),
+        find.descendant(of: banner, matching: find.byIcon(MorkvaIcons.error)),
         findsOneWidget,
       );
     });

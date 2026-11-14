@@ -315,7 +315,7 @@ void main() {
       await open(tester, sync: const SyncOffline());
       await toChoose(tester);
       expect(find.text("You're offline — connect to import"), findsOneWidget);
-      expect(find.byIcon(Icons.wifi_off_rounded), findsOneWidget);
+      expect(find.byIcon(MorkvaIcons.wifiOff), findsOneWidget);
       expect(primary(tester, 'Import 3 collections').onPressed, isNull);
     });
 
@@ -406,7 +406,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Close'), findsOneWidget);
-      expect(find.byIcon(Icons.pause_rounded), findsOneWidget);
+      expect(find.byIcon(MorkvaIcons.pause), findsOneWidget);
       // PhoneStalled keeps the note under the bar while paused.
       expect(find.text("Imported cards don't start automations."), findsOne);
 

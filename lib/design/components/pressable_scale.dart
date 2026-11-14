@@ -72,9 +72,7 @@ class _PressableScaleState extends State<PressableScale> {
           onLongPress: widget._enabled ? widget.onLongPress : null,
           child: AnimatedScale(
             scale: scale,
-            duration: reduceMotion
-                ? MotionDurations.none
-                : MotionDurations.fast,
+            duration: reduceMotion ? MotionDurations.none : MotionDurations.fast,
             curve: MotionCurves.standard,
             child: widget.child,
           ),

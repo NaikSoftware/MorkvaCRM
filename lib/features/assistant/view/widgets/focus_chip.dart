@@ -41,7 +41,7 @@ class FocusChip extends StatelessWidget {
               children: [
                 Icon(
                   iconKey == null
-                      ? Icons.view_in_ar_outlined
+                      ? MorkvaIcons.cube
                       : CollectionIcons.byKey(iconKey),
                   size: 14,
                   color: scheme.onSurface,
@@ -72,7 +72,7 @@ class FocusChip extends StatelessWidget {
             child: SizedBox.square(
               dimension: 44,
               child: Icon(
-                Icons.close_rounded,
+                MorkvaIcons.close,
                 size: 14,
                 color: scheme.onSurfaceVariant,
               ),

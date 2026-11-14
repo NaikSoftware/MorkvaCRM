@@ -5,6 +5,7 @@ import '../../../l10n/l10n.dart';
 import 'field_editor.dart';
 import 'widgets/config_controls.dart';
 import 'widgets/preview_affordances.dart';
+import 'package:morkva_crm/design/morkva_icons.dart';
 
 /// [FieldEditor] for the file/attachment field type.
 class FileFieldEditor extends FieldEditor {
@@ -21,7 +22,7 @@ class FileFieldEditor extends FieldEditor {
       l10n.collectionsTypeFileDescription;
 
   @override
-  IconData get icon => Icons.attach_file;
+  IconData get icon => MorkvaIcons.attach;
 
   @override
   FieldDefinition createDefault({required String id, required String name}) =>
@@ -103,7 +104,7 @@ class FileFieldEditor extends FieldEditor {
     BuildContext context,
     FieldDefinition definition,
   ) => PreviewStubInput(
-    icon: Icons.attach_file,
+    icon: MorkvaIcons.attach,
     height: 36,
     hint: context.l10n.collectionsNoFile,
   );

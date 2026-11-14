@@ -282,7 +282,7 @@ void main() {
         tester.getCenter(
           find.descendant(
             of: strip('Lead'),
-            matching: find.byIcon(Icons.unfold_more),
+            matching: find.byIcon(MorkvaIcons.unfoldMore),
           ),
         ),
       );

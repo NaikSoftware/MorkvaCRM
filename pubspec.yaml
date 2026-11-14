@@ -105,6 +105,12 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/templates/
+
+  # MorkvaCRM's own icon set — built by tool/icons/build.py (see lib/design/morkva_icons.dart).
+  fonts:
+    - family: MorkvaIcons
+      fonts:
+        - asset: assets/fonts/MorkvaIcons.ttf
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
 

@@ -318,7 +318,7 @@ class _SendButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(radius),
           ),
           child: Icon(
-            stop ? Icons.stop_rounded : Icons.arrow_upward_rounded,
+            stop ? MorkvaIcons.stop : MorkvaIcons.arrowUp,
             size: stop ? 20 : 18,
             color: fg,
           ),

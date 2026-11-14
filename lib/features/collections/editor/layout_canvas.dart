@@ -220,7 +220,7 @@ class LayoutCanvas extends StatelessWidget {
                                 .addSection(
                                   title: context.l10n.collectionsNewGroup,
                                 ),
-                            icon: const Icon(Icons.add, size: 18),
+                            icon: const Icon(MorkvaIcons.add, size: 18),
                             label: Text(context.l10n.collectionsAddGroup),
                           ),
                         ),
@@ -370,7 +370,7 @@ class _SectionHeader extends StatelessWidget {
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
           icon: Icon(
-            section.collapsed ? Icons.chevron_right : Icons.expand_more,
+            section.collapsed ? MorkvaIcons.chevronRight : MorkvaIcons.expandMore,
             size: 18,
             color: scheme.onSurfaceVariant,
           ),
@@ -391,7 +391,7 @@ class _SectionHeader extends StatelessWidget {
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
             icon: Icon(
-              Icons.delete_outline,
+              MorkvaIcons.delete,
               size: 18,
               color: scheme.onSurfaceVariant,
             ),
@@ -438,7 +438,7 @@ class _SectionDragFeedback extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  Icons.drag_indicator,
+                  MorkvaIcons.dragHandle,
                   size: 16,
                   color: scheme.onSurfaceVariant,
                 ),
@@ -655,7 +655,7 @@ class _SectionBody extends StatelessWidget {
                       section.rows.length,
                     );
                   },
-                  icon: const Icon(Icons.add, size: 16),
+                  icon: const Icon(MorkvaIcons.add, size: 16),
                   label: Text(context.l10n.collectionsAddField),
                   style: TextButton.styleFrom(
                     visualDensity: VisualDensity.compact,
@@ -925,7 +925,7 @@ class _RowGutterGripState extends State<_RowGutterGrip> {
           width: 20,
           child: Center(
             child: Icon(
-              Icons.drag_indicator,
+              MorkvaIcons.dragHandle,
               size: 14,
               color: scheme.onSurfaceVariant,
             ),
@@ -954,7 +954,7 @@ class _RowGutterGripState extends State<_RowGutterGrip> {
               ),
               alignment: Alignment.center,
               child: Icon(
-                Icons.drag_indicator,
+                MorkvaIcons.dragHandle,
                 size: 18,
                 color: scheme.onSurfaceVariant,
               ),
@@ -1049,7 +1049,7 @@ class _LayoutCellTile extends StatelessWidget {
                     child: Padding(
                       padding: const EdgeInsets.all(2),
                       child: Icon(
-                        Icons.close,
+                        MorkvaIcons.close,
                         size: 14,
                         color: scheme.onSurfaceVariant,
                       ),
@@ -1234,7 +1234,7 @@ class _RowDropTarget extends StatelessWidget {
               ),
             ),
             child: Icon(
-              Icons.add,
+              MorkvaIcons.add,
               size: 18,
               color: active ? scheme.primary : scheme.onSurfaceVariant,
             ),

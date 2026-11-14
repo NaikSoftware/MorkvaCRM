@@ -90,7 +90,7 @@ class _RunDetailPageState extends State<RunDetailPage>
             : snap.connectionState != ConnectionState.done || state.loading
             ? const Center(child: LoadingIndicator())
             : EmptyState(
-                icon: Icons.history,
+                icon: MorkvaIcons.history,
                 title: l10n.automationRunNotInLogTitle,
                 message: l10n.automationRunNotInLogMessage,
               ),
@@ -117,7 +117,7 @@ class _RunDetailPageState extends State<RunDetailPage>
                     alignment: Alignment.centerLeft,
                     child: TextActionButton(
                       label: l10n.automationTabRuns,
-                      icon: Icons.arrow_back,
+                      icon: MorkvaIcons.arrowBack,
                       onPressed: () =>
                           host.openAutomations(tab: AutomationsTab.runs),
                     ),
@@ -151,10 +151,10 @@ String statusLabel(AppLocalizations l10n, RunStatus status) =>
 /// The header badge's glyph (succeeded ✓, failed ⊗, undone ↶).
 IconData? statusIcon(RunStatus status, {bool undone = false}) =>
     switch (status) {
-      RunStatus.succeeded when undone => Icons.undo_rounded,
-      RunStatus.succeeded => Icons.check_rounded,
-      RunStatus.failed || RunStatus.timedOut => Icons.cancel_outlined,
-      RunStatus.awaitingReview => Icons.visibility_outlined,
+      RunStatus.succeeded when undone => MorkvaIcons.undo,
+      RunStatus.succeeded => MorkvaIcons.check,
+      RunStatus.failed || RunStatus.timedOut => MorkvaIcons.cancel,
+      RunStatus.awaitingReview => MorkvaIcons.visibility,
       _ => null,
     };
 
@@ -200,7 +200,7 @@ class _LiveDetail extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: SecondaryButton(
               label: l10n.automationStop,
-              icon: Icons.stop_circle_outlined,
+              icon: MorkvaIcons.stopCircle,
               onPressed: () => context.read<RunLogCubit>().stop(run.runId),
             ),
           ),
@@ -287,7 +287,7 @@ class _Detail extends StatelessWidget {
         if (row.undo == UndoState.available)
           SecondaryButton(
             label: l10n.commonUndo,
-            icon: Icons.undo,
+            icon: MorkvaIcons.undo,
             onPressed: () => runLog.undo(run.id),
           ),
         if (row.action == RunRowAction.review)
@@ -301,7 +301,7 @@ class _Detail extends StatelessWidget {
             label: card == null
                 ? l10n.automationRunAgain
                 : l10n.automationRunAgainOn(card),
-            icon: Icons.refresh,
+            icon: MorkvaIcons.refresh,
             onPressed: offline ? null : again,
           )
         else if (canRunAgain)
@@ -309,7 +309,7 @@ class _Detail extends StatelessWidget {
             label: card == null
                 ? l10n.automationRunAgain
                 : l10n.automationRunAgainOn(card),
-            icon: Icons.refresh,
+            icon: MorkvaIcons.refresh,
             onPressed: offline ? null : again,
           ),
         if (canRunAgain && offline)
@@ -317,25 +317,25 @@ class _Detail extends StatelessWidget {
         if (live != null && live!.status != RunStatus.applying)
           TextActionButton(
             label: l10n.automationStop,
-            icon: Icons.stop_circle_outlined,
+            icon: MorkvaIcons.stopCircle,
             onPressed: () => runLog.stop(run.id),
           ),
         if (run.trigger.cardId case final cardId?
             when run.trigger.kind != TriggerKind.cardDeleted)
           TextActionButton(
             label: l10n.automationOpenCard,
-            icon: Icons.open_in_new,
+            icon: MorkvaIcons.openInNew,
             onPressed: () => host.openCard(run.trigger.collectionId, cardId),
           ),
         if (run.automationId case final id?)
           TextActionButton(
             label: l10n.automationEditAutomation,
-            icon: Icons.edit_outlined,
+            icon: MorkvaIcons.edit,
             onPressed: () => host.editAutomation(id),
           ),
         PopupMenuButton<void>(
           tooltip: l10n.commonMore,
-          icon: const Icon(Icons.more_horiz),
+          icon: const Icon(MorkvaIcons.moreHoriz),
           // 44 px, like every other target here (the default is 40).
           style: IconButton.styleFrom(minimumSize: const Size.square(44)),
           itemBuilder: (_) => [
@@ -525,7 +525,7 @@ class _Detail extends StatelessWidget {
                 for (final l in log.ui)
                   TextActionButton(
                     label: l10n.automationOpenLink(l.label),
-                    icon: Icons.open_in_new,
+                    icon: MorkvaIcons.openInNew,
                     onPressed: () => host.openLink(l),
                   ),
               ],
@@ -539,7 +539,7 @@ class _Detail extends StatelessWidget {
           tone: row.copy.tone,
           summary: _appliedLine(l10n, run),
           summaryIcon: Icon(
-            Icons.check_circle_outline,
+            MorkvaIcons.checkCircle,
             size: 16,
             color: theme.extension<MorkvaSemanticColors>()!.success,
           ),
@@ -553,7 +553,7 @@ class _Detail extends StatelessWidget {
             if ((run.receipt?.failed ?? 0) > 0)
               TextActionButton(
                 label: l10n.automationRetryFailed,
-                icon: Icons.refresh,
+                icon: MorkvaIcons.refresh,
                 onPressed: offline ? null : () => runLog.retryFailed(run.id),
               ),
           ],
@@ -585,7 +585,7 @@ class _Detail extends StatelessWidget {
                   : statusLabel(l10n, run.status),
               tone: notHere ? CopyTone.muted : row.copy.tone,
               icon: notHere
-                  ? Icons.radio_button_unchecked
+                  ? MorkvaIcons.radioOff
                   : statusIcon(run.status, undone: run.undoneAt != null),
             ),
             Text(
@@ -756,7 +756,7 @@ class _CallRow extends StatelessWidget {
           ),
           const SizedBox(width: Spacing.xs),
           Icon(
-            call.ok ? Icons.check : Icons.close,
+            call.ok ? MorkvaIcons.check : MorkvaIcons.close,
             size: 16,
             color: call.ok
                 ? theme.extension<MorkvaSemanticColors>()!.success
@@ -799,7 +799,7 @@ class _UndoSlot extends StatelessWidget {
     return switch (row.undo) {
       UndoState.available => SecondaryButton(
         label: label,
-        icon: Icons.undo,
+        icon: MorkvaIcons.undo,
         onPressed: () => context.read<RunLogCubit>().undo(run.id),
       ),
       UndoState.expired => Text(l10n.automationUndoExpired, style: muted),
@@ -874,7 +874,7 @@ class _Outcome extends StatelessWidget {
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             if (copy.tone == CopyTone.error)
-              Icon(Icons.cancel_outlined, size: 18, color: scheme.error),
+              Icon(MorkvaIcons.cancel, size: 18, color: scheme.error),
             Text(
               copy.row,
               style: theme.textTheme.titleSmall?.copyWith(
@@ -929,7 +929,7 @@ class _Outcome extends StatelessWidget {
               TextActionButton(
                 label: fix.label,
                 icon: fix == RunFix.askMorkva
-                    ? Icons.auto_awesome_outlined
+                    ? MorkvaIcons.sparkle
                     : null,
                 onPressed: onFix,
               )
@@ -938,7 +938,7 @@ class _Outcome extends StatelessWidget {
             if (error != null)
               TextActionButton(
                 label: l10n.commonCopy,
-                icon: Icons.copy_outlined,
+                icon: MorkvaIcons.copy,
                 onPressed: () => Clipboard.setData(
                   ClipboardData(
                     text: [
@@ -1102,7 +1102,7 @@ class _StepState extends State<_Step> {
                           child: Row(
                             children: [
                               Icon(
-                                _open ? Icons.expand_more : Icons.chevron_right,
+                                _open ? MorkvaIcons.expandMore : MorkvaIcons.chevronRight,
                                 size: 20,
                               ),
                               const SizedBox(width: Spacing.xs),

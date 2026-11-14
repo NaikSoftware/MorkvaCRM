@@ -41,7 +41,7 @@ class AssistantHeader extends StatelessWidget {
         children: [
           if (phone)
             IconActionButton(
-              icon: Icons.arrow_back_rounded,
+              icon: MorkvaIcons.arrowBack,
               tooltip: context.l10n.commonBack,
               onPressed: onBack,
             )

@@ -10,6 +10,7 @@ import 'package:morkva_crm/features/assistant/view/widgets/empty_chat.dart';
 
 import '../fakes/assistant_seeds.dart';
 import 'assistant_view_harness.dart';
+import 'package:morkva_crm/design/morkva_icons.dart';
 
 void main() {
   late RecordingActions actions;
@@ -171,7 +172,7 @@ void main() {
         findsOneWidget,
       );
       // The collection's own icon, not a generic glyph.
-      expect(find.byIcon(Icons.shopping_cart_outlined), findsOneWidget);
+      expect(find.byIcon(MorkvaIcons.cart), findsOneWidget);
       await tester.tap(find.byTooltip('Remove context'));
       expect(actions.calls, ['clearFocus()']);
     });

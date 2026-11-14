@@ -157,9 +157,9 @@ class _SuggestionGroup extends StatelessWidget {
         : CollectionTints.light;
     // sky = ask, leaf = analyze, carrot = act (as drawn).
     final (tint, icon) = switch (group.kind) {
-      SuggestionKind.ask => (tints[2], Icons.search_rounded),
-      SuggestionKind.analyze => (tints[1], Icons.bar_chart_rounded),
-      SuggestionKind.act => (tints[0], Icons.edit_outlined),
+      SuggestionKind.ask => (tints[2], MorkvaIcons.search),
+      SuggestionKind.analyze => (tints[1], MorkvaIcons.barChart),
+      SuggestionKind.act => (tints[0], MorkvaIcons.edit),
     };
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -247,7 +247,7 @@ class AssistantUnavailable extends StatelessWidget {
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(Spacing.lg),
         child: EmptyState(
-          icon: Icons.auto_awesome_outlined,
+          icon: MorkvaIcons.sparkle,
           title: title,
           message: message,
         ),

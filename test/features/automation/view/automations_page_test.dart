@@ -342,7 +342,7 @@ void main() {
       expect(
         tester
             .getTopLeft(
-              find.descendant(of: tile, matching: find.byIcon(Icons.refresh)),
+              find.descendant(of: tile, matching: find.byIcon(MorkvaIcons.refresh)),
             )
             .dx,
         tester
@@ -372,8 +372,8 @@ void main() {
         ).copyWith(undoneAt: () => fixtureNow),
       );
       await pump(tester, tab: AutomationsTab.runs);
-      expect(find.byIcon(Icons.check_circle_outline), findsNothing);
-      expect(find.byIcon(Icons.undo), findsOneWidget);
+      expect(find.byIcon(MorkvaIcons.checkCircle), findsNothing);
+      expect(find.byIcon(MorkvaIcons.undo), findsOneWidget);
       expect(find.text('Undone'), findsOneWidget);
     });
 

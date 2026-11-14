@@ -76,7 +76,7 @@ class _QuickAddDialogState extends State<QuickAddDialog> {
               Row(
                 children: [
                   Icon(
-                    Icons.subdirectory_arrow_right,
+                    MorkvaIcons.subdirectory,
                     size: 16,
                     color: theme.colorScheme.onSurfaceVariant,
                   ),

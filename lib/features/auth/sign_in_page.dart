@@ -321,7 +321,7 @@ class _InlineError extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.error_outline_rounded, size: 18, color: fg),
+            Icon(MorkvaIcons.error, size: 18, color: fg),
             const SizedBox(width: Spacing.xs),
             Expanded(
               child: Column(

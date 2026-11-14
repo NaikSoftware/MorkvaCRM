@@ -104,7 +104,7 @@ void main() {
 
   testWidgets('dragging a handle reorders', (tester) async {
     await pump(tester);
-    final handle = find.byIcon(Icons.drag_indicator).first;
+    final handle = find.byIcon(MorkvaIcons.dragHandle).first;
     await tester.drag(handle, const Offset(0, 130));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Company'));
@@ -117,7 +117,7 @@ void main() {
     tester,
   ) async {
     await pump(tester);
-    final handle = find.byIcon(Icons.drag_indicator).first;
+    final handle = find.byIcon(MorkvaIcons.dragHandle).first;
     final gesture = await tester.startGesture(tester.getCenter(handle));
     for (var i = 0; i < 10; i++) {
       await gesture.moveBy(const Offset(0, 6));

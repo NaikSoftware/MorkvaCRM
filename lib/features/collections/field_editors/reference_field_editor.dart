@@ -22,7 +22,7 @@ class ReferenceFieldEditor extends FieldEditor {
       l10n.collectionsTypeReferenceDescription;
 
   @override
-  IconData get icon => Icons.link;
+  IconData get icon => MorkvaIcons.link;
 
   @override
   FieldDefinition createDefault({required String id, required String name}) =>
@@ -64,6 +64,7 @@ class ReferenceFieldEditor extends FieldEditor {
         Padding(
           padding: const EdgeInsets.only(bottom: Spacing.sm),
           child: DropdownButtonFormField<String>(
+            icon: const Icon(MorkvaIcons.expandMore),
             initialValue: hasTarget ? field.targetCollectionId : null,
             isExpanded: true,
             // Inherit the themed input decoration so the picker matches the
@@ -134,5 +135,5 @@ class ReferenceFieldEditor extends FieldEditor {
   Widget buildPreviewAffordance(
     BuildContext context,
     FieldDefinition definition,
-  ) => const PreviewStubInput(icon: Icons.link, height: 36);
+  ) => const PreviewStubInput(icon: MorkvaIcons.link, height: 36);
 }

@@ -131,7 +131,7 @@ class _DeclareOnlyPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.bolt, size: 11, color: scheme.onSurfaceVariant),
+          Icon(MorkvaIcons.bolt, size: 11, color: scheme.onSurfaceVariant),
           const SizedBox(width: 3),
           Text(
             context.l10n.collectionsAutomatic,

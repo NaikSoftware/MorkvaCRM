@@ -129,7 +129,7 @@ String calculationSummary(
 
 /// The field type's icon, as the schema editor shows it.
 IconData fieldTypeIcon(FieldDefinition field) =>
-    _fieldEditors.forType(field.type)?.icon ?? Icons.notes;
+    _fieldEditors.forType(field.type)?.icon ?? MorkvaIcons.notes;
 
 /// The colour of a select option, or null.
 Color? optionColor(FieldDefinition field, String? optionId) {
