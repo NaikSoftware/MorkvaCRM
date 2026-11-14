@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../field_editors/field_editor.dart';
 import 'first_run_fields.dart';
 import 'layout_canvas.dart';
@@ -99,12 +100,10 @@ class _NotFoundView extends StatelessWidget {
     return _EditorScaffold(
       child: EmptyState(
         icon: Icons.search_off_outlined,
-        title: 'Collection not found',
-        message:
-            "This collection may have been deleted, or the link is wrong. "
-            "Head back home to pick another.",
+        title: context.l10n.collectionsNotFoundTitle,
+        message: context.l10n.collectionsNotFoundMessage,
         action: PrimaryButton(
-          label: 'Back to collections',
+          label: context.l10n.collectionsBackToCollections,
           icon: Icons.arrow_back,
           onPressed: () => context.go('/'),
         ),
@@ -275,10 +274,10 @@ class _EditorHeaderState extends State<_EditorHeader> {
       context: context,
       builder: (context) => AlertDialog(
         shape: const RoundedRectangleBorder(borderRadius: Radii.lgAll),
-        title: const Text('Collection description'),
+        title: Text(context.l10n.collectionsDescriptionTitle),
         content: MorkvaTextField(
           controller: controller,
-          hint: 'What this collection holds',
+          hint: context.l10n.collectionsDescriptionHint,
           autofocus: true,
         ),
         actionsPadding: const EdgeInsets.fromLTRB(
@@ -297,11 +296,11 @@ class _EditorHeaderState extends State<_EditorHeader> {
             runSpacing: Spacing.xs,
             children: [
               TextActionButton(
-                label: 'Cancel',
+                label: context.l10n.commonCancel,
                 onPressed: () => Navigator.of(context).pop(),
               ),
               PrimaryButton(
-                label: 'Save',
+                label: context.l10n.commonSave,
                 onPressed: () => Navigator.of(context).pop(controller.text),
               ),
             ],
@@ -322,6 +321,7 @@ class _EditorHeaderState extends State<_EditorHeader> {
     final cubit = context.read<CollectionEditorCubit>();
     final description = state.draft.description;
     final wide = MediaQuery.sizeOf(context).width >= 600;
+    final l10n = context.l10n;
 
     return Container(
       width: double.infinity,
@@ -337,7 +337,7 @@ class _EditorHeaderState extends State<_EditorHeader> {
         children: [
           IconActionButton(
             icon: Icons.close,
-            tooltip: 'Close',
+            tooltip: l10n.commonClose,
             onPressed: _back,
           ),
           const SizedBox(width: Spacing.xs),
@@ -345,7 +345,7 @@ class _EditorHeaderState extends State<_EditorHeader> {
             iconKey: state.draft.icon,
             tintSeed: state.draft.id,
             onTap: _pickIcon,
-            tooltip: 'Choose icon',
+            tooltip: l10n.collectionsChooseIcon,
           ),
           const SizedBox(width: Spacing.sm),
           Expanded(
@@ -365,7 +365,9 @@ class _EditorHeaderState extends State<_EditorHeader> {
                         size: 20,
                         color: scheme.primary,
                         // The visible "Customizing · " text names it when wide.
-                        semanticLabel: wide ? null : 'Customizing',
+                        semanticLabel: wide
+                            ? null
+                            : l10n.collectionsCustomizing,
                       ),
                     ),
                     const SizedBox(width: Spacing.xs),
@@ -375,7 +377,7 @@ class _EditorHeaderState extends State<_EditorHeader> {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 3),
                         child: Text(
-                          'Customizing · ',
+                          '${l10n.collectionsCustomizing} · ',
                           style: theme.textTheme.titleLarge?.copyWith(
                             color: scheme.onSurfaceVariant,
                           ),
@@ -410,7 +412,7 @@ class _EditorHeaderState extends State<_EditorHeader> {
                             border: InputBorder.none,
                             enabledBorder: InputBorder.none,
                             focusedBorder: InputBorder.none,
-                            hintText: 'Collection name',
+                            hintText: l10n.collectionsNameHint,
                             hintStyle: theme.textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.w600,
                               color: scheme.onSurfaceVariant,
@@ -432,7 +434,11 @@ class _EditorHeaderState extends State<_EditorHeader> {
           const SizedBox(width: Spacing.md),
           _SaveControl(state: state, compact: !wide),
           const SizedBox(width: Spacing.xs),
-          PrimaryButton(label: 'Done', loading: state.saving, onPressed: _done),
+          PrimaryButton(
+            label: l10n.commonDone,
+            loading: state.saving,
+            onPressed: _done,
+          ),
         ],
       ),
     );
@@ -530,7 +536,9 @@ class _DescriptionLine extends StatelessWidget {
           children: [
             Flexible(
               child: Text(
-                hasDescription ? description! : 'Add a description',
+                hasDescription
+                    ? description!
+                    : context.l10n.collectionsAddDescription,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: scheme.onSurfaceVariant,
                   fontStyle: hasDescription ? null : FontStyle.italic,
@@ -565,7 +573,7 @@ class _SaveControl extends StatelessWidget {
       if (!state.dirty || state.saving) return const SizedBox.shrink();
       return IconActionButton(
         icon: Icons.save_outlined,
-        tooltip: 'Save',
+        tooltip: context.l10n.commonSave,
         onPressed: () => context.read<CollectionEditorCubit>().save(),
       );
     }
@@ -577,7 +585,7 @@ class _SaveControl extends StatelessWidget {
           Icon(Icons.check_circle_outline, size: 18, color: scheme.secondary),
           const SizedBox(width: Spacing.xxs),
           Text(
-            'Saved',
+            context.l10n.collectionsSaved,
             style: theme.textTheme.labelMedium?.copyWith(
               color: scheme.onSurfaceVariant,
             ),
@@ -588,7 +596,7 @@ class _SaveControl extends StatelessWidget {
 
     // Secondary: Done is the header's one primary action.
     return SecondaryButton(
-      label: 'Save',
+      label: context.l10n.commonSave,
       icon: Icons.save_outlined,
       loading: state.saving,
       onPressed: () => context.read<CollectionEditorCubit>().save(),
@@ -613,9 +621,12 @@ class _ObjectFormHeading extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Object form', style: theme.textTheme.titleMedium),
           Text(
-            'How a card looks when opened',
+            context.l10n.collectionsObjectForm,
+            style: theme.textTheme.titleMedium,
+          ),
+          Text(
+            context.l10n.collectionsObjectFormHint,
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -978,13 +989,13 @@ class _ConfigSheet extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Configure field',
+                  context.l10n.collectionsConfigureField,
                   style: theme.textTheme.titleMedium,
                 ),
               ),
               IconActionButton(
                 icon: Icons.close,
-                tooltip: 'Close',
+                tooltip: context.l10n.commonClose,
                 onPressed: () => Navigator.of(context).maybePop(),
               ),
             ],
@@ -1004,7 +1015,7 @@ class _ConfigSheet extends StatelessWidget {
             children: [
               Expanded(child: _SheetSaveStatus(state: state)),
               PrimaryButton(
-                label: 'Done',
+                label: context.l10n.commonDone,
                 onPressed: () => Navigator.of(context).maybePop(),
               ),
             ],
@@ -1030,11 +1041,12 @@ class _SheetSaveStatus extends StatelessWidget {
 
     final primaryText =
         theme.extension<MorkvaSemanticColors>()?.primaryText ?? scheme.primary;
+    final l10n = context.l10n;
     final (IconData icon, String label, Color color) = state.saving
-        ? (Icons.sync, 'Saving…', scheme.onSurfaceVariant)
+        ? (Icons.sync, l10n.collectionsSaving, scheme.onSurfaceVariant)
         : state.dirty
-        ? (Icons.edit_outlined, 'Unsaved changes', primaryText)
-        : (Icons.check_circle_outline, 'Saved', scheme.secondary);
+        ? (Icons.edit_outlined, l10n.collectionsUnsavedChanges, primaryText)
+        : (Icons.check_circle_outline, l10n.collectionsSaved, scheme.secondary);
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -1107,7 +1119,7 @@ class _ConfigRegion extends StatelessWidget {
             ),
             const SizedBox(height: Spacing.sm),
             Text(
-              'Select a field or group to edit it.',
+              context.l10n.collectionsSelectToEdit,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
@@ -1136,15 +1148,13 @@ enum _LeaveAction { save, discard, cancel }
 Future<_LeaveAction> _confirmLeave(BuildContext context) async {
   final theme = Theme.of(context);
   final scheme = theme.colorScheme;
+  final l10n = context.l10n;
   final action = await showDialog<_LeaveAction>(
     context: context,
     builder: (context) => AlertDialog(
       shape: const RoundedRectangleBorder(borderRadius: Radii.lgAll),
-      title: const Text('Save your changes?'),
-      content: const Text(
-        'You have unsaved changes to this collection. Save them before '
-        'leaving, or discard them.',
-      ),
+      title: Text(l10n.collectionsLeaveTitle),
+      content: Text(l10n.collectionsLeaveMessage),
       actionsPadding: const EdgeInsets.fromLTRB(
         Spacing.lg,
         0,
@@ -1162,12 +1172,12 @@ Future<_LeaveAction> _confirmLeave(BuildContext context) async {
           runSpacing: Spacing.xs,
           children: [
             TextActionButton(
-              label: 'Cancel',
+              label: l10n.commonCancel,
               onPressed: () => Navigator.of(context).pop(_LeaveAction.cancel),
             ),
             PressableScale(
               onPressed: () => Navigator.of(context).pop(_LeaveAction.discard),
-              semanticLabel: 'Discard',
+              semanticLabel: l10n.collectionsDiscard,
               borderRadius: Radii.mdAll,
               child: Container(
                 height: 44,
@@ -1177,7 +1187,7 @@ Future<_LeaveAction> _confirmLeave(BuildContext context) async {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Discard',
+                      l10n.collectionsDiscard,
                       style: theme.textTheme.labelLarge?.copyWith(
                         color: scheme.error,
                       ),
@@ -1187,7 +1197,7 @@ Future<_LeaveAction> _confirmLeave(BuildContext context) async {
               ),
             ),
             PrimaryButton(
-              label: 'Save',
+              label: l10n.commonSave,
               onPressed: () => Navigator.of(context).pop(_LeaveAction.save),
             ),
           ],

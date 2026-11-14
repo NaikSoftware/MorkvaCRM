@@ -3,17 +3,24 @@ import 'package:flutter/material.dart';
 import '../../../core/domain/domain.dart';
 import '../../collections/field_editors/built_in_field_editors.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 
 final _fieldEditors = defaultFieldEditorRegistry();
 
+// The helpers below take [AppLocalizations] when the caller has a context;
+// without it they follow the app's locale (`Intl.defaultLocale`).
+
 /// What a view is sorted by ("Amount", "Created"), or null for manual order.
-String? sortLabel(ViewSort? sort, Collection collection) =>
-    switch (sort?.fieldId) {
-      null => null,
-      ViewSort.createdAt => 'Created',
-      ViewSort.updatedAt => 'Updated',
-      final id => collection.fieldById(id)?.name,
-    };
+String? sortLabel(
+  ViewSort? sort,
+  Collection collection, {
+  AppLocalizations? l10n,
+}) => switch (sort?.fieldId) {
+  null => null,
+  ViewSort.createdAt => (l10n ?? currentAppStrings()).viewWidgetsSortCreated,
+  ViewSort.updatedAt => (l10n ?? currentAppStrings()).viewWidgetsSortUpdated,
+  final id => collection.fieldById(id)?.name,
+};
 
 /// The noun for one object of [collection]: its name, lower-cased and naively
 /// singularized ("Deals" → "deal", "Companies" → "company").
@@ -35,23 +42,31 @@ String itemLabelOf(Collection collection) {
 String calculationSummary(
   CalculatedFieldDefinition field,
   Collection owner,
-  Iterable<Collection> collections,
-) {
+  Iterable<Collection> collections, {
+  AppLocalizations? l10n,
+}) {
+  final t = l10n ?? currentAppStrings();
   if (field.lookup case final lookup?) {
     final ref = owner.fieldById(lookup.referenceFieldId);
-    if (ref is! ReferenceFieldDefinition) return 'Pick a reference to look up';
+    if (ref is! ReferenceFieldDefinition) {
+      return t.viewWidgetsPickLookupReference;
+    }
     final target = ref.targetCollectionId == owner.id
         ? owner
         : collections.where((c) => c.id == ref.targetCollectionId).firstOrNull;
     final shown = target?.fieldById(lookup.fieldId ?? '');
-    if (target == null || shown == null) return 'Pick a field to show';
-    return '${shown.name} of the linked ${itemLabelOf(target)} (${ref.name})';
+    if (target == null || shown == null) return t.viewWidgetsPickLookupField;
+    return t.viewWidgetsLookupSummary(
+      shown.name,
+      itemLabelOf(target),
+      ref.name,
+    );
   }
   final a = field.aggregate;
   if (a == null) {
     final expression = field.expression?.trim() ?? '';
     return expression.isEmpty
-        ? 'No formula yet'
+        ? t.viewWidgetsNoFormulaYet
         : '= ${formulaToDisplay(expression, owner.fields)}';
   }
   Collection? byId(String? id) =>
@@ -69,24 +84,47 @@ String calculationSummary(
       targetCollectionId,
     _ => a.collectionId,
   });
-  if (source == null) return 'Pick what to summarize';
-  final of = a.op.needsField
-      ? '${a.op.label} of ${source.fieldById(a.fieldId ?? '')?.name ?? '…'} of'
-      : 'Count of';
-  final from = switch (a.source) {
-    AggregateSource.linkedFrom =>
-      '${source.name} linking here via ${ref?.name ?? '…'}',
-    AggregateSource.linked => 'linked ${source.name} (${ref?.name ?? '…'})',
-    AggregateSource.all => 'all ${source.name}',
+  if (source == null) return t.viewWidgetsPickAggregateSource;
+  final op = t.aggregateOpLabel(a.op);
+  final shown = source.fieldById(a.fieldId ?? '')?.name ?? '…';
+  final refName = ref?.name ?? '…';
+  final summary = switch ((a.op.needsField, a.source)) {
+    (true, AggregateSource.linkedFrom) => t.viewWidgetsAggregateOfLinkingHere(
+      op,
+      shown,
+      source.name,
+      refName,
+    ),
+    (true, AggregateSource.linked) => t.viewWidgetsAggregateOfLinked(
+      op,
+      shown,
+      source.name,
+      refName,
+    ),
+    (true, AggregateSource.all) => t.viewWidgetsAggregateOfAll(
+      op,
+      shown,
+      source.name,
+    ),
+    (false, AggregateSource.linkedFrom) => t.viewWidgetsCountLinkingHere(
+      source.name,
+      refName,
+    ),
+    (false, AggregateSource.linked) => t.viewWidgetsCountLinked(
+      source.name,
+      refName,
+    ),
+    (false, AggregateSource.all) => t.viewWidgetsCountAll(source.name),
   };
   final where = [
     for (final f in a.filters)
-      if (source.fieldById(f.fieldId) != null) filterLabel(f, source),
+      if (source.fieldById(f.fieldId) != null) filterLabel(f, source, l10n: t),
   ];
-  return [
-    '$of $from',
-    if (where.isNotEmpty) 'where ${where.join(' and ')}',
-  ].join(' ');
+  if (where.isEmpty) return summary;
+  return t.viewWidgetsSummaryWhere(
+    summary,
+    where.join(t.viewWidgetsConditionSeparator),
+  );
 }
 
 /// The field type's icon, as the schema editor shows it.
@@ -124,12 +162,14 @@ String filterLabel(
   ViewFilter filter,
   Collection collection, {
   Map<String, String> referenceLabels = const {},
+  AppLocalizations? l10n,
 }) {
+  final t = l10n ?? currentAppStrings();
   final field = switch (collection.fieldById(filter.fieldId)) {
     CalculatedFieldDefinition(:final outputField) => outputField,
     final f => f,
   };
-  if (field == null) return 'Unknown field';
+  if (field == null) return t.viewWidgetsUnknownField;
   final operand = filter.operand;
   final value = switch (operand) {
     final List<Object?> ids => [
@@ -139,7 +179,8 @@ String filterLabel(
           MultiSelectFieldDefinition(
             :final options,
           ) => options.where((o) => o.id == id).firstOrNull?.label ?? id,
-          ReferenceFieldDefinition() => referenceLabels[id] ?? 'Unknown item',
+          ReferenceFieldDefinition() =>
+            referenceLabels[id] ?? t.viewWidgetsUnknownItem,
           _ => id,
         },
     ].join(', '),
@@ -160,33 +201,50 @@ String filterLabel(
       (field is ReferenceFieldDefinition && field.multiple);
   // One value reads as plain "is" / "has"; several keep "any of".
   final op = switch (filter.op) {
-    FilterOp.anyOf when count == 1 => has ? 'has' : 'is',
-    FilterOp.noneOf when count == 1 => has ? 'has no' : 'is not',
-    final op => operatorLabel(op, field),
+    FilterOp.anyOf when count == 1 =>
+      has ? t.viewWidgetsOpHas : t.viewWidgetsOpIs,
+    FilterOp.noneOf when count == 1 =>
+      has ? t.viewWidgetsOpHasNo : t.viewWidgetsOpIsNot,
+    final op => operatorLabel(op, field, l10n: t),
   };
-  return [field.name, op, if (value.isNotEmpty) value].join(' ');
+  // Ukrainian reads "Стадія: Лід" / "Теги: містить VIP" — the colon carries
+  // "is" and keeps the verb clear of the field name's number.
+  return t.viewWidgetsFilterChip(
+    field.name,
+    [op, value].where((s) => s.isNotEmpty).join(' '),
+  );
 }
 
 /// The words for [op] on [field], shared by filter chips and the builder.
-String operatorLabel(FilterOp op, FieldDefinition field) => switch (op) {
-  FilterOp.isEmpty => 'is empty',
-  FilterOp.isNotEmpty => 'is not empty',
-  FilterOp.equals => field is TextFieldDefinition ? 'is' : '=',
-  FilterOp.notEquals => '≠',
-  FilterOp.contains => 'contains',
-  FilterOp.notContains => 'does not contain',
-  FilterOp.greaterThan => '>',
-  FilterOp.lessThan => '<',
-  FilterOp.before => 'is before',
-  FilterOp.after => 'is after',
-  FilterOp.onDay => 'is on',
-  FilterOp.anyOf =>
-    field is MultiSelectFieldDefinition ||
-            (field is ReferenceFieldDefinition && field.multiple)
-        ? 'has any of'
-        : 'is any of',
-  FilterOp.noneOf =>
-    field is MultiSelectFieldDefinition ? 'has none of' : 'is none of',
-  FilterOp.isTrue => 'is checked',
-  FilterOp.isFalse => 'is not checked',
-};
+String operatorLabel(
+  FilterOp op,
+  FieldDefinition field, {
+  AppLocalizations? l10n,
+}) {
+  final t = l10n ?? currentAppStrings();
+  return switch (op) {
+    FilterOp.isEmpty => t.viewWidgetsOpIsEmpty,
+    FilterOp.isNotEmpty => t.viewWidgetsOpIsNotEmpty,
+    FilterOp.equals =>
+      field is TextFieldDefinition ? t.viewWidgetsOpEquals : '=',
+    FilterOp.notEquals => '≠',
+    FilterOp.contains => t.viewWidgetsOpContains,
+    FilterOp.notContains => t.viewWidgetsOpNotContains,
+    FilterOp.greaterThan => '>',
+    FilterOp.lessThan => '<',
+    FilterOp.before => t.viewWidgetsOpBefore,
+    FilterOp.after => t.viewWidgetsOpAfter,
+    FilterOp.onDay => t.viewWidgetsOpOnDay,
+    FilterOp.anyOf =>
+      field is MultiSelectFieldDefinition ||
+              (field is ReferenceFieldDefinition && field.multiple)
+          ? t.viewWidgetsOpHasAnyOf
+          : t.viewWidgetsOpIsAnyOf,
+    FilterOp.noneOf =>
+      field is MultiSelectFieldDefinition
+          ? t.viewWidgetsOpHasNoneOf
+          : t.viewWidgetsOpIsNoneOf,
+    FilterOp.isTrue => t.viewWidgetsOpIsChecked,
+    FilterOp.isFalse => t.viewWidgetsOpIsNotChecked,
+  };
+}

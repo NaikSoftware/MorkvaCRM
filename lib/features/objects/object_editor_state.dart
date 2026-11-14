@@ -1,8 +1,12 @@
 import 'package:equatable/equatable.dart';
 
 import '../../core/domain/domain.dart';
+import '../../l10n/l10n.dart';
 import '../views/widgets/view_labels.dart';
 import 'value_editors/field_value_editor.dart';
+
+/// A failed upload of [file]; [tooLarge] when it was over the size limit.
+typedef UploadError = ({String file, bool tooLarge});
 
 /// The objects of [collection] whose reference field [via] points at the
 /// edited object — shown and edited as a list inside its form.
@@ -103,7 +107,7 @@ class ObjectEditorState extends Equatable {
   final List<PendingUpload> uploads;
 
   /// "Couldn't upload ⟨name⟩" by field id, until the field's next upload.
-  final Map<String, String> uploadErrors;
+  final Map<String, UploadError> uploadErrors;
 
   /// The object as it is after the last successful save (whole, even when
   /// only changed keys were written).
@@ -141,18 +145,34 @@ class ObjectEditorState extends Equatable {
 
   /// Every current error (input error first, else the first rule broken),
   /// whether shown yet or not.
-  Map<String, String> get errors => {
+  Map<String, String> get errors => errorsWordedBy(_inEnglish);
+
+  /// [errors], each broken rule worded by [describe].
+  Map<String, String> errorsWordedBy(
+    String Function(FieldDefinition field, ValidationError error) describe,
+  ) => {
     for (final field in collection.fields)
       if (!readOnlyFieldIds.contains(field.id))
         field.id:
             ?(inputErrors[field.id] ??
-            field.validate(valueOf(field)).firstOrNull?.message),
+            switch (field.validate(valueOf(field)).firstOrNull) {
+              final error? => describe(field, error),
+              null => null,
+            }),
   };
+
+  static String _inEnglish(FieldDefinition _, ValidationError error) =>
+      error.message;
 
   /// The errors the form shows now: touched fields, or all after a save
   /// attempt.
-  Map<String, String> get visibleErrors {
-    final all = errors;
+  Map<String, String> get visibleErrors => visibleErrorsWordedBy(_inEnglish);
+
+  /// [visibleErrors], each broken rule worded by [describe].
+  Map<String, String> visibleErrorsWordedBy(
+    String Function(FieldDefinition field, ValidationError error) describe,
+  ) {
+    final all = errorsWordedBy(describe);
     if (showAllErrors) return all;
     return {
       for (final e in all.entries)
@@ -163,14 +183,14 @@ class ObjectEditorState extends Equatable {
   int get errorCount => visibleErrors.length;
 
   /// "New deal" in create mode, else the title field's text or "Untitled".
-  String get title {
-    if (isCreate) return 'New ${itemLabelOf(collection)}';
+  String title(AppLocalizations l10n) {
+    if (isCreate) return l10n.objectsNewItem(itemLabelOf(collection));
     final field = titleFieldId == null
         ? null
         : collection.fieldById(titleFieldId!);
-    if (field == null) return 'Untitled';
+    if (field == null) return l10n.commonUntitled;
     final text = formatFieldValue(field, valueOf(field)).trim();
-    return text.isEmpty ? 'Untitled' : text;
+    return text.isEmpty ? l10n.commonUntitled : text;
   }
 
   ObjectEditorState copyWith({
@@ -184,7 +204,7 @@ class ObjectEditorState extends Equatable {
     bool? remoteDeleted,
     ReferenceChoices? references,
     List<PendingUpload>? uploads,
-    Map<String, String>? uploadErrors,
+    Map<String, UploadError>? uploadErrors,
     MorkvaObject? savedObject,
     Map<String, FieldValue>? derived,
     List<Sublist>? sublists,

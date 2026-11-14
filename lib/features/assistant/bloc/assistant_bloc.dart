@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
 
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
 
 import '../../../api/assistant/assistant_config.dart';
 import '../../../api/assistant/assistant_config_repository.dart';
@@ -15,6 +17,7 @@ import '../../../core/agent/agent_loop.dart';
 import '../../../core/agent/history_compactor.dart';
 import '../../../core/agent/llm_client.dart';
 import '../../../core/harness/harness.dart';
+import '../../../l10n/l10n.dart';
 import '../host/result_reader.dart';
 import 'assistant_focus.dart';
 import 'assistant_state.dart';
@@ -91,6 +94,9 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
   final List<String> Function() _collectionNames;
   final void Function(AssistantConfig config)? _onConfig;
   final DateTime Function() _now;
+
+  /// Text the bloc writes into the chat (persisted in that language).
+  AppLocalizations get _l10n => currentAppStrings();
 
   StreamSubscription<bool>? _onlineSub;
   StreamSubscription<String>? _runsSub;
@@ -346,12 +352,10 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
             state.copyWith(
               items: [
                 ...state.items,
-                const ErrorItem(
+                ErrorItem(
                   id: 'load',
                   kind: ChatErrorKind.connection,
-                  message:
-                      'Couldn’t load this whole conversation, so the '
-                      'message wasn’t sent. Try again in a moment.',
+                  message: _l10n.assistantErrorLoadPartial,
                   retryable: false,
                 ),
               ],
@@ -734,21 +738,23 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
     bool nothingChanged,
     Emitter<AssistantState> emit,
   ) {
+    final l10n = _l10n;
     final after = nothingChanged
-        ? ' Nothing was changed.'
-        : ' The changes you approved were applied.';
+        ? l10n.assistantNothingWasChanged
+        : l10n.assistantApprovedWereApplied;
     void error(ChatErrorKind kind, String message, {bool retryable = true}) {
+      final text = l10n.assistantErrorWithOutcome(message, after);
       _append(
         turn,
         ErrorItem(
           id: turn.mint(),
           kind: kind,
-          message: '$message$after',
+          message: text,
           nothingChanged: nothingChanged,
           retryable: retryable,
         ),
         emit,
-        phase: FailedPhase(kind, '$message$after', retryable: retryable),
+        phase: FailedPhase(kind, text, retryable: retryable),
         clearBanner: true,
       );
     }
@@ -767,7 +773,7 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
           turn,
           AssistantTextItem(
             id: turn.mint(),
-            text: 'I can\'t help with that request.',
+            text: l10n.assistantBlocked,
           ),
           emit,
           phase: const IdlePhase(),
@@ -777,24 +783,17 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
         _quotaUntil = nextPacificMidnight(_now());
         error(
           ChatErrorKind.dailyQuota,
-          'Today\'s AI limit is used up.',
+          l10n.assistantErrorDailyLimit,
           retryable: false,
         );
         _emitAvailability(emit);
       case LlmRateLimited():
-        error(ChatErrorKind.rateLimited, 'Gemini is busy right now.');
+        error(ChatErrorKind.rateLimited, l10n.assistantErrorBusy);
       case LlmTransient():
-        error(
-          ChatErrorKind.connection,
-          'I couldn\'t finish — the connection dropped.',
-        );
+        error(ChatErrorKind.connection, l10n.assistantErrorDropped);
       case LlmStopped() || LlmMissingSignature() || LlmUnknownFailure():
         _log('A turn failed: ${failure.message}');
-        error(
-          ChatErrorKind.unknown,
-          'Something went wrong and I couldn\'t '
-          'finish.',
-        );
+        error(ChatErrorKind.unknown, l10n.assistantErrorUnknown);
     }
   }
 
@@ -898,7 +897,7 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
         try {
           receipt = Receipt.fromJson(result);
         } on FormatException catch (e) {
-          failure = 'Couldn’t read the result (${e.message})';
+          failure = _l10n.assistantCouldNotReadResult(e.message);
         }
         turn.journal = (result['journal'] as Map?)?.cast<String, Object?>();
       case HarnessFailure(:final error):
@@ -1037,7 +1036,9 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
                 : UndoState.available,
           );
         } on FormatException catch (e) {
-          next = current.copyWith(undoNote: 'Couldn’t retry (${e.message})');
+          next = current.copyWith(
+            undoNote: _l10n.assistantCouldNotRetry(e.message),
+          );
         }
       case HarnessFailure(:final error):
         next = current.copyWith(
@@ -1111,8 +1112,8 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
     _save(seq, emit: emit);
   }
 
-  static const _needsConnection = 'Needs a connection';
-  static const _needsConnectionToUndo = 'Needs a connection to undo';
+  String get _needsConnection => _l10n.assistantNeedsConnection;
+  String get _needsConnectionToUndo => _l10n.assistantNeedsConnectionToUndo;
 
   /// Back online: drop the "Needs a connection" notes the offline taps left
   /// on pending plans and applied cards.
@@ -1122,9 +1123,12 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
     final items = <ChatItem>[];
     for (final item in state.items) {
       final cleared = switch (item) {
-        PlanItem(status: PlanStatus.pending, message: _needsConnection) =>
+        PlanItem(status: PlanStatus.pending, :final message)
+            when message == _needsConnection =>
           item.copyWith(clearMessage: true),
-        AppliedItem(undoNote: _needsConnection || _needsConnectionToUndo) =>
+        AppliedItem(:final undoNote)
+            when undoNote == _needsConnection ||
+                undoNote == _needsConnectionToUndo =>
           item.copyWith(clearUndoNote: true),
         _ => null,
       };
@@ -1325,10 +1329,10 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
       emit(
         state.cleared().copyWith(
           items: [
-            const ErrorItem(
+            ErrorItem(
               id: 'load',
               kind: ChatErrorKind.saveFailed,
-              message: 'Couldn’t open this conversation.',
+              message: _l10n.assistantErrorOpen,
               retryable: false,
             ),
           ],
@@ -1536,21 +1540,21 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
       'createdAt': (_threadCreatedAt ?? _now()).toUtc().toIso8601String(),
       'updatedAt': now,
       'model': _loop.model,
-      'lastSnippet': _snippet(items),
+      'lastSnippet': _snippet(items, _l10n),
       'tokens': state.usage.toJson(),
       'schema': 1,
     };
   }
 
-  static String _snippet(List<ChatItem> items) {
+  static String _snippet(List<ChatItem> items, AppLocalizations l10n) {
     for (final item in items.reversed) {
       switch (item) {
         case AppliedItem(:final receipt):
           return receipt.summary;
         case ChartItem():
-          return 'chart';
+          return l10n.assistantSnippetChart;
         case TableItem():
-          return 'table';
+          return l10n.assistantSnippetTable;
         case AssistantTextItem():
           final text = item.currentText.trim().replaceAll(RegExp(r'\s+'), ' ');
           if (text.isNotEmpty) {

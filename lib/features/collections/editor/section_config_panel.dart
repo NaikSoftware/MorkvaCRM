@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import 'collection_editor_cubit.dart';
 
 /// The right-panel properties inspector shown when a layout group/section is
@@ -47,7 +48,10 @@ class SectionConfigPanel extends StatelessWidget {
             Icon(Icons.view_agenda_outlined, size: 20, color: scheme.primary),
             const SizedBox(width: Spacing.xs),
             Expanded(
-              child: Text('Group', style: theme.textTheme.titleMedium),
+              child: Text(
+                context.l10n.collectionsGroup,
+                style: theme.textTheme.titleMedium,
+              ),
             ),
           ],
         ),
@@ -83,12 +87,10 @@ class SectionConfigPanel extends StatelessWidget {
               color: scheme.onSurfaceVariant,
             ),
             title: Text(
-              'Collapsed by default',
+              context.l10n.collectionsCollapsedByDefault,
               style: theme.textTheme.titleSmall,
             ),
-            subtitle: const Text(
-              'The group starts collapsed when a card is opened.',
-            ),
+            subtitle: Text(context.l10n.collectionsCollapsedByDefaultHint),
             value: section.collapsed,
             onChanged: (_) => cubit.toggleSectionCollapsed(section.id),
           ),
@@ -140,8 +142,8 @@ class _SectionTitleFieldState extends State<_SectionTitleField> {
   Widget build(BuildContext context) {
     return MorkvaTextField(
       controller: _controller,
-      label: 'Group name',
-      hint: 'Leave empty for an ungrouped section',
+      label: context.l10n.collectionsGroupName,
+      hint: context.l10n.collectionsGroupNameHint,
       onChanged: widget.onChanged,
     );
   }
@@ -169,15 +171,13 @@ class _DeleteGroupButton extends StatelessWidget {
         ),
       ),
       icon: const Icon(Icons.delete_outline),
-      label: const Text('Delete group'),
+      label: Text(context.l10n.collectionsDeleteGroup),
       onPressed: () async {
         final confirmed = await MorkvaConfirmDialog.show(
           context,
-          title: 'Delete group?',
-          message:
-              'The group is removed from the layout. Its fields are not deleted '
-              'and will be moved to the default section.',
-          confirmLabel: 'Delete',
+          title: context.l10n.collectionsDeleteGroupTitle,
+          message: context.l10n.collectionsDeleteGroupMessage,
+          confirmLabel: context.l10n.commonDelete,
           destructive: true,
         );
         if (confirmed == true && context.mounted) {

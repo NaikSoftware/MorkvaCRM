@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/domain/automation/automation.dart';
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../bloc/modules_cubit.dart';
 import '../widgets/radio_row.dart';
 import '../widgets/reason_copy.dart';
@@ -230,7 +231,7 @@ class SheetHeader extends StatelessWidget {
         if (onClose != null)
           IconActionButton(
             icon: Icons.close_rounded,
-            tooltip: 'Close',
+            tooltip: context.l10n.commonClose,
             onPressed: onClose,
           ),
       ],
@@ -252,10 +253,10 @@ IconData capabilityIcon(String cap) => switch (cap) {
 };
 
 /// "On a card" / "On a collection" / "Card or collection".
-String scopeTag(ActionScope scope) => switch (scope) {
-  ActionScope.card => 'On a card',
-  ActionScope.collection => 'On a collection',
-  ActionScope.any => 'Card or collection',
+String scopeTag(AppLocalizations l10n, ActionScope scope) => switch (scope) {
+  ActionScope.card => l10n.automationScopeTagCard,
+  ActionScope.collection => l10n.automationScopeTagCollection,
+  ActionScope.any => l10n.automationScopeTagAny,
 };
 
 /// One capability row: icon, title, explanation, an optional trailing tag;
@@ -280,7 +281,7 @@ class CapabilityRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final copy = kCapabilityCopy[cap];
+    final l10n = context.l10n;
     final strike = removed
         ? const TextStyle(decoration: TextDecoration.lineThrough)
         : null;
@@ -310,7 +311,7 @@ class CapabilityRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  copy?.title ?? cap,
+                  l10n.capabilityTitle(cap),
                   style: theme.textTheme.titleSmall
                       ?.merge(strike)
                       .copyWith(
@@ -318,7 +319,7 @@ class CapabilityRow extends StatelessWidget {
                       ),
                 ),
                 Text(
-                  [copy?.explanation ?? '', ?extra].join(' · '),
+                  [l10n.capabilityExplanation(cap), ?extra].join(' · '),
                   style: theme.textTheme.bodySmall
                       ?.merge(strike)
                       .copyWith(color: scheme.onSurfaceVariant),
@@ -404,6 +405,7 @@ class _ConsentSheetState extends State<ConsentSheet> {
       color: scheme.onSurfaceVariant,
     );
     final semantic = theme.extension<MorkvaSemanticColors>()!;
+    final l10n = context.l10n;
 
     Widget box(List<Widget> rows) => Container(
       decoration: BoxDecoration(
@@ -435,15 +437,17 @@ class _ConsentSheetState extends State<ConsentSheet> {
               if (view.codeChanged)
                 MetaLine(
                   icon: Icons.code,
-                  text:
-                      'Code changed: v${view.fromVersion} → '
-                      'v${manifest.version} · '
-                      '${kbLabel(view.fromBytes ?? 0)} → ${kbLabel(bytes)}',
+                  text: l10n.automationConsentCodeChanged(
+                    '${view.fromVersion}',
+                    manifest.version,
+                    kbLabel(l10n, view.fromBytes ?? 0),
+                    kbLabel(l10n, bytes),
+                  ),
                 )
               else
-                const MetaLine(
+                MetaLine(
                   icon: Icons.check_circle_outline,
-                  text: 'This version is already installed.',
+                  text: l10n.automationConsentSameVersion,
                 ),
               // Installing writes a fresh consent, auto-apply off.
               if (view.autoApplyTurnsOff) ...[
@@ -451,10 +455,8 @@ class _ConsentSheetState extends State<ConsentSheet> {
                 MetaLine(
                   icon: Icons.bolt_outlined,
                   text: view.codeChanged
-                      ? 'Auto-apply turns off for the new version. Turn it '
-                            'on again in module details.'
-                      : 'Auto-apply turns off when you install it again. '
-                            'Turn it on again in module details.',
+                      ? l10n.automationConsentAutoApplyOffNew
+                      : l10n.automationConsentAutoApplyOffAgain,
                 ),
               ],
             ],
@@ -463,7 +465,7 @@ class _ConsentSheetState extends State<ConsentSheet> {
         const SizedBox(height: Spacing.md),
       ],
       if (!edit) ...[
-        Text('It can:', style: label),
+        Text(l10n.automationConsentItCan, style: label),
         const SizedBox(height: Spacing.xs),
         box([
           // What it will be able to do first; what it gives up last.
@@ -485,13 +487,16 @@ class _ConsentSheetState extends State<ConsentSheet> {
                     border: Border.all(color: semantic.warning, width: 1.5),
                   ),
                   child: Text(
-                    'New',
+                    l10n.automationConsentCapNew,
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: semantic.onWarningContainer,
                     ),
                   ),
                 ),
-                CapChange.removed => Text('Removed', style: muted),
+                CapChange.removed => Text(
+                  l10n.automationConsentCapRemoved,
+                  style: muted,
+                ),
                 CapChange.kept => null,
               },
             ),
@@ -499,9 +504,11 @@ class _ConsentSheetState extends State<ConsentSheet> {
         const SizedBox(height: Spacing.md),
         Row(
           children: [
-            Expanded(child: Text('Actions:', style: label)),
+            Expanded(
+              child: Text(l10n.automationConsentActions, style: label),
+            ),
             TextActionButton(
-              label: 'View code',
+              label: l10n.automationViewCode,
               icon: Icons.code,
               onPressed: () => showCodeViewer(
                 context,
@@ -548,7 +555,7 @@ class _ConsentSheetState extends State<ConsentSheet> {
                           ),
                         ),
                   child: HugChip(
-                    label: scopeTag(a.scope),
+                    label: scopeTag(l10n, a.scope),
                     tone: CopyTone.neutral,
                   ),
                 ),
@@ -557,7 +564,7 @@ class _ConsentSheetState extends State<ConsentSheet> {
           ),
         const SizedBox(height: Spacing.md),
       ],
-      Text('Where', style: label),
+      Text(l10n.automationConsentWhere, style: label),
       const SizedBox(height: Spacing.xs),
       RadioGroup<bool>(
         groupValue: _scope.all,
@@ -570,13 +577,13 @@ class _ConsentSheetState extends State<ConsentSheet> {
           children: [
             _ScopeOption(
               value: true,
-              title: 'All collections',
-              subtitle: 'Every collection, including new ones.',
+              title: l10n.automationConsentAllCollections,
+              subtitle: l10n.automationConsentAllCollectionsHint,
             ),
             _ScopeOption(
               value: false,
-              title: 'Only these',
-              subtitle: 'Pick the collections it may read and change.',
+              title: l10n.automationOnlyThese,
+              subtitle: l10n.automationConsentOnlyTheseHint,
             ),
           ],
         ),
@@ -618,35 +625,35 @@ class _ConsentSheetState extends State<ConsentSheet> {
       const SizedBox(height: Spacing.md),
       MetaLine(
         icon: Icons.shield_outlined,
-        text:
-            "Modules can't reach the internet, your account or other apps. "
-            'You can change or revoke this later in module details.',
+        text: l10n.automationConsentSandboxNote,
       ),
     ];
 
     final confirm = switch (widget.mode) {
-      ConsentMode.install => 'Allow and install',
-      ConsentMode.allow => 'Allow',
-      ConsentMode.edit => 'Save',
+      ConsentMode.install => l10n.automationConsentAllowAndInstall,
+      ConsentMode.allow => l10n.automationConsentAllow,
+      ConsentMode.edit => l10n.commonSave,
     };
+    final pickHint = _scope.chosen ? null : l10n.automationConsentPickWhere;
     return AutomationSheetFrame(
       header: SheetHeader(
         icon: Icons.shield_outlined,
         title: edit
-            ? 'Change access for "${manifest.name}"'
-            : 'Allow "${manifest.name}"?',
-        subtitle: 'v${manifest.version} · ${widget.source} · ${kbLabel(bytes)}',
+            ? l10n.automationConsentChangeAccessTitle(manifest.name)
+            : l10n.automationConsentAllowTitle(manifest.name),
+        subtitle:
+            'v${manifest.version} · ${widget.source} · ${kbLabel(l10n, bytes)}',
       ),
       body: body,
       footer: SheetFooter(
-        hint: _scope.chosen ? null : 'Choose where it can work',
+        hint: pickHint,
         buttons: [
           TextActionButton(
-            label: 'Cancel',
+            label: l10n.commonCancel,
             onPressed: () => Navigator.of(context).pop(),
           ),
           Semantics(
-            hint: _scope.chosen ? null : 'Choose where it can work',
+            hint: pickHint,
             child: PrimaryButton(
               label: confirm,
               onPressed: _scope.chosen

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import 'field_editor.dart';
 import 'widgets/config_controls.dart';
 import 'widgets/preview_affordances.dart';
@@ -14,10 +15,11 @@ class DateFieldEditor extends FieldEditor {
   String get typeId => kDateFieldType;
 
   @override
-  String get displayLabel => 'Date';
+  String label(AppLocalizations l10n) => l10n.collectionsTypeDate;
 
   @override
-  String get description => 'A calendar date, optionally with a time.';
+  String description(AppLocalizations l10n) =>
+      l10n.collectionsTypeDateDescription;
 
   @override
   IconData get icon => Icons.event_outlined;
@@ -50,22 +52,23 @@ class DateFieldEditor extends FieldEditor {
       max: max == null ? field.max : max(),
     );
 
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ConfigSwitch(
-          label: 'Include time',
-          subtitle: 'Capture a time alongside the date.',
+          label: l10n.collectionsIncludeTime,
+          subtitle: l10n.collectionsIncludeTimeHint,
           value: field.includeTime,
           onChanged: (value) => onChanged(update(includeTime: value)),
         ),
         _DateBoundRow(
-          label: 'Earliest',
+          label: l10n.collectionsEarliest,
           value: field.min,
           onChanged: (date) => onChanged(update(min: () => date)),
         ),
         _DateBoundRow(
-          label: 'Latest',
+          label: l10n.collectionsLatest,
           value: field.max,
           onChanged: (date) => onChanged(update(max: () => date)),
         ),
@@ -75,11 +78,14 @@ class DateFieldEditor extends FieldEditor {
 
   @override
   String summarize(
+    AppLocalizations l10n,
     FieldDefinition definition, {
     List<Collection> collections = const [],
   }) {
     final field = definition as DateFieldDefinition;
-    return field.includeTime ? 'date & time' : 'date';
+    return field.includeTime
+        ? l10n.collectionsSummaryDateTime
+        : l10n.collectionsSummaryDate;
   }
 
   @override
@@ -103,7 +109,7 @@ class _DateBoundRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = value == null
-        ? 'Any'
+        ? context.l10n.collectionsAnyDate
         : '${value!.year.toString().padLeft(4, '0')}-'
               '${value!.month.toString().padLeft(2, '0')}-'
               '${value!.day.toString().padLeft(2, '0')}';
@@ -131,7 +137,7 @@ class _DateBoundRow extends StatelessWidget {
           if (value != null)
             IconActionButton(
               icon: Icons.clear,
-              tooltip: 'Clear',
+              tooltip: context.l10n.commonClear,
               onPressed: () => onChanged(null),
             ),
         ],

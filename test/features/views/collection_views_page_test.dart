@@ -9,6 +9,7 @@ import 'package:morkva_crm/features/objects/object_editor.dart';
 import 'package:morkva_crm/features/objects/object_editor_cubit.dart';
 import 'package:morkva_crm/features/views/views.dart';
 import 'package:morkva_crm/features/views/widgets/no_matches_notice.dart';
+import 'package:morkva_crm/l10n/l10n.dart';
 
 import 'views_fixtures.dart';
 import 'work_page_harness.dart';
@@ -219,7 +220,13 @@ void main() {
       expect(find.byType(ShellSidebar), findsNothing);
       expect(find.byType(NavigationBar), findsNothing);
       expect(find.byTooltip('Back'), findsOneWidget);
-      expect(find.byTooltip('View settings'), findsOneWidget);
+      // View settings lives in the overflow beside sync status.
+      expect(find.byTooltip('View settings'), findsNothing);
+      await tester.tap(find.byTooltip('More'));
+      await tester.pumpAndSettle();
+      expect(find.text('View settings'), findsOneWidget);
+      await tester.tapAt(const Offset(8, 400));
+      await tester.pumpAndSettle();
       // No assistant provided: no Ask Morkva entry.
       expect(find.byTooltip('Ask Morkva'), findsNothing);
       expect(find.byType(FloatingActionButton), findsOneWidget);
@@ -515,7 +522,10 @@ void main() {
       await tester.tap(find.text('Globex pilot'));
       await tester.pumpAndSettle();
       final editor = tester.element(find.byType(ObjectEditor));
-      expect(editor.read<ObjectEditorCubit>().state.title, 'Globex pilot');
+      expect(
+        editor.read<ObjectEditorCubit>().state.title(editor.l10n),
+        'Globex pilot',
+      );
     });
 
     testWidgets('New deal → editor → Save → a new row', (tester) async {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
 import '../collection_icons.dart';
 import '../tokens/radii.dart';
 import '../tokens/spacing.dart';
@@ -41,6 +42,7 @@ class CollectionIconPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     final bottomInset = MediaQuery.of(context).padding.bottom;
 
     return SafeArea(
@@ -56,7 +58,7 @@ class CollectionIconPicker extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Choose an icon', style: theme.textTheme.titleMedium),
+            Text(l10n.designChooseIcon, style: theme.textTheme.titleMedium),
             const SizedBox(height: Spacing.md),
             Flexible(
               child: SingleChildScrollView(
@@ -69,7 +71,7 @@ class CollectionIconPicker extends StatelessWidget {
                       // which otherwise made this tile a twin of the first
                       // real option.
                       icon: Icons.do_not_disturb_alt,
-                      label: 'None',
+                      label: l10n.designIconNone,
                       selected: current == null,
                       muted: true,
                       onTap: () =>
@@ -78,7 +80,7 @@ class CollectionIconPicker extends StatelessWidget {
                     for (final option in CollectionIcons.all)
                       _PickerTile(
                         icon: option.icon,
-                        label: option.label,
+                        label: _label(l10n, option),
                         selected: option.key == current,
                         onTap: () => Navigator.of(
                           context,
@@ -94,6 +96,37 @@ class CollectionIconPicker extends StatelessWidget {
     );
   }
 }
+
+/// [option]'s label in the current language; the catalog's English label for
+/// a key added without a translation.
+String _label(AppLocalizations l10n, CollectionIconOption option) =>
+    switch (option.key) {
+      'cards' => l10n.designIconCards,
+      'grid' => l10n.designIconGrid,
+      'box' => l10n.designIconInventory,
+      'truck' => l10n.designIconShipping,
+      'cart' => l10n.designIconOrders,
+      'bag' => l10n.designIconProducts,
+      'tag' => l10n.designIconPricing,
+      'people' => l10n.designIconPeople,
+      'person' => l10n.designIconContact,
+      'business' => l10n.designIconCompany,
+      'store' => l10n.designIconStore,
+      'money' => l10n.designIconFinance,
+      'receipt' => l10n.designIconInvoices,
+      'calendar' => l10n.designIconSchedule,
+      'task' => l10n.designIconTasks,
+      'folder' => l10n.designIconDocuments,
+      'note' => l10n.designIconNotes,
+      'star' => l10n.designIconFavorites,
+      'flag' => l10n.designIconPriorities,
+      'home' => l10n.designIconProperties,
+      'car' => l10n.designIconVehicles,
+      'build' => l10n.designIconServices,
+      'pets' => l10n.designIconPets,
+      'restaurant' => l10n.designIconMenu,
+      _ => option.label,
+    };
 
 /// One selectable icon in the picker grid: a tinted tile that warms to a carrot
 /// outline + fill when [selected].

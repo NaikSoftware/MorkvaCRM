@@ -10,6 +10,7 @@ import '../../../api/data/data_repository.dart';
 import '../../../api/sync/sync_status.dart';
 import '../../../api/sync/sync_status_cubit.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../../assistant/view/widgets/dashed_border.dart';
 import '../../automation/view/automations_page.dart';
 import '../../automation/view/consent_sheet.dart';
@@ -45,6 +46,7 @@ Future<String?> showTrelloImportSheet(
   final repo = context.read<DataRepository>();
   final sync = context.read<SyncStatusCubit?>();
   final sheet = _Sheet(pickFiles);
+  final names = context.l10n.trelloNames;
   return showAutomationSheet<String>(
     context,
     // A write in flight must not lose its cubit to a scrim tap.
@@ -52,7 +54,8 @@ Future<String?> showTrelloImportSheet(
     builder: (_) => BlocProvider(
       // Seeded: a listener only hears later changes.
       create: (_) =>
-          TrelloImportCubit(repo)..setOffline(sync?.state is SyncOffline),
+          TrelloImportCubit(repo, names: names)
+            ..setOffline(sync?.state is SyncOffline),
       child: sync == null
           ? sheet
           : BlocListener<SyncStatusCubit, SyncStatus>(
@@ -86,15 +89,11 @@ class _Sheet extends StatelessWidget {
       );
 }
 
-const _title = 'Import from Trello';
 const _boardIcon = Icons.view_kanban_outlined;
 
 /// "1,200".
 String _n(int n) =>
     '$n'.replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ',');
-
-/// "1 card", "1,200 cards".
-String _count(int n, String noun) => '${_n(n)} ${n == 1 ? noun : '${noun}s'}';
 
 TextStyle? _strong(ThemeData theme) =>
     theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600);
@@ -132,6 +131,7 @@ class _AddStepState extends State<_AddStep> {
 
   Future<void> _choose() async {
     final cubit = context.read<TrelloImportCubit>();
+    final filesLabel = context.l10n.trelloImportFiles;
     final List<TrelloExportFile> files;
     try {
       files = await widget.pickFiles();
@@ -143,10 +143,7 @@ class _AddStepState extends State<_AddStep> {
         error: e,
         stackTrace: st,
       );
-      cubit.addProblem(
-        'Files',
-        "Couldn't read the chosen files. Choose them again, or paste one.",
-      );
+      cubit.addProblem(filesLabel, ImportProblemKind.unreadable);
       return;
     }
     cubit.addFiles(files);
@@ -177,6 +174,7 @@ class _AddStepState extends State<_AddStep> {
     final scheme = theme.colorScheme;
     final state = widget.state;
     final cubit = context.read<TrelloImportCubit>();
+    final l10n = context.l10n;
     final pasted = [
       for (final p in state.problems)
         if (p.name == TrelloImportCubit.pastedName) p,
@@ -205,7 +203,7 @@ class _AddStepState extends State<_AddStep> {
               ),
               const SizedBox(height: Spacing.xs),
               Text(
-                'Trello board exports (.json)',
+                l10n.trelloImportDropHint,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: scheme.onSurfaceVariant,
                 ),
@@ -213,7 +211,7 @@ class _AddStepState extends State<_AddStep> {
               ),
               const SizedBox(height: Spacing.xs),
               SecondaryButton(
-                label: 'Choose files',
+                label: l10n.trelloImportChooseFiles,
                 icon: Icons.folder_outlined,
                 onPressed: _choose,
               ),
@@ -233,8 +231,8 @@ class _AddStepState extends State<_AddStep> {
             ),
             child: MorkvaTextField(
               controller: _paste,
-              label: 'Board JSON',
-              hint: "Paste a board's whole export",
+              label: l10n.trelloImportBoardJson,
+              hint: l10n.trelloImportPasteHint,
               minLines: 8,
               maxLines: 8,
               keyboardType: TextInputType.multiline,
@@ -246,21 +244,17 @@ class _AddStepState extends State<_AddStep> {
           ),
           if (pasted.isNotEmpty) ...[
             const SizedBox(height: Spacing.xs),
-            for (final p in pasted) _InlineProblem(p.message),
+            for (final p in pasted) _InlineProblem(_problemText(l10n, p.kind)),
           ],
           const SizedBox(height: Spacing.xs),
           Row(
             children: [
               Expanded(
-                child: Text(
-                  "Paste one board's whole export, then add it. Repeat for "
-                  'more boards.',
-                  style: _sub(theme),
-                ),
+                child: Text(l10n.trelloImportPasteHelp, style: _sub(theme)),
               ),
               const SizedBox(width: Spacing.sm),
               SecondaryButton(
-                label: 'Add board',
+                label: l10n.trelloImportAddBoard,
                 icon: Icons.add_rounded,
                 onPressed: _paste.text.trim().isEmpty ? null : _addPasted,
               ),
@@ -273,17 +267,23 @@ class _AddStepState extends State<_AddStep> {
     return AutomationSheetFrame(
       header: SheetHeader(
         icon: _boardIcon,
-        title: _title,
-        subtitle: 'Step 1 of 2 · Add boards',
+        title: l10n.trelloImportTitle,
+        subtitle: l10n.trelloImportStep1,
         onClose: () => Navigator.of(context).pop(),
       ),
       body: [
         const _ExportHowTo(),
         const SizedBox(height: Spacing.md),
         SegmentedButton<_Source>(
-          segments: const [
-            ButtonSegment(value: _Source.files, label: Text('Files')),
-            ButtonSegment(value: _Source.paste, label: Text('Paste')),
+          segments: [
+            ButtonSegment(
+              value: _Source.files,
+              label: Text(l10n.trelloImportFiles),
+            ),
+            ButtonSegment(
+              value: _Source.paste,
+              label: Text(l10n.trelloImportPaste),
+            ),
           ],
           selected: {_source},
           showSelectedIcon: false,
@@ -301,7 +301,7 @@ class _AddStepState extends State<_AddStep> {
               padding: const EdgeInsets.only(bottom: Spacing.xs),
               child: Text.rich(
                 TextSpan(
-                  text: 'Boards to import',
+                  text: l10n.trelloImportBoardsToImport,
                   children: [
                     TextSpan(
                       text: ' · ${state.boards.length}',
@@ -333,10 +333,10 @@ class _AddStepState extends State<_AddStep> {
         ],
       ],
       footer: SheetFooter(
-        hint: state.canContinue ? null : 'Add at least one board',
+        hint: state.canContinue ? null : l10n.trelloImportAddAtLeastOne,
         buttons: [
           PrimaryButton(
-            label: 'Continue',
+            label: l10n.commonContinue,
             onPressed: state.canContinue ? cubit.next : null,
           ),
         ],
@@ -352,6 +352,7 @@ class _ExportHowTo extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
     const bold = TextStyle(fontWeight: FontWeight.w600);
     return Container(
       padding: const EdgeInsets.symmetric(
@@ -371,23 +372,18 @@ class _ExportHowTo extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Export each board from Trello', style: _strong(theme)),
+                Text(l10n.trelloImportHowToTitle, style: _strong(theme)),
                 const SizedBox(height: Spacing.xxs),
                 Text.rich(
-                  const TextSpan(
+                  TextSpan(
                     children: [
-                      TextSpan(text: 'Open the board → '),
-                      TextSpan(text: 'Menu', style: bold),
-                      TextSpan(text: ' → '),
-                      TextSpan(text: 'Print, export, and share', style: bold),
-                      TextSpan(text: ' → '),
-                      TextSpan(text: 'Export as JSON', style: bold),
-                      TextSpan(
-                        text:
-                            '. If Trello opens it in a new tab, save the page '
-                            'as a .json file (Ctrl+S), or copy all of it and '
-                            'use Paste. Nothing is imported until you choose.',
-                      ),
+                      TextSpan(text: l10n.trelloImportHowToOpen),
+                      TextSpan(text: l10n.trelloImportHowToMenu, style: bold),
+                      const TextSpan(text: ' → '),
+                      TextSpan(text: l10n.trelloImportHowToShare, style: bold),
+                      const TextSpan(text: ' → '),
+                      TextSpan(text: l10n.trelloImportHowToExport, style: bold),
+                      TextSpan(text: l10n.trelloImportHowToRest),
                     ],
                   ),
                   style: theme.textTheme.bodyMedium,
@@ -415,10 +411,10 @@ class _NoBoards extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Text('No boards yet', style: _strong(theme)),
+          Text(context.l10n.trelloImportNoBoards, style: _strong(theme)),
           const SizedBox(height: Spacing.xxs),
           Text(
-            'Boards you add show up here with their lists and cards.',
+            context.l10n.trelloImportNoBoardsBody,
             style: _sub(theme),
             textAlign: TextAlign.center,
           ),
@@ -503,6 +499,7 @@ class _BoardRow extends StatelessWidget {
         ? CollectionTints.light
         : CollectionTints.dark)[2];
     final s = summary;
+    final l10n = context.l10n;
     return Padding(
       padding: const EdgeInsets.fromLTRB(Spacing.sm, 6, Spacing.xxs, 6),
       child: Row(
@@ -526,11 +523,18 @@ class _BoardRow extends StatelessWidget {
                 if (s != null)
                   Text(
                     [
-                      _count(s.lists, 'list'),
-                      _count(s.cards, 'card'),
+                      l10n.trelloImportListCount(s.lists, _n(s.lists)),
+                      l10n.trelloImportCardCount(s.cards, _n(s.cards)),
                       if (s.checklistItems > 0)
-                        _count(s.checklistItems, 'checklist item'),
-                      if (s.comments > 0) _count(s.comments, 'comment'),
+                        l10n.trelloImportChecklistItemCount(
+                          s.checklistItems,
+                          _n(s.checklistItems),
+                        ),
+                      if (s.comments > 0)
+                        l10n.trelloImportCommentCount(
+                          s.comments,
+                          _n(s.comments),
+                        ),
                     ].join(' · '),
                     style: _figures(_sub(theme)),
                   ),
@@ -539,7 +543,7 @@ class _BoardRow extends StatelessWidget {
           ),
           IconActionButton(
             icon: Icons.close_rounded,
-            tooltip: 'Remove $name',
+            tooltip: l10n.trelloImportRemoveNamed(name),
             onPressed: onRemove,
           ),
         ],
@@ -585,7 +589,7 @@ class _ProblemRow extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
-                      problem.message,
+                      _problemText(context.l10n, problem.kind),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: tone.foreground,
                       ),
@@ -595,7 +599,7 @@ class _ProblemRow extends StatelessWidget {
               ),
               IconActionButton(
                 icon: Icons.close_rounded,
-                tooltip: 'Dismiss ${problem.name}',
+                tooltip: context.l10n.trelloImportDismissNamed(problem.name),
                 onPressed: onDismiss,
               ),
             ],
@@ -605,6 +609,13 @@ class _ProblemRow extends StatelessWidget {
     );
   }
 }
+
+String _problemText(AppLocalizations l10n, ImportProblemKind kind) =>
+    switch (kind) {
+      ImportProblemKind.notABoard => l10n.trelloImportProblemNotABoard,
+      ImportProblemKind.alreadyAdded => l10n.trelloImportProblemAlreadyAdded,
+      ImportProblemKind.unreadable => l10n.trelloImportProblemUnreadable,
+    };
 
 /// A pasted export's problem, under the field.
 class _InlineProblem extends StatelessWidget {
@@ -651,21 +662,20 @@ class _ChooseStep extends StatelessWidget {
       (n, s) => n + s.archivedCards,
     );
     final count = state.selectedCollectionCount;
+    final l10n = context.l10n;
     return AutomationSheetFrame(
       header: SheetHeader(
         icon: _boardIcon,
-        title: _title,
-        subtitle: 'Step 2 of 2 · Choose what to import',
+        title: l10n.trelloImportTitle,
+        subtitle: l10n.trelloImportStep2,
         onClose: () => Navigator.of(context).pop(),
       ),
       body: [
-        const AutomationBanner(
+        AutomationBanner(
           tone: CopyTone.neutral,
           icon: Icons.bolt_outlined,
-          title: "Automations can't come along.",
-          body:
-              'Trello leaves Butler rules and buttons out of board exports — '
-              'set them up again in Automations once your boards are in.',
+          title: l10n.trelloImportNoAutomationsTitle,
+          body: l10n.trelloImportNoAutomationsBody,
         ),
         const SizedBox(height: Spacing.sm),
         MergeSemantics(
@@ -683,15 +693,16 @@ class _ChooseStep extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Include archived cards and lists',
+                            l10n.trelloImportIncludeArchived,
                             style: _strong(theme),
                           ),
                           Text(
                             archived == 0
-                                ? 'No archived cards.'
-                                : '${_count(archived, 'archived card')}. They '
-                                      'get an Archived checkbox and stay off '
-                                      'the board view.',
+                                ? l10n.trelloImportNoArchived
+                                : l10n.trelloImportArchivedCards(
+                                    archived,
+                                    _n(archived),
+                                  ),
                             style: _figures(_sub(theme)),
                           ),
                         ],
@@ -711,14 +722,10 @@ class _ChooseStep extends StatelessWidget {
         const SizedBox(height: Spacing.sm),
         Semantics(
           header: true,
-          child: Text('Collections', style: _strong(theme)),
+          child: Text(l10n.commonCollections, style: _strong(theme)),
         ),
         const SizedBox(height: 2),
-        Text(
-          'Each board becomes a collection with a board view grouped by '
-          'list. Checklist items and comments show as lists on each card.',
-          style: _sub(theme),
-        ),
+        Text(l10n.trelloImportCollectionsHelp, style: _sub(theme)),
         for (final b in state.boards)
           if ((state.choices[b.board.id], state.summaries[b.board.id]) case (
             final choice?,
@@ -740,12 +747,16 @@ class _ChooseStep extends StatelessWidget {
           ],
       ],
       footer: SheetFooter(
-        hint: state.importBlockedReason,
+        hint: switch (state.importBlockedReason) {
+          null => null,
+          ImportBlockedReason.nothingChosen => l10n.trelloImportNothingChosen,
+          ImportBlockedReason.offline => l10n.trelloImportOffline,
+        },
         hintIcon: count > 0 && state.offline ? Icons.wifi_off_rounded : null,
         buttons: [
-          TextActionButton(label: 'Back', onPressed: cubit.back),
+          TextActionButton(label: l10n.commonBack, onPressed: cubit.back),
           PrimaryButton(
-            label: 'Import ${_count(count, 'collection')}',
+            label: l10n.trelloImportCollectionsButton(count, _n(count)),
             onPressed: state.canImport
                 ? () => unawaited(cubit.startImport())
                 : null,
@@ -776,7 +787,8 @@ class _BoardGroup extends StatelessWidget {
     final theme = Theme.of(context);
     final semantic = theme.extension<MorkvaSemanticColors>()!;
     final on = choice.board;
-    final needs = on ? '' : ' · needs the board';
+    final l10n = context.l10n;
+    final needs = on ? '' : ' · ${l10n.trelloImportNeedsBoard}';
     return Semantics(
       container: true,
       label: name,
@@ -797,8 +809,9 @@ class _BoardGroup extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                  '${_count(summary.cards, 'card')} · '
-                  '${_count(summary.lists, 'list')}',
+                  '${l10n.trelloImportCardCount(summary.cards, _n(summary.cards))}'
+                  ' · '
+                  '${l10n.trelloImportListCount(summary.lists, _n(summary.lists))}',
                   style: _figures(_sub(theme)),
                 ),
                 const SizedBox(height: 6),
@@ -813,8 +826,10 @@ class _BoardGroup extends StatelessWidget {
               enabled: on,
               onChanged: (v) => onSelect(checklists: v),
               child: _ChildText(
-                title: 'Checklist items',
-                sub: '${_count(summary.checklistItems, 'item')}$needs',
+                title: l10n.trelloImportChecklistItems,
+                sub:
+                    '${l10n.trelloImportItemCount(summary.checklistItems, _n(summary.checklistItems))}'
+                    '$needs',
                 enabled: on,
               ),
             ),
@@ -825,8 +840,10 @@ class _BoardGroup extends StatelessWidget {
               enabled: on,
               onChanged: (v) => onSelect(comments: v),
               child: _ChildText(
-                title: 'Comments',
-                sub: '${_count(summary.comments, 'comment')}$needs',
+                title: l10n.trelloImportComments,
+                sub:
+                    '${l10n.trelloImportCommentCount(summary.comments, _n(summary.comments))}'
+                    '$needs',
                 enabled: on,
                 note: on && capped
                     ? Padding(
@@ -842,9 +859,7 @@ class _BoardGroup extends StatelessWidget {
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(
-                                'Trello exports keep only the newest 1,000 '
-                                'activities, so older comments may be '
-                                'missing.',
+                                l10n.trelloImportCapped,
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: semantic.onWarningContainer,
                                 ),
@@ -967,7 +982,7 @@ class _FieldChips extends StatelessWidget {
           HugChip(label: n, tone: CopyTone.muted),
         if (more > 0)
           Text(
-            '+${_count(more, 'more field')}',
+            context.l10n.trelloImportMoreFields(more, _n(more)),
             style: _sub(Theme.of(context)),
           ),
       ],
@@ -988,27 +1003,32 @@ class _ImportingStep extends StatelessWidget {
     final scheme = theme.colorScheme;
     final semantic = theme.extension<MorkvaSemanticColors>()!;
     final cubit = context.read<TrelloImportCubit>();
+    final l10n = context.l10n;
     final failure = state.failure;
     final paused = failure != null && !state.running;
     final written = state.writtenObjects;
     final total = state.totalObjects;
     // The total spans checklist items and comments too, so say so.
     final what = state.rows.any((r) => r.kind != ImportedKind.board)
-        ? 'Writing cards and items'
-        : 'Writing cards';
+        ? l10n.trelloImportWritingCardsAndItems
+        : l10n.trelloImportWritingCards;
+    final progress = l10n.trelloImportWrittenOf(_n(written), _n(total));
     return AutomationSheetFrame(
-      header: const SheetHeader(
+      header: SheetHeader(
         icon: _boardIcon,
-        title: 'Importing from Trello',
-        subtitle: 'Keep this open until it finishes.',
+        title: l10n.trelloImportImporting,
+        subtitle: l10n.trelloImportKeepOpen,
       ),
       body: [
         if (paused) ...[
           AutomationBanner(
             tone: CopyTone.warning,
             icon: Icons.warning_amber_rounded,
-            title: 'Import paused.',
-            body: failure,
+            title: l10n.trelloImportPaused,
+            body: switch (failure) {
+              ImportFailure.stalled => l10n.trelloImportStalled,
+              ImportFailure.refused => l10n.trelloImportRefused,
+            },
           ),
           const SizedBox(height: Spacing.md),
         ],
@@ -1018,7 +1038,7 @@ class _ImportingStep extends StatelessWidget {
           children: [
             Expanded(child: Text(what, style: _strong(theme))),
             Text(
-              '${_n(written)} of ${_n(total)}',
+              progress,
               style: _figures(
                 theme.textTheme.bodyMedium?.copyWith(
                   color: scheme.onSurfaceVariant,
@@ -1036,10 +1056,10 @@ class _ImportingStep extends StatelessWidget {
           color: paused ? semantic.warning : scheme.primary,
           // The value must stay numeric (a percentage); the count goes in
           // the label.
-          semanticsLabel: '$what, ${_n(written)} of ${_n(total)}',
+          semanticsLabel: '$what, $progress',
         ),
         const SizedBox(height: Spacing.xs),
-        Text("Imported cards don't start automations.", style: _sub(theme)),
+        Text(l10n.trelloImportNoAutomationsStart, style: _sub(theme)),
         const SizedBox(height: Spacing.md),
         _Group(children: [for (final r in state.rows) _ProgressRow(r)]),
       ],
@@ -1047,19 +1067,19 @@ class _ImportingStep extends StatelessWidget {
           ? SheetFooter(
               buttons: [
                 TextActionButton(
-                  label: 'Close',
+                  label: l10n.commonClose,
                   onPressed: () => Navigator.of(context).pop(),
                 ),
                 PrimaryButton(
-                  label: 'Retry',
+                  label: l10n.commonRetry,
                   icon: Icons.refresh_rounded,
                   onPressed: () => unawaited(cubit.retry()),
                 ),
               ],
             )
-          : const SheetFooter(
-              hint: 'Writing — keep this open',
-              buttons: [PrimaryButton(label: 'Done', onPressed: null)],
+          : SheetFooter(
+              hint: l10n.trelloImportWritingKeepOpen,
+              buttons: [PrimaryButton(label: l10n.commonDone, onPressed: null)],
             ),
     );
   }
@@ -1076,6 +1096,7 @@ class _ProgressRow extends StatelessWidget {
     final scheme = theme.colorScheme;
     final semantic = theme.extension<MorkvaSemanticColors>()!;
     final success = StatusChip.colorsOf(theme, CopyTone.success);
+    final l10n = context.l10n;
     Widget dot(IconData icon, Color bg, Color fg, String label) => Container(
       width: 28,
       height: 28,
@@ -1087,13 +1108,13 @@ class _ProgressRow extends StatelessWidget {
         Icons.check_rounded,
         success.background,
         success.foreground,
-        'Done',
+        l10n.commonDone,
       ),
       ImportRowStatus.paused => dot(
         Icons.pause_rounded,
         semantic.warningContainer,
         semantic.onWarningContainer,
-        'Paused',
+        l10n.trelloImportRowPaused,
       ),
       ImportRowStatus.running => SizedBox.square(
         dimension: 28,
@@ -1103,7 +1124,7 @@ class _ProgressRow extends StatelessWidget {
             child: CircularProgressIndicator(
               strokeWidth: 2.5,
               backgroundColor: scheme.surfaceContainer,
-              semanticsLabel: 'Writing',
+              semanticsLabel: l10n.trelloImportRowWriting,
             ),
           ),
         ),
@@ -1114,7 +1135,7 @@ class _ProgressRow extends StatelessWidget {
           Icons.schedule_rounded,
           size: 18,
           color: scheme.onSurfaceVariant,
-          semanticLabel: 'Waiting',
+          semanticLabel: l10n.trelloImportRowWaiting,
         ),
       ),
     };
@@ -1143,7 +1164,7 @@ class _ProgressRow extends StatelessWidget {
               ),
               const SizedBox(width: Spacing.sm),
               Text(
-                '${_n(row.written)} of ${_n(row.total)}',
+                l10n.trelloImportWrittenOf(_n(row.written), _n(row.total)),
                 style: _figures(_sub(theme)),
               ),
             ],
@@ -1166,13 +1187,17 @@ class _DoneStep extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final navigator = Navigator.of(context);
+    final l10n = context.l10n;
+    final cards = state.rows
+        .where((r) => r.kind == ImportedKind.board)
+        .fold(0, (n, r) => n + r.total);
     return AutomationSheetFrame(
       header: SheetHeader(
         icon: Icons.check_rounded,
-        title: 'Your boards are in',
+        title: l10n.trelloImportDoneTitle,
         subtitle:
-            '${_count(state.rows.length, 'collection')} · '
-            '${_count(state.rows.where((r) => r.kind == ImportedKind.board).fold(0, (n, r) => n + r.total), 'card')}',
+            '${l10n.trelloImportCollectionCount(state.rows.length, _n(state.rows.length))}'
+            ' · ${l10n.trelloImportCardCount(cards, _n(cards))}',
       ),
       body: [
         _Group(
@@ -1208,22 +1233,26 @@ class _DoneStep extends StatelessWidget {
                               Text(r.name, style: _strong(theme)),
                               Text(switch (r.kind) {
                                 ImportedKind.board =>
-                                  '${_count(r.total, 'card')} · board view '
-                                      'by List',
-                                ImportedKind.checklistItems => _count(
-                                  r.total,
-                                  'item',
-                                ),
-                                ImportedKind.comments => _count(
-                                  r.total,
-                                  'comment',
-                                ),
+                                  l10n.trelloImportBoardViewByList(
+                                    r.total,
+                                    _n(r.total),
+                                  ),
+                                ImportedKind.checklistItems =>
+                                  l10n.trelloImportItemCount(
+                                    r.total,
+                                    _n(r.total),
+                                  ),
+                                ImportedKind.comments =>
+                                  l10n.trelloImportCommentCount(
+                                    r.total,
+                                    _n(r.total),
+                                  ),
                               }, style: _figures(_sub(theme))),
                             ],
                           ),
                         ),
                         TextActionButton(
-                          label: 'Open',
+                          label: l10n.commonOpen,
                           onPressed: () =>
                               navigator.pop('/collections/${r.collectionId}'),
                         ),
@@ -1256,13 +1285,12 @@ class _DoneStep extends StatelessWidget {
               const SizedBox(width: Spacing.sm),
               Expanded(
                 child: Text(
-                  'Used Butler in Trello? Set up the same steps as Morkva '
-                  'automations.',
+                  l10n.trelloImportButlerHint,
                   style: theme.textTheme.bodySmall,
                 ),
               ),
               TextActionButton(
-                label: 'Automations',
+                label: l10n.commonAutomations,
                 onPressed: () => navigator.pop('/automations'),
               ),
             ],
@@ -1271,7 +1299,10 @@ class _DoneStep extends StatelessWidget {
       ],
       footer: SheetFooter(
         buttons: [
-          PrimaryButton(label: 'Done', onPressed: () => navigator.pop()),
+          PrimaryButton(
+            label: l10n.commonDone,
+            onPressed: () => navigator.pop(),
+          ),
         ],
       ),
     );

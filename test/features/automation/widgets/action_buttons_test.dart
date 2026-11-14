@@ -5,6 +5,7 @@ import 'package:morkva_crm/core/automation/runner_api.dart';
 import 'package:morkva_crm/core/domain/automation/automation.dart';
 import 'package:morkva_crm/design/design.dart';
 import 'package:morkva_crm/features/automation/widgets/action_buttons.dart';
+import 'package:morkva_crm/l10n/l10n.dart';
 
 import 'automation_widget_rig.dart';
 
@@ -488,6 +489,25 @@ void main() {
   });
 
   group('runNoticeCopy', () {
+    test('Ukrainian words core\'s stored fallback summaries', () {
+      final uk = lookupAppLocalizations(const Locale('uk'));
+      expect(
+        runNoticeCopy(
+          liveRun('r', status: RunStatus.succeeded, summary: 'No changes'),
+          l10n: uk,
+        ).text,
+        'Mark shipped · Без змін',
+      );
+      expect(
+        runNoticeCopy(
+          liveRun('r', status: RunStatus.timedOut),
+          card: '#7',
+          l10n: uk,
+        ).text,
+        'Mark shipped · #7: час вичерпано (20 с)',
+      );
+    });
+
     test('the banner and snackbar words per outcome', () {
       final applied = runNoticeCopy(
         liveRun(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 
 /// What [QuickAddDialog] resolves to.
 typedef QuickAddResult = ({String title, bool details});
@@ -54,8 +55,9 @@ class _QuickAddDialogState extends State<QuickAddDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     return AlertDialog(
-      title: Text('New ${widget.itemLabel}'),
+      title: Text(l10n.viewWidgetsNewItem(widget.itemLabel)),
       content: ConstrainedBox(
         constraints: const BoxConstraints(minWidth: 320, maxWidth: 400),
         child: Column(
@@ -93,14 +95,14 @@ class _QuickAddDialogState extends State<QuickAddDialog> {
       ),
       actions: [
         TextActionButton(
-          label: 'Add details',
+          label: l10n.viewWidgetsAddDetails,
           onPressed: () => _submit(details: true),
         ),
         TextActionButton(
-          label: 'Cancel',
+          label: l10n.commonCancel,
           onPressed: () => Navigator.of(context).pop(),
         ),
-        PrimaryButton(label: 'Add', onPressed: _submit),
+        PrimaryButton(label: l10n.commonAdd, onPressed: _submit),
       ],
     );
   }

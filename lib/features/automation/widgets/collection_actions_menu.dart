@@ -6,6 +6,7 @@ import '../../../core/automation/runner_api.dart';
 import '../../../core/domain/automation/automation.dart';
 import '../../../core/domain/collection.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../bloc/automation_editor_cubit.dart' show EditorKind;
 import '../bloc/automation_runs_cubit.dart';
 import '../bloc/modules_cubit.dart';
@@ -32,11 +33,9 @@ final class CollectionScope {
   final String? viewId;
 
   /// "Runs on 23 shown cards" / "Runs on all 23 cards".
-  String get runsOn {
-    final n = shownCardIds.length;
-    final cards = n == 1 ? 'card' : 'cards';
-    return filtered ? 'Runs on $n shown $cards' : 'Runs on all $n $cards';
-  }
+  String runsOn(AppLocalizations l10n) => filtered
+      ? l10n.automationWidgetsRunsOnShown(shownCardIds.length)
+      : l10n.automationWidgetsRunsOnAll(shownCardIds.length);
 }
 
 /// The live (not awaiting review) collection-button run of [collectionId].
@@ -139,6 +138,7 @@ class CollectionActionsMenu extends StatelessWidget {
             bloc: runs,
             builder: (context, r) {
               final views = _collectionViews(m, r, collection.id);
+              final l10n = context.l10n;
               return MenuAnchor(
                 alignmentOffset: const Offset(0, Spacing.xxs),
                 menuChildren: [
@@ -146,7 +146,9 @@ class CollectionActionsMenu extends StatelessWidget {
                     _MenuRow(
                       view: v,
                       tintSeed: collection.id,
-                      subtitle: v.busy ? liveRunLabel(v.run!) : scope.runsOn,
+                      subtitle: v.busy
+                          ? liveRunLabel(v.run!, l10n)
+                          : scope.runsOn(l10n),
                       onPressed: () =>
                           pressCollectionButton(context, v, scope, runs: runs),
                     ),
@@ -156,7 +158,9 @@ class CollectionActionsMenu extends StatelessWidget {
                     onPressed: () => GoRouter.maybeOf(
                       context,
                     )?.go(AutomationPaths.automationsOf(collection.id)),
-                    child: Text('Automations for ${collection.name}…'),
+                    child: Text(
+                      l10n.automationWidgetsAutomationsFor(collection.name),
+                    ),
                   ),
                   MenuItemButton(
                     leadingIcon: const Icon(Icons.add, size: 20),
@@ -165,7 +169,7 @@ class CollectionActionsMenu extends StatelessWidget {
                       collectionId: collection.id,
                       kind: EditorKind.collectionButton,
                     ),
-                    child: const Text('New automation…'),
+                    child: Text(l10n.automationWidgetsNewAutomation),
                   ),
                 ],
                 builder: (context, controller, _) {
@@ -174,7 +178,7 @@ class CollectionActionsMenu extends StatelessWidget {
                       : controller.open();
                   if (narrow) {
                     return IconButton.outlined(
-                      tooltip: 'Actions',
+                      tooltip: l10n.automationWidgetsActions,
                       onPressed: toggle,
                       icon: const Icon(Icons.bolt_rounded, size: 18),
                     );
@@ -185,7 +189,7 @@ class CollectionActionsMenu extends StatelessWidget {
                     label: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Text('Actions'),
+                        Text(l10n.automationWidgetsActions),
                         const SizedBox(width: Spacing.xxs),
                         Icon(
                           controller.isOpen
@@ -255,7 +259,7 @@ class _MenuRow extends StatelessWidget {
             Text(view.label, style: theme.textTheme.titleSmall),
             Text(
               view.phase == ButtonPhase.needsConsent
-                  ? 'Needs consent'
+                  ? context.l10n.automationWidgetsNeedsConsent
                   : subtitle,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
@@ -303,13 +307,14 @@ class CollectionRunPill extends StatelessWidget {
     RunProgress? p,
   ) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     return Semantics(
       liveRegion: true,
-      label: 'Running ${live.label}',
+      label: l10n.automationWidgetsRunningLabel(live.label),
       onLongPress: () => runs.stop(live.runId),
       excludeSemantics: true,
       child: Tooltip(
-        message: 'Long-press to stop',
+        message: l10n.automationWidgetsLongPressToStop,
         child: GestureDetector(
           onLongPress: () => runs.stop(live.runId),
           child: Container(
@@ -332,7 +337,7 @@ class CollectionRunPill extends StatelessWidget {
                 ),
                 const SizedBox(width: Spacing.xs),
                 Text(
-                  'Running ${live.label}…'
+                  '${l10n.automationWidgetsRunningLabelEllipsis(live.label)}'
                   '${p == null || p.total <= 0 ? '' : ' ${p.done}/${p.total}'}',
                   style: theme.textTheme.labelMedium?.copyWith(color: info),
                 ),
@@ -356,6 +361,7 @@ List<PopupMenuEntry<void>> collectionPhoneMenuItems(
   final modules = maybeRead<ModulesCubit>(context);
   if (runs == null || modules == null) return const [];
   final id = scope.collection.id;
+  final l10n = context.l10n;
   Widget row(IconData icon, String label) => Row(
     children: [
       Icon(icon, size: 20),
@@ -371,16 +377,19 @@ List<PopupMenuEntry<void>> collectionPhoneMenuItems(
           runs: runs,
           modules: modules,
           tintSeed: id,
-          subtitle: scope.runsOn,
+          subtitle: scope.runsOn(l10n),
           build: (r, m) => _collectionViews(m, r, id),
           onSelect: (v) => pressCollectionButton(context, v, scope, runs: runs),
         ),
-        child: row(Icons.bolt_rounded, 'Run action…'),
+        child: row(Icons.bolt_rounded, l10n.automationWidgetsRunAction),
       ),
     PopupMenuItem(
       onTap: () =>
           GoRouter.maybeOf(context)?.go(AutomationPaths.automationsOf(id)),
-      child: row(Icons.auto_mode_rounded, 'Automations…'),
+      child: row(
+        Icons.auto_mode_rounded,
+        l10n.automationWidgetsAutomationsEllipsis,
+      ),
     ),
   ];
 }
@@ -435,7 +444,8 @@ void showRunSnackbar(
 }) {
   final messenger = ScaffoldMessenger.maybeOf(context);
   if (messenger == null) return;
-  final copy = runNoticeCopy(run);
+  final l10n = context.l10n;
+  final copy = runNoticeCopy(run, l10n: l10n);
   final router = GoRouter.maybeOf(context);
   final wide = MediaQuery.sizeOf(context).width >= 840;
   final action = copy.actions.firstOrNull;
@@ -449,12 +459,7 @@ void showRunSnackbar(
       action: action == null
           ? null
           : SnackBarAction(
-              label: switch (action) {
-                NoticeAction.undo => 'Undo',
-                NoticeAction.viewRun => 'View run',
-                NoticeAction.review => 'Review',
-                NoticeAction.runAgain => 'Run again',
-              },
+              label: action.labelIn(l10n),
               onPressed: () {
                 switch (action) {
                   case NoticeAction.undo:

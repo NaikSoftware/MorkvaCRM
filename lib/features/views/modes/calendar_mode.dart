@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/shell/app_shell.dart';
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../collection_views_cubit.dart';
 import '../widgets/calendar/calendar_agenda.dart';
 import '../widgets/calendar/calendar_common.dart';
@@ -24,13 +25,13 @@ class CalendarMode extends ViewMode {
   String get id => ViewModeIds.calendar;
 
   @override
-  String get label => 'Calendar';
+  String get label => l10n.viewsModeCalendar;
 
   @override
   IconData get icon => Icons.calendar_month_outlined;
 
   @override
-  String get description => 'Items on the days of a date field.';
+  String get description => l10n.viewsModeCalendarDescription;
 
   @override
   bool get needsLayoutField => true;
@@ -40,14 +41,16 @@ class CalendarMode extends ViewMode {
       field is DateFieldDefinition;
 
   @override
-  String get layoutFieldLabel => 'Date field';
+  String get layoutFieldLabel => l10n.viewsDateField;
 
   @override
-  String get addFieldLabel => 'Add date field';
+  String get addFieldLabel => l10n.viewsAddDateField;
 
   @override
   String? unavailableReason(Collection collection) =>
-      collection.fields.any(acceptsLayoutField) ? null : 'Needs a date field';
+      collection.fields.any(acceptsLayoutField)
+      ? null
+      : l10n.viewsNeedsDateField;
 
   @override
   Widget buildBody(BuildContext context, ViewModeData data) =>
@@ -76,8 +79,8 @@ class CalendarMode extends ViewMode {
       builder: (context, controller, _) => ToolbarButton(
         icon: Icons.event_outlined,
         label: current is DateFieldDefinition
-            ? 'Date: ${current.name}'
-            : 'Date',
+            ? context.l10n.viewsDateChip(current.name)
+            : context.l10n.viewsDateChipEmpty,
         onPressed: () =>
             controller.isOpen ? controller.close() : controller.open(),
       ),
@@ -103,10 +106,10 @@ class CalendarBody extends StatelessWidget {
       if (dateFields.isEmpty) {
         return EmptyState(
           icon: Icons.calendar_month_outlined,
-          title: 'Calendar needs a date field',
-          message: 'Add a date field to place each ${data.itemLabel} on a day.',
+          title: context.l10n.viewsCalendarNeedsDate,
+          message: context.l10n.viewsCalendarNeedsDateMessage(data.itemLabel),
           action: PrimaryButton(
-            label: 'Add date field',
+            label: context.l10n.viewsAddDateField,
             icon: Icons.add,
             onPressed: () => context.go('/collections/${collection.id}/edit'),
           ),
@@ -114,8 +117,10 @@ class CalendarBody extends StatelessWidget {
       }
       return EmptyState(
         icon: Icons.calendar_month_outlined,
-        title: 'Choose a date field',
-        message: 'Pick the date that places each ${data.itemLabel} on a day.',
+        title: context.l10n.viewsCalendarChooseDate,
+        message: context.l10n.viewsCalendarChooseDateMessage(
+          data.itemLabel,
+        ),
         action: Wrap(
           spacing: Spacing.xs,
           runSpacing: Spacing.xs,

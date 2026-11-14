@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
 import '../../../../design/design.dart';
+import '../../../../l10n/l10n.dart';
 import '../../bloc/assistant_state.dart';
 import '../../bloc/chat_item.dart';
 import 'applied_card.dart';
@@ -291,7 +292,7 @@ class _JumpToLatest extends StatelessWidget {
     final scheme = theme.colorScheme;
     return PressableScale(
       onPressed: onPressed,
-      semanticLabel: 'Jump to latest',
+      semanticLabel: context.l10n.assistantJumpToLatest,
       borderRadius: Radii.fullAll,
       child: Container(
         height: 44,
@@ -307,7 +308,7 @@ class _JumpToLatest extends StatelessWidget {
             Icon(Icons.arrow_downward_rounded, size: 16, color: scheme.surface),
             const SizedBox(width: 6),
             Text(
-              'Jump to latest',
+              context.l10n.assistantJumpToLatest,
               style: theme.textTheme.labelMedium?.copyWith(
                 color: scheme.surface,
                 letterSpacing: 0,

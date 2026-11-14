@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../../design/design.dart';
+import '../../../../l10n/l10n.dart';
 
 /// A compact row of color swatches for tagging a select option.
 ///
@@ -85,7 +86,7 @@ class _ColorSwatch extends StatelessWidget {
         ? const Color(0xFF2B2018) // inkHigh
         : Colors.white;
     return Semantics(
-      label: 'Color $hex',
+      label: context.l10n.collectionsColorSwatch(hex),
       selected: selected,
       button: true,
       child: InkWell(
@@ -131,7 +132,7 @@ class _NoneSwatch extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Semantics(
-      label: 'No color',
+      label: context.l10n.collectionsNoColor,
       selected: selected,
       button: true,
       child: InkWell(

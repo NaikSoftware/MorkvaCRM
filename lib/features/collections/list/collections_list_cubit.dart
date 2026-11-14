@@ -38,15 +38,15 @@ class CollectionsListCubit extends Cubit<CollectionsListState> {
       onError: (Object error) {
         if (!isClosed) {
           emit(
-            CollectionsListError(message: 'Failed to load collections: $error'),
+            CollectionsListError(message: '$error'),
           );
         }
       },
     );
   }
 
-  /// Creates a new collection (one "Name" text field, the default view) and
-  /// returns its generated id.
+  /// Creates a new collection (one [titleField] text field, the default view)
+  /// and returns its generated id.
   ///
   /// The caller typically navigates to `/collections/:id` with the returned id.
   /// The new collection appears in the list via the watch stream.
@@ -54,12 +54,13 @@ class CollectionsListCubit extends Cubit<CollectionsListState> {
     String name, {
     String? description,
     String? icon,
+    String titleField = 'Name',
   }) async {
     final id = _ids.collectionId();
     final trimmedDescription = description?.trim();
     // Every new collection starts with a "Name" text field so its default
     // view has a title column.
-    final fields = [TextFieldDefinition(id: _ids.fieldId(), name: 'Name')];
+    final fields = [TextFieldDefinition(id: _ids.fieldId(), name: titleField)];
     final collection = Collection(
       id: id,
       name: name.trim(),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../tokens/radii.dart';
 import '../../tokens/spacing.dart';
 import 'morkva_text_field.dart';
@@ -17,14 +18,15 @@ class SearchField extends StatefulWidget {
   const SearchField({
     super.key,
     this.controller,
-    this.hintText = 'Search',
+    this.hintText,
     this.onChanged,
     this.onCleared,
     this.dense = false,
   });
 
   final TextEditingController? controller;
-  final String hintText;
+  /// Defaults to "Search".
+  final String? hintText;
   final ValueChanged<String>? onChanged;
   final VoidCallback? onCleared;
   final bool dense;
@@ -86,14 +88,14 @@ class _SearchFieldState extends State<SearchField> {
 
     final field = MorkvaTextField(
       controller: _controller,
-      hint: widget.hintText,
+      hint: widget.hintText ?? context.l10n.commonSearch,
       onChanged: widget.onChanged,
       textInputAction: TextInputAction.search,
       prefixIcon: Icon(Icons.search, size: iconSize),
       suffixIcon: hasText
           ? IconButton(
               icon: Icon(Icons.close, size: iconSize),
-              tooltip: 'Clear',
+              tooltip: context.l10n.commonClear,
               onPressed: _clear,
               constraints: dense ? _denseIcon : null,
               padding: dense ? EdgeInsets.zero : null,

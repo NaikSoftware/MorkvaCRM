@@ -113,7 +113,7 @@ final class TriggerEvaluator {
   }) async {
     final trigger = automation.trigger as EventTrigger;
     final image = change.after ?? change.before!;
-    var label = 'Untitled';
+    var label = CoreWords.current.untitled;
     TriggerOutcome outcome;
     try {
       final collection = _cache.collection(change.collectionId);

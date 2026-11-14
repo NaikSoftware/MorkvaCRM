@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import 'field_value_editor.dart';
 
 /// auto_number: shown, never edited; the number is assigned on first save.
@@ -18,8 +19,8 @@ class AutoNumberValueEditor extends FieldValueEditor {
   Widget build(BuildContext context, ValueEditorContext ctx) => ReadOnlyValue(
     icon: Icons.lock_outline,
     text: formatFieldValue(ctx.field, ctx.value),
-    placeholder: 'Assigned on save',
-    helper: 'Set automatically',
+    placeholder: context.l10n.objectsAssignedOnSave,
+    helper: context.l10n.objectsSetAutomatically,
   );
 }
 
@@ -37,8 +38,8 @@ class CalculatedValueEditor extends FieldValueEditor {
   Widget build(BuildContext context, ValueEditorContext ctx) => ReadOnlyValue(
     icon: Icons.functions,
     text: formatFieldValue(ctx.field, ctx.value),
-    placeholder: 'Nothing to calculate yet',
-    helper: ctx.note ?? 'Calculated',
+    placeholder: context.l10n.objectsNothingToCalculate,
+    helper: ctx.note ?? context.l10n.objectsCalculated,
   );
 }
 

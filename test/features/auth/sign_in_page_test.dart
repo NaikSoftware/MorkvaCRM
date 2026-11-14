@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:morkva_crm/api/auth/auth_cubit.dart';
+import 'package:morkva_crm/api/auth/auth_repository.dart';
 import 'package:morkva_crm/design/design.dart';
 import 'package:morkva_crm/features/auth/sign_in_page.dart';
 
@@ -72,15 +73,33 @@ void main() {
   testWidgets('shows the error message inline on AuthError (no dialog)', (
     tester,
   ) async {
-    when(
-      () => cubit.state,
-    ).thenReturn(const AuthError(message: 'Sign-in was cancelled.'));
+    when(() => cubit.state).thenReturn(
+      const AuthError(
+        failure: AuthFailure.signInFailed,
+        detail: 'Sign-in was cancelled.',
+      ),
+    );
 
     await tester.pumpWidget(host());
 
+    expect(find.text('Google sign-in failed.'), findsOneWidget);
+    // The provider's raw message shows as is.
     expect(find.text('Sign-in was cancelled.'), findsOneWidget);
     // Inline, not a dialog.
     expect(find.byType(Dialog), findsNothing);
     expect(find.byType(AlertDialog), findsNothing);
+  });
+
+  testWidgets('words a failure without a provider detail', (tester) async {
+    when(
+      () => cubit.state,
+    ).thenReturn(const AuthError(failure: AuthFailure.noIdToken));
+
+    await tester.pumpWidget(host());
+
+    expect(
+      find.text('Google sign-in did not return an ID token.'),
+      findsOneWidget,
+    );
   });
 }

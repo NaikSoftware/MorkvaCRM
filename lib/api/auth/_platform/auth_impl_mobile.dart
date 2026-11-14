@@ -19,9 +19,7 @@ Future<UserCredential> signInWithGoogleCredential(FirebaseAuth auth) async {
   final googleSignIn = GoogleSignIn.instance;
 
   if (!googleSignIn.supportsAuthenticate()) {
-    throw const AuthException(
-      'Google sign-in is not supported on this platform.',
-    );
+    throw const AuthException(AuthFailure.unsupportedPlatform);
   }
 
   // Idempotent: initializing more than once is a no-op.
@@ -30,7 +28,7 @@ Future<UserCredential> signInWithGoogleCredential(FirebaseAuth auth) async {
   final account = await googleSignIn.authenticate();
   final idToken = account.authentication.idToken;
   if (idToken == null) {
-    throw const AuthException('Google sign-in did not return an ID token.');
+    throw const AuthException(AuthFailure.noIdToken);
   }
 
   final credential = GoogleAuthProvider.credential(idToken: idToken);

@@ -1,0 +1,593 @@
+{
+ "id": "production_materials",
+ "name": "Виробництво й матеріали",
+ "description": "Закупівлі тканини й партії пошиву за кольорами, залишки та реальна собівартість одного виробу.",
+ "icon": "build",
+ "collections": [
+  {
+   "id": "@colours",
+   "name": "Кольори",
+   "icon": "tag",
+   "fields": [
+    {
+     "id": "name",
+     "name": "Колір",
+     "type": "text",
+     "required": true
+    },
+    {
+     "id": "fabricPerPiece",
+     "name": "Тканини на виріб",
+     "type": "number",
+     "unitLabel": "кг",
+     "decimalPlaces": 2,
+     "description": "Скільки основної тканини йде на один виріб. Якщо залишити поле порожнім, залишки теж будуть порожні, а не здаватимуться повними."
+    },
+    {
+     "id": "ribPerPiece",
+     "name": "Рибани на виріб",
+     "type": "number",
+     "unitLabel": "кг",
+     "decimalPlaces": 2
+    },
+    {
+     "id": "made",
+     "name": "Пошито виробів",
+     "type": "calculated",
+     "declaredOutputType": "number",
+     "aggregate": {
+      "source": "linkedFrom",
+      "collectionId": "@batches",
+      "referenceFieldId": "colour",
+      "op": "sum",
+      "fieldId": "qty"
+     }
+    },
+    {
+     "id": "spent",
+     "name": "Витрачено на матеріали",
+     "type": "calculated",
+     "declaredOutputType": "number",
+     "unitLabel": "₴",
+     "aggregate": {
+      "source": "linkedFrom",
+      "collectionId": "@purchases",
+      "referenceFieldId": "colour",
+      "op": "sum",
+      "fieldId": "cost"
+     }
+    },
+    {
+     "id": "costPerPiece",
+     "name": "Матеріали на виріб",
+     "type": "calculated",
+     "declaredOutputType": "number",
+     "unitLabel": "₴",
+     "decimalPlaces": 2,
+     "expression": "ROUND({spent} / {made}, 2)"
+    },
+    {
+     "id": "fabricBought",
+     "name": "Куплено тканини",
+     "type": "calculated",
+     "declaredOutputType": "number",
+     "unitLabel": "кг",
+     "decimalPlaces": 2,
+     "aggregate": {
+      "source": "linkedFrom",
+      "collectionId": "@purchases",
+      "referenceFieldId": "colour",
+      "op": "sum",
+      "fieldId": "kg",
+      "filters": [
+       {
+        "fieldId": "material",
+        "op": "anyOf",
+        "operand": [
+         "fabric"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "id": "fabricOff",
+     "name": "Списано тканини",
+     "type": "calculated",
+     "declaredOutputType": "number",
+     "unitLabel": "кг",
+     "decimalPlaces": 2,
+     "aggregate": {
+      "source": "linkedFrom",
+      "collectionId": "@purchases",
+      "referenceFieldId": "colour",
+      "op": "sum",
+      "fieldId": "writeOff",
+      "filters": [
+       {
+        "fieldId": "material",
+        "op": "anyOf",
+        "operand": [
+         "fabric"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "id": "fabricLeft",
+     "name": "Залишок тканини",
+     "type": "calculated",
+     "declaredOutputType": "number",
+     "unitLabel": "кг",
+     "decimalPlaces": 2,
+     "expression": "{fabricBought} - {fabricOff} - {made} * {fabricPerPiece} + 0 / {fabricPerPiece}"
+    },
+    {
+     "id": "piecesLeft",
+     "name": "Виробів із залишку тканини",
+     "type": "calculated",
+     "declaredOutputType": "number",
+     "expression": "FLOOR({fabricLeft} / {fabricPerPiece})"
+    },
+    {
+     "id": "ribBought",
+     "name": "Куплено рибани",
+     "type": "calculated",
+     "declaredOutputType": "number",
+     "unitLabel": "кг",
+     "decimalPlaces": 2,
+     "aggregate": {
+      "source": "linkedFrom",
+      "collectionId": "@purchases",
+      "referenceFieldId": "colour",
+      "op": "sum",
+      "fieldId": "kg",
+      "filters": [
+       {
+        "fieldId": "material",
+        "op": "anyOf",
+        "operand": [
+         "rib"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "id": "ribLeft",
+     "name": "Залишок рибани",
+     "type": "calculated",
+     "declaredOutputType": "number",
+     "unitLabel": "кг",
+     "decimalPlaces": 2,
+     "expression": "{ribBought} - {made} * {ribPerPiece} + 0 / {ribPerPiece}"
+    }
+   ],
+   "views": [
+    {
+     "id": "summary",
+     "name": "За кольорами",
+     "mode": "summary",
+     "fieldIds": [
+      "name",
+      "made",
+      "spent",
+      "costPerPiece",
+      "fabricLeft",
+      "piecesLeft",
+      "ribLeft"
+     ],
+     "filters": [],
+     "manualOrder": []
+    },
+    {
+     "id": "table",
+     "name": "Таблиця",
+     "mode": "table",
+     "fieldIds": [
+      "name",
+      "fabricPerPiece",
+      "ribPerPiece",
+      "made",
+      "spent",
+      "costPerPiece",
+      "fabricBought",
+      "fabricLeft",
+      "piecesLeft",
+      "ribBought",
+      "ribLeft"
+     ],
+     "filters": [],
+     "manualOrder": []
+    }
+   ]
+  },
+  {
+   "id": "@purchases",
+   "name": "Закупівлі матеріалів",
+   "icon": "receipt",
+   "fields": [
+    {
+     "id": "date",
+     "name": "Дата",
+     "type": "date"
+    },
+    {
+     "id": "colour",
+     "name": "Колір",
+     "type": "reference",
+     "targetCollectionId": "@colours",
+     "multiple": false,
+     "required": true
+    },
+    {
+     "id": "material",
+     "name": "Матеріал",
+     "type": "single_select",
+     "options": [
+      {
+       "id": "fabric",
+       "label": "Основна тканина",
+       "color": "#3A7BD5"
+      },
+      {
+       "id": "rib",
+       "label": "Рибана",
+       "color": "#C9A227"
+      }
+     ]
+    },
+    {
+     "id": "kg",
+     "name": "Куплено",
+     "type": "number",
+     "unitLabel": "кг",
+     "decimalPlaces": 2
+    },
+    {
+     "id": "cost",
+     "name": "Вартість",
+     "type": "number",
+     "unitLabel": "₴"
+    },
+    {
+     "id": "writeOff",
+     "name": "Списано",
+     "type": "number",
+     "unitLabel": "кг",
+     "decimalPlaces": 2
+    }
+   ],
+   "views": [
+    {
+     "id": "log",
+     "name": "Журнал",
+     "mode": "table",
+     "fieldIds": [
+      "date",
+      "colour",
+      "material",
+      "kg",
+      "cost",
+      "writeOff"
+     ],
+     "filters": [],
+     "sort": {
+      "fieldId": "date",
+      "ascending": false
+     },
+     "manualOrder": []
+    }
+   ]
+  },
+  {
+   "id": "@batches",
+   "name": "Журнал пошиву",
+   "icon": "note",
+   "fields": [
+    {
+     "id": "date",
+     "name": "Дата",
+     "type": "date"
+    },
+    {
+     "id": "colour",
+     "name": "Колір",
+     "type": "reference",
+     "targetCollectionId": "@colours",
+     "multiple": false,
+     "required": true
+    },
+    {
+     "id": "qty",
+     "name": "Вироби",
+     "type": "number",
+     "min": 0
+    },
+    {
+     "id": "sizes",
+     "name": "Розміри",
+     "type": "multi_select",
+     "options": [
+      {
+       "id": "xs",
+       "label": "XS"
+      },
+      {
+       "id": "s",
+       "label": "S"
+      },
+      {
+       "id": "m",
+       "label": "M"
+      },
+      {
+       "id": "l",
+       "label": "L"
+      },
+      {
+       "id": "xl",
+       "label": "XL"
+      }
+     ]
+    },
+    {
+     "id": "notes",
+     "name": "Примітки",
+     "type": "text"
+    }
+   ],
+   "views": [
+    {
+     "id": "log",
+     "name": "Журнал",
+     "mode": "table",
+     "fieldIds": [
+      "date",
+      "colour",
+      "qty",
+      "sizes",
+      "notes"
+     ],
+     "filters": [],
+     "sort": {
+      "fieldId": "date",
+      "ascending": false
+     },
+     "manualOrder": []
+    }
+   ]
+  },
+  {
+   "id": "@summary",
+   "name": "Собівартість",
+   "icon": "money",
+   "fields": [
+    {
+     "id": "name",
+     "name": "Період",
+     "type": "text"
+    },
+    {
+     "id": "spent",
+     "name": "Витрачено на матеріали",
+     "type": "calculated",
+     "declaredOutputType": "number",
+     "unitLabel": "₴",
+     "aggregate": {
+      "source": "all",
+      "collectionId": "@purchases",
+      "op": "sum",
+      "fieldId": "cost"
+     }
+    },
+    {
+     "id": "made",
+     "name": "Пошито виробів",
+     "type": "calculated",
+     "declaredOutputType": "number",
+     "aggregate": {
+      "source": "all",
+      "collectionId": "@batches",
+      "op": "sum",
+      "fieldId": "qty"
+     }
+    },
+    {
+     "id": "materialPerPiece",
+     "name": "Матеріали на виріб",
+     "type": "calculated",
+     "declaredOutputType": "number",
+     "unitLabel": "₴",
+     "decimalPlaces": 2,
+     "expression": "ROUND({spent} / {made}, 2)"
+    },
+    {
+     "id": "sewing",
+     "name": "Пошив на виріб",
+     "type": "number",
+     "unitLabel": "₴"
+    },
+    {
+     "id": "delivery",
+     "name": "Доставка на виріб",
+     "type": "number",
+     "unitLabel": "₴"
+    },
+    {
+     "id": "trueCost",
+     "name": "Реальна собівартість виробу",
+     "type": "calculated",
+     "declaredOutputType": "number",
+     "unitLabel": "₴",
+     "decimalPlaces": 2,
+     "expression": "{materialPerPiece} + {sewing} + {delivery}"
+    },
+    {
+     "id": "price",
+     "name": "Цільова ціна",
+     "type": "number",
+     "unitLabel": "₴"
+    },
+    {
+     "id": "margin",
+     "name": "Маржа на виріб",
+     "type": "calculated",
+     "declaredOutputType": "number",
+     "unitLabel": "₴",
+     "decimalPlaces": 2,
+     "expression": "{price} - {trueCost}"
+    }
+   ],
+   "views": [
+    {
+     "id": "summary",
+     "name": "Підсумок",
+     "mode": "summary",
+     "fieldIds": [
+      "name",
+      "trueCost",
+      "margin",
+      "materialPerPiece",
+      "spent",
+      "made",
+      "sewing",
+      "delivery",
+      "price"
+     ],
+     "filters": [],
+     "manualOrder": []
+    }
+   ]
+  }
+ ],
+ "objects": [
+  {
+   "id": "@black",
+   "collectionId": "@colours",
+   "values": {
+    "name": "Чорний",
+    "fabricPerPiece": 0.7,
+    "ribPerPiece": 0.05
+   }
+  },
+  {
+   "id": "@olive",
+   "collectionId": "@colours",
+   "values": {
+    "name": "Оливковий",
+    "fabricPerPiece": 0.7,
+    "ribPerPiece": 0.05
+   }
+  },
+  {
+   "id": "@p1",
+   "collectionId": "@purchases",
+   "values": {
+    "date": "2026-09-02T00:00:00.000Z",
+    "colour": [
+     "@black"
+    ],
+    "material": "fabric",
+    "kg": 25,
+    "cost": 7500
+   }
+  },
+  {
+   "id": "@p2",
+   "collectionId": "@purchases",
+   "values": {
+    "date": "2026-09-02T00:00:00.000Z",
+    "colour": [
+     "@black"
+    ],
+    "material": "rib",
+    "kg": 2,
+    "cost": 900
+   }
+  },
+  {
+   "id": "@p3",
+   "collectionId": "@purchases",
+   "values": {
+    "date": "2026-09-15T00:00:00.000Z",
+    "colour": [
+     "@olive"
+    ],
+    "material": "fabric",
+    "kg": 15,
+    "cost": 4800,
+    "writeOff": 0.5
+   }
+  },
+  {
+   "id": "@p4",
+   "collectionId": "@purchases",
+   "values": {
+    "date": "2026-09-15T00:00:00.000Z",
+    "colour": [
+     "@olive"
+    ],
+    "material": "rib",
+    "kg": 1,
+    "cost": 450
+   }
+  },
+  {
+   "id": "@b1",
+   "collectionId": "@batches",
+   "values": {
+    "date": "2026-09-10T00:00:00.000Z",
+    "colour": [
+     "@black"
+    ],
+    "qty": 20,
+    "sizes": [
+     "s",
+     "m",
+     "l"
+    ]
+   }
+  },
+  {
+   "id": "@b2",
+   "collectionId": "@batches",
+   "values": {
+    "date": "2026-10-01T00:00:00.000Z",
+    "colour": [
+     "@black"
+    ],
+    "qty": 8,
+    "sizes": [
+     "m"
+    ]
+   }
+  },
+  {
+   "id": "@b3",
+   "collectionId": "@batches",
+   "values": {
+    "date": "2026-10-05T00:00:00.000Z",
+    "colour": [
+     "@olive"
+    ],
+    "qty": 10,
+    "sizes": [
+     "m",
+     "l"
+    ]
+   }
+  },
+  {
+   "id": "@s1",
+   "collectionId": "@summary",
+   "values": {
+    "name": "Цей сезон",
+    "sewing": 350,
+    "delivery": 60,
+    "price": 1800
+   }
+  }
+ ]
+}

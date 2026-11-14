@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../../collections/field_editors/built_in_field_editors.dart';
 import 'field_value_editor.dart';
 
@@ -21,7 +22,7 @@ class UnsupportedValueEditor extends FieldValueEditor {
   Widget build(BuildContext context, ValueEditorContext ctx) {
     final theme = Theme.of(context);
     final muted = theme.colorScheme.onSurfaceVariant;
-    final type = _fieldEditors.forType(typeId)?.displayLabel ?? typeId;
+    final type = _fieldEditors.forType(typeId)?.label(context.l10n) ?? typeId;
     return ConstrainedBox(
       constraints: const BoxConstraints(minHeight: 48),
       child: Row(
@@ -30,7 +31,7 @@ class UnsupportedValueEditor extends FieldValueEditor {
           const SizedBox(width: Spacing.xs),
           Expanded(
             child: Text(
-              "Can't edit $type here",
+              context.l10n.objectsCantEditType(type),
               style: theme.textTheme.bodyMedium?.copyWith(color: muted),
             ),
           ),

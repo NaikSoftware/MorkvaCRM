@@ -1,8 +1,12 @@
+import 'dart:ui' show Locale;
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:morkva_crm/core/agent/agent_event.dart';
 import 'package:morkva_crm/core/domain/automation/automation.dart';
 import 'package:morkva_crm/core/harness/api/capability.dart' show Actor;
+
+import '../../../l10n/l10n.dart';
 
 /// One entry of the chat, rendered from structured parts only (no markdown).
 /// Every item has a stable [id] (list keys, in-place replacement); the bloc
@@ -127,14 +131,18 @@ final class StepsItem extends ChatItem {
   /// The collapsed line ("Looked at Orders · filtered 148 → 5 · summed Total").
   /// Failed steps the model recovered from are counted, not repeated, so the
   /// line reads "… · 2 steps didn't go through" instead of listing each one.
-  String get headline {
+  String get headline =>
+      headlineIn(lookupAppLocalizations(const Locale('en')));
+
+  /// [headline] with its note in [l10n]'s language.
+  String headlineIn(AppLocalizations l10n) {
     final ok = steps.where((s) => s.status != StepStatus.failed).toList();
     final failed = steps.length - ok.length;
     if (failed == 0 || ok.isEmpty) return steps.map((s) => s.text).join(' · ');
-    final note = failed == 1
-        ? "1 step didn't go through"
-        : "$failed steps didn't go through";
-    return [...ok.map((s) => s.text), note].join(' · ');
+    return [
+      ...ok.map((s) => s.text),
+      l10n.assistantStepsFailed(failed),
+    ].join(' · ');
   }
 
   @override

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/domain/domain.dart';
 import '../../../../design/design.dart';
+import '../../../../l10n/l10n.dart';
 import '../../modes/view_mode.dart';
 import 'calendar_common.dart';
 
@@ -64,7 +65,7 @@ class _NoDateTrayState extends State<NoDateTray> {
         const SizedBox(height: Spacing.xxs),
         IconActionButton(
           icon: Icons.chevron_left,
-          tooltip: 'Show No date ($count)',
+          tooltip: context.l10n.viewWidgetsShowNoDate(count),
           onPressed: () => setState(() => _expanded = true),
         ),
         const SizedBox(height: Spacing.xs),
@@ -103,13 +104,16 @@ class _NoDateTrayState extends State<NoDateTray> {
             ),
             child: Row(
               children: [
-                Text('No date', style: theme.textTheme.titleSmall),
+                Text(
+                  context.l10n.viewWidgetsNoDate,
+                  style: theme.textTheme.titleSmall,
+                ),
                 const SizedBox(width: Spacing.xs),
                 _CountBadge(count: undated.length),
                 const Spacer(),
                 IconActionButton(
                   icon: Icons.chevron_right,
-                  tooltip: 'Hide No date',
+                  tooltip: context.l10n.viewWidgetsHideNoDate,
                   onPressed: () => setState(() => _expanded = false),
                 ),
               ],
@@ -121,9 +125,10 @@ class _NoDateTrayState extends State<NoDateTray> {
                     padding: const EdgeInsets.all(Spacing.md),
                     child: Text(
                       hovering
-                          ? 'Drop to clear the date'
-                          : 'Every ${widget.data.itemLabel} has a date. '
-                                'Drop one here to clear it.',
+                          ? context.l10n.viewWidgetsDropToClearDate
+                          : context.l10n.viewWidgetsEveryItemHasDate(
+                              widget.data.itemLabel,
+                            ),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),

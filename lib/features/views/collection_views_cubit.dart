@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../api/data/data_repository.dart';
 import '../../core/domain/domain.dart';
 import '../../core/harness/input/ref_resolver.dart';
+import '../../l10n/l10n.dart';
 import '../collections/util/id_generator.dart';
 import 'collection_views_state.dart';
 import 'view_link.dart';
@@ -252,7 +253,9 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
           },
           onError: (Object _) {
             if (isClosed || !_failedTargets.add(targetId)) return;
-            _reportWriteError("Couldn't load ${target.name}");
+            _reportWriteError(
+              currentAppStrings().viewsLoadTargetFailed(target.name),
+            );
           },
         );
   }
@@ -307,7 +310,7 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
     if (collection == null || view == null || transient.isEmpty) return null;
     final copy = view.copyWith(
       id: _ids.viewId(),
-      name: '${view.name} · filtered',
+      name: currentAppStrings().viewsFilteredName(view.name),
       filters: List.unmodifiable([...view.filters, ...transient]),
     );
     final index = collection.views.indexOf(view);
@@ -360,7 +363,7 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
     );
     if (filters == null) {
       _transient = const [];
-      _writeError = "This link's filter isn't valid";
+      _writeError = currentAppStrings().viewsLinkFilterInvalid;
       _writeErrorSeq++;
       return;
     }
@@ -586,7 +589,9 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
     if (collection == null) return null;
     final view = ViewDefinition(
       id: _ids.viewId(),
-      name: name.trim().isEmpty ? 'Untitled view' : name.trim(),
+      name: name.trim().isEmpty
+          ? currentAppStrings().viewsUntitledView
+          : name.trim(),
       mode: mode,
       layoutFieldId: layoutFieldId,
       fieldIds: ViewDefinition.defaultFor(collection.fields).fieldIds,
@@ -615,7 +620,7 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
     final source = collection.views[index];
     final copy = source.copyWith(
       id: _ids.viewId(),
-      name: '${source.name} copy',
+      name: currentAppStrings().viewsCopyName(source.name),
     );
     final previous = _activeViewId;
     _activeViewId = copy.id;
@@ -723,7 +728,9 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
       await _repository.saveViews(collectionId, saved);
     } catch (_) {
       if (identical(_localViews, saved)) _localViews = null;
-      if (!isClosed) _reportWriteError("Couldn't save the view");
+      if (!isClosed) {
+        _reportWriteError(currentAppStrings().viewsSaveViewFailed);
+      }
       return false;
     }
     if (identical(_localViews, saved)) _localViews = null;
@@ -1035,7 +1042,7 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
       );
       _settle(object.id, pending);
     } catch (_) {
-      _fail(object.id, pending, "Couldn't save the change");
+      _fail(object.id, pending, currentAppStrings().viewsSaveChangeFailed);
     }
   }
 
@@ -1047,7 +1054,7 @@ class CollectionViewsCubit extends Cubit<CollectionViewsState> {
       await _repository.deleteObject(collectionId, object.id, before: object);
       _settle(object.id, pending);
     } catch (_) {
-      _fail(object.id, pending, "Couldn't delete it");
+      _fail(object.id, pending, currentAppStrings().viewsDeleteFailed);
     }
   }
 

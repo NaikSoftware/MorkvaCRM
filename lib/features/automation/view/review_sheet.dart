@@ -6,6 +6,7 @@ import '../../../app/shell/app_shell.dart';
 import '../../../core/automation/runner_api.dart';
 import '../../../core/domain/automation/automation.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../../assistant/bloc/assistant_state.dart' show ApplyingPhase;
 import '../../assistant/bloc/chat_item.dart';
 import '../../assistant/view/widgets/plan_card.dart';
@@ -14,6 +15,7 @@ import '../../views/view_link.dart';
 import '../bloc/automation_runs_cubit.dart';
 import '../bloc/review_sheet_cubit.dart';
 import '../widgets/action_buttons.dart';
+import 'automations_page.dart' show runSummary;
 import 'consent_sheet.dart' show sheetSurface;
 
 /// Opens the review of [runId] (UX §6): a 560 dialog on wide screens, a
@@ -41,11 +43,12 @@ Future<void> showReviewSheet(
     child: ReviewSheet(compact: !wide, runs: runs),
   );
   final scrim = overEditor ? Colors.transparent : null;
+  final l10n = context.l10n;
   if (wide) {
     await showDialog<void>(
       context: context,
       barrierColor: scrim,
-      barrierLabel: 'Decide later',
+      barrierLabel: l10n.automationDecideLater,
       builder: (context) => Dialog(
         // Over the editor there is no second scrim, so the same surface
         // colour without a shadow melted into the form behind it: step up
@@ -84,14 +87,14 @@ Future<void> showReviewSheet(
   if (cubit?.state.phase == ReviewPhase.review && !overEditor) {
     messenger?.showSnackBar(
       SnackBar(
-        content: const Text('Saved for review'),
+        content: Text(l10n.automationSavedForReview),
         duration: const Duration(seconds: 5),
         persist: false,
         behavior: SnackBarBehavior.floating,
         width: wide ? 480 : null,
         action: context.mounted
             ? SnackBarAction(
-                label: 'Review',
+                label: l10n.automationReview,
                 onPressed: () {
                   if (context.mounted) {
                     showReviewSheet(context, runId: cubit!.state.runId);
@@ -112,14 +115,31 @@ String _clock(DateTime t) {
 }
 
 /// "Button pressed on #1042 · 12:04", "Because #1042 was updated · 12:04".
-String reviewContextLine(RunTrigger trigger, DateTime at) {
-  final card = trigger.cardLabel ?? (trigger.cardId == null ? null : 'a card');
+String reviewContextLine(
+  AppLocalizations l10n,
+  RunTrigger trigger,
+  DateTime at,
+) {
+  final card = trigger.cardLabel;
   final what = switch (trigger.kind) {
-    TriggerKind.button =>
-      card == null ? 'Button pressed' : 'Button pressed on $card',
-    TriggerKind.cardCreated => 'Because ${card ?? 'a card'} was created',
-    TriggerKind.cardDeleted => 'Because ${card ?? 'a card'} was deleted',
-    TriggerKind.cardUpdated => 'Because ${card ?? 'a card'} was updated',
+    TriggerKind.button when card != null => l10n.automationTriggerButtonCard(
+      card,
+    ),
+    TriggerKind.button when trigger.cardId != null =>
+      l10n.automationTriggerButtonSomeCard,
+    TriggerKind.button => l10n.automationButtonPressed,
+    TriggerKind.cardCreated =>
+      card == null
+          ? l10n.automationBecauseCreatedSomeCard
+          : l10n.automationBecauseCreated(card),
+    TriggerKind.cardDeleted =>
+      card == null
+          ? l10n.automationBecauseDeletedSomeCard
+          : l10n.automationBecauseDeleted(card),
+    TriggerKind.cardUpdated =>
+      card == null
+          ? l10n.automationBecauseUpdatedSomeCard
+          : l10n.automationBecauseUpdated(card),
   };
   return '$what · ${_clock(at)}';
 }
@@ -182,7 +202,7 @@ class ReviewSheet extends StatelessWidget {
                     if (trigger != null && at != null) ...[
                       const SizedBox(height: Spacing.xxs),
                       Text(
-                        reviewContextLine(trigger, at),
+                        reviewContextLine(context.l10n, trigger, at),
                         style: theme.textTheme.bodyMedium,
                       ),
                     ],
@@ -191,7 +211,7 @@ class ReviewSheet extends StatelessWidget {
               ),
               IconActionButton(
                 icon: Icons.close,
-                tooltip: 'Decide later',
+                tooltip: context.l10n.automationDecideLater,
                 onPressed: () => Navigator.of(context).maybePop(),
               ),
             ],
@@ -357,6 +377,7 @@ class _Expired extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
     return Container(
       padding: const EdgeInsets.all(Spacing.md),
       decoration: BoxDecoration(
@@ -369,14 +390,12 @@ class _Expired extends StatelessWidget {
           Text.rich(
             TextSpan(
               children: [
-                const TextSpan(
-                  text: 'This review expired. ',
-                  style: TextStyle(fontWeight: FontWeight.w600),
+                TextSpan(
+                  text: '${l10n.automationReviewExpiredTitle} ',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 TextSpan(
-                  text:
-                      'Previews are kept only while Morkva is open. Run it '
-                      'again to get a fresh preview on the current data.',
+                  text: l10n.automationReviewExpiredBody,
                   style: TextStyle(color: scheme.onSurfaceVariant),
                 ),
               ],
@@ -384,7 +403,7 @@ class _Expired extends StatelessWidget {
             style: theme.textTheme.bodyMedium,
           ),
           const SizedBox(height: Spacing.sm),
-          PrimaryButton(label: 'Run again', onPressed: onRunAgain),
+          PrimaryButton(label: l10n.automationRunAgain, onPressed: onRunAgain),
         ],
       ),
     );
@@ -434,7 +453,10 @@ class _Refusal extends StatelessWidget {
               ),
             ),
             if (onRunAgain != null)
-              TextActionButton(label: 'Run again', onPressed: onRunAgain),
+              TextActionButton(
+                label: context.l10n.automationRunAgain,
+                onPressed: onRunAgain,
+              ),
           ],
         ),
       ),
@@ -465,6 +487,7 @@ class _Decided extends StatelessWidget {
     final scheme = theme.colorScheme;
     final receipt = state.record?.receipt;
     final left = state.reviewsLeft.length;
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -481,15 +504,18 @@ class _Decided extends StatelessWidget {
                 const SizedBox(width: Spacing.xs),
                 Expanded(
                   child: Text(
-                    'Updated ${receipt.applied}, ${receipt.failed} failed',
+                    l10n.automationUpdatedFailed(
+                      receipt.applied,
+                      receipt.failed,
+                    ),
                     style: theme.textTheme.titleSmall?.copyWith(
                       color: scheme.onErrorContainer,
                     ),
                   ),
                 ),
-                TextActionButton(label: 'Undo', onPressed: onUndo),
+                TextActionButton(label: l10n.commonUndo, onPressed: onUndo),
                 TextActionButton(
-                  label: 'Retry failed',
+                  label: l10n.automationRetryFailed,
                   onPressed: onRetryFailed,
                 ),
               ],
@@ -502,17 +528,17 @@ class _Decided extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(switch (state.record) {
-                  RunRecord(undoneAt: _?) => 'Undone.',
-                  RunRecord(:final summary?) => summary,
+                  RunRecord(undoneAt: _?) => l10n.automationUndoneSentence,
+                  RunRecord(:final summary?) => runSummary(l10n, summary),
                   RunRecord(receipt: RunReceipt(:final applied))
                       when applied > 0 =>
-                    'Applied $applied ${applied == 1 ? 'change' : 'changes'}',
-                  _ => 'Done.',
+                    l10n.automationAppliedChanges(applied),
+                  _ => l10n.automationDoneSentence,
                 }, style: theme.textTheme.titleMedium),
               ),
               if (state.record case RunRecord(journalId: _?, undoneAt: null))
                 TextActionButton(
-                  label: 'Undo',
+                  label: l10n.commonUndo,
                   icon: Icons.undo,
                   onPressed: onUndo,
                 ),
@@ -522,11 +548,11 @@ class _Decided extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            TextActionButton(label: 'Close', onPressed: onClose),
+            TextActionButton(label: l10n.commonClose, onPressed: onClose),
             if (state.next != null) ...[
               const SizedBox(width: Spacing.xs),
               PrimaryButton(
-                label: 'Next review ($left left)',
+                label: l10n.automationNextReview(left),
                 onPressed: onNext,
               ),
             ],

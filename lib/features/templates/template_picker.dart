@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/domain/domain.dart';
 import '../../design/design.dart';
+import '../../l10n/l10n.dart';
 import 'template_catalog.dart';
 
 /// Shows the bundled templates; "Add to workspace" runs [onAdd] (with a
@@ -12,8 +13,15 @@ Future<WorkspaceTemplate?> showTemplatePicker(
   Future<List<WorkspaceTemplate>> Function()? load,
 }) => showDialog<WorkspaceTemplate>(
   context: context,
-  builder: (_) =>
-      TemplatePicker(onAdd: onAdd, load: load ?? loadBundledTemplates),
+  builder: (_) => TemplatePicker(
+    onAdd: onAdd,
+    load:
+        load ??
+        () => loadBundledTemplates(
+          null,
+          Localizations.localeOf(context).languageCode,
+        ),
+  ),
 );
 
 class TemplatePicker extends StatefulWidget {
@@ -43,7 +51,7 @@ class _TemplatePickerState extends State<TemplatePicker> {
       if (mounted) {
         setState(() {
           _adding = null;
-          _error = "Couldn't add ${template.name}. Check your connection.";
+          _error = context.l10n.templatesAddFailed(template.name);
         });
       }
     }
@@ -77,13 +85,12 @@ class _TemplatePickerState extends State<TemplatePicker> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Start from a template',
+                          context.l10n.templatesTitle,
                           style: theme.textTheme.titleLarge,
                         ),
                         const SizedBox(height: Spacing.xxs),
                         Text(
-                          'Ready-made collections you can change like any '
-                          'other.',
+                          context.l10n.templatesSubtitle,
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: scheme.onSurfaceVariant,
                           ),
@@ -92,7 +99,7 @@ class _TemplatePickerState extends State<TemplatePicker> {
                     ),
                   ),
                   IconButton(
-                    tooltip: 'Close',
+                    tooltip: context.l10n.commonClose,
                     icon: const Icon(Icons.close),
                     onPressed: _adding == null
                         ? () => Navigator.of(context).pop()
@@ -108,9 +115,9 @@ class _TemplatePickerState extends State<TemplatePicker> {
                 builder: (context, snapshot) {
                   final templates = snapshot.data;
                   if (snapshot.hasError) {
-                    return const Padding(
-                      padding: EdgeInsets.all(Spacing.lg),
-                      child: Text("Couldn't load the templates."),
+                    return Padding(
+                      padding: const EdgeInsets.all(Spacing.lg),
+                      child: Text(context.l10n.templatesLoadFailed),
                     );
                   }
                   if (templates == null) {
@@ -140,8 +147,7 @@ class _TemplatePickerState extends State<TemplatePicker> {
                         )
                       else
                         Text(
-                          'Sample cards come along so you can see it working '
-                          '— delete them anytime.',
+                          context.l10n.templatesSampleHint,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: scheme.onSurfaceVariant,
                           ),
@@ -226,15 +232,14 @@ class _TemplateCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  '$collections ${collections == 1 ? 'collection' : 'collections'}'
-                  ' · $cards sample ${cards == 1 ? 'card' : 'cards'}',
+                  context.l10n.templatesContents(collections, cards),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
               ),
               SecondaryButton(
-                label: 'Add to workspace',
+                label: context.l10n.templatesAdd,
                 icon: Icons.add,
                 loading: adding,
                 onPressed: onAdd,

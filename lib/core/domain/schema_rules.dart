@@ -36,11 +36,13 @@ class SchemaIssue {
     required this.message,
     required this.blocking,
     this.fieldId,
+    this.fieldName,
   });
 
   final SchemaIssueCode code;
 
-  /// Human-readable description of the problem.
+  /// The problem in English (the harness reads it; the UI words [code] with
+  /// [fieldName]).
   final String message;
 
   /// Whether this problem blocks save.
@@ -48,6 +50,10 @@ class SchemaIssue {
 
   /// The field the problem belongs to, or null for collection-level problems.
   final String? fieldId;
+
+  /// That field's name as [message] quotes it (the saved name for
+  /// [SchemaIssueCode.typeLocked]).
+  final String? fieldName;
 }
 
 /// The result of [validateCollectionSchema]: the blocking and non-blocking
@@ -123,6 +129,7 @@ SchemaValidation validateCollectionSchema(
           message: 'Duplicate field name "${field.name.trim()}"',
           blocking: true,
           fieldId: field.id,
+          fieldName: field.name.trim(),
         ),
       );
     }
@@ -142,6 +149,7 @@ SchemaValidation validateCollectionSchema(
               'add a new field instead',
           blocking: true,
           fieldId: field.id,
+          fieldName: before.name,
         ),
       );
     }
@@ -160,6 +168,7 @@ SchemaValidation validateCollectionSchema(
           message: '"${field.name}" has no options yet',
           blocking: strict,
           fieldId: field.id,
+          fieldName: field.name,
         ),
       );
     } else if (field is ReferenceFieldDefinition) {
@@ -178,6 +187,7 @@ SchemaValidation validateCollectionSchema(
             message: message,
             blocking: strict,
             fieldId: field.id,
+            fieldName: field.name,
           ),
         );
       }

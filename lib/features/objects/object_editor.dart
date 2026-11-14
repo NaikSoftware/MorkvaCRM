@@ -12,6 +12,7 @@ import '../../core/automation/runner_api.dart';
 import '../../core/domain/automation/automation.dart' show AutomationStatus;
 import '../../core/domain/domain.dart';
 import '../../design/design.dart';
+import '../../l10n/l10n.dart';
 import '../automation/bloc/automation_runs_cubit.dart';
 import '../automation/bloc/modules_cubit.dart';
 import '../automation/view/automations_page.dart' show automationsOffline;
@@ -123,7 +124,7 @@ Future<ObjectEditorResult?> _showDialog(
   return showGeneralDialog<ObjectEditorResult>(
     context: context,
     barrierDismissible: true,
-    barrierLabel: 'Close editor',
+    barrierLabel: context.l10n.objectsCloseEditor,
     // The same dark scrim as showDialog; a theme color like onSurface turns
     // into a light wash in dark mode.
     barrierColor: Colors.black54,
@@ -217,14 +218,13 @@ class _EditorHost extends StatelessWidget {
         canPop: !state.hasUnsavedChanges && !state.isSaving,
         onPopInvokedWithResult: (didPop, _) async {
           if (didPop || state.isSaving) return;
+          final l10n = context.l10n;
           final discard = await MorkvaConfirmDialog.show(
             context,
-            title: 'Discard changes?',
-            message:
-                "Your changes to this ${itemLabelOf(state.collection)} "
-                "haven't been saved.",
-            confirmLabel: 'Discard',
-            cancelLabel: 'Keep editing',
+            title: l10n.objectsDiscardTitle,
+            message: l10n.objectsDiscardMessage(itemLabelOf(state.collection)),
+            confirmLabel: l10n.objectsDiscard,
+            cancelLabel: l10n.objectsKeepEditing,
             destructive: true,
           );
           if (discard == true && context.mounted) Navigator.of(context).pop();
@@ -380,7 +380,7 @@ class _ObjectEditorState extends State<ObjectEditor> {
         cardId == context.read<ObjectEditorCubit>().state.stored?.id) {
       return null;
     }
-    return run.trigger.cardLabel ?? 'another card';
+    return run.trigger.cardLabel ?? context.l10n.objectsAnotherCard;
   }
 
   Future<void> _onNoticeAction(NoticeAction action, RunView run) async {
@@ -392,7 +392,9 @@ class _ObjectEditorState extends State<ObjectEditor> {
           if (mounted) {
             final card = _otherCard(run);
             _showRunMessage(
-              '${run.label}${card == null ? '' : ' on $card'} · Reverted',
+              card == null
+                  ? context.l10n.objectsRunReverted(run.label)
+                  : context.l10n.objectsRunRevertedOnCard(run.label, card),
               error: false,
             );
           }
@@ -419,6 +421,7 @@ class _ObjectEditorState extends State<ObjectEditor> {
           : runNoticeCopy(
               run,
               card: _otherCard(run),
+              l10n: context.l10n,
               runnable:
                   maybeRead<ModulesCubit>(context)?.state.automations.any(
                     (a) =>
@@ -453,11 +456,12 @@ class _ObjectEditorState extends State<ObjectEditor> {
     final cubit = context.read<ObjectEditorCubit>();
     final state = cubit.state;
     final item = itemLabelOf(state.collection);
+    final l10n = context.l10n;
     final confirmed = await MorkvaConfirmDialog.show(
       context,
-      title: 'Delete $item?',
-      message: '"${state.title}" will be deleted.',
-      confirmLabel: 'Delete',
+      title: l10n.objectsDeleteItemTitle(item),
+      message: l10n.objectsDeleteItemMessage(state.title(l10n)),
+      confirmLabel: l10n.commonDelete,
       destructive: true,
     );
     if (confirmed == true && mounted) cubit.requestDelete();
@@ -511,7 +515,8 @@ class _ObjectEditorState extends State<ObjectEditor> {
     final cubit = context.read<ObjectEditorCubit>();
     return BlocBuilder<ObjectEditorCubit, ObjectEditorState>(
       builder: (context, state) {
-        final errors = state.visibleErrors;
+        final l10n = context.l10n;
+        final errors = state.visibleErrorsWordedBy(l10n.validationMessage);
         final layout = _layoutOf(state.collection);
         final gutter = widget.compact ? Spacing.md : Spacing.lg;
         final sections = layout.sections;
@@ -557,7 +562,7 @@ class _ObjectEditorState extends State<ObjectEditor> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: _DeleteButton(
-                  label: 'Delete ${itemLabelOf(state.collection)}',
+                  label: l10n.objectsDeleteItem(itemLabelOf(state.collection)),
                   onPressed: state.isSaving ? null : _delete,
                 ),
               ),
@@ -576,10 +581,10 @@ class _ObjectEditorState extends State<ObjectEditor> {
           ],
         );
         final saveLabel = state.isUploading
-            ? 'Uploading…'
+            ? l10n.objectsUploading
             : state.remoteDeleted
-            ? 'Save as new'
-            : 'Save';
+            ? l10n.objectsSaveAsNew
+            : l10n.commonSave;
         final onSave = state.isUploading ? null : _save;
         if (widget.compact) {
           final theme = Theme.of(context);
@@ -593,12 +598,12 @@ class _ObjectEditorState extends State<ObjectEditor> {
                 bottom: BorderSide(color: theme.colorScheme.outlineVariant),
               ),
               leading: IconButton(
-                tooltip: 'Close',
+                tooltip: l10n.commonClose,
                 icon: const Icon(Icons.close),
                 onPressed: _closeFor(state),
               ),
               title: Text(
-                state.title,
+                state.title(l10n),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.titleLarge,
@@ -621,7 +626,7 @@ class _ObjectEditorState extends State<ObjectEditor> {
                   CardInboxButton(
                     collectionId: state.collection.id,
                     cardId: stored.id,
-                    label: state.title,
+                    label: state.title(context.l10n),
                   ),
                 Padding(
                   padding: const EdgeInsets.only(right: Spacing.xs),
@@ -699,16 +704,19 @@ class _Header extends StatelessWidget {
     final collection = state.collection;
     final stored = state.stored;
     final item = itemLabelOf(collection);
+    final l10n = context.l10n;
     final meta = stored == null
         ? collection.name
-        : '${item[0].toUpperCase()}${item.substring(1)}'
-              ' · created ${_shortDate(stored.createdAt)}'
-              ' · edited ${_ago(stored.updatedAt)}';
+        : l10n.objectsHeaderMeta(
+            '${item[0].toUpperCase()}${item.substring(1)}',
+            _shortDate(stored.createdAt),
+            _ago(l10n, stored.updatedAt),
+          );
     final inbox = stored != null
         ? CardInboxButton(
             collectionId: collection.id,
             cardId: stored.id,
-            label: state.title,
+            label: state.title(l10n),
           )
         : null;
     final inboxWidth = inbox != null && CardInboxButton.shownIn(context)
@@ -758,7 +766,7 @@ class _Header extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  state.title,
+                  state.title(context.l10n),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.headlineSmall?.copyWith(
@@ -779,7 +787,7 @@ class _Header extends StatelessWidget {
           ?inbox,
           IconActionButton(
             icon: Icons.close,
-            tooltip: 'Close',
+            tooltip: context.l10n.commonClose,
             onPressed: onClose,
           ),
         ],
@@ -798,11 +806,11 @@ String _shortDate(DateTime t) {
 }
 
 /// "just now", "5 min ago", "2 h ago", else the date.
-String _ago(DateTime t) {
+String _ago(AppLocalizations l10n, DateTime t) {
   final d = DateTime.now().difference(t);
-  if (d.inMinutes < 1) return 'just now';
-  if (d.inHours < 1) return '${d.inMinutes} min ago';
-  if (d.inDays < 1) return '${d.inHours} h ago';
+  if (d.inMinutes < 1) return l10n.objectsJustNow;
+  if (d.inHours < 1) return l10n.objectsMinutesAgo(d.inMinutes);
+  if (d.inDays < 1) return l10n.objectsHoursAgo(d.inHours);
   return _shortDate(t);
 }
 
@@ -824,6 +832,7 @@ class _Footer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: Spacing.md + Spacing.xxs,
@@ -835,9 +844,12 @@ class _Footer extends StatelessWidget {
       child: Row(
         children: [
           if (onDelete case final delete?)
-            _DeleteButton(label: 'Delete', onPressed: saving ? null : delete),
+            _DeleteButton(
+              label: l10n.commonDelete,
+              onPressed: saving ? null : delete,
+            ),
           const Spacer(),
-          TextActionButton(label: 'Cancel', onPressed: onCancel),
+          TextActionButton(label: l10n.commonCancel, onPressed: onCancel),
           const SizedBox(width: Spacing.xs),
           PrimaryButton(label: saveLabel, loading: saving, onPressed: onSave),
         ],
@@ -889,6 +901,7 @@ class _Banners extends StatelessWidget {
         if (state.conflictFieldIds.contains(f.id)) f.name,
     ];
     final item = itemLabelOf(state.collection);
+    final l10n = context.l10n;
     final banners = [
       ?run,
       if (count > 0)
@@ -897,7 +910,7 @@ class _Banners extends StatelessWidget {
           background: scheme.errorContainer,
           foreground: scheme.onErrorContainer,
           alert: true,
-          title: 'Fix $count ${count == 1 ? 'field' : 'fields'} to save',
+          title: l10n.objectsFixFields(count),
         ),
       if (state.status == ObjectEditorStatus.saveFailed)
         _Banner(
@@ -905,25 +918,26 @@ class _Banners extends StatelessWidget {
           background: scheme.errorContainer,
           foreground: scheme.onErrorContainer,
           alert: true,
-          title: "Couldn't save — check your connection",
+          title: l10n.objectsSaveFailed,
         ),
       if (state.remoteDeleted)
         _Banner(
           icon: Icons.warning_amber_rounded,
           background: warning,
           foreground: scheme.onSurface,
-          title: 'This $item was deleted elsewhere.',
-          message: 'Save as new to restore it.',
+          title: l10n.objectsDeletedElsewhere(item),
+          message: l10n.objectsSaveAsNewToRestore,
         )
       else if (conflicts.isNotEmpty)
         _Banner(
           icon: Icons.warning_amber_rounded,
           background: warning,
           foreground: scheme.onSurface,
-          title:
-              '${_names(conflicts)} ${conflicts.length == 1 ? 'was' : 'were'} '
-              'changed elsewhere.',
-          message: 'Saving will overwrite it with your value.',
+          title: l10n.objectsChangedElsewhere(
+            conflicts.length,
+            _names(l10n, conflicts),
+          ),
+          message: l10n.objectsOverwriteNote,
         ),
     ];
     if (banners.isEmpty) return const SizedBox.shrink();
@@ -937,9 +951,13 @@ class _Banners extends StatelessWidget {
     );
   }
 
-  static String _names(List<String> names) => names.length == 1
+  static String _names(AppLocalizations l10n, List<String> names) =>
+      names.length == 1
       ? names.single
-      : '${names.take(names.length - 1).join(', ')} and ${names.last}';
+      : l10n.objectsNamesAnd(
+          names.take(names.length - 1).join(', '),
+          names.last,
+        );
 }
 
 /// "Mark shipped · 1 order updated · Undo · View run" (UX §4).
@@ -956,16 +974,10 @@ class _RunBanner extends StatelessWidget {
   final ValueChanged<NoticeAction>? onAction;
   final VoidCallback onDismiss;
 
-  static const _labels = {
-    NoticeAction.undo: 'Undo',
-    NoticeAction.viewRun: 'View run',
-    NoticeAction.review: 'Review',
-    NoticeAction.runAgain: 'Run again',
-  };
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     final review = copy.actions.contains(NoticeAction.review);
     // Run again needs a connection, as on run detail.
     final offline =
@@ -1009,13 +1021,13 @@ class _RunBanner extends StatelessWidget {
           icon: a == NoticeAction.undo
               ? const Icon(Icons.undo_rounded, size: 18)
               : null,
-          label: Text(_labels[a]!),
+          label: Text(a.labelIn(l10n)),
         ),
       if (offline)
         Padding(
           padding: const EdgeInsets.only(right: Spacing.xs),
           child: Text(
-            'Needs a connection',
+            l10n.objectsNeedsConnection,
             style: theme.textTheme.bodySmall?.copyWith(
               color: colors.foreground,
             ),
@@ -1023,7 +1035,7 @@ class _RunBanner extends StatelessWidget {
         ),
       if (copy.actions.isEmpty)
         IconButton(
-          tooltip: 'Dismiss',
+          tooltip: l10n.objectsDismiss,
           color: colors.foreground,
           icon: const Icon(Icons.close, size: 18),
           onPressed: onDismiss,
@@ -1221,7 +1233,7 @@ class _Section extends StatelessWidget {
                   ),
                   if (collapsed)
                     Text(
-                      ' · $count ${count == 1 ? 'field' : 'fields'}',
+                      ' · ${context.l10n.commonFieldCount(count)}',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
@@ -1306,7 +1318,18 @@ class _FieldCell extends StatelessWidget {
     final scheme = theme.colorScheme;
     final cubit = context.read<ObjectEditorCubit>();
     final changed = !state.isCreate && state.changedFieldIds.contains(field.id);
-    final message = error ?? state.uploadErrors[field.id];
+    final upload = state.uploadErrors[field.id];
+    final message =
+        error ??
+        switch (upload) {
+          null => null,
+          (:final file, tooLarge: true) => context.l10n.objectsUploadTooLarge(
+            file,
+          ),
+          (:final file, tooLarge: false) => context.l10n.objectsUploadFailed(
+            file,
+          ),
+        };
     final helpStyle = theme.textTheme.bodySmall?.copyWith(
       color: scheme.onSurfaceVariant,
     );
@@ -1342,7 +1365,7 @@ class _FieldCell extends StatelessWidget {
               if (changed) ...[
                 const SizedBox(width: Spacing.xs),
                 Semantics(
-                  label: 'Changed',
+                  label: context.l10n.objectsChanged,
                   child: Container(
                     width: 6,
                     height: 6,
@@ -1431,6 +1454,7 @@ Future<void> _openAttachment(
   FileAttachment attachment,
 ) async {
   final messenger = ScaffoldMessenger.maybeOf(context);
+  final l10n = context.l10n;
   try {
     final url = await cubit.downloadUrl(attachment);
     if (await launchUrl(url, mode: LaunchMode.externalApplication)) return;
@@ -1438,6 +1462,6 @@ Future<void> _openAttachment(
     // Reported below.
   }
   messenger?.showSnackBar(
-    SnackBar(content: Text("Couldn't open ${attachment.name}")),
+    SnackBar(content: Text(l10n.objectsCouldNotOpen(attachment.name))),
   );
 }

@@ -67,6 +67,7 @@ class SingleSelectFieldDefinition extends FieldDefinition {
           fieldId: id,
           code: ValidationError.invalidOption,
           message: '$name has no option "$optionId"',
+          subject: optionId,
         ),
       );
     }

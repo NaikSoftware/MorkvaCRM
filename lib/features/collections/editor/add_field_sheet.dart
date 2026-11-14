@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../field_editors/field_editor.dart';
 
 /// A modal sheet that picks a field type to add.
@@ -56,7 +57,10 @@ class AddFieldSheet extends StatelessWidget {
               Spacing.lg,
               Spacing.xs,
             ),
-            child: Text('Add a field', style: theme.textTheme.titleLarge),
+            child: Text(
+              context.l10n.collectionsAddFieldTitle,
+              style: theme.textTheme.titleLarge,
+            ),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(
@@ -66,7 +70,7 @@ class AddFieldSheet extends StatelessWidget {
               Spacing.md,
             ),
             child: Text(
-              'Pick a type — you can configure and rename it next.',
+              context.l10n.collectionsAddFieldSubtitle,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -130,7 +134,7 @@ class _DeclareOnlyPill extends StatelessWidget {
           Icon(Icons.bolt, size: 11, color: scheme.onSurfaceVariant),
           const SizedBox(width: 3),
           Text(
-            'Automatic',
+            context.l10n.collectionsAutomatic,
             style: theme.textTheme.labelSmall?.copyWith(
               color: scheme.onSurfaceVariant,
             ),
@@ -152,10 +156,11 @@ class _TypeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
 
     return PressableScale(
       onPressed: onTap,
-      semanticLabel: 'Add ${editor.displayLabel} field',
+      semanticLabel: l10n.collectionsAddFieldOfType(editor.label(l10n)),
       borderRadius: Radii.mdAll,
       child: Container(
         padding: const EdgeInsets.all(Spacing.sm),
@@ -186,7 +191,7 @@ class _TypeCard extends StatelessWidget {
                     children: [
                       Flexible(
                         child: Text(
-                          editor.displayLabel,
+                          editor.label(l10n),
                           style: theme.textTheme.titleSmall,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -201,7 +206,7 @@ class _TypeCard extends StatelessWidget {
                   // Keep the real type description; the pill above already
                   // signals the value is filled in automatically.
                   Text(
-                    editor.description,
+                    editor.description(l10n),
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),

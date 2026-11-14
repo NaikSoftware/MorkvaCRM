@@ -4,6 +4,7 @@ import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:morkva_crm/api/api.dart';
 import 'package:morkva_crm/api/assistant/assistant_config_repository.dart';
 import 'package:morkva_crm/api/assistant/firestore_thread_repository.dart';
@@ -15,6 +16,8 @@ import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/features/automation/bloc/automation_runs_cubit.dart';
 import 'package:morkva_crm/features/automation/bloc/modules_cubit.dart';
 import 'package:morkva_crm/features/automation/bloc/run_log_cubit.dart';
+import 'package:morkva_crm/features/settings/theme_mode_cubit.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'automation/fakes/fake_script_engine.dart';
 import 'automation/fakes/fake_stores.dart';
@@ -189,6 +192,10 @@ class FakeDataRepository implements DataRepository {
   ) async {}
 }
 
+/// Device prefs with nothing saved (the theme follows the system); tests
+/// that change the theme pass their own [ThemeModeCubit].
+class _NoSavedPrefs extends Mock implements SharedPreferences {}
+
 /// [MorkvaApp] over in-memory backends: Ask Morkva's conversations and
 /// config live in [firestore] (a fresh fake by default).
 MorkvaApp testApp({
@@ -196,9 +203,11 @@ MorkvaApp testApp({
   required DataRepository data,
   SyncStatusCubit? sync,
   FakeFirebaseFirestore? firestore,
+  ThemeModeCubit? themeMode,
 }) {
   final db = firestore ?? FakeFirebaseFirestore();
   return MorkvaApp(
+    themeModeCubit: themeMode ?? ThemeModeCubit(_NoSavedPrefs()),
     authRepository: auth,
     dataRepository: data,
     syncStatusCubit: sync,
@@ -222,6 +231,32 @@ void main() {
   });
 
   Widget buildApp() => testApp(auth: auth, data: data, sync: sync);
+
+  testWidgets('the saved theme applies from the sign-in screen and follows '
+      'a change', (tester) async {
+    SharedPreferences.setMockInitialValues({ThemeModeCubit.prefsKey: 'dark'});
+    final themeMode = ThemeModeCubit(await SharedPreferences.getInstance());
+    auth.emit(null);
+    await tester.pumpWidget(
+      testApp(auth: auth, data: data, sync: sync, themeMode: themeMode),
+    );
+    await tester.pumpAndSettle();
+    Brightness brightness() => Theme.of(
+      tester.element(find.text('Welcome to your workspace')),
+    ).brightness;
+    expect(brightness(), Brightness.dark);
+
+    await themeMode.select(ThemeMode.light);
+    await tester.pumpAndSettle();
+    expect(brightness(), Brightness.light);
+
+    // System: the platform's brightness decides.
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+    await themeMode.select(ThemeMode.system);
+    await tester.pumpAndSettle();
+    expect(brightness(), Brightness.dark);
+  });
 
   testWidgets('unauthenticated user is redirected to the sign-in screen', (
     tester,

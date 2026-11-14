@@ -6,8 +6,10 @@ import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app/app.dart';
+import 'features/settings/theme_mode_cubit.dart';
 import 'firebase_options.dart';
 
 /// The web app's reCAPTCHA Enterprise key (public by design); override with
@@ -63,7 +65,9 @@ Future<void> main() async {
     );
   }
 
-  runApp(const MorkvaApp());
+  // Read before the first frame, so a saved theme never flashes the other.
+  final prefs = await SharedPreferences.getInstance();
+  runApp(MorkvaApp(themeModeCubit: ThemeModeCubit(prefs)));
 }
 
 Future<void> _activateAppCheck() async {

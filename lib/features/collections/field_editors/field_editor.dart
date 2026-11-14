@@ -1,6 +1,9 @@
 import 'package:flutter/widgets.dart';
 
 import '../../../core/domain/domain.dart';
+import '../../../l10n/l10n.dart';
+
+final _english = lookupAppLocalizations(const Locale('en'));
 
 /// The UI-side counterpart to a domain field type.
 ///
@@ -26,10 +29,13 @@ abstract class FieldEditor {
   String get typeId;
 
   /// Human-readable type name shown in the picker and the field's type badge.
-  String get displayLabel;
+  String label(AppLocalizations l10n);
+
+  /// [label] in English, for callers without localizations.
+  String get displayLabel => label(_english);
 
   /// One-line description shown in the add-field type picker.
-  String get description;
+  String description(AppLocalizations l10n);
 
   /// Icon shown in the picker and on the field row.
   IconData get icon;
@@ -66,6 +72,7 @@ abstract class FieldEditor {
   /// another collection (e.g. the reference type) resolve a human name from it
   /// rather than printing a raw id. Other editors ignore it.
   String summarize(
+    AppLocalizations l10n,
     FieldDefinition definition, {
     List<Collection> collections = const [],
   });

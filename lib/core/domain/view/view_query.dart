@@ -1,4 +1,5 @@
 import '../collection.dart';
+import '../core_words.dart';
 import '../field_definition.dart';
 import '../field_value.dart';
 import '../morkva_object.dart';
@@ -234,7 +235,7 @@ Object? _sortKey(FieldDefinition field, FieldValue value) {
 }
 
 /// The title of [object] in [view]: the formatted value of the view's first
-/// field, or `'Untitled'` when that is empty or missing.
+/// field, or [CoreWords.untitled] when that is empty or missing.
 String titleOf(
   ViewDefinition view,
   Collection collection,
@@ -242,7 +243,7 @@ String titleOf(
 ) {
   final firstId = view.fieldIds.firstOrNull;
   final field = firstId == null ? null : collection.fieldById(firstId);
-  if (field == null) return 'Untitled';
+  if (field == null) return CoreWords.current.untitled;
   final text = formatFieldValue(field, object[field.id] ?? field.emptyValue());
-  return text.trim().isEmpty ? 'Untitled' : text;
+  return text.trim().isEmpty ? CoreWords.current.untitled : text;
 }

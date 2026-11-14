@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../../views/widgets/view_labels.dart';
 import '../widgets/reference_picker.dart';
 import 'field_value_editor.dart';
@@ -25,6 +26,7 @@ class ReferenceValueEditor extends FieldValueEditor {
     final target = ctx.references.targetOf(field);
     final item = target == null ? 'item' : itemLabelOf(target);
     final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
 
     Future<void> pick() async {
       final picked = await ReferencePicker.show(
@@ -52,13 +54,15 @@ class ReferenceValueEditor extends FieldValueEditor {
                 const SkeletonBox(width: 96, height: 32)
               else
                 RemovableChip(
-                  label: labels[id] ?? 'Unknown $item',
+                  label: labels[id] ?? l10n.objectsUnknownItem(item),
                   leading: Icon(
                     Icons.link,
                     size: 16,
                     color: scheme.onSurfaceVariant,
                   ),
-                  deleteTooltip: 'Unlink ${labels[id] ?? 'Unknown $item'}',
+                  deleteTooltip: l10n.objectsUnlinkNamed(
+                    labels[id] ?? l10n.objectsUnknownItem(item),
+                  ),
                   onDeleted: ctx.enabled
                       ? () => ctx.onChanged(
                           ReferenceFieldValue([
@@ -71,7 +75,7 @@ class ReferenceValueEditor extends FieldValueEditor {
                 ),
             if (field.multiple || ids.isEmpty)
               AddValueButton(
-                label: 'Link $item',
+                label: l10n.objectsLinkItem(item),
                 onPressed: canPick ? pick : null,
               ),
           ],

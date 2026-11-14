@@ -4,19 +4,20 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/domain/domain.dart';
 import '../../../../design/design.dart';
+import '../../../../l10n/l10n.dart';
 import '../../collection_views_cubit.dart';
 import '../../modes/view_mode.dart';
 import '../object_card.dart';
 
-const weekdayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const _monthNames = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', //
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+/// "Mon" … "Sun", Monday first, in the app's locale.
+List<String> weekdayNames() => [
+  // 1 Jan 2024 was a Monday.
+  for (var i = 0; i < 7; i++)
+    localDateFormat('E').format(DateTime(2024, 1, 1 + i)),
 ];
 
-/// "Mon 4 Nov".
-String dayLabel(DateTime day) =>
-    '${weekdayNames[day.weekday - 1]} ${day.day} ${_monthNames[day.month - 1]}';
+/// "Mon 4 Nov", in the app's locale.
+String dayLabel(DateTime day) => localDateFormat('E d MMM').format(day);
 
 /// Local midnight of [moment]'s calendar day (the [DayBuckets] key form).
 DateTime dayOf(DateTime moment) =>
@@ -51,8 +52,8 @@ void moveObjectToDay(
   final title = titleOf(data.state.activeView, data.state.collection, object);
   data.notify(
     day == null
-        ? 'Cleared the date of "$title"'
-        : 'Moved "$title" to ${dayLabel(day)}',
+        ? context.l10n.viewWidgetsClearedDate(title)
+        : context.l10n.viewWidgetsMovedToDay(title, dayLabel(day)),
     undo: undo,
   );
 }

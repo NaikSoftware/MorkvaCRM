@@ -25,6 +25,7 @@ import '../../features/home/home_page.dart';
 import '../../features/inbox/view/inbox_page.dart';
 import '../../features/settings/settings_page.dart';
 import '../../features/views/views.dart';
+import '../../l10n/l10n.dart';
 import '../shell/app_shell.dart';
 import '../shell/app_shell_scaffold.dart';
 
@@ -233,6 +234,8 @@ GoRouter createAppRouter(
                         create: (_) => CollectionEditorCubit(
                           repository,
                           fieldEditorRegistry,
+                          describeIssue: context.l10n.schemaIssueMessage,
+                          describeSaveError: context.l10n.collectionsSaveFailed,
                         )..load(id, selectFieldId: fieldId),
                         child: CollectionEditorPage(
                           registry: fieldEditorRegistry,

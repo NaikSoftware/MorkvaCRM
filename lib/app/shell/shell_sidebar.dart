@@ -9,6 +9,7 @@ import '../../core/domain/domain.dart';
 import '../../design/design.dart';
 import '../../features/assistant/view/widgets/sparkle_icon.dart';
 import '../../features/automation/widgets/run_indicator.dart';
+import '../../l10n/l10n.dart';
 import 'brand_wordmark.dart';
 import 'inbox_count.dart';
 import 'sync_status_indicator.dart';
@@ -110,6 +111,7 @@ class ShellSidebar extends StatelessWidget {
   Widget _full(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         Spacing.sm,
@@ -131,7 +133,7 @@ class ShellSidebar extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: BrandWordmark(
                 onTap: onToggleExtended,
-                tooltip: 'Collapse sidebar',
+                tooltip: l10n.shellCollapseSidebar,
               ),
             ),
           ),
@@ -150,14 +152,14 @@ class ShellSidebar extends StatelessWidget {
               onTap: onInbox,
             ),
           _NavRow(
-            label: 'All collections',
+            label: l10n.shellAllCollections,
             selected: _allSelected,
             leading: _AllTile(size: 28, selected: true),
             onTap: onAllCollections,
           ),
           if (onAutomations case final onAutomations?)
             _NavRow(
-              label: 'Automations',
+              label: l10n.commonAutomations,
               selected: place == ShellPlace.automations,
               leading: const _ToolTile(Icons.bolt_rounded),
               trailing: const RunIndicatorPill(),
@@ -170,7 +172,7 @@ class ShellSidebar extends StatelessWidget {
               Spacing.xxs,
               Spacing.xxs,
             ),
-            child: Text('PINNED', style: _capStyle(theme)),
+            child: Text(l10n.shellPinnedHeader, style: _capStyle(theme)),
           ),
           Expanded(
             child: pinned.isEmpty
@@ -180,8 +182,7 @@ class ShellSidebar extends StatelessWidget {
                       vertical: Spacing.xxs,
                     ),
                     child: Text(
-                      'Pin the collections you use most — tap the pin on '
-                      'any collection in All collections.',
+                      l10n.shellPinnedEmpty,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
@@ -228,12 +229,13 @@ class ShellSidebar extends StatelessWidget {
 
   Widget _rail(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: Spacing.md),
       child: Column(
         children: [
           Tooltip(
-            message: 'Expand sidebar',
+            message: l10n.shellExpandSidebar,
             child: InkWell(
               onTap: onToggleExtended,
               borderRadius: Radii.mdAll,
@@ -242,17 +244,19 @@ class ShellSidebar extends StatelessWidget {
           ),
           const SizedBox(height: Spacing.sm),
           _RailButton(
-            tooltip: jumpShortcutLabel == null
-                ? 'Jump to…'
-                : 'Jump to… ($jumpShortcutLabel)',
+            tooltip: switch (jumpShortcutLabel) {
+              final shortcut? => l10n.shellJumpToShortcut(shortcut),
+              null => l10n.shellJumpTo,
+            },
             onTap: onJumpTo,
             child: Icon(Icons.search_rounded, color: scheme.onSurfaceVariant),
           ),
           if (onAssistant case final onAssistant?)
             _RailButton(
-              tooltip: assistantShortcutLabel == null
-                  ? 'Ask Morkva'
-                  : 'Ask Morkva · $assistantShortcutLabel',
+              tooltip: switch (assistantShortcutLabel) {
+                final shortcut? => l10n.shellAskMorkvaShortcut(shortcut),
+                null => l10n.shellAskMorkva,
+              },
               toggled: assistantOpen,
               onTap: onAssistant,
               child: SparkleIcon(
@@ -279,14 +283,14 @@ class ShellSidebar extends StatelessWidget {
               ),
             ),
           _RailButton(
-            tooltip: 'All collections',
+            tooltip: l10n.shellAllCollections,
             selected: _allSelected,
             onTap: onAllCollections,
             child: _AllTile(size: 36, selected: _allSelected),
           ),
           if (onAutomations case final onAutomations?)
             _RailButton(
-              tooltip: 'Automations',
+              tooltip: l10n.commonAutomations,
               selected: place == ShellPlace.automations,
               onTap: onAutomations,
               child: RunIndicatorRailIcon(
@@ -331,7 +335,7 @@ class ShellSidebar extends StatelessWidget {
             ),
           ),
           _RailButton(
-            tooltip: 'Settings',
+            tooltip: l10n.commonSettings,
             selected: place == ShellPlace.settings,
             onTap: onSettings,
             child: Icon(Icons.tune_rounded, color: scheme.onSurfaceVariant),
@@ -363,13 +367,13 @@ Future<void> _showUnpinMenu(
       position.dx,
       position.dy,
     ),
-    items: const [
+    items: [
       PopupMenuItem(
         value: true,
         child: ListTile(
           contentPadding: EdgeInsets.zero,
-          leading: Icon(Icons.push_pin_outlined),
-          title: Text('Unpin'),
+          leading: const Icon(Icons.push_pin_outlined),
+          title: Text(context.l10n.shellUnpin),
         ),
       ),
     ],
@@ -492,7 +496,7 @@ class _JumpField extends StatelessWidget {
                   color: scheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: Spacing.xs),
-                Expanded(child: Text('Jump to…', style: muted)),
+                Expanded(child: Text(context.l10n.shellJumpTo, style: muted)),
                 if (jumpShortcutLabel case final shortcut?)
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -560,7 +564,7 @@ class _AskButton extends StatelessWidget {
                   const SizedBox(width: Spacing.xs),
                   Expanded(
                     child: Text(
-                      'Ask Morkva',
+                      context.l10n.shellAskMorkva,
                       style: theme.textTheme.labelLarge?.copyWith(
                         color: ink,
                         fontWeight: FontWeight.w600,
@@ -691,7 +695,7 @@ class _NavRowState extends State<_NavRow> {
                             child: MouseRegion(
                               cursor: SystemMouseCursors.grab,
                               child: Tooltip(
-                                message: 'Drag to reorder',
+                                message: context.l10n.shellDragToReorder,
                                 child: Icon(
                                   Icons.drag_indicator_rounded,
                                   size: 18,
@@ -840,7 +844,7 @@ class _ProfileRow extends StatelessWidget {
             ),
           ),
           IconButton(
-            tooltip: 'Settings',
+            tooltip: context.l10n.commonSettings,
             isSelected: settingsSelected,
             onPressed: onSettings,
             style: IconButton.styleFrom(

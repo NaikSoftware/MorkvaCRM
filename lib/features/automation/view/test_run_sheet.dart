@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/domain/automation/automation.dart';
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../../assistant/bloc/chat_item.dart' show PlanChange;
 import '../../assistant/view/widgets/object_chip.dart';
 import '../../assistant/view/widgets/plan_card.dart' show DiffLine;
@@ -118,6 +119,7 @@ class _TestRunSheetState extends State<TestRunSheet> {
     final moduleId = cubit.moduleId;
     final action = widget.action;
     final label = theme.textTheme.labelMedium;
+    final l10n = context.l10n;
 
     Widget field(String title, Widget child) => Padding(
       padding: const EdgeInsets.only(bottom: Spacing.md),
@@ -140,14 +142,14 @@ class _TestRunSheetState extends State<TestRunSheet> {
 
     final body = <Widget>[
       Text(
-        "Test runs never change data — you'll see what would change.",
+        l10n.automationTestRunNote,
         style: theme.textTheme.bodyMedium?.copyWith(
           color: theme.colorScheme.onSurfaceVariant,
         ),
       ),
       const SizedBox(height: Spacing.md),
       field(
-        'Collection',
+        l10n.automationTestRunCollection,
         DropdownButtonFormField<String>(
           key: ValueKey(_collectionId),
           initialValue: _collectionId,
@@ -169,12 +171,14 @@ class _TestRunSheetState extends State<TestRunSheet> {
       ),
       if (_onCard)
         field(
-          action.scope == ActionScope.card ? 'Card' : 'Card (optional)',
+          action.scope == ActionScope.card
+              ? l10n.automationTestRunCard
+              : l10n.automationTestRunCardOptional,
           Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               SearchField(
-                hintText: 'Search cards',
+                hintText: l10n.automationSearchCards,
                 dense: true,
                 onChanged: (q) => setState(() => _query = q),
                 onCleared: () => setState(() => _query = ''),
@@ -183,7 +187,7 @@ class _TestRunSheetState extends State<TestRunSheet> {
                 Padding(
                   padding: const EdgeInsets.only(top: Spacing.xs),
                   child: Text(
-                    "Couldn't load cards",
+                    l10n.automationLoadCardsFailed,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.error,
                     ),
@@ -229,20 +233,20 @@ class _TestRunSheetState extends State<TestRunSheet> {
     return AutomationSheetFrame(
       header: SheetHeader(
         icon: Icons.play_arrow_outlined,
-        title: 'Test "${action.label}"',
+        title: l10n.automationTestRunTitle(action.label),
       ),
       body: body,
       footer: SheetFooter(
-        hint: state.canTestRun ? null : 'Allow the module to test it',
+        hint: state.canTestRun ? null : l10n.automationTestRunNeedsAllow,
         buttons: [
           TextActionButton(
-            label: 'Close',
+            label: l10n.commonClose,
             onPressed: () => Navigator.of(context).pop(),
           ),
           Semantics(
-            hint: state.canTestRun ? null : 'Allow the module to test it',
+            hint: state.canTestRun ? null : l10n.automationTestRunNeedsAllow,
             child: PrimaryButton(
-              label: 'Run test',
+              label: l10n.automationRunTest,
               icon: Icons.play_arrow,
               loading: test?.running ?? false,
               onPressed: state.canTestRun && _ready && !(test?.running ?? false)
@@ -361,15 +365,21 @@ class TestRunResultView extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
     final n = result.plan.length;
     final ms = result.log.calls.isEmpty
         ? null
         : result.log.calls.last.t + result.log.calls.last.ms;
     final (text, color) = switch (result.status) {
-      RunStatus.succeeded when n == 0 => ('No changes', scheme.onSurface),
+      RunStatus.succeeded when n == 0 => (
+        l10n.automationNoChanges,
+        scheme.onSurface,
+      ),
       RunStatus.succeeded => (
-        'Would change $n ${n == 1 ? 'card' : 'cards'}'
-            '${ms == null ? '' : ' · $ms ms'}',
+        [
+          l10n.automationWouldChangeCards(n),
+          if (ms != null) l10n.automationDurationMs(ms),
+        ].join(' · '),
         scheme.onSurface,
       ),
       RunStatus.skipped => (
@@ -377,7 +387,9 @@ class TestRunResultView extends StatelessWidget {
         scheme.onSurfaceVariant,
       ),
       _ => (
-        'Failed: ${result.error?.message ?? runCopy(result.status, result.reason).row}',
+        l10n.automationTestRunFailed(
+          result.error?.message ?? runCopy(result.status, result.reason).row,
+        ),
         scheme.error,
       ),
     };
@@ -399,7 +411,7 @@ class TestRunResultView extends StatelessWidget {
         if (result.log.calls.isNotEmpty)
           ExpansionTile(
             title: Text(
-              'Calls (${result.log.calls.length})',
+              l10n.automationCallsCount(result.log.calls.length),
               style: theme.textTheme.titleSmall,
             ),
             tilePadding: EdgeInsets.zero,
@@ -408,7 +420,8 @@ class TestRunResultView extends StatelessWidget {
             children: [
               for (final c in result.log.calls)
                 Text(
-                  '${c.op} · ${c.args} · ${c.ms} ms ${c.ok ? '✓' : '✗ ${c.result}'}',
+                  '${c.op} · ${c.args} · ${l10n.automationDurationMs(c.ms)} '
+                  '${c.ok ? '✓' : '✗ ${c.result}'}',
                   style: mono.copyWith(color: c.ok ? null : scheme.error),
                 ),
             ],
@@ -416,7 +429,7 @@ class TestRunResultView extends StatelessWidget {
         if (result.log.console.isNotEmpty)
           ExpansionTile(
             title: Text(
-              'Console (${result.log.console.length})',
+              l10n.automationConsoleCount(result.log.console.length),
               style: theme.textTheme.titleSmall,
             ),
             tilePadding: EdgeInsets.zero,

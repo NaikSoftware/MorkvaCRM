@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/domain/domain.dart';
+import '../../../l10n/l10n.dart';
 import 'field_editor.dart';
 import 'widgets/preview_affordances.dart';
 
@@ -16,10 +17,11 @@ class BooleanFieldEditor extends FieldEditor {
   String get typeId => kBooleanFieldType;
 
   @override
-  String get displayLabel => 'Yes / No';
+  String label(AppLocalizations l10n) => l10n.collectionsTypeBoolean;
 
   @override
-  String get description => 'A simple true/false toggle.';
+  String description(AppLocalizations l10n) =>
+      l10n.collectionsTypeBooleanDescription;
 
   @override
   IconData get icon => Icons.toggle_on_outlined;
@@ -37,7 +39,7 @@ class BooleanFieldEditor extends FieldEditor {
     required String editingCollectionId,
   }) {
     return Text(
-      'A yes/no field has no extra settings.',
+      context.l10n.collectionsBooleanNoSettings,
       style: Theme.of(context).textTheme.bodySmall?.copyWith(
         color: Theme.of(context).colorScheme.onSurfaceVariant,
       ),
@@ -46,6 +48,7 @@ class BooleanFieldEditor extends FieldEditor {
 
   @override
   String summarize(
+    AppLocalizations l10n,
     FieldDefinition definition, {
     List<Collection> collections = const [],
   }) => '';

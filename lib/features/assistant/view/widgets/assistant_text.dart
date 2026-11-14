@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../bloc/chat_item.dart';
 import 'assistant_scope.dart';
 
@@ -48,9 +49,9 @@ class AssistantText extends StatelessWidget {
     );
 
     final note = item.stopped
-        ? 'Stopped'
+        ? context.l10n.assistantStopped
         : item.cutShort
-        ? 'Cut short — ask me to continue'
+        ? context.l10n.assistantCutShort
         : null;
 
     return Semantics(

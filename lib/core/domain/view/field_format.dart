@@ -1,3 +1,6 @@
+import 'package:intl/intl.dart';
+
+import '../core_words.dart';
 import '../field_definition.dart';
 import '../field_value.dart';
 import '../types/auto_number_field.dart';
@@ -22,10 +25,18 @@ DateTime calendarDayOf(DateFieldDefinition field, DateTime value) {
   return DateTime(d.year, d.month, d.day);
 }
 
-const _months = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', //
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-];
+/// A [DateFormat] for [pattern] (a skeleton such as `yMMMd`, or a pattern)
+/// in the current `Intl` locale, cached: building one parses its pattern,
+/// too slow per cell or per aggregated card.
+DateFormat localDateFormat(String pattern) {
+  final locale = Intl.getCurrentLocale();
+  return _dateFormats.putIfAbsent(
+    (locale, pattern),
+    () => DateFormat(pattern, locale),
+  );
+}
+
+final _dateFormats = <(String, String), DateFormat>{};
 
 /// [n] without float noise: integers as is, other doubles rounded to 12
 /// significant digits (0.1 + 0.2 shows as 0.3).
@@ -95,12 +106,13 @@ String formatFieldValue(
     case (DateFieldDefinition(), DateFieldValue(value: final dt?)):
       final f = field as DateFieldDefinition;
       final day = calendarDayOf(f, dt);
-      final date = '${_months[day.month - 1]} ${day.day}, ${day.year}';
+      // `Nov 9, 2026` in English; the app sets Intl.defaultLocale.
+      final date = localDateFormat('yMMMd').format(day);
       if (!f.includeTime) return date;
       final local = dt.toLocal();
       return '$date ${_two(local.hour)}:${_two(local.minute)}';
     case (BooleanFieldDefinition(), BooleanFieldValue(value: final b?)):
-      return b ? 'Yes' : 'No';
+      return b ? CoreWords.current.yes : CoreWords.current.no;
     case (
       SingleSelectFieldDefinition(:final options),
       SingleSelectFieldValue(:final optionId),
@@ -116,7 +128,9 @@ String formatFieldValue(
       ].join(', ');
     case (ReferenceFieldDefinition(), ReferenceFieldValue(:final objectIds)):
       final labels = objectIds.map((id) => referenceLabels[id]).toList();
-      if (labels.contains(null)) return '${objectIds.length} linked';
+      if (labels.contains(null)) {
+        return CoreWords.current.linkedCount(objectIds.length);
+      }
       return labels.join(', ');
     case (FileFieldDefinition(), FileFieldValue(:final attachments)):
       return attachments.map((a) => a.name).join(', ');

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import 'option_pill.dart';
 import 'view_labels.dart';
 
@@ -127,11 +128,12 @@ class _FilterBuilderState extends State<FilterBuilder> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final field = _field;
     final op = _op;
     final (title, body) = switch ((field, op)) {
       (null, _) => (
-        'Filter by',
+        l10n.viewWidgetsFilterBy,
         _FieldStep(fields: widget.collection.fields, onPick: _pickField),
       ),
       (final f?, null) => (
@@ -143,7 +145,7 @@ class _FilterBuilderState extends State<FilterBuilder> {
         ),
       ),
       (final f?, final o?) => (
-        '${f.name} ${operatorLabel(o, f)}',
+        '${f.name} ${operatorLabel(o, f, l10n: l10n)}',
         _ValueStep(
           field: f,
           op: o,
@@ -193,7 +195,7 @@ class _Header extends StatelessWidget {
             if (onBack != null)
               IconButton(
                 icon: const Icon(Icons.arrow_back),
-                tooltip: 'Back',
+                tooltip: context.l10n.commonBack,
                 onPressed: onBack,
               ),
             Expanded(
@@ -229,7 +231,9 @@ class _ApplyBar extends StatelessWidget {
         child: Align(
           alignment: Alignment.centerRight,
           child: PrimaryButton(
-            label: editing ? 'Update filter' : 'Add filter',
+            label: editing
+                ? context.l10n.viewWidgetsUpdateFilter
+                : context.l10n.viewWidgetsAddFilter,
             icon: Icons.check,
             onPressed: onApply,
           ),
@@ -276,14 +280,14 @@ class _FieldStepState extends State<_FieldStep> {
               Spacing.xs,
             ),
             child: SearchField(
-              hintText: 'Search fields',
+              hintText: context.l10n.viewWidgetsSearchFields,
               onChanged: (v) => setState(() => _query = v),
               onCleared: () => setState(() => _query = ''),
             ),
           ),
         Flexible(
           child: fields.isEmpty
-              ? const _Hint('No fields match')
+              ? _Hint(context.l10n.viewWidgetsNoFieldsMatch)
               : ListView(
                   shrinkWrap: true,
                   padding: const EdgeInsets.only(bottom: Spacing.xs),
@@ -327,7 +331,7 @@ class _OperatorStep extends StatelessWidget {
       children: [
         for (final op in operatorsFor(field))
           _Row(
-            label: operatorLabel(op, field),
+            label: operatorLabel(op, field, l10n: context.l10n),
             selected: op == selected,
             trailing: _valueless(op)
                 ? (op == selected
@@ -386,7 +390,7 @@ class _ValueStep extends StatelessWidget {
         ],
         selected: ids,
         onChanged: onChanged,
-        empty: 'This field has no options yet',
+        empty: context.l10n.viewWidgetsNoOptionsYet,
         pills: true,
       ),
       ReferenceFieldDefinition() when choices == null => const _Loading(),
@@ -397,11 +401,11 @@ class _ValueStep extends StatelessWidget {
           // Picked earlier but gone from the target: still uncheckable.
           for (final id in ids)
             if (!choices.containsKey(id))
-              (id: id, label: 'Missing item', color: null),
+              (id: id, label: context.l10n.viewWidgetsMissingItem, color: null),
         ],
         selected: ids,
         onChanged: onChanged,
-        empty: 'Nothing to link to yet',
+        empty: context.l10n.viewWidgetsNothingToLink,
         searchable: true,
       ),
       DateFieldDefinition() => _DateValue(
@@ -477,8 +481,10 @@ class _TextValueState extends State<_TextValue> {
       child: MorkvaTextField(
         controller: _controller,
         autofocus: true,
-        hint: widget.number ? 'Number' : 'Text',
-        errorText: invalid ? 'Enter a number' : null,
+        hint: widget.number
+            ? context.l10n.viewWidgetsNumberHint
+            : context.l10n.viewWidgetsTextHint,
+        errorText: invalid ? context.l10n.viewWidgetsEnterNumber : null,
         keyboardType: widget.number
             ? const TextInputType.numberWithOptions(decimal: true, signed: true)
             : TextInputType.text,
@@ -585,7 +591,7 @@ class _CheckListState extends State<_CheckList> {
           ),
         Flexible(
           child: shown.isEmpty
-              ? const _Hint('No matches')
+              ? _Hint(context.l10n.viewWidgetsNoMatches)
               : ListView(
                   shrinkWrap: true,
                   padding: const EdgeInsets.only(bottom: Spacing.xs),
@@ -711,7 +717,7 @@ class _Loading extends StatelessWidget {
     final theme = Theme.of(context);
     return Semantics(
       liveRegion: true,
-      label: 'Loading items',
+      label: context.l10n.viewWidgetsLoadingItems,
       excludeSemantics: true,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
@@ -728,7 +734,7 @@ class _Loading extends StatelessWidget {
             ),
             const SizedBox(width: Spacing.sm),
             Text(
-              'Loading items…',
+              context.l10n.viewWidgetsLoadingItemsEllipsis,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),

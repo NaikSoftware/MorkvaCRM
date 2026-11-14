@@ -11,14 +11,16 @@ import 'package:morkva_crm/api/sync/sync_status_cubit.dart';
 import 'package:morkva_crm/core/import/trello/trello_board.dart';
 import 'package:morkva_crm/core/import/trello/trello_mapper.dart';
 import 'package:morkva_crm/design/design.dart';
-import 'package:morkva_crm/features/settings/import/trello_import_cubit.dart';
 import 'package:morkva_crm/features/settings/import/trello_import_sheet.dart';
+import 'package:morkva_crm/l10n/l10n.dart';
 
 import '../../automation/view/automation_view_harness.dart'
     show phoneWindow, setWindow, wideWindow;
 import '../../collections/fake_data_repository.dart';
 
 class _MockSync extends MockCubit<SyncStatus> implements SyncStatusCubit {}
+
+final _en = lookupAppLocalizations(const Locale('en'));
 
 final _sample = File(
   'test/core/import/trello/fixtures/sample_board.json',
@@ -400,7 +402,7 @@ void main() {
       await tester.pump(const Duration(seconds: 30));
       await tester.pump();
       expect(
-        find.text('Import paused. ${TrelloImportCubit.stalledMessage}'),
+        find.text('Import paused. ${_en.trelloImportStalled}'),
         findsOneWidget,
       );
       expect(find.text('Close'), findsOneWidget);
@@ -425,7 +427,7 @@ void main() {
       await tester.tap(find.text('Import 3 collections'));
       await tester.pumpAndSettle();
       expect(
-        find.text('Import paused. ${TrelloImportCubit.refusedMessage}'),
+        find.text('Import paused. ${_en.trelloImportRefused}'),
         findsOneWidget,
       );
       await tapText(tester, 'Close');
