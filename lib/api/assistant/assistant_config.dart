@@ -4,33 +4,13 @@ import 'package:equatable/equatable.dart';
 /// the model supports (`ThinkingLevel.minimal` on Gemini 3.x).
 enum AssistantThinking { off, low, medium, high }
 
-/// The Gemini data-use terms the project runs under; drives the consent
-/// disclosure ("on the free tier, may be used to improve Google products").
-enum AssistantDataUse { free, paid }
-
-/// Per-workspace opt-in to Ask Morkva
-/// (`workspaces/{wid}/config/assistant {consentedBy, consentedAt}`).
-final class AssistantConsent extends Equatable {
-  const AssistantConsent({required this.consentedBy, this.consentedAt});
-
-  /// The uid that enabled the assistant for the workspace.
-  final String consentedBy;
-
-  /// When it was enabled (UTC), if recorded.
-  final DateTime? consentedAt;
-
-  @override
-  List<Object?> get props => [consentedBy, consentedAt];
-}
-
 /// The assistant's effective configuration: the admin-written global doc
-/// (`config/assistant`), the user's feature flag (`featureFlags/{uid}`) and the
-/// workspace consent, merged over compiled defaults so a missing or malformed
+/// (`config/assistant`), the user's feature flag (`featureFlags/{uid}`), merged over compiled defaults so a missing or malformed
 /// doc never blocks the assistant.
 ///
 /// Defaults follow the owner decisions and the T0 spike: one model
 /// (`gemini-3.5-flash-lite`), no fallback, thinking off, 12 RPM (the free tier
-/// allows 15), 6 rounds, free-tier data use.
+/// allows 15), 6 rounds.
 final class AssistantConfig extends Equatable {
   const AssistantConfig({
     this.enabled = true,
@@ -42,8 +22,6 @@ final class AssistantConfig extends Equatable {
     this.maxRounds = 6,
     this.dailyTurnsSoft = 200,
     this.leaseTtlMinutes = 5,
-    this.dataUse = AssistantDataUse.free,
-    this.consent,
   });
 
   /// Builds the effective config from the raw docs; `null` means the doc is
@@ -52,7 +30,6 @@ final class AssistantConfig extends Equatable {
   factory AssistantConfig.resolve({
     Map<String, Object?>? global,
     Map<String, Object?>? userFlags,
-    AssistantConsent? consent,
   }) {
     final g = global ?? const {};
     return AssistantConfig(
@@ -71,10 +48,6 @@ final class AssistantConfig extends Equatable {
       maxRounds: _positive(g['maxRounds']) ?? 6,
       dailyTurnsSoft: _positive(g['dailyTurnsSoft']) ?? 200,
       leaseTtlMinutes: _positive(g['leaseTtlMinutes']) ?? 5,
-      dataUse:
-          AssistantDataUse.values.asNameMap()[g['dataUse']] ??
-          AssistantDataUse.free,
-      consent: consent,
     );
   }
 
@@ -110,13 +83,6 @@ final class AssistantConfig extends Equatable {
   /// Idle minutes before a released collection lease is unsubscribed.
   final int leaseTtlMinutes;
 
-  final AssistantDataUse dataUse;
-
-  /// The workspace's opt-in; `null` until a member enables the assistant.
-  final AssistantConsent? consent;
-
-  bool get consented => consent != null;
-
   static String? _name(Object? value) =>
       value is String && value.trim().isNotEmpty ? value.trim() : null;
 
@@ -134,7 +100,5 @@ final class AssistantConfig extends Equatable {
     maxRounds,
     dailyTurnsSoft,
     leaseTtlMinutes,
-    dataUse,
-    consent,
   ];
 }

@@ -101,19 +101,6 @@ final class AvailabilityEnabled extends Availability {
   const AvailabilityEnabled();
 }
 
-/// The workspace has not opted in: the empty state shows the disclosure and
-/// "Enable Ask Morkva" instead of the composer.
-final class AvailabilityNeedsConsent extends Availability {
-  const AvailabilityNeedsConsent({this.freeTier = true});
-
-  /// On the free tier Google may use prompts to improve its products; the
-  /// disclosure says so.
-  final bool freeTier;
-
-  @override
-  List<Object?> get props => [freeTier];
-}
-
 /// The feature flag is off: "Ask Morkva isn't enabled for your account."
 final class AvailabilityDisabledByFlag extends Availability {
   const AvailabilityDisabledByFlag();

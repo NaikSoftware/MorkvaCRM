@@ -282,7 +282,6 @@ class _BodyState extends State<_Body> {
               ),
               _ => null,
             };
-        final consent = availability is AvailabilityNeedsConsent;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -302,7 +301,7 @@ class _BodyState extends State<_Body> {
                           ChatList(state: state, bottomInset: inset),
                     ),
             ),
-            if (!closed && !consent)
+            if (!closed)
               KeyedSubtree(
                 key: widget.composerKey,
                 child: Composer(

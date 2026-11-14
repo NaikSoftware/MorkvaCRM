@@ -6,9 +6,7 @@ import 'package:morkva_crm/api/assistant/assistant_config.dart';
 import 'package:morkva_crm/api/assistant/assistant_config_repository.dart';
 
 void main() {
-  const workspaceId = 'ws-1';
   const uid = 'u-1';
-  final now = DateTime.utc(2026, 11, 10, 9, 30);
 
   late FakeFirebaseFirestore firestore;
   late AssistantConfigRepository repository;
@@ -17,16 +15,11 @@ void main() {
       firestore.collection('config').doc('assistant');
   DocumentReference<Map<String, dynamic>> flagDoc() =>
       firestore.collection('featureFlags').doc(uid);
-  DocumentReference<Map<String, dynamic>> consentDoc() => firestore
-      .collection('workspaces')
-      .doc(workspaceId)
-      .collection('config')
-      .doc('assistant');
 
   setUp(() {
     firestore = FakeFirebaseFirestore();
-    repository = AssistantConfigRepository(firestore: firestore, now: () => now)
-      ..initialize(workspaceId: workspaceId, uid: uid);
+    repository = AssistantConfigRepository(firestore: firestore)
+      ..initialize(uid: uid);
   });
 
   test('missing docs never block: the defaults apply, enabled', () async {
@@ -36,46 +29,16 @@ void main() {
     expect(config.enabled, isTrue);
   });
 
-  test('merges the global doc, the user flag and the consent', () async {
-    await globalDoc().set({'model': 'gemini-x', 'rpm': 8, 'dataUse': 'paid'});
+  test('merges the global doc and the user flag', () async {
+    await globalDoc().set({'model': 'gemini-x', 'rpm': 8});
     await flagDoc().set({'assistant': false});
-    await consentDoc().set({
-      'consentedBy': 'u-9',
-      'consentedAt': '2026-11-09T08:00:00.000Z',
-    });
 
     final config = await repository.watch().first;
 
     expect(
       config,
-      AssistantConfig(
-        enabled: false,
-        model: 'gemini-x',
-        rpm: 8,
-        dataUse: AssistantDataUse.paid,
-        consent: AssistantConsent(
-          consentedBy: 'u-9',
-          consentedAt: DateTime.utc(2026, 11, 9, 8),
-        ),
-      ),
+      const AssistantConfig(enabled: false, model: 'gemini-x', rpm: 8),
     );
-  });
-
-  test('reads a console-written Timestamp consent date', () async {
-    await consentDoc().set({
-      'consentedBy': 'u-1',
-      'consentedAt': Timestamp.fromDate(DateTime.utc(2026, 11, 1)),
-    });
-
-    final config = await repository.watch().first;
-
-    expect(config.consent?.consentedAt, DateTime.utc(2026, 11, 1));
-  });
-
-  test('a consent doc without consentedBy is not consent', () async {
-    await consentDoc().set({'consentedAt': '2026-11-09T08:00:00.000Z'});
-
-    expect((await repository.watch().first).consented, isFalse);
   });
 
   test('emits live changes, without repeats for unchanged values', () async {
@@ -98,43 +61,16 @@ void main() {
     ]);
   });
 
-  test('grantConsent records the user and the time; watch sees it', () async {
-    final configs = <AssistantConfig>[];
-    final sub = repository.watch().listen(configs.add);
-    await pumpEventQueue();
-
-    await repository.grantConsent();
-    await pumpEventQueue();
-    await sub.cancel();
-
-    expect((await consentDoc().get()).data(), {
-      'consentedBy': uid,
-      'consentedAt': '2026-11-10T09:30:00.000Z',
-    });
-    expect(configs.map((c) => c.consent), [
-      null,
-      AssistantConsent(consentedBy: uid, consentedAt: now),
-    ]);
-  });
-
-  test('grantConsent keeps other keys of the workspace doc', () async {
-    await consentDoc().set({'note': 'kept'});
-
-    await repository.grantConsent();
-
-    expect((await consentDoc().get()).data()?['note'], 'kept');
-  });
-
   test('an unreadable doc counts as missing instead of failing the '
       'stream', () async {
     await flagDoc().set({'assistant': false});
     final failing = AssistantConfigRepository(
-      firestore: _DeniedFirestore(firestore, denied: {'config', 'workspaces'}),
-    )..initialize(workspaceId: workspaceId, uid: uid);
+      firestore: _DeniedFirestore(firestore, denied: {'config'}),
+    )..initialize(uid: uid);
 
     final config = await failing.watch().first;
 
-    // Global and consent docs denied → defaults; the flag still applies.
+    // The global doc denied → defaults; the flag still applies.
     expect(config, const AssistantConfig(enabled: false));
   });
 
@@ -142,7 +78,6 @@ void main() {
     final unbound = AssistantConfigRepository(firestore: firestore);
 
     expect(unbound.watch, throwsStateError);
-    expect(unbound.grantConsent, throwsStateError);
   });
 }
 

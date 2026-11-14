@@ -8,8 +8,7 @@ import 'sparkle_icon.dart';
 
 /// The first open: a greeting with the user's first name, what the assistant
 /// can reach, and Ask / Analyze / Act suggestions filled with the
-/// workspace's real collection names. Before the workspace opted in, the
-/// suggestions give way to the data-use disclosure and "Enable Ask Morkva".
+/// workspace's real collection names.
 class EmptyChat extends StatelessWidget {
   const EmptyChat({super.key, required this.state});
 
@@ -22,7 +21,6 @@ class EmptyChat extends StatelessWidget {
     final names = state.collectionNames;
     final name = state.userFirstName?.trim();
     final l10n = context.l10n;
-    final consent = state.availability is AvailabilityNeedsConsent;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(22, 36, 22, 16),
@@ -66,19 +64,14 @@ class EmptyChat extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 22),
-        if (consent)
-          _ConsentCard(
-            freeTier: (state.availability as AvailabilityNeedsConsent).freeTier,
-          )
-        else
-          for (final group in suggestionGroups(
-            names,
-            focused: state.focus?.collectionName,
-            l10n: l10n,
-          )) ...[
-            _SuggestionGroup(group: group, enabled: state.availability.canSend),
-            const SizedBox(height: 22),
-          ],
+        for (final group in suggestionGroups(
+          names,
+          focused: state.focus?.collectionName,
+          l10n: l10n,
+        )) ...[
+          _SuggestionGroup(group: group, enabled: state.availability.canSend),
+          const SizedBox(height: 22),
+        ],
       ],
     );
   }
@@ -113,10 +106,7 @@ List<SuggestionGroup> suggestionGroups(
       (
         title: t.assistantSuggestAct,
         kind: SuggestionKind.act,
-        items: [
-          t.assistantSuggestCreateClients,
-          t.assistantSuggestSetUpOrders,
-        ],
+        items: [t.assistantSuggestCreateClients, t.assistantSuggestSetUpOrders],
       ),
     ];
   }
@@ -224,63 +214,6 @@ class _SuggestionGroup extends StatelessWidget {
           ),
         ],
       ],
-    );
-  }
-}
-
-/// The data-use disclosure shown before the workspace opts in.
-class _ConsentCard extends StatelessWidget {
-  const _ConsentCard({required this.freeTier});
-
-  final bool freeTier;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = AssistantColors.of(context);
-    final actions = AssistantScope.of(context).actions;
-    final body = theme.textTheme.bodyMedium?.copyWith(
-      height: 1.5,
-      color: theme.colorScheme.onSurfaceVariant,
-    );
-    return Container(
-      padding: const EdgeInsets.all(Spacing.md),
-      decoration: BoxDecoration(
-        color: colors.panel,
-        borderRadius: Radii.lgAll,
-        border: Border.all(color: colors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            context.l10n.assistantConsentTitle,
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: Spacing.xs),
-          Text(
-            context.l10n.assistantConsentData,
-            style: body,
-          ),
-          if (freeTier) ...[
-            const SizedBox(height: Spacing.xs),
-            Text(
-              context.l10n.assistantConsentFreeTier,
-              style: body,
-            ),
-          ],
-          const SizedBox(height: Spacing.xs),
-          Text(context.l10n.assistantDisclaimer, style: body),
-          const SizedBox(height: Spacing.md),
-          PrimaryButton(
-            label: context.l10n.assistantEnable,
-            icon: Icons.check_rounded,
-            onPressed: actions.grantConsent,
-          ),
-        ],
-      ),
     );
   }
 }

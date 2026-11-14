@@ -214,23 +214,6 @@ void main() {
       expect(actions.calls, isEmpty);
     });
 
-    testWidgets('consent: disclosure and "Enable Ask Morkva"', (tester) async {
-      await pumpInScope(
-        tester,
-        SizedBox(
-          height: 900,
-          child: EmptyChat(state: AssistantSeeds.consent()),
-        ),
-        actions: actions,
-      );
-      expect(find.text('ASK'), findsNothing);
-      expect(find.textContaining('free tier'), findsOneWidget);
-      await tester.ensureVisible(find.text('Enable Ask Morkva'));
-      await tester.pump();
-      await tester.tap(find.text('Enable Ask Morkva'));
-      expect(actions.calls, ['grantConsent()']);
-    });
-
     test('suggestions without collections are plain starters', () {
       final groups = suggestionGroups(const []);
       expect(groups.map((g) => g.title), ['Ask', 'Act']);
@@ -294,8 +277,20 @@ void main() {
       await pump(tester);
       expect(find.text('TODAY'), findsOneWidget);
       expect(find.text('YESTERDAY'), findsOneWidget);
-      expect(find.text('12:40 · 3 changes applied'), findsOneWidget);
+      expect(find.bySemanticsLabel('Today, 3 conversations'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('Yesterday, 2 conversations'),
+        findsOneWidget,
+      );
+      expect(find.text('12:40'), findsOneWidget);
+      expect(find.text('3 changes applied'), findsOneWidget);
       expect(find.text('16:00'), findsOneWidget); // no snippet
+      expect(
+        find.bySemanticsLabel(
+          'Unpaid orders this month, 12:40 · 3 changes applied',
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('search filters by title and snippet', (tester) async {

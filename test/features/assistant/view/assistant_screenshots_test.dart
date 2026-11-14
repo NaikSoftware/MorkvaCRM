@@ -17,6 +17,7 @@
 @Tags(['golden'])
 library;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/design/design.dart';
@@ -102,17 +103,6 @@ void _shots() {
     );
     await tester.pumpAndSettle();
     await shoot(tester, 'empty');
-  });
-
-  testWidgets('Empty: consent disclosure', (tester) async {
-    await pumpPanel(
-      tester,
-      FakeAssistantBloc.consent(),
-      actions: RecordingActions(),
-      historyBuilder: history,
-    );
-    await tester.pumpAndSettle();
-    await shoot(tester, 'consent');
   });
 
   testWidgets('Analyze: chart, applied card and its undo snackbar', (
@@ -224,6 +214,25 @@ void _shots() {
     );
     await tester.pumpAndSettle();
     await shoot(tester, 'tablet_history');
+  });
+
+  testWidgets('History (dark): day cards, hovered row', (tester) async {
+    await pumpPanel(
+      tester,
+      FakeAssistantBloc.tabletHistory(),
+      actions: RecordingActions(),
+      historyBuilder: history,
+      initiallyShowHistory: true,
+      theme: AppTheme.dark,
+      size: const Size(440, 760),
+    );
+    await tester.pumpAndSettle();
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(mouse.removePointer);
+    await mouse.addPointer(location: Offset.zero);
+    await mouse.moveTo(tester.getCenter(find.text('Revenue by month')));
+    await tester.pumpAndSettle();
+    await shoot(tester, 'history_dark');
   });
 
   testWidgets('Applying: progress on the plan card', (tester) async {

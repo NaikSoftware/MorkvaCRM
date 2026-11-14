@@ -190,6 +190,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assistantConversations => 'Conversations';
 
   @override
+  String assistantDayThreads(String day, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count conversations',
+      one: '1 conversation',
+    );
+    return '$day, $_temp0';
+  }
+
+  @override
   String get assistantGreeting => 'Hi. What should we look at?';
 
   @override
@@ -266,22 +277,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get assistantConsentTitle => 'Before you start';
-
-  @override
-  String get assistantConsentData =>
-      'To answer, Ask Morkva sends your question and the parts of your data it needs to Google’s Gemini.';
-
-  @override
-  String get assistantConsentFreeTier =>
-      'On the free tier Google may use prompts and answers to improve its products, so keep sensitive details out of your questions.';
-
-  @override
   String get assistantDisclaimer =>
       'Answers can be wrong — check important numbers.';
-
-  @override
-  String get assistantEnable => 'Enable Ask Morkva';
 
   @override
   String get assistantOffTitle => 'Ask Morkva is off';

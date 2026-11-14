@@ -15,8 +15,6 @@ void main() {
       expect(config.maxRounds, 6);
       expect(config.dailyTurnsSoft, 200);
       expect(config.leaseTtlMinutes, 5);
-      expect(config.dataUse, AssistantDataUse.free);
-      expect(config.consented, isFalse);
     });
 
     test('no docs at all resolve to the defaults', () {
@@ -37,7 +35,6 @@ void main() {
           'maxRounds': 4,
           'dailyTurnsSoft': 50,
           'leaseTtlMinutes': 2,
-          'dataUse': 'paid',
         },
       );
 
@@ -52,7 +49,6 @@ void main() {
           maxRounds: 4,
           dailyTurnsSoft: 50,
           leaseTtlMinutes: 2,
-          dataUse: AssistantDataUse.paid,
         ),
       );
     });
@@ -69,7 +65,6 @@ void main() {
           'maxRounds': 0,
           'dailyTurnsSoft': double.nan,
           'leaseTtlMinutes': 3.0, // console numbers may arrive as doubles
-          'dataUse': 'enterprise',
         },
       );
 
@@ -118,18 +113,6 @@ void main() {
         ).enabled,
         isFalse,
       );
-    });
-
-    test('carries the workspace consent', () {
-      final consent = AssistantConsent(
-        consentedBy: 'u1',
-        consentedAt: DateTime.utc(2026, 11, 10),
-      );
-
-      final config = AssistantConfig.resolve(consent: consent);
-
-      expect(config.consented, isTrue);
-      expect(config.consent, consent);
     });
   });
 }

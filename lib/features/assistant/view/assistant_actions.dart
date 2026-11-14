@@ -30,9 +30,6 @@ abstract interface class AssistantActions implements PlanCardActions {
   /// The header's "New conversation" (`NewThreadRequested`).
   void newThread();
 
-  /// "Enable Ask Morkva" on the consent disclosure (`ConsentGranted`).
-  void grantConsent();
-
   /// An object or view chip: open the collection (and view / card) through
   /// the deep-link contract. On phone the host pops the chat route first.
   @override

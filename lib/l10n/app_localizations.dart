@@ -434,6 +434,12 @@ abstract class AppLocalizations {
   /// **'Conversations'**
   String get assistantConversations;
 
+  /// Screen-reader label of a day header in the conversation history: the day and how many conversations it holds.
+  ///
+  /// In en, this message translates to:
+  /// **'{day}, {count, plural, =1{1 conversation} other{{count} conversations}}'**
+  String assistantDayThreads(String day, int count);
+
   /// No description provided for @assistantGreeting.
   ///
   /// In en, this message translates to:
@@ -530,35 +536,11 @@ abstract class AppLocalizations {
   /// **'Add a Notes field to {name}'**
   String assistantSuggestNotes(String name);
 
-  /// No description provided for @assistantConsentTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Before you start'**
-  String get assistantConsentTitle;
-
-  /// No description provided for @assistantConsentData.
-  ///
-  /// In en, this message translates to:
-  /// **'To answer, Ask Morkva sends your question and the parts of your data it needs to Google’s Gemini.'**
-  String get assistantConsentData;
-
-  /// No description provided for @assistantConsentFreeTier.
-  ///
-  /// In en, this message translates to:
-  /// **'On the free tier Google may use prompts and answers to improve its products, so keep sensitive details out of your questions.'**
-  String get assistantConsentFreeTier;
-
   /// No description provided for @assistantDisclaimer.
   ///
   /// In en, this message translates to:
   /// **'Answers can be wrong — check important numbers.'**
   String get assistantDisclaimer;
-
-  /// No description provided for @assistantEnable.
-  ///
-  /// In en, this message translates to:
-  /// **'Enable Ask Morkva'**
-  String get assistantEnable;
 
   /// No description provided for @assistantOffTitle.
   ///

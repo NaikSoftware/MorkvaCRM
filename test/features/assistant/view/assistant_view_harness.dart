@@ -59,8 +59,6 @@ class RecordingActions implements AssistantActions {
   void newThread() => calls.add('newThread()');
 
   @override
-  void grantConsent() => calls.add('grantConsent()');
-
   @override
   void openObject({
     required String collectionId,

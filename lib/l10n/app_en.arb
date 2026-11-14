@@ -98,6 +98,18 @@
   "assistantCloseAssistant": "Close assistant",
   "assistantBackToConversation": "Back to the conversation",
   "assistantConversations": "Conversations",
+  "assistantDayThreads": "{day}, {count, plural, =1{1 conversation} other{{count} conversations}}",
+  "@assistantDayThreads": {
+    "description": "Screen-reader label of a day header in the conversation history: the day and how many conversations it holds.",
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "assistantGreeting": "Hi. What should we look at?",
   "assistantGreetingNamed": "Hi {name}. What should we look at?",
   "@assistantGreetingNamed": {
@@ -177,11 +189,7 @@
       }
     }
   },
-  "assistantConsentTitle": "Before you start",
-  "assistantConsentData": "To answer, Ask Morkva sends your question and the parts of your data it needs to Google’s Gemini.",
-  "assistantConsentFreeTier": "On the free tier Google may use prompts and answers to improve its products, so keep sensitive details out of your questions.",
   "assistantDisclaimer": "Answers can be wrong — check important numbers.",
-  "assistantEnable": "Enable Ask Morkva",
   "assistantOffTitle": "Ask Morkva is off",
   "assistantOffBody": "Ask Morkva isn’t enabled for your account.",
   "assistantNotSetUpTitle": "Not set up yet",

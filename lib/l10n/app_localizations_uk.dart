@@ -190,6 +190,19 @@ class AppLocalizationsUk extends AppLocalizations {
   String get assistantConversations => 'Розмови';
 
   @override
+  String assistantDayThreads(String day, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count розмови',
+      many: '$count розмов',
+      few: '$count розмови',
+      one: '$count розмова',
+    );
+    return '$day, $_temp0';
+  }
+
+  @override
   String get assistantGreeting => 'Вітаю! Що подивимося?';
 
   @override
@@ -272,22 +285,8 @@ class AppLocalizationsUk extends AppLocalizations {
   }
 
   @override
-  String get assistantConsentTitle => 'Перш ніж почати';
-
-  @override
-  String get assistantConsentData =>
-      'Щоб відповісти, Морква надсилає ваше запитання й потрібні дані до Gemini від Google.';
-
-  @override
-  String get assistantConsentFreeTier =>
-      'На безкоштовному тарифі Google може використовувати запити й відповіді для покращення своїх продуктів, тож не додавайте до запитань конфіденційних даних.';
-
-  @override
   String get assistantDisclaimer =>
       'Відповіді можуть бути помилковими — перевіряйте важливі числа.';
-
-  @override
-  String get assistantEnable => 'Увімкнути Моркву';
 
   @override
   String get assistantOffTitle => 'Моркву вимкнено';

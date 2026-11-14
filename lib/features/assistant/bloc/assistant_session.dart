@@ -126,7 +126,7 @@ class AssistantSession {
     if (bloc.isClosed) throw StateError('AssistantSession was disposed.');
     harnessSession.initialize(workspaceId);
     _threads.initialize(workspaceId: workspaceId, uid: user.uid);
-    _config.initialize(workspaceId: workspaceId, uid: user.uid);
+    _config.initialize(uid: user.uid);
     agentLoop.timeZoneName = _now().timeZoneName;
     bloc.add(
       AssistantStarted(
