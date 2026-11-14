@@ -25,6 +25,8 @@ import '../api/automation/engine/script_engine_factory.dart';
 import '../api/automation/session_key.dart';
 import '../api/data/firestore_data_repository.dart';
 import '../api/files/firebase_attachment_store.dart';
+import '../api/inbox/firestore_inbox_repository.dart';
+import '../api/inbox/inbox_repository.dart';
 import '../core/automation/automation_runner.dart';
 import '../core/automation/engine/script_engine.dart';
 import '../core/automation/runner_api.dart';
@@ -39,6 +41,7 @@ import '../features/assistant/bloc/assistant_session.dart';
 import '../features/automation/bloc/automation_runs_cubit.dart';
 import '../features/automation/bloc/modules_cubit.dart';
 import '../features/automation/bloc/run_log_cubit.dart';
+import '../features/inbox/bloc/inbox_cubit.dart';
 import 'router/app_router.dart';
 
 /// App-wide scroll behavior: no colored overscroll glow (it clashed with the
@@ -86,6 +89,7 @@ class MorkvaApp extends StatefulWidget {
     this.assistantConfigRepository,
     this.automationStores,
     this.scriptEngine,
+    this.inboxRepository,
   });
 
   /// Auth backend; defaults to [FirestoreAuthRepository].
@@ -120,6 +124,10 @@ class MorkvaApp extends StatefulWidget {
   /// iframe sandbox, Android/iOS: QuickJS).
   final ScriptEngine? scriptEngine;
 
+  /// The member's Inbox; defaults to [FirestoreInboxRepository] over
+  /// `FirebaseFirestore.instance`.
+  final InboxRepository? inboxRepository;
+
   @override
   State<MorkvaApp> createState() => _MorkvaAppState();
 }
@@ -146,6 +154,10 @@ class _MorkvaAppState extends State<MorkvaApp> {
   late final ThreadRepository _threads =
       widget.threadRepository ??
       FirestoreThreadRepository(firestore: FirebaseFirestore.instance);
+
+  late final InboxRepository _inbox =
+      widget.inboxRepository ??
+      FirestoreInboxRepository(firestore: FirebaseFirestore.instance);
 
   /// Shared by the default stores; null when they are injected.
   late final AutomationWorkspace? _automationWorkspace =
@@ -197,10 +209,10 @@ class _MorkvaAppState extends State<MorkvaApp> {
     timeZoneName: DateTime.now().timeZoneName,
   );
 
-  /// The signed-in member's automation cubits (they watch the bound stores
-  /// from construction); null until the first sign-in, closed after a
-  /// sign-out.
-  _AutomationCubits? _cubits;
+  /// The signed-in member's automation and Inbox cubits (they watch the
+  /// bound stores from construction); null until the first sign-in, closed
+  /// after a sign-out.
+  _SessionCubits? _cubits;
 
   /// Keeps the router's state while the automation providers come and go
   /// around it.
@@ -268,12 +280,14 @@ class _MorkvaAppState extends State<MorkvaApp> {
           if (!mounted || _initializedWorkspaceId != workspaceId) return;
           final since = DateTime.now();
           _runner.initialize(workspaceId: workspaceId, uid: user.uid);
+          _inbox.initialize(workspaceId: workspaceId, uid: user.uid);
           final stores = _automationStores;
           setState(
             () => _cubits = (
               modules: ModulesCubit(_runner, stores, uid: user.uid),
               runs: AutomationRunsCubit(_runner, stores, since: since),
               runLog: RunLogCubit(_runner, stores, uid: user.uid),
+              inbox: InboxCubit(_inbox),
             ),
           );
           _sessionReady.value = true;
@@ -346,6 +360,7 @@ class _MorkvaAppState extends State<MorkvaApp> {
         RepositoryProvider<AssistantSession>.value(value: _assistant),
         RepositoryProvider<AutomationRunnerApi>.value(value: _runner),
         RepositoryProvider<AutomationStores>.value(value: _automationStores),
+        RepositoryProvider<InboxRepository>.value(value: _inbox),
         ChangeNotifierProvider<AssistantFocusNotifier>.value(
           value: _assistant.focus,
         ),
@@ -376,6 +391,7 @@ class _MorkvaAppState extends State<MorkvaApp> {
                   BlocProvider<ModulesCubit>.value(value: cubits.modules),
                   BlocProvider<AutomationRunsCubit>.value(value: cubits.runs),
                   BlocProvider<RunLogCubit>.value(value: cubits.runLog),
+                  BlocProvider<InboxCubit>.value(value: cubits.inbox),
                 ],
                 child: router,
               );
@@ -387,17 +403,19 @@ class _MorkvaAppState extends State<MorkvaApp> {
   }
 }
 
-typedef _AutomationCubits = ({
+typedef _SessionCubits = ({
   ModulesCubit modules,
   AutomationRunsCubit runs,
   RunLogCubit runLog,
+  InboxCubit inbox,
 });
 
-Future<void> _close(_AutomationCubits? cubits) async {
+Future<void> _close(_SessionCubits? cubits) async {
   if (cubits == null) return;
   await Future.wait([
     cubits.modules.close(),
     cubits.runs.close(),
     cubits.runLog.close(),
+    cubits.inbox.close(),
   ]);
 }

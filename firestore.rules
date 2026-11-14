@@ -36,6 +36,15 @@ service cloud.firestore {
               || (d.error.message.size() <= 1024 && d.error.get('stack', '').size() <= 4096));
     }
 
+    // An Inbox item's shape (InboxItem.toJson(); the client trims and caps).
+    function inboxShapeOk(d) {
+      return d.kind in ['task', 'note']
+          && d.title is string && d.title.size() >= 1 && d.title.size() <= 500
+          && d.get('details', '') is string && d.get('details', '').size() <= 5000
+          && d.get('reminders', []) is list && d.get('reminders', []).size() <= 3
+          && d.assigneeUid is string && d.createdBy is string;
+    }
+
     match /workspaces/{workspaceId} {
       allow read, write: if isWorkspaceOwner(workspaceId);
 
@@ -128,6 +137,21 @@ service cloud.firestore {
                 || request.resource.data.autoApply == false)
             && (request.resource.data.autoApply == false
                 || (resource != null && resource.data.codeHash == request.resource.data.codeHash));
+      }
+
+      // Inbox items: the assignee's and the creator's (Epic 10 replaces
+      // isWorkspaceOwner with its member check).
+      match /inbox/{itemId} {
+        allow read: if isWorkspaceOwner(workspaceId)
+            && (resource.data.assigneeUid == request.auth.uid
+                || resource.data.createdBy == request.auth.uid);
+        allow create: if isWorkspaceOwner(workspaceId)
+            && inboxShapeOk(request.resource.data)
+            && request.resource.data.createdBy == request.auth.uid;
+        allow update: if isWorkspaceOwner(workspaceId)
+            && inboxShapeOk(request.resource.data)
+            && request.resource.data.createdBy == resource.data.createdBy;
+        allow delete: if isWorkspaceOwner(workspaceId);
       }
 
       // Per-workspace Ask Morkva consent.

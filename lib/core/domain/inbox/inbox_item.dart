@@ -158,6 +158,7 @@ final class InboxItem extends Equatable {
         (throw const FormatException('kind'));
     final title = _string(json['title']);
     final link = json['link'];
+    final reminders = json['reminders'];
     return InboxItem(
       id: id,
       kind: kind,
@@ -166,7 +167,9 @@ final class InboxItem extends Equatable {
       dueAt: _date(json['dueAt']),
       allDay: json['allDay'] == true,
       reminders: [
-        for (final r in (json['reminders'] as List?) ?? const [])
+        // A non-list is dropped, not a TypeError (readRecord skips only
+        // FormatException).
+        for (final r in reminders is List ? reminders : const [])
           if (r is num) r.toInt(),
       ],
       link: link is Map ? InboxLink.fromJson(link.cast()) : null,
