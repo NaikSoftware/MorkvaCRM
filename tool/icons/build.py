@@ -132,7 +132,12 @@ def build_font(concepts, cps, out):
     for n in names:
         glyphs[n] = tt_glyph(glyph_path(SVG_DIR / f"{n}.svg"))
     fb.setupGlyf(glyphs)
-    fb.setupHorizontalMetrics({g: (UPEM, 0) for g in glyphs})
+    # FreeType places each outline so xMin == lsb; lsb 0 would push every glyph flush left.
+    glyf = fb.font["glyf"]
+    for g in glyphs:
+        glyf[g].recalcBounds(glyf)
+    fb.setupHorizontalMetrics(
+        {g: (UPEM, glyf[g].xMin if glyf[g].numberOfContours else 0) for g in glyphs})
     fb.setupHorizontalHeader(ascent=UPEM, descent=0)
     fb.setupNameTable({"familyName": FAMILY, "styleName": "Regular"})
     fb.setupOS2(sTypoAscender=UPEM, sTypoDescender=0, sTypoLineGap=0,

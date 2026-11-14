@@ -35,3 +35,17 @@ with tempfile.TemporaryDirectory() as d:
         got = build.glyph_path(f).area
         assert abs(got - area) < 1, f"{name}: area {got}, want {area}"
         print(f"ok {name}: {got:.0f}")
+
+# The hmtx lsb must equal the glyph's xMin, or FreeType shifts the outline flush left.
+from fontTools.ttLib import TTFont
+
+with tempfile.TemporaryDirectory() as d:
+    build.SVG_DIR = Path(d)
+    (Path(d) / "a.svg").write_text('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">'
+                                   '<path fill="currentColor" d="M10 4H14V20H10Z"/></svg>')
+    out = Path(d) / "t.ttf"
+    build.build_font([{"name": "a"}], {"a": 0xE000}, out)
+    font = TTFont(out)
+    adv, lsb = font["hmtx"]["a"]
+    assert (adv, lsb) == (1200, 500) and font["glyf"]["a"].xMin == 500, (adv, lsb)
+    print(f"ok lsb: {lsb}")
