@@ -237,6 +237,22 @@ creating a card; a small count badge = open items linked to this card (from the 
 - **Web notifier failures** (`new Notification` throws on Chrome Android, unsupported browser) →
   fall back to a pending toast.
 
+### Decisions after design critic round 1
+Mockups: Claude Design canvas https://claude.ai/artifact/5CRWtUY879wwWW71a4RK6x, local copies
+`docs/superpowers/mockups/inbox/` (11 artboards). Critic verdict: accept with fixes.
+- **Toasts anchor bottom-right on wide** (*my call*): a stack top-right covered the strip's ‹ Today ›
+  and "Move all to today"; snackbars stay bottom-centre. Phone: top. Toast leading tile = kind glyph
+  (a hollow circle read as a second checkbox).
+- **Past selected day:** the composer's task date defaults to **today**, not the past day (a task
+  must not be born overdue); placeholder "Add a task for today…". Pick a past date explicitly in
+  the editor.
+- **Phone composer chips wrap** to a second line.
+- **Editor date row** shows the date only ("Sat 14 Nov"); the time lives in its own chip.
+- **Collapse chevrons** sit left of the section caption for both No date and Completed.
+- **Badges** are carrot (primary / onPrimary) everywhere, never error red (red means lateness).
+- **Week strip** is a new widget (cells 48×56, phone 44×56, radius 12; selected = primary fill;
+  today = 2 px inset primary ring; ≤ 3 dots of 4 px), not `_StripDay`.
+
 ## 5. Data model
 
 `workspaces/{wid}/inbox/{itemId}` — *critic over my first draft* (`members/{uid}/inbox`): Epic 10's
