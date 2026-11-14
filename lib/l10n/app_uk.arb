@@ -15,7 +15,7 @@
   "shellAskMorkva": "Запитати Моркву",
   "shellAskMorkvaShortcut": "Запитати Моркву · {shortcut}",
   "shellAccountAndSettings": "Обліковий запис і налаштування",
-  "shellSyncSynced": "Синхронізовано",
+  "shellSyncSynced": "Збережено",
   "shellSyncSyncing": "Синхронізація…",
   "shellSyncOffline": "Офлайн",
   "shellSyncConflict": "Конфлікт",

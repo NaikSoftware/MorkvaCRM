@@ -61,7 +61,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get shellAccountAndSettings => 'Обліковий запис і налаштування';
 
   @override
-  String get shellSyncSynced => 'Синхронізовано';
+  String get shellSyncSynced => 'Збережено';
 
   @override
   String get shellSyncSyncing => 'Синхронізація…';

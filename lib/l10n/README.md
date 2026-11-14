@@ -66,7 +66,7 @@ error text (shown as is).
 | Ask Morkva / Morkva (assistant) | Запитати Моркву / Морква (declined: Моркви, Моркву) |
 | Morkva CRM (app name) | Morkva CRM; «Morkva» meaning the app → «застосунок» |
 | thread (chat) / message | розмова / повідомлення |
-| sync / offline / conflict | синхронізація / офлайн / конфлікт |
+| sync / synced (status) / offline / conflict | синхронізація / збережено / офлайн / конфлікт |
 | sign in / sign out | увійти / вийти |
 | import / export | імпорт / експорт |
 | delete / remove / archive / restore | видалити / прибрати / архівувати / відновити |
