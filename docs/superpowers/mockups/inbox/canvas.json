@@ -1,0 +1,114 @@
+{
+ "v": 3,
+ "createdOnFiles": {
+  "v": 1,
+  "at": "2026-11-14T12:00:00Z"
+ },
+ "title": "Morkva — Inbox",
+ "launch": {
+  "view": "canvas"
+ },
+ "pages": [],
+ "boards": {
+  "Main.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "1 · Inbox — Today"
+  },
+  "Composer.dc.html": {
+   "x": 1520,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "2 · Composer focused (task) + note variant"
+  },
+  "Editor.dc.html": {
+   "x": 3040,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "3 · Item editor (permission: default)"
+  },
+  "LinkPicker.dc.html": {
+   "x": 4560,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "4 · Link a card — collection, then card"
+  },
+  "CardButton.dc.html": {
+   "x": 6080,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "5 · Card editor Inbox button + menu"
+  },
+  "Toasts.dc.html": {
+   "x": 0,
+   "y": 1020,
+   "w": 1440,
+   "h": 900,
+   "title": "6 · Reminder toasts + system notification"
+  },
+  "OtherDay.dc.html": {
+   "x": 1520,
+   "y": 1020,
+   "w": 1440,
+   "h": 900,
+   "title": "7 · Another day (Wed 18, empty)"
+  },
+  "Empty.dc.html": {
+   "x": 3040,
+   "y": 1020,
+   "w": 1440,
+   "h": 900,
+   "title": "11 · First run (empty)"
+  },
+  "Team.dc.html": {
+   "x": 4560,
+   "y": 1020,
+   "w": 1440,
+   "h": 900,
+   "title": "10 · Team — Epic 10 preview, not in v1"
+  },
+  "Phone.dc.html": {
+   "x": 6080,
+   "y": 1020,
+   "w": 390,
+   "h": 844,
+   "title": "8 · Phone — Inbox"
+  },
+  "PhoneEditor.dc.html": {
+   "x": 6550,
+   "y": 1020,
+   "w": 390,
+   "h": 844,
+   "title": "9 · Phone — editor sheet (notifications blocked)"
+  }
+ },
+ "order": [
+  "Main.dc.html",
+  "Composer.dc.html",
+  "Editor.dc.html",
+  "LinkPicker.dc.html",
+  "CardButton.dc.html",
+  "Toasts.dc.html",
+  "OtherDay.dc.html",
+  "Phone.dc.html",
+  "PhoneEditor.dc.html",
+  "Team.dc.html",
+  "Empty.dc.html"
+ ],
+ "notes": {
+  "rules": {
+   "x": 7020,
+   "y": 1020,
+   "w": 360,
+   "text": "Sample day: Sat 14 Nov 2026, 09:50. Badge 3 = 1 overdue task + 2 open tasks today (notes never count). Times past and open show in error red; notes are never overdue. Row bell shows the earliest reminder, +N for more.",
+   "fill": "yellow"
+  }
+ },
+ "designSystems": []
+}
