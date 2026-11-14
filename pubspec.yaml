@@ -68,6 +68,7 @@ dependencies:
   # but allows 7.x, like firebase_auth 6.5.5: any firebase_ai import fails to compile. Pin until
   # the Firebase stack moves to platform_interface 8.
   firebase_app_check: 0.4.5
+  shared_preferences: ^2.5.6
 
 dev_dependencies:
   flutter_test:

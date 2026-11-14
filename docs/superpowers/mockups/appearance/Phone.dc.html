@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Phone settings — appearance</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&amp;family=Hanken+Grotesk:wght@400;500;600;700&amp;family=Onest:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; display: flex; flex-direction: column; background: #FBF7F2; font-family: 'Hanken Grotesk','Onest', sans-serif; color: #2B2018; overflow: hidden">
+  <!-- Shell page header (app_shell.dart _PageHeader): back + headlineSmall title, 16 px gutter -->
+  <header style="display: flex; align-items: center; gap: 8px; padding: 8px 16px">
+    <button aria-label="Back" style="width: 44px; height: 44px; margin-left: -10px; border: 0; border-radius: 22px; background: transparent; color: #2B2018; display: inline-flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+    <h1 style="margin: 0; flex: 1 1 auto; font: 600 24px/32px 'Bricolage Grotesque','Onest', sans-serif; letter-spacing: -0.3px">Settings</h1>
+    <button aria-label="Ask Morkva" style="width: 44px; height: 44px; border: 0; border-radius: 14px; background: #FFE0C2; display: inline-flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="#8A4708" aria-hidden="true"><path d="M12 2.5c.6 4.6 2.9 6.9 7.5 7.5-4.6.6-6.9 2.9-7.5 7.5-.6-4.6-2.9-6.9-7.5-7.5 4.6-.6 6.9-2.9 7.5-7.5zM19 15.5c.3 2 1.2 2.9 3.2 3.2-2 .3-2.9 1.2-3.2 3.2-.3-2-1.2-2.9-3.2-3.2 2-.3 2.9-1.2 3.2-3.2z"/></svg></button>
+  </header>
+
+  <div style="flex: 1 1 auto; overflow: hidden; display: flex; flex-direction: column; gap: 24px; padding: 8px 16px 24px">
+    <section aria-labelledby="p-ws" style="display: flex; flex-direction: column; gap: 8px">
+      <h2 id="p-ws" style="margin: 0; font: 700 11px 'Hanken Grotesk','Onest', sans-serif; letter-spacing: .9px; text-transform: uppercase; color: #6B5E52">Workspace</h2>
+      <a href="#" style="display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 12px 16px; box-sizing: border-box; border-radius: 16px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 3px 6px rgba(74,53,32,.06); color: #2B2018; text-decoration: none">
+        <span style="width: 40px; height: 40px; flex: 0 0 40px; border-radius: 12px; background: #FFE0C2; color: #4E2A00; display: inline-flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 2.5L4.5 13.5H11l-1.5 8 9-11H12z"/></svg></span>
+        <span style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px"><span style="font: 600 16px/1.3 'Hanken Grotesk','Onest', sans-serif">Automations</span><span style="font-size: 12px; line-height: 1.45; color: #6B5E52">Modules, buttons and runs</span></span>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B5E52" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+      </a>
+    </section>
+
+    <section aria-labelledby="p-imp" style="display: flex; flex-direction: column; gap: 8px">
+      <h2 id="p-imp" style="margin: 0; font: 700 11px 'Hanken Grotesk','Onest', sans-serif; letter-spacing: .9px; text-transform: uppercase; color: #6B5E52">Import from other apps</h2>
+      <a href="#" style="display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 12px 16px; box-sizing: border-box; border-radius: 16px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 3px 6px rgba(74,53,32,.06); color: #2B2018; text-decoration: none">
+        <span style="width: 40px; height: 40px; flex: 0 0 40px; border-radius: 12px; background: #DCEAF3; color: #2F5F80; display: inline-flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3.5" width="18" height="17" rx="3"/><path d="M8 7.5v8M12 7.5v4.5M16 7.5v6"/></svg></span>
+        <span style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px"><span style="font: 600 16px/1.3 'Hanken Grotesk','Onest', sans-serif">Trello</span><span style="font-size: 12px; line-height: 1.45; color: #6B5E52">Boards become collections — lists, cards, labels, checklists and comments</span></span>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6B5E52" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+      </a>
+    </section>
+
+    <!-- Phone: the segmented control drops under the title row, full width, three equal segments -->
+    <section aria-labelledby="p-look" style="display: flex; flex-direction: column; gap: 8px">
+      <h2 id="p-look" style="margin: 0; font: 700 11px 'Hanken Grotesk','Onest', sans-serif; letter-spacing: .9px; text-transform: uppercase; color: #6B5E52">Appearance</h2>
+      <div style="display: flex; flex-direction: column; gap: 12px; padding: 12px 16px; box-sizing: border-box; border-radius: 16px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 3px 6px rgba(74,53,32,.06)">
+        <div style="display: flex; align-items: center; gap: 16px; min-height: 40px">
+          <span style="width: 40px; height: 40px; flex: 0 0 40px; border-radius: 12px; background: #EDE0EE; color: #6B3F70; display: inline-flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.3 0 2-.8 2-1.8 0-.5-.2-.9-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1 .8-1.6 1.8-1.6H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/><circle cx="7.5" cy="11" r="1.2" fill="currentColor"/><circle cx="10.5" cy="7.3" r="1.2" fill="currentColor"/><circle cx="15" cy="7.8" r="1.2" fill="currentColor"/></svg></span>
+          <span style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px"><span id="p-theme-t" style="font: 600 16px/1.3 'Hanken Grotesk','Onest', sans-serif">Theme</span><span style="font-size: 12px; line-height: 1.45; color: #6B5E52">Saved on this device</span></span>
+        </div>
+        <div role="group" aria-labelledby="p-theme-t" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); height: 44px; box-sizing: border-box; border: 1px solid #B6A593; border-radius: 22px; overflow: hidden">
+          <button aria-pressed="false" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 8px; border: 0; background: transparent; color: #2B2018; font: 500 14px 'Hanken Grotesk','Onest', sans-serif"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></svg>Light</button>
+          <button aria-pressed="false" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 8px; border: 0; border-left: 1px solid #B6A593; background: transparent; color: #2B2018; font: 500 14px 'Hanken Grotesk','Onest', sans-serif"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>Dark</button>
+          <button aria-pressed="true" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 8px; border: 0; border-left: 1px solid #B6A593; background: #FFDCC4; color: #5B412E; font: 500 14px 'Hanken Grotesk','Onest', sans-serif"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>System</button>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="p-acc" style="display: flex; flex-direction: column; gap: 8px; align-items: flex-start">
+      <h2 id="p-acc" style="margin: 0; font: 700 11px 'Hanken Grotesk','Onest', sans-serif; letter-spacing: .9px; text-transform: uppercase; color: #6B5E52">Account</h2>
+      <button style="height: 44px; padding: 0 24px; border-radius: 12px; border: 1px solid #E0D5C7; background: #E8DECD; color: #2B2018; display: inline-flex; align-items: center; gap: 8px; font: 600 14px 'Hanken Grotesk','Onest', sans-serif"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h3.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H15M10 16l4-4-4-4M14 12H4"/></svg>Sign out</button>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

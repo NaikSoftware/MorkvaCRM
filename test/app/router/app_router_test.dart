@@ -10,6 +10,8 @@ import 'package:morkva_crm/app/shell/shell_sidebar.dart';
 import 'package:morkva_crm/design/design.dart';
 import 'package:morkva_crm/features/collections/collections.dart';
 import 'package:morkva_crm/features/settings/settings_page.dart';
+import 'package:morkva_crm/features/settings/theme_mode_cubit.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:morkva_crm/features/views/views.dart';
 
 import '../../features/collections/fake_data_repository.dart';
@@ -45,6 +47,8 @@ void main() {
     router = createAppRouter(authCubit, sessionReady: ValueNotifier(true));
     addTearDown(router.dispose);
 
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
     await tester.pumpWidget(
       RepositoryProvider<DataRepository>.value(
         value: data,
@@ -52,6 +56,7 @@ void main() {
           providers: [
             BlocProvider.value(value: authCubit),
             BlocProvider(create: (_) => SyncStatusCubit()),
+            BlocProvider(create: (_) => ThemeModeCubit(prefs)),
           ],
           child: MaterialApp.router(
             theme: AppTheme.light,

@@ -1,0 +1,50 @@
+{
+ "v": 3,
+ "createdOnFiles": {
+  "v": 1,
+  "at": "2026-11-14T12:00:00Z"
+ },
+ "title": "Morkva — Settings: Appearance",
+ "launch": {
+  "view": "canvas"
+ },
+ "pages": [],
+ "boards": {
+  "Main.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "1 · Settings — light, follows system"
+  },
+  "Dark.dc.html": {
+   "x": 1520,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "2 · Settings — Dark picked"
+  },
+  "Phone.dc.html": {
+   "x": 3040,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "3 · Phone — theme row stacks"
+  }
+ },
+ "order": [
+  "Main.dc.html",
+  "Dark.dc.html",
+  "Phone.dc.html"
+ ],
+ "notes": {
+  "ia": {
+   "x": 3510,
+   "y": 0,
+   "w": 380,
+   "text": "Settings order follows scope: what the whole workspace shares first (Workspace, Import from other apps), then what belongs to you and this device (Appearance, Account). Appearance adds one section label and one row — no sub-page, no dialog. The theme is saved on this device (it applies on the sign-in screen too), so the row says so. Light · Dark · System: one tap, the app recolours at once.",
+   "fill": "yellow"
+  }
+ },
+ "designSystems": []
+}
