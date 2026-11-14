@@ -253,6 +253,28 @@ Mockups: Claude Design canvas https://claude.ai/artifact/5CRWtUY879wwWW71a4RK6x,
 - **Week strip** is a new widget (cells 48×56, phone 44×56, radius 12; selected = primary fill;
   today = 2 px inset primary ring; ≤ 3 dots of 4 px), not `_StripDay`.
 
+### Build & verification notes (2026-11-14)
+- Independent code review (9 findings) fixed: `?item` leaves the URL when its editor closes (a second
+  notification click reopens), the reminder mark only advances on server snapshots (not cache), fire
+  times earlier than the item's last edit never fire, deep link waits for the server list, picker
+  load error + Retry, `dueAt` rewritten only when date/time changed (DST), `?day` clamped to ±10 years,
+  link label capped at 200, localStorage write failure falls back to memory.
+- Owner-reported focus bug ("clicked outside input, it starts input"): a composer that lost focus
+  without its own unfocus stayed its scope's last focus, so disposing a tapped toast button handed
+  focus back; pickers also re-requested focus. Fixed and re-verified on a release build.
+- Design critic round 2 (app vs mockups): pass with fixes, all applied (field padding, card menu
+  style, picker hugs content, title styles, 44 px clear targets, empty-day fill, sheet peek, empty
+  state width, toast button alignment). Mockup updates owed (app is the agreed design): doodle
+  background behind the page, catch-up rows show "Today · 03:44", Ukrainian presets wrap to two rows
+  on phone, toasts dim under a dialog scrim.
+- Web e2e (release build, Firestore emulator with this branch's rules, notification permission
+  granted over CDP, `Notification` replaced by a recorder): composer task/note, badge + dots, unfocused
+  reminder → one notification (tag `itemId@fireMillis`, body "03:44 · Olena") and no toast, focused →
+  toast, Done completes, catch-up toast, editor save writes only changed fields, two-step link picker,
+  card editor Inbox button + menu, Move all to today + Undo, phone 390 en/uk.
+- Known: phone bar pin labels wrap to two lines with 5 destinations (long collection names); the
+  Hanken weights render a step lighter than mockup CSS app-wide (font files check — not Inbox-specific).
+
 ## 5. Data model
 
 `workspaces/{wid}/inbox/{itemId}` — *critic over my first draft* (`members/{uid}/inbox`): Epic 10's
