@@ -129,11 +129,6 @@ service cloud.firestore {
             && (request.resource.data.autoApply == false
                 || (resource != null && resource.data.codeHash == request.resource.data.codeHash));
       }
-
-      // Per-workspace Ask Morkva consent.
-      match /config/assistant {
-        allow read, write: if isWorkspaceOwner(workspaceId);
-      }
     }
 
     // Global Ask Morkva config and per-user feature flags: written by an
