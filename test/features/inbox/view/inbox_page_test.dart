@@ -144,6 +144,16 @@ void main() {
     expect(find.bySemanticsLabel('Sun 15 Nov, 2 open'), findsOneWidget);
   });
 
+  testWidgets('the month picker opens on a day outside its range', (
+    tester,
+  ) async {
+    await rig.pump(tester, day: DateTime(1990));
+    await tester.tap(find.text('January 1990'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.byType(DatePickerDialog), findsOneWidget);
+  });
+
   group('composer', () {
     Future<void> type(WidgetTester tester, String text) async {
       await tester.tap(find.byType(TextField));
@@ -359,6 +369,34 @@ void main() {
   ) async {
     rig.seed([item('t', 'Prepare samples')]);
     await rig.pump(tester, itemId: 't');
+    expect(find.text('Save'), findsOneWidget);
+  });
+
+  testWidgets('?item leaves the URL when its editor closes, so the same '
+      'link opens it again', (tester) async {
+    rig.seed([item('t', 'Prepare samples')]);
+    await rig.pump(tester, location: '/?day=2026-11-14&item=t');
+    expect(find.text('Save'), findsOneWidget);
+    String location() =>
+        rig.router.routerDelegate.currentConfiguration.uri.toString();
+    expect(location(), '/?day=2026-11-14&item=t', reason: 'kept while open');
+
+    Navigator.of(tester.element(find.byType(InboxItemEditor))).pop();
+    await tester.pumpAndSettle();
+    expect(location(), '/?day=2026-11-14');
+
+    rig.router.go('/?day=2026-11-14&item=t');
+    await tester.pumpAndSettle();
+    expect(find.text('Save'), findsOneWidget);
+  });
+
+  testWidgets('?item missing from the cached list opens once the server '
+      'list has it', (tester) async {
+    await rig.pump(tester, location: '/?item=t', fromCache: true);
+    expect(find.text('Save'), findsNothing);
+
+    rig.repo.seed([item('t', 'Prepare samples')]);
+    await tester.pumpAndSettle();
     expect(find.text('Save'), findsOneWidget);
   });
 

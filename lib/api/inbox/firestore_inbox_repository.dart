@@ -28,10 +28,17 @@ final class FirestoreInboxRepository implements InboxRepository {
   }
 
   @override
-  Stream<List<InboxItem>> watch() => _col
+  Stream<({List<InboxItem> items, bool fromCache})> watch() => _col
       .where('assigneeUid', isEqualTo: _uid)
-      .snapshots()
-      .map((snapshot) => readRecords(snapshot, InboxItem.fromJson));
+      // Metadata changes too: a server confirming the cached items
+      // unchanged emits nothing otherwise, and fromCache would stay true.
+      .snapshots(includeMetadataChanges: true)
+      .map(
+        (snapshot) => (
+          items: readRecords(snapshot, InboxItem.fromJson),
+          fromCache: snapshot.metadata.isFromCache,
+        ),
+      );
 
   @override
   String newId() => _col.doc().id;

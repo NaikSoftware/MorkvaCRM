@@ -61,7 +61,7 @@ class CardInboxButton extends StatelessWidget {
         void add() => unawaited(
           showInboxItemEditor(
             context,
-            link: InboxLink(
+            link: InboxLink.toCard(
               collectionId: collectionId,
               cardId: cardId,
               label: label,

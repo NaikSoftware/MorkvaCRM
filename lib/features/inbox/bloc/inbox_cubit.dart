@@ -18,12 +18,16 @@ final class InboxLoading extends InboxState {
 }
 
 final class InboxReady extends InboxState {
-  const InboxReady(this.items);
+  const InboxReady(this.items, {this.fromCache = false});
 
   final List<InboxItem> items;
 
+  /// The local cache's items, not yet confirmed by the server (they may
+  /// miss or hold stale items).
+  final bool fromCache;
+
   @override
-  List<Object?> get props => [items];
+  List<Object?> get props => [items, fromCache];
 }
 
 /// The listener died (denied, offline first load failed): "Retry".
@@ -52,7 +56,7 @@ class InboxCubit extends Cubit<InboxState> {
   final InboxRepository _repository;
   final DateTime Function() _now;
   final _errors = StreamController<String>.broadcast();
-  StreamSubscription<List<InboxItem>>? _sub;
+  StreamSubscription<({List<InboxItem> items, bool fromCache})>? _sub;
 
   /// Failed writes, as the error's text.
   Stream<String> get errors => _errors.stream;
@@ -67,7 +71,7 @@ class InboxCubit extends Cubit<InboxState> {
 
   void _listen() {
     _sub = _repository.watch().listen(
-      (items) => emit(InboxReady(items)),
+      (s) => emit(InboxReady(s.items, fromCache: s.fromCache)),
       onError: (Object e) => emit(InboxFailed('$e')),
     );
   }

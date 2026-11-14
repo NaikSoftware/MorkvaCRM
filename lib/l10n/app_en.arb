@@ -4623,6 +4623,7 @@
     }
   },
   "inboxCardsLoadFailed": "Couldn't load the cards",
+  "inboxCollectionsLoadFailed": "Couldn't load the collections",
   "inboxSearchCollections": "Search collections",
   "inboxNoCollections": "No collections yet",
   "inboxNoCollectionsMatch": "No collections match “{query}”",

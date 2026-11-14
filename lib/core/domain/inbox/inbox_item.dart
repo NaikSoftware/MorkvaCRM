@@ -19,6 +19,19 @@ final class InboxLink extends Equatable {
     required this.label,
   });
 
+  /// A link to a card titled [label], cut to [labelMax] (spec §5).
+  InboxLink.toCard({
+    required String collectionId,
+    required String cardId,
+    required String label,
+  }) : this(
+         collectionId: collectionId,
+         cardId: cardId,
+         label: label.length > labelMax ? label.substring(0, labelMax) : label,
+       );
+
+  static const labelMax = 200;
+
   final String collectionId;
   final String cardId;
   final String label;

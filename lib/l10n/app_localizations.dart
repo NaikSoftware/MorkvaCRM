@@ -9352,6 +9352,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load the cards'**
   String get inboxCardsLoadFailed;
 
+  /// No description provided for @inboxCollectionsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the collections'**
+  String get inboxCollectionsLoadFailed;
+
   /// No description provided for @inboxSearchCollections.
   ///
   /// In en, this message translates to:

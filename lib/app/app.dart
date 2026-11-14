@@ -369,13 +369,15 @@ class _MorkvaAppState extends State<MorkvaApp> {
       ),
     );
     // Only loaded lists: an empty "loading" list would advance the shared
-    // mark and skip the catch-up.
-    final feed = inbox.stream.listen((s) {
-      if (s is InboxReady) scheduler.updateItems(s.items);
-    });
-    if (inbox.state case InboxReady(:final items)) {
-      scheduler.updateItems(items);
+    // mark and skip the catch-up; a cached one fires nothing yet.
+    void feedState(InboxState s) {
+      if (s case InboxReady(:final items, :final fromCache)) {
+        scheduler.updateItems(items, settled: !fromCache);
+      }
     }
+
+    final feed = inbox.stream.listen(feedState);
+    feedState(inbox.state);
     scheduler.start();
     return (scheduler: scheduler, feed: feed);
   }

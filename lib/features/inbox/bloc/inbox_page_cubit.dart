@@ -143,11 +143,14 @@ final class InboxDraft extends Equatable {
       uid: original.createdBy,
       now: original.createdAt,
     );
+    // The draft holds minutes: rebuilding an unchanged dueAt can move it
+    // (seconds, the second 01:30 of a DST fall-back), so compare drafts.
+    final base = InboxDraft.of(original);
     return {
       if (next.kind != original.kind) 'kind': next.kind.name,
       if (next.title != original.title) 'title': next.title,
       if (next.details != original.details) 'details': next.details,
-      if (next.dueAt != original.dueAt) 'dueAt': next.dueAt,
+      if (date != base.date || minutes != base.minutes) 'dueAt': next.dueAt,
       if (next.allDay != original.allDay) 'allDay': next.allDay,
       if (!listEquals(next.reminders, original.reminders))
         'reminders': next.reminders,

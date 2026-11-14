@@ -8,6 +8,7 @@ import 'package:morkva_crm/core/domain/inbox/inbox.dart';
 import 'package:morkva_crm/design/design.dart';
 import 'package:morkva_crm/features/automation/widgets/action_buttons.dart';
 import 'package:morkva_crm/features/inbox/bloc/inbox_cubit.dart';
+import 'package:morkva_crm/features/inbox/bloc/inbox_page_cubit.dart';
 import 'package:morkva_crm/features/inbox/view/inbox_item_editor.dart';
 import 'package:morkva_crm/features/inbox/view_card/card_inbox_button.dart';
 import 'package:morkva_crm/features/objects/object_editor.dart';
@@ -210,6 +211,48 @@ void main() {
         .widget<CardActions>(find.byType(CardActions))
         .headerWidth;
     expect(without - withButton, CardInboxButton.width);
+  }, variant: desktop);
+
+  testWidgets('a long card title is cut to the link label limit', (
+    tester,
+  ) async {
+    final auth = _MockAuthRepository();
+    when(() => auth.authStateChanges).thenAnswer(
+      (_) => Stream.value(const AuthUser(uid: 'u1', email: 'a@b.c')),
+    );
+    final authCubit = AuthCubit(auth)..initialize();
+    addTearDown(authCubit.close);
+    final title = 'x' * 300;
+    await tester.pumpWidget(
+      RepositoryProvider<DataRepository>.value(
+        value: FakeDataRepository([deals]),
+        child: MultiBlocProvider(
+          providers: [
+            BlocProvider.value(value: authCubit),
+            BlocProvider.value(value: inbox),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: Scaffold(
+              body: CardInboxButton(
+                collectionId: 'deals',
+                cardId: 'd1',
+                label: title,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.tap(find.byTooltip('Add to Inbox'));
+    await tester.pumpAndSettle();
+
+    final draft = tester
+        .element(find.byType(InboxItemEditor))
+        .read<InboxDraftCubit>()
+        .state;
+    expect(draft.link?.label, 'x' * InboxLink.labelMax);
   }, variant: desktop);
 
   testWidgets('hidden while creating a card', (tester) async {

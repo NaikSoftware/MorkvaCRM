@@ -62,7 +62,8 @@ void main() {
           .doc('bad-reminders')
           .set(encodeDoc({..._item('x').toJson(), 'reminders': 'soon'}));
 
-      final items = await repo.watch().first;
+      final (:items, :fromCache) = await repo.watch().first;
+      expect(fromCache, isFalse);
       expect(
         items.map((i) => i.id),
         unorderedEquals(['mine', 'bad-reminders']),
@@ -81,7 +82,7 @@ void main() {
     expect(data['doneAt'], Timestamp.fromDate(doneAt));
     expect(data['updatedAt'], Timestamp.fromDate(_clock));
     expect(data['title'], 'Call i1');
-    final item = (await repo.watch().first).single;
+    final item = (await repo.watch().first).items.single;
     expect(item.doneAt, doneAt);
     expect(item.updatedAt, _clock);
   });

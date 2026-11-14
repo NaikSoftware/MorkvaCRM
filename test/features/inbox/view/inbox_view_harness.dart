@@ -128,10 +128,14 @@ final class InboxRig {
     String? itemId,
     DateTime? day,
     Locale? locale,
+    String location = '/',
+    bool fromCache = false,
+    FakeDataRepository? data,
   }) async {
-    data = FakeDataRepository([kOrders])
+    this.data = (data ?? FakeDataRepository([kOrders]))
       ..seedObjects('orders', [order('o1', '#1042'), order('o2', '#1043')]);
-    repo = FakeInboxRepository(now: () => kNow.toUtc())..seed(_seed);
+    repo = FakeInboxRepository(now: () => kNow.toUtc())
+      ..seed(_seed, fromCache: fromCache);
     inbox = InboxCubit(repo, now: clock);
     _pumped = true;
     tester.view.physicalSize = size;
@@ -139,15 +143,16 @@ final class InboxRig {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     router = GoRouter(
+      initialLocation: location,
       routes: [
         GoRoute(
           path: '/',
-          builder: (_, _) => Scaffold(
+          builder: (_, s) => Scaffold(
             body:
                 home ??
                 InboxPage(
                   day: day,
-                  itemId: itemId,
+                  itemId: itemId ?? s.uri.queryParameters['item'],
                   now: clock,
                   notifier: notifier,
                 ),
@@ -166,7 +171,7 @@ final class InboxRig {
     addTearDown(router.dispose);
     await tester.pumpWidget(
       RepositoryProvider<DataRepository>.value(
-        value: data,
+        value: this.data,
         child: MultiBlocProvider(
           providers: [
             BlocProvider<AuthCubit>.value(value: auth),

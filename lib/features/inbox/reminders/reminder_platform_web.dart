@@ -31,16 +31,19 @@ final class _WebAttention implements Attention {
   });
 }
 
-/// `localStorage`, or memory when it throws (blocked site data).
+/// `localStorage`, or memory when it throws (blocked site data, full
+/// quota): a key whose write failed reads from memory (null = removed)
+/// until a write of it succeeds again.
 final class _WebStore implements ReminderStore {
-  final _memory = <String, String>{};
+  final _memory = <String, String?>{};
 
   @override
   String? read(String key) {
+    if (_memory.containsKey(key)) return _memory[key];
     try {
       return web.window.localStorage.getItem(key);
     } catch (_) {
-      return _memory[key];
+      return null;
     }
   }
 
@@ -49,8 +52,9 @@ final class _WebStore implements ReminderStore {
     try {
       final storage = web.window.localStorage;
       value == null ? storage.removeItem(key) : storage.setItem(key, value);
+      _memory.remove(key);
     } catch (_) {
-      value == null ? _memory.remove(key) : _memory[key] = value;
+      _memory[key] = value;
     }
   }
 

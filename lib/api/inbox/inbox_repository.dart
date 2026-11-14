@@ -10,7 +10,9 @@ abstract interface class InboxRepository {
   void initialize({required String workspaceId, required String uid});
 
   /// Every item assigned to the member, live; errors surface on the stream.
-  Stream<List<InboxItem>> watch();
+  /// [fromCache]: the snapshot is the local cache's, not yet confirmed by
+  /// the server (it may miss or hold stale items).
+  Stream<({List<InboxItem> items, bool fromCache})> watch();
 
   /// A fresh document id for a new item.
   String newId();

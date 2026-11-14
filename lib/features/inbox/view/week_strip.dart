@@ -27,12 +27,24 @@ class WeekStrip extends StatelessWidget {
   DateTime _shift(int days) =>
       DateTime(selected.year, selected.month, selected.day + days);
 
+  /// The days the month picker offers: ten years either side of [today].
+  static ({DateTime first, DateTime last}) range(DateTime today) => (
+    first: DateTime(today.year - 10),
+    last: DateTime(today.year + 10, 12, 31),
+  );
+
   Future<void> _pick(BuildContext context) async {
+    final (:first, :last) = range(today);
     final picked = await showDatePicker(
       context: context,
-      initialDate: selected,
-      firstDate: DateTime(today.year - 10),
-      lastDate: DateTime(today.year + 10, 12, 31),
+      // The weeks' arrows can walk past the range.
+      initialDate: selected.isBefore(first)
+          ? first
+          : selected.isAfter(last)
+          ? last
+          : selected,
+      firstDate: first,
+      lastDate: last,
       builder: (_, child) => MondayFirst(child: child!),
     );
     if (picked != null) onSelect(picked);

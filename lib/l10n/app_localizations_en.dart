@@ -6039,6 +6039,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inboxCardsLoadFailed => 'Couldn\'t load the cards';
 
   @override
+  String get inboxCollectionsLoadFailed => 'Couldn\'t load the collections';
+
+  @override
   String get inboxSearchCollections => 'Search collections';
 
   @override

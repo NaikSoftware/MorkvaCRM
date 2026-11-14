@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -91,6 +92,7 @@ InboxItem task(
   required DateTime due,
   List<int> reminders = const [InboxReminders.atTime],
   bool done = false,
+  DateTime? updated,
 }) => InboxItem(
   id: id,
   kind: InboxKind.task,
@@ -100,9 +102,11 @@ InboxItem task(
   assigneeUid: 'u',
   createdBy: 'u',
   done: done,
-  createdAt: t0,
-  updatedAt: t0,
+  createdAt: _longAgo,
+  updatedAt: updated ?? _longAgo,
 );
+
+final _longAgo = DateTime.utc(2026, 10);
 
 String key(String id, DateTime at) => '$id@${at.millisecondsSinceEpoch}';
 
@@ -193,6 +197,60 @@ void main() {
     ]);
 
     expect(tab.pending, isEmpty);
+  });
+
+  test('a fire time earlier than the item\'s last edit does not fire', () {
+    final last = t0.subtract(const Duration(seconds: 20));
+    final fire = t0.subtract(const Duration(seconds: 10));
+    tickWindow(last, t0, [
+      task(
+        'edited',
+        due: fire,
+        updated: t0.subtract(const Duration(seconds: 1)),
+      ),
+      task('atEdit', due: fire, updated: fire),
+    ]);
+
+    expect(tab.pending.map((e) => e.itemId), ['atEdit']);
+  });
+
+  test('a cached list shows toasts but neither fires nor moves the mark '
+      'until a server list arrives', () {
+    final last = t0.subtract(const Duration(minutes: 1));
+    final items = [task('a', due: t0.subtract(const Duration(seconds: 30)))];
+    browser.data[ReminderScheduler.pendingKey] = jsonEncode({
+      'entries': [
+        PendingReminder(
+          key: key('a', items[0].fireTimes.single),
+          itemId: 'a',
+          fireAt: items[0].fireTimes.single,
+        ).toJson(),
+      ],
+    });
+    browser.data[ReminderScheduler.lastTickKey] =
+        '${last.millisecondsSinceEpoch}';
+
+    tab.scheduler.updateItems(items, settled: false);
+    expect(tab.pending.map((e) => e.itemId), ['a'], reason: 'shown');
+    browser.data.remove(ReminderScheduler.pendingKey);
+    tab.scheduler.updateItems(items, settled: false);
+    tab.scheduler.tickNow();
+    expect(tab.pending, isEmpty);
+    expect(
+      browser.data[ReminderScheduler.lastTickKey],
+      '${last.millisecondsSinceEpoch}',
+    );
+
+    tab.scheduler.updateItems(items);
+    expect(tab.pending.single.itemId, 'a');
+
+    // Settled for good: a later cached list (offline) still fires.
+    tab.clock = t0.add(const Duration(seconds: 20));
+    tab.scheduler.updateItems([
+      ...items,
+      task('b', due: t0.add(const Duration(seconds: 10))),
+    ], settled: false);
+    expect(tab.pending.map((e) => e.itemId), ['a', 'b']);
   });
 
   test('the window is capped at 24 h and a long one is one catch-up group', () {

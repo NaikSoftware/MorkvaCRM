@@ -137,6 +137,14 @@ class ReminderScheduler {
   /// Null until the first [updateItems]: "not loaded" is not "no items", so
   /// nothing ticks (the mark would skip the catch-up) or prunes until then.
   Map<String, InboxItem>? _items;
+
+  /// Whether a server-confirmed list has arrived: a cached one may miss
+  /// items, so ticking on it would move the shared mark past their
+  /// reminders. Stays true once set (offline later keeps firing).
+  // shortcut: a session that starts offline fires nothing until it
+  // connects (then the window catches up); tick on cache after a timeout
+  // if that matters.
+  bool _settled = false;
   List<PendingReminder> _pending = const [];
   final _pendingChanges = StreamController<List<PendingReminder>>.broadcast();
   final _subs = <StreamSubscription<Object?>>[];
@@ -172,8 +180,11 @@ class ReminderScheduler {
     _pendingChanges.close();
   }
 
-  void updateItems(List<InboxItem> items) {
+  /// [settled] false: the cache's items, not yet the server's - shown,
+  /// but nothing fires (see [_settled]).
+  void updateItems(List<InboxItem> items, {bool settled = true}) {
     _items = {for (final i in items) i.id: i};
+    _settled |= settled;
     _refresh();
     tickNow();
   }
@@ -185,7 +196,7 @@ class ReminderScheduler {
   @visibleForTesting
   void tickNow() {
     final items = _items;
-    if (items == null) return;
+    if (items == null || !_settled) return;
     final now = _now().millisecondsSinceEpoch;
     final last = int.tryParse(_store.read(lastTickKey) ?? '');
     // Clock moved back: wait for it to pass the mark rather than refire,
@@ -199,9 +210,11 @@ class ReminderScheduler {
     final catchUp = now - last > catchUpAfter.inMilliseconds;
     final toasts = <PendingReminder>[];
     for (final item in items.values) {
+      // A time already past when the item was last edited never fires.
+      final edited = item.updatedAt.millisecondsSinceEpoch;
       for (final fire in item.fireTimes) {
         final at = fire.millisecondsSinceEpoch;
-        if (at <= from || at > now) continue;
+        if (at <= from || at > now || at < edited) continue;
         final key = '${item.id}@$at';
         if (!catchUp && _notify(item, key)) continue;
         toasts.add(

@@ -55,6 +55,18 @@ void main() {
     expect(cubit.badgeCount, 2);
   });
 
+  test('a cache snapshot is ready fromCache; the same items confirmed by '
+      'the server are a new state', () async {
+    repo.seed([_item('a')], fromCache: true);
+    build();
+    await pumpEventQueue();
+    expect(cubit.state, InboxReady([_item('a')], fromCache: true));
+
+    repo.recover();
+    await pumpEventQueue();
+    expect(cubit.state, InboxReady([_item('a')]));
+  });
+
   test('a failed listener shows failed; retry resubscribes', () async {
     build();
     await pumpEventQueue();

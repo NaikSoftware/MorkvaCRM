@@ -1538,6 +1538,7 @@
   "inboxStripDay": "{count, plural, =0{{day}} one{{day}, {count} невиконане} few{{day}, {count} невиконані} many{{day}, {count} невиконаних} other{{day}, {count} невиконаних}}",
   "inboxStripDayToday": "{count, plural, =0{{day}, сьогодні} one{{day}, сьогодні, {count} невиконане} few{{day}, сьогодні, {count} невиконані} many{{day}, сьогодні, {count} невиконаних} other{{day}, сьогодні, {count} невиконаних}}",
   "inboxCardsLoadFailed": "Не вдалося завантажити картки",
+  "inboxCollectionsLoadFailed": "Не вдалося завантажити колекції",
   "inboxSearchCollections": "Шукати колекції",
   "inboxNoCollections": "Колекцій ще немає",
   "inboxNoCollectionsMatch": "Жодна колекція не відповідає «{query}»",

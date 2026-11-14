@@ -94,6 +94,10 @@ class _CardLinkPickerState extends State<CardLinkPicker> {
           child: collection == null
               ? CollectionsWatcher(
                   builder: (context, byId) => _collections(byId?.values),
+                  errorBuilder: (context, retry) => _Notice(
+                    context.l10n.inboxCollectionsLoadFailed,
+                    onRetry: retry,
+                  ),
                 )
               : FutureBuilder(
                   future: _cards,
@@ -209,12 +213,10 @@ class _CardLinkPickerState extends State<CardLinkPicker> {
                       title: label,
                       subtitle: choices.secondaryOf(id),
                       onTap: () => Navigator.of(context).pop(
-                        InboxLink(
+                        InboxLink.toCard(
                           collectionId: collection.id,
                           cardId: id,
-                          label: label.length > 200
-                              ? label.substring(0, 200)
-                              : label,
+                          label: label,
                         ),
                       ),
                     );
@@ -361,21 +363,33 @@ class _Row extends StatelessWidget {
 }
 
 class _Notice extends StatelessWidget {
-  const _Notice(this.text);
+  const _Notice(this.text, {this.onRetry});
 
   final String text;
+
+  /// Adds a Retry button under the text.
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.all(Spacing.lg),
-      child: Text(
-        text,
-        textAlign: TextAlign.center,
-        style: theme.textTheme.bodyMedium?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            text,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          if (onRetry case final retry?) ...[
+            const SizedBox(height: Spacing.sm),
+            TextActionButton(label: context.l10n.commonRetry, onPressed: retry),
+          ],
+        ],
       ),
     );
   }

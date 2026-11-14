@@ -1,9 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/core/domain/inbox/inbox.dart';
 import 'package:morkva_crm/features/inbox/inbox.dart';
 
+import '../../collections/fake_data_repository.dart';
 import 'inbox_view_harness.dart';
+
+/// Its first collections listener fails (permission denied), later ones work.
+class _FlakyCollections extends FakeDataRepository {
+  _FlakyCollections(super.initial);
+
+  var _failed = false;
+
+  @override
+  Stream<List<Collection>> watchCollections() {
+    if (_failed) return super.watchCollections();
+    _failed = true;
+    return Stream.error(Exception('permission-denied'));
+  }
+}
 
 void main() {
   late InboxRig rig;
@@ -55,6 +71,30 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  testWidgets('picker: a failed collections listener shows an error and '
+      'Retry listens again', (tester) async {
+    final data = _FlakyCollections([kOrders]);
+    await rig.pump(
+      tester,
+      data: data,
+      home: Builder(
+        builder: (context) => TextButton(
+          onPressed: () => showCardLinkPicker(context),
+          child: const Text('Pick'),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Pick'));
+    await tester.pumpAndSettle();
+    expect(find.text("Couldn't load the collections"), findsOneWidget);
+    expect(find.text('Orders'), findsNothing);
+
+    await tester.tap(find.text('Retry'));
+    await tester.pumpAndSettle();
+    expect(find.text("Couldn't load the collections"), findsNothing);
+    expect(find.text('Orders'), findsOneWidget);
+  });
 
   testWidgets('picker: back returns to the collections', (tester) async {
     await rig.pump(

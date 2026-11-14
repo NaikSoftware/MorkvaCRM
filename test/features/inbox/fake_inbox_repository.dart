@@ -16,7 +16,11 @@ final class FakeInboxRepository implements InboxRepository {
 
   final DateTime Function() _now;
   final docs = <String, Map<String, Object?>>{};
-  final _subject = BehaviorSubject<List<InboxItem>>.seeded(const []);
+  final _subject =
+      BehaviorSubject<({List<InboxItem> items, bool fromCache})>.seeded((
+        items: const [],
+        fromCache: false,
+      ));
   var _ids = 0;
   String? uid;
 
@@ -38,26 +42,27 @@ final class FakeInboxRepository implements InboxRepository {
     }
   }
 
-  /// Seeds docs without a write record.
-  void seed(Iterable<InboxItem> items) {
+  /// Seeds docs without a write record; [fromCache] emits them as the
+  /// local cache's snapshot (the next write or [recover] is the server's).
+  void seed(Iterable<InboxItem> items, {bool fromCache = false}) {
     for (final i in items) {
       docs[i.id] = i.toJson();
     }
-    _subject.add(this.items);
+    _subject.add((items: this.items, fromCache: fromCache));
   }
 
   /// The watch reports [error] (replayed to new listeners until [recover]).
   void failWatch([Object? error]) => _subject.addError(error ?? kInboxDenied);
 
   /// Emits the current items again, clearing a [failWatch].
-  void recover() => _subject.add(items);
+  void recover() => _subject.add((items: items, fromCache: false));
 
   @override
   void initialize({required String workspaceId, required String uid}) =>
       this.uid = uid;
 
   @override
-  Stream<List<InboxItem>> watch() => _subject.stream;
+  Stream<({List<InboxItem> items, bool fromCache})> watch() => _subject.stream;
 
   @override
   String newId() => 'new_${++_ids}';
@@ -97,7 +102,7 @@ final class FakeInboxRepository implements InboxRepository {
         docs[id] = {...existing, ...json};
       }
     }
-    _subject.add(items);
+    _subject.add((items: items, fromCache: false));
   }
 
   Future<void> dispose() => _subject.close();

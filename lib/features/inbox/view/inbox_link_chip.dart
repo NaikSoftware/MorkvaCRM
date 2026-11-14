@@ -16,11 +16,20 @@ import '../../views/view_link.dart';
 /// dialogs and sheets too (unlike the shell's `CollectionsListCubit`).
 /// [InboxLinkChip]s below it read its map instead of each opening a
 /// listener of their own.
+///
+/// A failed listener leaves the map null (chips keep their stored label);
+/// [errorBuilder], when given, replaces [builder] then, with a retry that
+/// listens again.
 class CollectionsWatcher extends StatefulWidget {
-  const CollectionsWatcher({super.key, required this.builder});
+  const CollectionsWatcher({
+    super.key,
+    required this.builder,
+    this.errorBuilder,
+  });
 
   final Widget Function(BuildContext context, Map<String, Collection>? byId)
   builder;
+  final Widget Function(BuildContext context, VoidCallback retry)? errorBuilder;
 
   @override
   State<CollectionsWatcher> createState() => _CollectionsWatcherState();
@@ -29,15 +38,29 @@ class CollectionsWatcher extends StatefulWidget {
 class _CollectionsWatcherState extends State<CollectionsWatcher> {
   StreamSubscription<List<Collection>>? _sub;
   Map<String, Collection>? _byId;
+  bool _failed = false;
 
   @override
   void initState() {
     super.initState();
+    _listen();
+  }
+
+  void _listen() {
     _sub = context.read<DataRepository>().watchCollections().listen(
-      (list) => setState(() => _byId = {for (final c in list) c.id: c}),
+      (list) => setState(() {
+        _failed = false;
+        _byId = {for (final c in list) c.id: c};
+      }),
       // Unknown, not "deleted": chips keep their stored label.
-      onError: (Object _) {},
+      onError: (Object _) => setState(() => _failed = true),
     );
+  }
+
+  void _retry() {
+    unawaited(_sub?.cancel());
+    setState(() => _failed = false);
+    _listen();
   }
 
   @override
@@ -49,7 +72,15 @@ class _CollectionsWatcherState extends State<CollectionsWatcher> {
   @override
   Widget build(BuildContext context) => _CollectionsScope(
     byId: _byId,
-    child: Builder(builder: (context) => widget.builder(context, _byId)),
+    child: Builder(
+      builder: (context) => switch (widget.errorBuilder) {
+        final onError? when _failed && _byId == null => onError(
+          context,
+          _retry,
+        ),
+        _ => widget.builder(context, _byId),
+      },
+    ),
   );
 }
 

@@ -6291,6 +6291,9 @@ class AppLocalizationsUk extends AppLocalizations {
   String get inboxCardsLoadFailed => 'Не вдалося завантажити картки';
 
   @override
+  String get inboxCollectionsLoadFailed => 'Не вдалося завантажити колекції';
+
+  @override
   String get inboxSearchCollections => 'Шукати колекції';
 
   @override

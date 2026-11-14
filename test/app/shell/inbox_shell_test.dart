@@ -308,4 +308,13 @@ void main() {
     expect(parseInboxDay(''), isNull);
     expect(parseInboxDay(null), isNull);
   });
+
+  test('parseInboxDay: only within ten years of now', () {
+    final now = DateTime(2026, 11, 14);
+    expect(parseInboxDay('1990-01-01', now: now), isNull);
+    expect(parseInboxDay('2015-12-31', now: now), isNull);
+    expect(parseInboxDay('2016-01-01', now: now), DateTime(2016));
+    expect(parseInboxDay('2036-12-31', now: now), DateTime(2036, 12, 31));
+    expect(parseInboxDay('2037-01-01', now: now), isNull);
+  });
 }

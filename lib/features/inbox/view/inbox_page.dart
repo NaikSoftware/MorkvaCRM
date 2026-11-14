@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../app/shell/app_shell.dart';
 import '../../../core/domain/inbox/inbox.dart';
@@ -67,7 +68,7 @@ class _InboxView extends StatefulWidget {
 }
 
 class _InboxViewState extends State<_InboxView> {
-  /// The `itemId` whose editor was opened (or found unknown).
+  /// The `itemId` whose editor was opened (or the server says is unknown).
   String? _handledItemId;
 
   @override
@@ -92,22 +93,45 @@ class _InboxViewState extends State<_InboxView> {
   void _openItem(InboxState state) {
     final id = widget.itemId;
     if (id == null || id == _handledItemId || state is! InboxReady) return;
-    _handledItemId = id;
     final item = state.items.where((i) => i.id == id).firstOrNull;
+    // The cache may not have it yet: wait for the server's list.
+    if (item == null && state.fromCache) return;
+    _handledItemId = id;
     if (item == null) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _edit(item);
+      if (!mounted) return;
+      unawaited(_editor(item).whenComplete(() => _dropItemParam(id)));
     });
   }
 
-  void _edit(InboxItem item) => unawaited(
-    showInboxItemEditor(
-      context,
-      item: item,
-      now: widget.now,
-      notifier: widget.notifier,
-    ),
+  void _edit(InboxItem item) => unawaited(_editor(item));
+
+  Future<void> _editor(InboxItem item) => showInboxItemEditor(
+    context,
+    item: item,
+    now: widget.now,
+    notifier: widget.notifier,
   );
+
+  /// Takes the handled `item` out of the location (in place, no history
+  /// entry), so the same link or notification opens it again.
+  void _dropItemParam(String id) {
+    if (!mounted) return;
+    final router = GoRouter.maybeOf(context);
+    if (router == null) return;
+    final uri = router.routerDelegate.currentConfiguration.uri;
+    // Only while this page's linked location is still the current one.
+    if (uri.path != GoRouterState.of(context).uri.path ||
+        uri.queryParameters['item'] != id) {
+      return;
+    }
+    final params = {...uri.queryParameters}..remove('item');
+    final location = Uri(
+      path: uri.path,
+      queryParameters: params.isEmpty ? null : params,
+    );
+    Router.neglect(context, () => router.go(location.toString()));
+  }
 
   void _setDone(InboxItem item, bool done) {
     final inbox = context.read<InboxCubit>();
