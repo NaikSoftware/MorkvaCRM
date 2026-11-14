@@ -8,6 +8,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:morkva_crm/api/api.dart';
 import 'package:morkva_crm/api/assistant/assistant_config_repository.dart';
 import 'package:morkva_crm/api/assistant/firestore_thread_repository.dart';
+import 'package:morkva_crm/api/inbox/firestore_inbox_repository.dart';
 import 'package:morkva_crm/app/app.dart';
 import 'package:morkva_crm/core/automation/runner_api.dart';
 import 'package:morkva_crm/core/domain/automation/automation.dart';
@@ -214,6 +215,7 @@ MorkvaApp testApp({
     assistantConfigRepository: AssistantConfigRepository(firestore: db),
     automationStores: FakeStores().stores,
     scriptEngine: FakeScriptEngine(),
+    inboxRepository: FirestoreInboxRepository(firestore: db),
   );
 }
 

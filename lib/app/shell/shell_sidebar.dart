@@ -11,10 +11,11 @@ import '../../features/assistant/view/widgets/sparkle_icon.dart';
 import '../../features/automation/widgets/run_indicator.dart';
 import '../../l10n/l10n.dart';
 import 'brand_wordmark.dart';
+import 'inbox_count.dart';
 import 'sync_status_indicator.dart';
 
 /// Where the user is, as far as the navigation is concerned.
-enum ShellPlace { allCollections, automations, collection, settings }
+enum ShellPlace { allCollections, automations, collection, inbox, settings }
 
 /// The wide-screen navigation: the brand, "Jump to…", the Ask Morkva toggle,
 /// All collections, the pinned collections and the profile row with
@@ -39,6 +40,7 @@ class ShellSidebar extends StatelessWidget {
     this.onAssistant,
     this.assistantOpen = false,
     this.onAutomations,
+    this.onInbox,
   });
 
   final bool extended;
@@ -72,6 +74,9 @@ class ShellSidebar extends StatelessWidget {
 
   /// Opens the Automations page; null hides the entry.
   final VoidCallback? onAutomations;
+
+  /// Opens the Inbox; null hides the entry.
+  final VoidCallback? onInbox;
 
   /// Width of the full sidebar.
   static const double width = 272;
@@ -138,6 +143,14 @@ class ShellSidebar extends StatelessWidget {
             _AskButton(open: assistantOpen, onTap: onAssistant),
           ],
           const SizedBox(height: Spacing.xs),
+          if (onInbox case final onInbox?)
+            _NavRow(
+              label: l10n.inboxTitle,
+              selected: place == ShellPlace.inbox,
+              leading: const _ToolTile(MorkvaIcons.inbox),
+              trailing: const _InboxPill(),
+              onTap: onInbox,
+            ),
           _NavRow(
             label: l10n.shellAllCollections,
             selected: _allSelected,
@@ -148,7 +161,7 @@ class ShellSidebar extends StatelessWidget {
             _NavRow(
               label: l10n.commonAutomations,
               selected: place == ShellPlace.automations,
-              leading: const _AutomationsTile(),
+              leading: const _ToolTile(MorkvaIcons.bolt),
               trailing: const RunIndicatorPill(),
               onTap: onAutomations,
             ),
@@ -253,6 +266,20 @@ class ShellSidebar extends StatelessWidget {
                         context,
                       ).extension<MorkvaSemanticColors>()!.primaryText
                     : scheme.onSurfaceVariant,
+              ),
+            ),
+          if (onInbox case final onInbox?)
+            _RailButton(
+              tooltip: context.l10n.inboxTitle,
+              selected: place == ShellPlace.inbox,
+              onTap: onInbox,
+              child: InboxBadgeIcon(
+                icon: Icon(
+                  MorkvaIcons.inbox,
+                  color: place == ShellPlace.inbox
+                      ? scheme.onPrimaryContainer
+                      : scheme.onSurfaceVariant,
+                ),
               ),
             ),
           _RailButton(
@@ -380,9 +407,11 @@ class _AllTile extends StatelessWidget {
   }
 }
 
-/// The Automations row's bolt tile.
-class _AutomationsTile extends StatelessWidget {
-  const _AutomationsTile();
+/// The Inbox and Automations rows' [icon] tile.
+class _ToolTile extends StatelessWidget {
+  const _ToolTile(this.icon);
+
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
@@ -394,11 +423,41 @@ class _AutomationsTile extends StatelessWidget {
         color: scheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(28 * 0.3),
       ),
-      child: Icon(
-        MorkvaIcons.bolt,
-        size: 18,
-        color: scheme.onPrimaryContainer,
-      ),
+      child: Icon(icon, size: 18, color: scheme.onPrimaryContainer),
+    );
+  }
+}
+
+/// The Inbox row's count pill; none at 0.
+class _InboxPill extends StatelessWidget {
+  const _InboxPill();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return InboxCountBuilder(
+      builder: (context, count) => count == 0
+          ? const SizedBox.shrink()
+          : Container(
+              height: 24,
+              constraints: const BoxConstraints(minWidth: 24),
+              padding: const EdgeInsets.symmetric(horizontal: Spacing.xs),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: scheme.primaryContainer,
+                borderRadius: Radii.fullAll,
+              ),
+              child: Text(
+                '$count',
+                semanticsLabel: context.l10n.inboxDueCount(count),
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: scheme.onPrimaryContainer,
+                  fontWeight: FontWeight.w700,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ),
     );
   }
 }

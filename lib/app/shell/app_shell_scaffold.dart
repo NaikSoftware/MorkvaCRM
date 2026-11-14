@@ -36,10 +36,13 @@ import '../../features/automation/widgets/action_buttons.dart';
 import '../../features/automation/widgets/collection_actions_menu.dart';
 import '../../features/automation/widgets/run_indicator.dart';
 import '../../features/collections/collections.dart';
+import '../../features/inbox/bloc/inbox_cubit.dart';
+import '../../features/inbox/reminders/reminder_toast_host.dart';
 import '../../features/views/view_link.dart';
 import '../../l10n/l10n.dart';
 import 'app_shell.dart';
 import 'brand_wordmark.dart';
+import 'inbox_count.dart';
 import 'jump_to_dialog.dart';
 import 'shell_sidebar.dart';
 
@@ -58,6 +61,7 @@ class AppShellScaffold extends StatelessWidget {
     this.inSettings = false,
     this.inAutomations = false,
     this.automationsDetail = false,
+    this.inInbox = false,
   });
 
   /// The routed page (the shell's navigator).
@@ -75,6 +79,9 @@ class AppShellScaffold extends StatelessWidget {
 
   /// Module details or run detail: they draw their own back link.
   final bool automationsDetail;
+
+  /// The Inbox page is shown.
+  final bool inInbox;
 
   @override
   Widget build(BuildContext context) {
@@ -97,6 +104,7 @@ class AppShellScaffold extends StatelessWidget {
         inSettings: inSettings,
         inAutomations: inAutomations,
         automationsDetail: automationsDetail,
+        inInbox: inInbox,
         child: child,
       ),
     );
@@ -110,6 +118,7 @@ class _ShellView extends StatefulWidget {
     required this.inSettings,
     required this.inAutomations,
     required this.automationsDetail,
+    required this.inInbox,
   });
 
   final Widget child;
@@ -117,6 +126,7 @@ class _ShellView extends StatefulWidget {
   final bool inSettings;
   final bool inAutomations;
   final bool automationsDetail;
+  final bool inInbox;
 
   @override
   State<_ShellView> createState() => _ShellViewState();
@@ -176,6 +186,8 @@ class _ShellViewState extends State<_ShellView> {
       ? ShellPlace.settings
       : widget.inAutomations
       ? ShellPlace.automations
+      : widget.inInbox
+      ? ShellPlace.inbox
       : ShellPlace.allCollections;
 
   void _onPanelChanged(bool open) {
@@ -245,6 +257,10 @@ class _ShellViewState extends State<_ShellView> {
     void openAll() => router.go('/');
     void openSettings() => router.go('/settings');
     void openCollection(String id) => router.go('/collections/$id');
+    // No Inbox entries where no InboxCubit is provided (shell tests).
+    final VoidCallback? openInbox = maybeRead<InboxCubit>(context) == null
+        ? null
+        : () => router.go('/inbox');
     // Idle: the page itself; else the Runs tab filtered to what needs a look.
     void openAutomations() {
       final runs = maybeRead<AutomationRunsCubit>(context);
@@ -271,8 +287,11 @@ class _ShellViewState extends State<_ShellView> {
     final inCollection = place == ShellPlace.collection;
     // Phone: the first three pins and All are bottom-bar tabs.
     final tabs = pinned.take(3).toList();
+    final inInbox = place == ShellPlace.inbox;
     final isTab =
-        !wide && inCollection && tabs.any((c) => c.id == collectionId);
+        !wide &&
+        ((inCollection && tabs.any((c) => c.id == collectionId)) ||
+            (inInbox && openInbox != null));
 
     // Phone: the chat is its own full-screen route.
     final VoidCallback? toggleAssistant = assistant == null
@@ -329,6 +348,7 @@ class _ShellViewState extends State<_ShellView> {
             onAssistant: toggleAssistant,
             assistantOpen: assistantOpen,
             onAutomations: openAutomations,
+            onInbox: openInbox,
             onUnpin: pins.unpin,
             onReorder: (from, to) =>
                 pins.reorder([for (final c in pinned) c.id], from, to),
@@ -351,6 +371,8 @@ class _ShellViewState extends State<_ShellView> {
               ? context.l10n.commonSettings
               : inAutomations
               ? context.l10n.commonAutomations
+              : inInbox
+              ? context.l10n.inboxTitle
               : context.l10n.commonCollections,
           // Wide, All collections, Automations and Settings draw their own
           // header; a collection and the automation detail pages always do.
@@ -360,6 +382,7 @@ class _ShellViewState extends State<_ShellView> {
                   (wide &&
                       (place == ShellPlace.allCollections ||
                           inAutomations ||
+                          inInbox ||
                           inSettings))
               ? const SizedBox.shrink()
               : null,
@@ -389,13 +412,17 @@ class _ShellViewState extends State<_ShellView> {
               if (!inSettings && !inAutomations) avatar,
             ],
           ),
+          // With the Inbox it shows even with no pins (Inbox · All).
           bottomBar:
-              tabs.isNotEmpty && (place == ShellPlace.allCollections || isTab)
+              (tabs.isNotEmpty || openInbox != null) &&
+                  (place == ShellPlace.allCollections || isTab)
               ? _PinsBar(
                   tabs: tabs,
                   selectedId: collectionId,
+                  inboxSelected: inInbox,
                   onCollection: openCollection,
                   onAll: openAll,
+                  onInbox: openInbox,
                 )
               : null,
           banner: inCollection ? null : const ConflictWarningBanner(),
@@ -412,7 +439,10 @@ class _ShellViewState extends State<_ShellView> {
     // reviews on any page.
     return RepositoryProvider<AutomationsHost>.value(
       value: _automationsHost,
-      child: RunNoticeHost(collectionId: collectionId, child: shell),
+      child: RunNoticeHost(
+        collectionId: collectionId,
+        child: ReminderToastHost(child: shell),
+      ),
     );
   }
 }
@@ -771,31 +801,54 @@ class AssistantHistory extends StatelessWidget {
   }
 }
 
-/// Phone: the first three pins plus All collections.
+/// Phone: the Inbox, the first three pins and All collections.
 class _PinsBar extends StatelessWidget {
   const _PinsBar({
     required this.tabs,
     required this.selectedId,
+    required this.inboxSelected,
     required this.onCollection,
     required this.onAll,
+    this.onInbox,
   });
 
   final List<Collection> tabs;
 
-  /// The open tab's collection; null = All.
+  /// The open tab's collection; null = All (or the Inbox).
   final String? selectedId;
+  final bool inboxSelected;
   final ValueChanged<String> onCollection;
   final VoidCallback onAll;
+
+  /// Null: no Inbox destination.
+  final VoidCallback? onInbox;
 
   @override
   Widget build(BuildContext context) {
     final shown = tabs;
+    final onInbox = this.onInbox;
+    final first = onInbox == null ? 0 : 1;
     final selected = shown.indexWhere((c) => c.id == selectedId);
     return NavigationBar(
-      selectedIndex: selected < 0 ? shown.length : selected,
-      onDestinationSelected: (i) =>
-          i < shown.length ? onCollection(shown[i].id) : onAll(),
+      selectedIndex: inboxSelected && onInbox != null
+          ? 0
+          : first + (selected < 0 ? shown.length : selected),
+      onDestinationSelected: (i) {
+        final pin = i - first;
+        if (pin < 0) {
+          onInbox?.call();
+        } else if (pin < shown.length) {
+          onCollection(shown[pin].id);
+        } else {
+          onAll();
+        }
+      },
       destinations: [
+        if (onInbox != null)
+          NavigationDestination(
+            icon: const InboxBadgeIcon(icon: Icon(MorkvaIcons.inbox)),
+            label: context.l10n.inboxTitle,
+          ),
         for (final c in shown)
           NavigationDestination(
             icon: Icon(CollectionIcons.byKey(c.icon)),

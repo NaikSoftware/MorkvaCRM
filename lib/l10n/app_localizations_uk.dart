@@ -6018,4 +6018,364 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get viewWidgetsLoadingItemsEllipsis => 'Завантаження карток…';
+
+  @override
+  String get inboxTitle => 'Вхідні';
+
+  @override
+  String inboxSaveFailed(String error) {
+    return 'Не вдалося зберегти — $error';
+  }
+
+  @override
+  String get inboxDone => 'Виконано';
+
+  @override
+  String inboxMovedToToday(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count завдання перенесено на сьогодні',
+      many: '$count завдань перенесено на сьогодні',
+      few: '$count завдання перенесено на сьогодні',
+      one: '$count завдання перенесено на сьогодні',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get inboxEmptyTitle => 'Вхідні порожні';
+
+  @override
+  String get inboxEmptyMessage =>
+      'Записуйте нотатки, плануйте завдання й отримуйте нагадування. Пов’язуйте будь-що з карткою.';
+
+  @override
+  String get inboxLoadFailed => 'Не вдалося завантажити вхідні.';
+
+  @override
+  String get inboxAddNote => 'Додати нотатку…';
+
+  @override
+  String get inboxAddTask => 'Додати завдання…';
+
+  @override
+  String get inboxAddTaskToday => 'Додати завдання на сьогодні…';
+
+  @override
+  String inboxAddTaskFor(String day) {
+    return 'Додати завдання на $day…';
+  }
+
+  @override
+  String get inboxTaskSwitchToNote => 'Завдання — перемкнути на нотатку';
+
+  @override
+  String get inboxNoteSwitchToTask => 'Нотатка — перемкнути на завдання';
+
+  @override
+  String get inboxTask => 'Завдання';
+
+  @override
+  String get inboxNote => 'Нотатка';
+
+  @override
+  String get inboxTitleHint => 'Назва';
+
+  @override
+  String get inboxDetailsHint => 'Подробиці (необов’язково)';
+
+  @override
+  String get inboxDate => 'Дата';
+
+  @override
+  String get inboxNoDate => 'Без дати';
+
+  @override
+  String get inboxClearDate => 'Прибрати дату';
+
+  @override
+  String get inboxTomorrow => 'Завтра';
+
+  @override
+  String get inboxNextMonday => 'Наступного понеділка';
+
+  @override
+  String get inboxNextMon => 'Наступний пн';
+
+  @override
+  String get inboxPickDate => 'Вибрати…';
+
+  @override
+  String get inboxTime => 'Час';
+
+  @override
+  String get inboxAddTime => 'Додати час';
+
+  @override
+  String get inboxClearTime => 'Прибрати час';
+
+  @override
+  String get inboxSetDateForTime => 'Укажіть дату, щоб додати час';
+
+  @override
+  String get inboxReminder => 'Нагадування';
+
+  @override
+  String get inboxReminders => 'Нагадування';
+
+  @override
+  String get inboxNoReminders => 'Без нагадувань';
+
+  @override
+  String get inboxAddReminder => 'Додати нагадування';
+
+  @override
+  String get inboxRemoveReminder => 'Прибрати нагадування';
+
+  @override
+  String get inboxSetDateForReminder => 'Укажіть дату, щоб додати нагадування';
+
+  @override
+  String get inboxSetDateForReminders =>
+      'Укажіть дату, щоб додавати нагадування';
+
+  @override
+  String get inboxReminderAtStart => 'На початку';
+
+  @override
+  String get inboxReminder15MinBefore => 'За 15 хв';
+
+  @override
+  String get inboxReminder15Min => '15 хв';
+
+  @override
+  String get inboxReminder30MinBefore => 'За 30 хв';
+
+  @override
+  String get inboxReminder30Min => '30 хв';
+
+  @override
+  String get inboxReminderMorningOf => 'Зранку того дня';
+
+  @override
+  String get inboxReminderCustom => 'Обрати дату й час…';
+
+  @override
+  String inboxReminderMinutes(int minutes) {
+    return '$minutes хв';
+  }
+
+  @override
+  String inboxNotificationsDefault(String link) {
+    return 'Нагадування з’являються, поки застосунок відкритий. $link, щоб бачити їх і в інших вкладках.';
+  }
+
+  @override
+  String get inboxTurnOnNotifications => 'Увімкніть сповіщення';
+
+  @override
+  String get inboxNotificationsGranted =>
+      'Нагадування з’являються, поки застосунок відкритий у вкладці.';
+
+  @override
+  String get inboxNotificationsDenied =>
+      'Сповіщення для цього сайту заблоковано — нагадування показуються лише в застосунку.';
+
+  @override
+  String get inboxLinkCard => 'Пов’язати картку';
+
+  @override
+  String get inboxRemoveLink => 'Прибрати посилання';
+
+  @override
+  String inboxOpenLink(String label) {
+    return 'Відкрити $label';
+  }
+
+  @override
+  String get inboxCardDeleted => 'Картку видалено';
+
+  @override
+  String get inboxCollectionDeleted => 'Колекцію видалено';
+
+  @override
+  String get inboxDeleted => 'Видалено';
+
+  @override
+  String get inboxDiscardMessage => 'Зміни в цьому записі не збережено.';
+
+  @override
+  String get inboxOverdue => 'Прострочені';
+
+  @override
+  String get inboxCompleted => 'Виконані';
+
+  @override
+  String get inboxMoveAllToToday => 'Перенести всі на сьогодні';
+
+  @override
+  String get inboxNothingForToday => 'На сьогодні нічого';
+
+  @override
+  String inboxNothingFor(String day) {
+    return 'Нічого на $day';
+  }
+
+  @override
+  String inboxDaysLate(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days дн. прострочено',
+      many: '$days дн. прострочено',
+      few: '$days дн. прострочено',
+      one: '$days дн. прострочено',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get inboxMarkDone => 'Позначити виконаним';
+
+  @override
+  String get inboxMarkNotDone => 'Позначити невиконаним';
+
+  @override
+  String inboxPickDateIn(String month) {
+    return '$month, вибрати дату';
+  }
+
+  @override
+  String get inboxPreviousWeek => 'Попередній тиждень';
+
+  @override
+  String get inboxNextWeek => 'Наступний тиждень';
+
+  @override
+  String inboxStripDay(String day, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$day, $count невиконаних',
+      many: '$day, $count невиконаних',
+      few: '$day, $count невиконані',
+      one: '$day, $count невиконане',
+      zero: '$day',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String inboxStripDayToday(String day, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$day, сьогодні, $count невиконаних',
+      many: '$day, сьогодні, $count невиконаних',
+      few: '$day, сьогодні, $count невиконані',
+      one: '$day, сьогодні, $count невиконане',
+      zero: '$day, сьогодні',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get inboxCardsLoadFailed => 'Не вдалося завантажити картки';
+
+  @override
+  String get inboxCollectionsLoadFailed => 'Не вдалося завантажити колекції';
+
+  @override
+  String get inboxSearchCollections => 'Шукати колекції';
+
+  @override
+  String get inboxNoCollections => 'Колекцій ще немає';
+
+  @override
+  String inboxNoCollectionsMatch(String query) {
+    return 'Жодна колекція не відповідає «$query»';
+  }
+
+  @override
+  String inboxSearchIn(String name) {
+    return 'Пошук: $name';
+  }
+
+  @override
+  String inboxShownOf(int shown, int total) {
+    return '$shown з $total';
+  }
+
+  @override
+  String inboxCollectionNoCards(String name) {
+    return 'У «$name» ще немає карток';
+  }
+
+  @override
+  String inboxNoCardsMatch(String query) {
+    return 'Жодна картка не відповідає «$query»';
+  }
+
+  @override
+  String get inboxBackToCollections => 'Назад до колекцій';
+
+  @override
+  String get inboxLinkStepCollection => 'Крок 1 з 2 · Виберіть колекцію';
+
+  @override
+  String get inboxLinkStepCard => 'Крок 2 з 2 · Виберіть картку';
+
+  @override
+  String get inboxAddToInbox => 'Додати у вхідні';
+
+  @override
+  String get inboxAddToInboxMenu => 'Додати у вхідні…';
+
+  @override
+  String inboxCardOpenCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Вхідні · $count невиконаних',
+      many: 'Вхідні · $count невиконаних',
+      few: 'Вхідні · $count невиконані',
+      one: 'Вхідні · $count невиконане',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String inboxDueCount(int count) {
+    return '$count до виконання';
+  }
+
+  @override
+  String get inboxDismiss => 'Закрити';
+
+  @override
+  String get inboxDismissAll => 'Закрити всі';
+
+  @override
+  String inboxReminderFor(String title) {
+    return 'Нагадування: $title';
+  }
+
+  @override
+  String inboxRemindersAway(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Поки вас не було: $count нагадування',
+      many: 'Поки вас не було: $count нагадувань',
+      few: 'Поки вас не було: $count нагадування',
+      one: 'Поки вас не було: $count нагадування',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String inboxMoreCount(int count) {
+    return 'Ще $count';
+  }
 }

@@ -4477,5 +4477,249 @@
   "viewWidgetsEnterNumber": "Enter a number",
   "viewWidgetsNoMatches": "No matches",
   "viewWidgetsLoadingItems": "Loading items",
-  "viewWidgetsLoadingItemsEllipsis": "Loading items…"
+  "viewWidgetsLoadingItemsEllipsis": "Loading items…",
+  "inboxTitle": "Inbox",
+  "inboxSaveFailed": "Couldn't save — {error}",
+  "@inboxSaveFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "inboxDone": "Done",
+  "inboxMovedToToday": "{count, plural, =1{Moved 1 task to today} other{Moved {count} tasks to today}}",
+  "@inboxMovedToToday": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "inboxEmptyTitle": "Your Inbox is empty",
+  "inboxEmptyMessage": "Jot down notes, plan tasks and get reminded. Link anything to a card.",
+  "inboxLoadFailed": "Couldn't load your Inbox.",
+  "inboxAddNote": "Add a note…",
+  "inboxAddTask": "Add a task…",
+  "inboxAddTaskToday": "Add a task for today…",
+  "inboxAddTaskFor": "Add a task for {day}…",
+  "@inboxAddTaskFor": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      }
+    }
+  },
+  "inboxTaskSwitchToNote": "Task — switch to note",
+  "inboxNoteSwitchToTask": "Note — switch to task",
+  "inboxTask": "Task",
+  "inboxNote": "Note",
+  "inboxTitleHint": "Title",
+  "inboxDetailsHint": "Details (optional)",
+  "inboxDate": "Date",
+  "inboxNoDate": "No date",
+  "inboxClearDate": "Clear date",
+  "inboxTomorrow": "Tomorrow",
+  "inboxNextMonday": "Next Monday",
+  "inboxNextMon": "Next Mon",
+  "inboxPickDate": "Pick…",
+  "inboxTime": "Time",
+  "inboxAddTime": "Add a time",
+  "inboxClearTime": "Clear time",
+  "inboxSetDateForTime": "Set a date to add a time",
+  "inboxReminder": "Reminder",
+  "inboxReminders": "Reminders",
+  "inboxNoReminders": "No reminders",
+  "inboxAddReminder": "Add a reminder",
+  "inboxRemoveReminder": "Remove reminder",
+  "inboxSetDateForReminder": "Set a date to add a reminder",
+  "inboxSetDateForReminders": "Set a date to add reminders",
+  "inboxReminderAtStart": "At start",
+  "inboxReminder15MinBefore": "15 min before",
+  "inboxReminder15Min": "15 min",
+  "inboxReminder30MinBefore": "30 min before",
+  "inboxReminder30Min": "30 min",
+  "inboxReminderMorningOf": "Morning of",
+  "inboxReminderCustom": "Pick date & time…",
+  "inboxReminderMinutes": "{minutes} min",
+  "@inboxReminderMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "inboxNotificationsDefault": "Reminders pop up while Morkva is open. {link} to see them in other tabs too.",
+  "@inboxNotificationsDefault": {
+    "placeholders": {
+      "link": {
+        "type": "String"
+      }
+    }
+  },
+  "inboxTurnOnNotifications": "Turn on notifications",
+  "inboxNotificationsGranted": "Reminders pop up while Morkva is open in a tab.",
+  "inboxNotificationsDenied": "Notifications are blocked for this site — reminders show only inside Morkva.",
+  "inboxLinkCard": "Link a card",
+  "inboxRemoveLink": "Remove link",
+  "inboxOpenLink": "Open {label}",
+  "@inboxOpenLink": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "inboxCardDeleted": "Card deleted",
+  "inboxCollectionDeleted": "Collection deleted",
+  "inboxDeleted": "Deleted",
+  "inboxDiscardMessage": "Your changes to this item haven't been saved.",
+  "inboxOverdue": "Overdue",
+  "inboxCompleted": "Completed",
+  "inboxMoveAllToToday": "Move all to today",
+  "inboxNothingForToday": "Nothing for today",
+  "inboxNothingFor": "Nothing for {day}",
+  "@inboxNothingFor": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      }
+    }
+  },
+  "inboxDaysLate": "{days, plural, =1{1 d late} other{{days} d late}}",
+  "@inboxDaysLate": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "inboxMarkDone": "Mark done",
+  "inboxMarkNotDone": "Mark not done",
+  "inboxPickDateIn": "{month}, pick a date",
+  "@inboxPickDateIn": {
+    "placeholders": {
+      "month": {
+        "type": "String"
+      }
+    }
+  },
+  "inboxPreviousWeek": "Previous week",
+  "inboxNextWeek": "Next week",
+  "inboxStripDay": "{count, plural, =0{{day}} =1{{day}, 1 open} other{{day}, {count} open}}",
+  "@inboxStripDay": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "inboxStripDayToday": "{count, plural, =0{{day}, today} =1{{day}, today, 1 open} other{{day}, today, {count} open}}",
+  "@inboxStripDayToday": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "inboxCardsLoadFailed": "Couldn't load the cards",
+  "inboxCollectionsLoadFailed": "Couldn't load the collections",
+  "inboxSearchCollections": "Search collections",
+  "inboxNoCollections": "No collections yet",
+  "inboxNoCollectionsMatch": "No collections match “{query}”",
+  "@inboxNoCollectionsMatch": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "inboxSearchIn": "Search {name}",
+  "@inboxSearchIn": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "inboxShownOf": "{shown} of {total}",
+  "@inboxShownOf": {
+    "placeholders": {
+      "shown": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "inboxCollectionNoCards": "{name} has no cards yet",
+  "@inboxCollectionNoCards": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "inboxNoCardsMatch": "No cards match “{query}”",
+  "@inboxNoCardsMatch": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "inboxBackToCollections": "Back to collections",
+  "inboxLinkStepCollection": "Step 1 of 2 · Choose a collection",
+  "inboxLinkStepCard": "Step 2 of 2 · Choose a card",
+  "inboxAddToInbox": "Add to Inbox",
+  "inboxAddToInboxMenu": "Add to Inbox…",
+  "inboxCardOpenCount": "{count, plural, =1{Inbox · 1 open} other{Inbox · {count} open}}",
+  "@inboxCardOpenCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "inboxDueCount": "{count} due",
+  "@inboxDueCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "inboxDismiss": "Dismiss",
+  "inboxDismissAll": "Dismiss all",
+  "inboxReminderFor": "Reminder: {title}",
+  "@inboxReminderFor": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "inboxRemindersAway": "{count, plural, =1{1 reminder while you were away} other{{count} reminders while you were away}}",
+  "@inboxRemindersAway": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "inboxMoreCount": "+{count} more",
+  "@inboxMoreCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }
