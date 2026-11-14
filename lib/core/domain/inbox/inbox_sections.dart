@@ -152,9 +152,8 @@ List<int> validReminders(Iterable<int> reminders) =>
     reminders.toSet().take(InboxReminders.max).toList();
 
 /// [reminders] for a due moment moved from local [from] to [to]: presets
-/// follow the due moment (switching timed ↔ all-day keeps the preset:
-/// "15 min before" stays 15 min before the start), custom ones keep the
-/// date/time the user picked.
+/// follow the due moment (dropped when [toAllDay] switches the preset set),
+/// custom ones keep the date/time the user picked.
 List<int> rebaseReminders(
   Iterable<int> reminders, {
   required DateTime from,
@@ -168,8 +167,6 @@ List<int> rebaseReminders(
       if (!presets.contains(r))
         InboxReminders.offsetFor(to, InboxReminders.fireTime(from, r))
       else if (fromAllDay == toAllDay)
-        r
-      else
-        toAllDay ? InboxReminders.toAllDay(r) : InboxReminders.toTimed(r),
+        r,
   ]);
 }

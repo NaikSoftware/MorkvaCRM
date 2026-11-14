@@ -291,7 +291,7 @@ void main() {
       await tester.tap(find.byTooltip('Reminder'));
       await tester.pumpAndSettle();
       expect(find.text('Pick date & time…'), findsOneWidget);
-      await tester.tap(find.text('At start · 09:00'));
+      await tester.tap(find.text('Morning of · 09:00'));
       await tester.pumpAndSettle();
       await tester.tapAt(const Offset(5, 5));
       await tester.pumpAndSettle();
@@ -306,7 +306,7 @@ void main() {
 
       await type(tester, 'Ship it');
       final task = created();
-      expect(task.reminders, [-540]);
+      expect(task.reminders, [InboxReminders.morningOf]);
       expect(
         task.link,
         const InboxLink(collectionId: 'orders', cardId: 'o1', label: '#1042'),

@@ -43,11 +43,11 @@ int? itemMinutes(InboxItem item) {
   return l.hour * 60 + l.minute;
 }
 
-/// A reminder offset as a chip label ("15 min before"), or [short] for
-/// row meta and composer chips ("15 min"). An all-day item's presets add
-/// their time ("15 min before · 08:45"; short: "08:45"). A custom one shows
-/// when it fires for local due moment [base]: "Fri 13, 18:00" (short:
-/// "18:00" on the due day).
+/// A reminder offset as a chip label ("15 min before", "Morning of ·
+/// 09:00"), or [short] for row meta and composer chips ("15 min", "09:00").
+/// A custom one shows when it fires
+/// for local due moment [base]: "Fri 13, 18:00" (short: "18:00" on the due
+/// day).
 String reminderLabel(
   AppLocalizations l10n,
   int offset, {
@@ -60,16 +60,15 @@ String reminderLabel(
   final at = InboxReminders.fireTime(base, offset);
   final time = timeLabel(at.hour * 60 + at.minute);
   if (InboxReminders.presetsFor(allDay: allDay).contains(offset)) {
-    final preset = allDay ? InboxReminders.toTimed(offset) : offset;
-    if (allDay && short) return time;
-    final label = switch (preset) {
+    return switch (offset) {
       InboxReminders.min15 =>
         short ? l10n.inboxReminder15Min : l10n.inboxReminder15MinBefore,
       InboxReminders.min30 =>
         short ? l10n.inboxReminder30Min : l10n.inboxReminder30MinBefore,
+      InboxReminders.morningOf =>
+        short ? time : '${l10n.inboxReminderMorningOf} · $time',
       _ => l10n.inboxReminderAtStart,
     };
-    return allDay ? '$label · $time' : label;
   }
   final sameDay =
       at.year == base.year && at.month == base.month && at.day == base.day;

@@ -367,18 +367,18 @@ void main() {
       );
     });
 
-    test('timed to all-day keeps the preset, counted from 09:00', () {
+    test('timed to all-day drops the timed presets only', () {
       final midnight = DateTime(2026, 11, 20);
       final out = rebaseReminders(
-        [InboxReminders.min15, custom],
+        [InboxReminders.atStart, custom],
         from: noon,
         fromAllDay: false,
         to: midnight,
         toAllDay: true,
       );
-      expect(out.first, -525);
+      expect(out, hasLength(1));
       expect(
-        InboxReminders.fireTime(midnight, out.last),
+        InboxReminders.fireTime(midnight, out.single),
         DateTime(2026, 11, 19, 18),
       );
     });

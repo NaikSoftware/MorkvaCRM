@@ -1505,6 +1505,7 @@
   "inboxReminder15Min": "15 хв",
   "inboxReminder30MinBefore": "За 30 хв",
   "inboxReminder30Min": "30 хв",
+  "inboxReminderMorningOf": "Зранку того дня",
   "inboxReminderCustom": "Обрати дату й час…",
   "inboxReminderMinutes": "{minutes} хв",
   "inboxNotificationsDefault": "Нагадування з’являються, поки застосунок відкритий. {link}, щоб бачити їх і в інших вкладках.",

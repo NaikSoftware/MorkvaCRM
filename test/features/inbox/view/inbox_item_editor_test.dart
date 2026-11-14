@@ -225,7 +225,7 @@ void main() {
         'All day',
         due: DateTime(2026, 11, 14),
         allDay: true,
-        reminders: const [-525],
+        reminders: const [InboxReminders.morningOf],
       ),
     ]);
     await open(tester, 'All day');
@@ -233,7 +233,7 @@ void main() {
       of: find.byType(InboxItemEditor),
       matching: find.text(text),
     );
-    expect(inEditor('15 min before · 08:45'), findsOneWidget);
+    expect(inEditor('Morning of · 09:00'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Add a time'));
     await tester.pumpAndSettle();
@@ -241,7 +241,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(inEditor('09:00'), findsOneWidget);
     expect(inEditor('At start'), findsOneWidget);
-    expect(inEditor('15 min before'), findsOneWidget);
+    expect(inEditor('Morning of · 09:00'), findsNothing);
 
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
@@ -249,7 +249,7 @@ void main() {
     expect(fields.keys.toSet(), {'dueAt', 'allDay', 'reminders', 'updatedAt'});
     expect(fields['dueAt'], DateTime(2026, 11, 14, 9).toUtc());
     expect(fields['allDay'], isFalse);
-    expect(fields['reminders'], [InboxReminders.min15, InboxReminders.atStart]);
+    expect(fields['reminders'], [InboxReminders.atStart]);
   });
 
   group('permission line', () {
@@ -264,11 +264,11 @@ void main() {
       await open(tester, 'Dated');
       final rich = find.textContaining('Turn on notifications');
       expect(rich, findsOneWidget);
-      // An all-day item counts its presets from 09:00.
+      // Morning of (and a custom time) only for an all-day item.
       await tester.tap(find.byTooltip('Add a reminder'));
       await tester.pumpAndSettle();
-      expect(find.text('At start · 09:00'), findsOneWidget);
-      expect(find.text('30 min before · 08:30'), findsOneWidget);
+      expect(find.text('Morning of · 09:00'), findsOneWidget);
+      expect(find.text('15 min before'), findsNothing);
       expect(find.text('Pick date & time…'), findsOneWidget);
       await tester.tap(find.byTooltip('Add a reminder'));
       await tester.pumpAndSettle();

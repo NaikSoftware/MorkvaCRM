@@ -4539,6 +4539,7 @@
   "inboxReminder15Min": "15 min",
   "inboxReminder30MinBefore": "30 min before",
   "inboxReminder30Min": "30 min",
+  "inboxReminderMorningOf": "Morning of",
   "inboxReminderCustom": "Pick date & time…",
   "inboxReminderMinutes": "{minutes} min",
   "@inboxReminderMinutes": {
