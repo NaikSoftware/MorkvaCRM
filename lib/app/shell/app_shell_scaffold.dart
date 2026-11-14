@@ -371,7 +371,8 @@ class _ShellViewState extends State<_ShellView> {
               : const BrandLogomark(size: 34),
           headerTrailing: Row(
             mainAxisSize: MainAxisSize.min,
-            spacing: Spacing.xxs,
+            // Phone header buttons need air between them (owner, 2026-11-14).
+            spacing: Spacing.xs,
             children: [
               // Phone: hidden while idle.
               if (!wide) const RunIndicatorButton(),

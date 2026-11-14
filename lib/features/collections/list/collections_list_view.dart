@@ -232,7 +232,7 @@ class _CollectionsContent extends StatelessWidget {
                         onPressed: () =>
                             CollectionsListView._fromTemplate(context),
                       ),
-                      const SizedBox(width: Spacing.xs),
+                      const SizedBox(width: Spacing.sm),
                       IconButton.filled(
                         tooltip: l10n.collectionsNewCollection,
                         icon: const Icon(Icons.add),

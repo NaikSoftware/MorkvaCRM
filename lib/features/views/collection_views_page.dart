@@ -828,9 +828,12 @@ class _PhoneFrame extends StatelessWidget {
           if (collection != null) ...[
             // Takes the sync pill's slot while automations need a look.
             const RunIndicatorButton(idle: SyncStatusIndicator()),
-            if (onAsk != null) const SizedBox(width: Spacing.xs),
+            if (onAsk != null) const SizedBox(width: Spacing.sm),
           ],
-          if (onAsk != null) AskMorkvaAction(onTap: onAsk),
+          if (onAsk != null) ...[
+            AskMorkvaAction(onTap: onAsk),
+            if (collection != null) const SizedBox(width: Spacing.xxs),
+          ],
           if (collection != null)
             PopupMenuButton<void>(
               tooltip: context.l10n.commonMore,
