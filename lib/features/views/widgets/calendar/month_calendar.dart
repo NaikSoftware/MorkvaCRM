@@ -72,12 +72,12 @@ class _MonthCalendarState extends State<MonthCalendar> {
             ),
           ),
           IconActionButton(
-            icon: Icons.chevron_left,
+            icon: MorkvaIcons.chevronLeft,
             tooltip: context.l10n.viewWidgetsPreviousMonth,
             onPressed: () => _shift(-1),
           ),
           IconActionButton(
-            icon: Icons.chevron_right,
+            icon: MorkvaIcons.chevronRight,
             tooltip: context.l10n.viewWidgetsNextMonth,
             onPressed: () => _shift(1),
           ),
@@ -353,7 +353,7 @@ class _DayCellState extends State<_DayCell> {
                                   ),
                                   child: IconButton(
                                     onPressed: () => data.quickAdd(day: day),
-                                    icon: const Icon(Icons.add, size: 18),
+                                    icon: const Icon(MorkvaIcons.add, size: 18),
                                     padding: EdgeInsets.zero,
                                     constraints: const BoxConstraints.tightFor(
                                       width: 28,
@@ -520,7 +520,7 @@ Future<void> _showDay(
                     ),
                   ),
                   IconActionButton(
-                    icon: Icons.close,
+                    icon: MorkvaIcons.close,
                     tooltip: dialogContext.l10n.commonClose,
                     onPressed: () => Navigator.of(dialogContext).pop(),
                   ),

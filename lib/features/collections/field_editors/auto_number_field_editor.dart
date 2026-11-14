@@ -25,7 +25,7 @@ class AutoNumberFieldEditor extends FieldEditor {
       l10n.collectionsTypeAutoNumberDescription;
 
   @override
-  IconData get icon => Icons.tag;
+  IconData get icon => MorkvaIcons.hashtag;
 
   @override
   bool get isComputed => true;
@@ -149,5 +149,5 @@ class AutoNumberFieldEditor extends FieldEditor {
   Widget buildPreviewAffordance(
     BuildContext context,
     FieldDefinition definition,
-  ) => const PreviewStubInput(icon: Icons.tag, height: 36);
+  ) => const PreviewStubInput(icon: MorkvaIcons.hashtag, height: 36);
 }

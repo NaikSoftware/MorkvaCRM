@@ -17,7 +17,7 @@ class AutoNumberValueEditor extends FieldValueEditor {
 
   @override
   Widget build(BuildContext context, ValueEditorContext ctx) => ReadOnlyValue(
-    icon: Icons.lock_outline,
+    icon: MorkvaIcons.lock,
     text: formatFieldValue(ctx.field, ctx.value),
     placeholder: context.l10n.objectsAssignedOnSave,
     helper: context.l10n.objectsSetAutomatically,
@@ -36,7 +36,7 @@ class CalculatedValueEditor extends FieldValueEditor {
 
   @override
   Widget build(BuildContext context, ValueEditorContext ctx) => ReadOnlyValue(
-    icon: Icons.functions,
+    icon: MorkvaIcons.formula,
     text: formatFieldValue(ctx.field, ctx.value),
     placeholder: context.l10n.objectsNothingToCalculate,
     helper: ctx.note ?? context.l10n.objectsCalculated,

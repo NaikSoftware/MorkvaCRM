@@ -100,7 +100,7 @@ CollectionTint buttonTintOf(String? tint, String seed, Brightness brightness) {
 /// The button's icon: its own, else the action's, else a bolt.
 IconData buttonIconOf(AutomationEntry entry) {
   final key = entry.automation.button?.icon ?? entry.action?.icon;
-  return key == null ? Icons.bolt_rounded : CollectionIcons.byKey(key);
+  return key == null ? MorkvaIcons.bolt : CollectionIcons.byKey(key);
 }
 
 /// The button label: the stored one, else the action's.
@@ -612,7 +612,7 @@ class _ButtonIcon extends StatelessWidget {
           ),
         ),
         ButtonPhase.queued => Icon(
-          Icons.schedule_rounded,
+          MorkvaIcons.schedule,
           size: 18,
           color: color,
         ),
@@ -745,7 +745,7 @@ class _ActionButtonState extends State<_ActionButton> {
       menuChildren: view.busy
           ? [
               MenuItemButton(
-                leadingIcon: const Icon(Icons.stop_circle_outlined),
+                leadingIcon: const Icon(MorkvaIcons.stopCircle),
                 onPressed: widget.onStop,
                 child: Text(l10n.automationWidgetsStop),
               ),
@@ -791,7 +791,7 @@ class _SaveAndRunMenu extends StatelessWidget {
             ),
             child: PrimaryButton(
               label: l10n.automationWidgetsSaveAndRun,
-              icon: Icons.bolt_rounded,
+              icon: MorkvaIcons.bolt,
               expand: true,
               onPressed: onSaveAndRun,
             ),
@@ -886,7 +886,7 @@ class _MoreButtonState extends State<_MoreButton> {
         ),
       ),
       ButtonPhase.queued => Icon(
-        Icons.schedule_rounded,
+        MorkvaIcons.schedule,
         size: 18,
         color: scheme.onSurface,
       ),
@@ -930,7 +930,7 @@ class _MoreButtonState extends State<_MoreButton> {
           ),
           if (was.busy)
             MenuItemButton(
-              leadingIcon: const Icon(Icons.stop_circle_outlined),
+              leadingIcon: const Icon(MorkvaIcons.stopCircle),
               onPressed: v.busy ? () => widget.onStop(v.run!.runId) : null,
               child: Text(l10n.automationWidgetsStopLabel(v.label)),
             ),
@@ -970,7 +970,7 @@ class _MoreButtonState extends State<_MoreButton> {
                       const SizedBox(width: Spacing.xxs),
                     ],
                     Icon(
-                      Icons.expand_more_rounded,
+                      MorkvaIcons.expandMore,
                       size: 18,
                       color: scheme.onSurface,
                     ),
@@ -1003,7 +1003,7 @@ class PhoneActionsButton extends StatelessWidget {
     final l10n = context.l10n;
     if (live == null) {
       return IconActionButton(
-        icon: Icons.bolt_rounded,
+        icon: MorkvaIcons.bolt,
         tooltip: l10n.automationWidgetsActions,
         onPressed: onOpen,
       );
@@ -1050,7 +1050,7 @@ class PhoneActionsButton extends StatelessWidget {
                         backgroundColor: scheme.outlineVariant,
                       ),
                     ),
-                    Icon(Icons.bolt_rounded, size: 18, color: scheme.onSurface),
+                    Icon(MorkvaIcons.bolt, size: 18, color: scheme.onSurface),
                   ],
                 ),
               ),

@@ -45,7 +45,7 @@ class SectionConfigPanel extends StatelessWidget {
         // Header
         Row(
           children: [
-            Icon(Icons.view_agenda_outlined, size: 20, color: scheme.primary),
+            Icon(MorkvaIcons.viewCards, size: 20, color: scheme.primary),
             const SizedBox(width: Spacing.xs),
             Expanded(
               child: Text(
@@ -83,7 +83,7 @@ class SectionConfigPanel extends StatelessWidget {
             ),
             shape: const RoundedRectangleBorder(borderRadius: Radii.mdAll),
             secondary: Icon(
-              Icons.unfold_less_outlined,
+              MorkvaIcons.unfoldLess,
               color: scheme.onSurfaceVariant,
             ),
             title: Text(
@@ -170,7 +170,7 @@ class _DeleteGroupButton extends StatelessWidget {
           vertical: Spacing.sm,
         ),
       ),
-      icon: const Icon(Icons.delete_outline),
+      icon: const Icon(MorkvaIcons.delete),
       label: Text(context.l10n.collectionsDeleteGroup),
       onPressed: () async {
         final confirmed = await MorkvaConfirmDialog.show(

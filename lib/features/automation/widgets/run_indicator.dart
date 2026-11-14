@@ -202,7 +202,7 @@ class RunIndicatorRailIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => _IndicatorBuilder(
-    orElse: Icon(Icons.bolt_rounded, color: color),
+    orElse: Icon(MorkvaIcons.bolt, color: color),
     builder: (context, v) {
       final l10n = context.l10n;
       final name = l10n.commonAutomations;
@@ -310,7 +310,7 @@ class _Bolt extends StatelessWidget {
                 color: semantic.info,
               ),
             ),
-          Icon(Icons.bolt_rounded, size: running ? 18 : 24, color: ink),
+          Icon(MorkvaIcons.bolt, size: running ? 18 : 24, color: ink),
           if (v.needsReview > 0)
             Positioned(
               right: -6,

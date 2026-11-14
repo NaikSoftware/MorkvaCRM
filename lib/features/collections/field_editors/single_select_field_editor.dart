@@ -5,6 +5,7 @@ import '../../../l10n/l10n.dart';
 import 'field_editor.dart';
 import 'widgets/option_set_editor.dart';
 import 'widgets/preview_affordances.dart';
+import 'package:morkva_crm/design/morkva_icons.dart';
 
 /// [FieldEditor] for the single-select field type.
 class SingleSelectFieldEditor extends FieldEditor {
@@ -21,7 +22,7 @@ class SingleSelectFieldEditor extends FieldEditor {
       l10n.collectionsTypeSingleSelectDescription;
 
   @override
-  IconData get icon => Icons.arrow_drop_down_circle_outlined;
+  IconData get icon => MorkvaIcons.dropdownField;
 
   @override
   FieldDefinition createDefault({required String id, required String name}) =>

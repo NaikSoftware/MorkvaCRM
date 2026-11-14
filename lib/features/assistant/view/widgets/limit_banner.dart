@@ -106,8 +106,8 @@ class _LimitBannerViewState extends State<LimitBannerView> {
           children: [
             Icon(
               banner is DailyLimitBanner
-                  ? Icons.hourglass_bottom_rounded
-                  : Icons.schedule_rounded,
+                  ? MorkvaIcons.hourglass
+                  : MorkvaIcons.schedule,
               size: 18,
               color: fg,
             ),

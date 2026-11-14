@@ -113,8 +113,8 @@ class ObjectChipMessage extends StatelessWidget {
         label: item.label,
         leading: Icon(
           item.cardId != null
-              ? Icons.description_outlined
-              : Icons.view_agenda_outlined,
+              ? MorkvaIcons.description
+              : MorkvaIcons.viewCards,
           size: 14,
           color: colors.objectChipText,
         ),

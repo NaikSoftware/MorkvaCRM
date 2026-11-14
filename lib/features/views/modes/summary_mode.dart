@@ -19,7 +19,7 @@ class SummaryMode extends ViewMode {
   String get label => l10n.viewsModeSummary;
 
   @override
-  IconData get icon => Icons.space_dashboard_outlined;
+  IconData get icon => MorkvaIcons.spaceDashboard;
 
   @override
   String get description => l10n.viewsModeSummaryDescription;
@@ -130,7 +130,7 @@ class _Panel extends StatelessWidget {
                 const SizedBox(width: Spacing.sm),
                 OutlinedButton.icon(
                   onPressed: onEdit,
-                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  icon: const Icon(MorkvaIcons.edit, size: 18),
                   label: Text(context.l10n.viewsEditValues),
                 ),
               ],

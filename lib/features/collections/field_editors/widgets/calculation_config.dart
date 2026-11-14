@@ -250,7 +250,7 @@ class _CalculationConfigState extends State<CalculationConfig> {
                 ? l10n.collectionsSourceLinkingToThis(c.name)
                 : l10n.collectionsSourceLinkingHere(c.name),
             l10n.collectionsSourceVia(r.name),
-            Icons.call_received,
+            MorkvaIcons.arrowInward,
           ),
         );
       }
@@ -267,7 +267,7 @@ class _CalculationConfigState extends State<CalculationConfig> {
           ),
           l10n.collectionsSourceLinked(target.name),
           l10n.collectionsSourceIn(r.name),
-          Icons.call_made,
+          MorkvaIcons.arrowOutward,
         ),
       );
     }
@@ -277,7 +277,7 @@ class _CalculationConfigState extends State<CalculationConfig> {
           Aggregation(source: AggregateSource.all, collectionId: c.id),
           l10n.collectionsSourceAll(c.name),
           l10n.collectionsSourceEveryItem,
-          Icons.select_all,
+          MorkvaIcons.selectAll,
         ),
       );
     }
@@ -389,17 +389,17 @@ class _CalculationConfigState extends State<CalculationConfig> {
           segments: [
             ButtonSegment(
               value: _Mode.formula,
-              icon: const Icon(Icons.functions),
+              icon: const Icon(MorkvaIcons.formula),
               label: Text(l10n.collectionsModeFormula),
             ),
             ButtonSegment(
               value: _Mode.aggregate,
-              icon: const Icon(Icons.bar_chart),
+              icon: const Icon(MorkvaIcons.barChart),
               label: Text(l10n.collectionsModeAggregate),
             ),
             ButtonSegment(
               value: _Mode.lookup,
-              icon: const Icon(Icons.manage_search),
+              icon: const Icon(MorkvaIcons.manageSearch),
               label: Text(l10n.collectionsModeLookup),
             ),
           ],
@@ -512,7 +512,7 @@ class _CalculationConfigState extends State<CalculationConfig> {
         const SizedBox(height: Spacing.xxs),
         Row(
           children: [
-            Icon(Icons.check_circle, size: 16, color: semantic.success),
+            Icon(MorkvaIcons.checkCircleFilled, size: 16, color: semantic.success),
             const SizedBox(width: Spacing.xxs),
             Text(
               l10n.collectionsFormulaResult(
@@ -615,6 +615,7 @@ class _CalculationConfigState extends State<CalculationConfig> {
       Text(l10n.collectionsSummarize, style: _labelStyle(theme)),
       const SizedBox(height: Spacing.xxs),
       DropdownButtonFormField<int>(
+        icon: const Icon(MorkvaIcons.expandMore),
         key: ValueKey('source_${_field.id}'),
         initialValue: selected < 0 ? null : selected,
         isExpanded: true,
@@ -697,6 +698,7 @@ class _CalculationConfigState extends State<CalculationConfig> {
           )
         else
           DropdownButtonFormField<String>(
+            icon: const Icon(MorkvaIcons.expandMore),
             key: ValueKey('of_${_field.id}_${source?.id}_${a.op}'),
             initialValue: foldable.any((f) => f.id == a.fieldId)
                 ? a.fieldId
@@ -735,6 +737,7 @@ class _CalculationConfigState extends State<CalculationConfig> {
                     filterLabel(f, source, l10n: chipContext.l10n),
                   ),
                   onPressed: () => _editCondition(chipContext, source, i),
+                  deleteIcon: const Icon(MorkvaIcons.close, size: 16),
                   onDeleted: () => _setAggregation(
                     a.copyWith(filters: [...a.filters]..removeAt(i)),
                   ),
@@ -743,7 +746,7 @@ class _CalculationConfigState extends State<CalculationConfig> {
               ),
             Builder(
               builder: (buttonContext) => ActionChip(
-                avatar: const Icon(Icons.add, size: 18),
+                avatar: const Icon(MorkvaIcons.add, size: 18),
                 label: Text(
                   a.filters.isEmpty
                       ? l10n.collectionsAddCondition
@@ -786,6 +789,7 @@ class _CalculationConfigState extends State<CalculationConfig> {
         )
       else
         DropdownButtonFormField<String>(
+          icon: const Icon(MorkvaIcons.expandMore),
           key: ValueKey('through_${_field.id}'),
           initialValue: ref?.id,
           isExpanded: true,
@@ -797,7 +801,7 @@ class _CalculationConfigState extends State<CalculationConfig> {
                 child: Row(
                   children: [
                     Icon(
-                      Icons.call_made,
+                      MorkvaIcons.arrowOutward,
                       size: 18,
                       color: scheme.onSurfaceVariant,
                     ),
@@ -839,6 +843,7 @@ class _CalculationConfigState extends State<CalculationConfig> {
           )
         else
           DropdownButtonFormField<String>(
+            icon: const Icon(MorkvaIcons.expandMore),
             key: ValueKey('show_${_field.id}_${ref.id}'),
             initialValue: shown.any((f) => f.id == lookup.fieldId)
                 ? lookup.fieldId

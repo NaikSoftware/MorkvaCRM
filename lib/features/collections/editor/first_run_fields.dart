@@ -130,7 +130,7 @@ class FirstRunFields extends StatelessWidget {
                       ),
                   ActionChip(
                     key: const Key('suggest_custom'),
-                    avatar: const Icon(Icons.add, size: 18),
+                    avatar: const Icon(MorkvaIcons.add, size: 18),
                     label: label(l10n.collectionsCustomField),
                     onPressed: () async {
                       final typeId = await AddFieldSheet.show(
@@ -205,7 +205,7 @@ List<_Suggestion> _suggestions(AppLocalizations l10n) => [
     l10n.collectionsSuggestStatus,
     l10n.collectionsSuggestStatusHint,
     kSingleSelectFieldType,
-    Icons.flag_outlined,
+    MorkvaIcons.flag,
     [
       l10n.collectionsSuggestToDo,
       l10n.collectionsSuggestInProgress,
@@ -217,27 +217,27 @@ List<_Suggestion> _suggestions(AppLocalizations l10n) => [
     l10n.collectionsSuggestDueDate,
     l10n.collectionsSuggestDueDateHint,
     kDateFieldType,
-    Icons.event_outlined,
+    MorkvaIcons.event,
   ),
   _Suggestion(
     'Amount',
     l10n.collectionsSuggestAmount,
     l10n.collectionsSuggestAmountHint,
     kNumberFieldType,
-    Icons.pin_outlined,
+    MorkvaIcons.numbers,
   ),
   _Suggestion(
     'Customer',
     l10n.collectionsSuggestCustomer,
     l10n.collectionsSuggestCustomerHint,
     kReferenceFieldType,
-    Icons.link,
+    MorkvaIcons.link,
   ),
   _Suggestion(
     'Notes',
     l10n.collectionsSuggestNotes,
     l10n.collectionsSuggestNotesHint,
     kTextFieldType,
-    Icons.notes,
+    MorkvaIcons.notes,
   ),
 ];

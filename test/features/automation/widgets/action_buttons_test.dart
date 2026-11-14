@@ -130,7 +130,7 @@ void main() {
       final hit = tester.getSize(
         find
             .ancestor(
-              of: find.byIcon(Icons.local_shipping_outlined).first,
+              of: find.byIcon(MorkvaIcons.shipping).first,
               matching: find.byType(SizedBox),
             )
             .at(1),
@@ -208,7 +208,7 @@ void main() {
       await pump(tester, headerWidth: 300);
       expect(find.text('Running… 2/3'), findsNothing);
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
-      expect(find.byIcon(Icons.expand_more_rounded), findsOneWidget);
+      expect(find.byIcon(MorkvaIcons.expandMore), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
@@ -315,7 +315,7 @@ void main() {
       );
       await pump(tester);
       expect(find.text('Queued · 3 ahead'), findsOneWidget);
-      expect(find.byIcon(Icons.schedule_rounded), findsOneWidget);
+      expect(find.byIcon(MorkvaIcons.schedule), findsOneWidget);
     });
 
     testWidgets('a run on another card leaves this card idle', (tester) async {

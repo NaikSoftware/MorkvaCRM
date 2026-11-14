@@ -62,7 +62,7 @@ void main() {
     cubit.selectView('board');
     await tester.pumpAndSettle();
     // The phone header has no tune button; settings live in the overflow.
-    expect(find.byIcon(Icons.tune), findsNothing);
+    expect(find.byIcon(MorkvaIcons.tune), findsNothing);
     await _open(tester);
 
     expect(
@@ -244,8 +244,8 @@ void main() {
     );
     expect(find.byTooltip('View settings'), findsNothing);
     // Only the Customize button: tune means Customize everywhere.
-    expect(find.byIcon(Icons.tune), findsOneWidget);
-    expect(find.widgetWithIcon(PrimaryButton, Icons.tune), findsOneWidget);
+    expect(find.byIcon(MorkvaIcons.tune), findsOneWidget);
+    expect(find.widgetWithIcon(PrimaryButton, MorkvaIcons.tune), findsOneWidget);
     expect(find.byTooltip('More'), findsOneWidget);
   });
 
@@ -259,7 +259,7 @@ void main() {
         objects: const [],
       ),
     );
-    expect(find.byIcon(Icons.tune), findsNWidgets(2));
+    expect(find.byIcon(MorkvaIcons.tune), findsNWidgets(2));
     expect(find.text('Customize'), findsNWidgets(2));
   });
 

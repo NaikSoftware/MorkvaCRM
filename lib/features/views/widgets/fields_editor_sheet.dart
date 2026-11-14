@@ -185,7 +185,7 @@ class _FieldsEditorSheetState extends State<FieldsEditorSheet> {
                     ),
                   ),
                   IconActionButton(
-                    icon: Icons.close,
+                    icon: MorkvaIcons.close,
                     tooltip: context.l10n.commonClose,
                     onPressed: () => Navigator.of(context).pop(),
                   ),
@@ -381,7 +381,7 @@ class _TitleRow extends StatelessWidget {
             children: [
               const SizedBox(
                 width: 44,
-                child: Icon(Icons.push_pin_outlined, size: 20),
+                child: Icon(MorkvaIcons.pin, size: 20),
               ),
               Expanded(
                 child: Text(
@@ -396,7 +396,7 @@ class _TitleRow extends StatelessWidget {
                   color: scheme.onSurfaceVariant,
                 ),
               ),
-              Icon(Icons.arrow_drop_down, color: scheme.onSurfaceVariant),
+              Icon(MorkvaIcons.expandMore, color: scheme.onSurfaceVariant),
             ],
           ),
         ),
@@ -443,7 +443,7 @@ class _FieldRow extends StatelessWidget {
                     width: 44,
                     height: 44,
                     child: Icon(
-                      Icons.drag_indicator,
+                      MorkvaIcons.dragHandle,
                       color: scheme.onSurfaceVariant,
                     ),
                   ),
@@ -466,7 +466,7 @@ class _FieldRow extends StatelessWidget {
               ),
               PopupMenuButton<int>(
                 tooltip: context.l10n.viewWidgetsMoveField(field.name),
-                icon: Icon(Icons.more_vert, color: scheme.onSurfaceVariant),
+                icon: Icon(MorkvaIcons.moreVert, color: scheme.onSurfaceVariant),
                 onSelected: onMove,
                 itemBuilder: (_) => [
                   PopupMenuItem(

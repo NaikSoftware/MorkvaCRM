@@ -145,8 +145,8 @@ class ObjectCard extends StatelessWidget {
           if (f is BooleanFieldDefinition) ...[
             Icon(
               (value as BooleanFieldValue).value == true
-                  ? Icons.check_circle_outline
-                  : Icons.radio_button_unchecked,
+                  ? MorkvaIcons.checkCircle
+                  : MorkvaIcons.radioOff,
               size: 14,
               color: theme.colorScheme.onSurfaceVariant,
             ),

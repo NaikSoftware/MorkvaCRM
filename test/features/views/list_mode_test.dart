@@ -294,7 +294,7 @@ void main() {
       repository: workRepository(collection: _with(_grouped)),
     );
     double alpha() =>
-        t.widget<Icon>(find.byIcon(Icons.drag_indicator).first).color!.a;
+        t.widget<Icon>(find.byIcon(MorkvaIcons.dragHandle).first).color!.a;
     final resting = alpha();
     // Tab through the page until focus lands inside the first row.
     for (var i = 0; i < 30 && alpha() == resting; i++) {
@@ -311,7 +311,7 @@ void main() {
       repository: workRepository(collection: _with(_grouped)),
     );
     expect(find.text('Acme renewal'), findsOneWidget);
-    expect(find.byIcon(Icons.drag_indicator), findsNothing);
+    expect(find.byIcon(MorkvaIcons.dragHandle), findsNothing);
   });
 
   group('long lists', () {

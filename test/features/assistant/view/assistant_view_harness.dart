@@ -236,6 +236,13 @@ Future<void> loadAppFonts() async {
   final icons = FontLoader('MaterialIcons')
     ..addFont(read('MaterialIcons-Regular.otf'));
   await icons.load();
+  final morkva = FontLoader('MorkvaIcons')
+    ..addFont(
+      File(
+        'assets/fonts/MorkvaIcons.ttf',
+      ).readAsBytes().then(ByteData.sublistView),
+    );
+  await morkva.load();
 }
 
 class _OfflineHttp extends HttpOverrides {

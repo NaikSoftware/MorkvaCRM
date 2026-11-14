@@ -459,7 +459,7 @@ class _Header extends StatelessWidget {
         ),
         // Phone: "Lead 5 ▾" — the caret ends the button it belongs to.
         if (onJump != null)
-          Icon(Icons.arrow_drop_down, size: 20, color: scheme.onSurfaceVariant),
+          Icon(MorkvaIcons.expandMore, size: 20, color: scheme.onSurfaceVariant),
         const SizedBox(width: Spacing.xs),
       ],
     );
@@ -500,7 +500,7 @@ class _Header extends StatelessWidget {
               group.label,
             ),
             onPressed: onAdd,
-            icon: const Icon(Icons.add, size: 20),
+            icon: const Icon(MorkvaIcons.add, size: 20),
             color: scheme.onSurfaceVariant,
           ),
           if (onCollapse case final collapse?)
@@ -510,7 +510,7 @@ class _Header extends StatelessWidget {
               onPressed: collapse,
               icon: const RotatedBox(
                 quarterTurns: 1,
-                child: Icon(Icons.unfold_less, size: 20),
+                child: Icon(MorkvaIcons.unfoldLess, size: 20),
               ),
               color: scheme.onSurfaceVariant,
             ),
@@ -651,7 +651,7 @@ class _CollapsedStrip extends StatelessWidget {
                     child: RotatedBox(
                       quarterTurns: 1,
                       child: Icon(
-                        Icons.unfold_more,
+                        MorkvaIcons.unfoldMore,
                         size: 20,
                         color: scheme.onSurfaceVariant,
                       ),

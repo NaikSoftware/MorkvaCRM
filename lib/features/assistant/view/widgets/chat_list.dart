@@ -305,7 +305,7 @@ class _JumpToLatest extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.arrow_downward_rounded, size: 16, color: scheme.surface),
+            Icon(MorkvaIcons.arrowDown, size: 16, color: scheme.surface),
             const SizedBox(width: 6),
             Text(
               context.l10n.assistantJumpToLatest,

@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart' show IconData, Icons;
+import 'package:flutter/material.dart' show IconData;
 
 import '../../../core/domain/automation/automation.dart';
 import '../../../l10n/l10n.dart';
+import 'package:morkva_crm/design/morkva_icons.dart';
 
 /// How a chip, row or banner is coloured (the widget picks the tokens).
 enum CopyTone {
@@ -345,17 +346,17 @@ ChipCopy moduleChip(ModuleStatus status, {AppLocalizations? l10n}) {
     ModuleStatus.ok => (
       label: t.automationWidgetsChipInstalled,
       tone: CopyTone.success,
-      icon: Icons.check_rounded,
+      icon: MorkvaIcons.check,
     ),
     ModuleStatus.needsConsent => (
       label: t.automationWidgetsNeedsConsent,
       tone: CopyTone.warning,
-      icon: Icons.warning_amber_rounded,
+      icon: MorkvaIcons.warning,
     ),
     ModuleStatus.broken => (
       label: t.automationWidgetsChipBroken,
       tone: CopyTone.error,
-      icon: Icons.error_outline,
+      icon: MorkvaIcons.error,
     ),
   };
 }
@@ -367,27 +368,27 @@ ChipCopy? automationChip(AutomationStatus status, {AppLocalizations? l10n}) {
     AutomationStatus.needsConsent => (
       label: t.automationWidgetsNeedsConsent,
       tone: CopyTone.warning,
-      icon: Icons.warning_amber_rounded,
+      icon: MorkvaIcons.warning,
     ),
     AutomationStatus.broken => (
       label: t.automationWidgetsChipBroken,
       tone: CopyTone.error,
-      icon: Icons.error_outline,
+      icon: MorkvaIcons.error,
     ),
     AutomationStatus.crashed => (
       label: t.automationWidgetsStoppedAfterCrash,
       tone: CopyTone.warning,
-      icon: Icons.warning_amber_rounded,
+      icon: MorkvaIcons.warning,
     ),
     AutomationStatus.loopSuspected => (
       label: t.automationWidgetsChipLoopSuspected,
       tone: CopyTone.warning,
-      icon: Icons.warning_amber_rounded,
+      icon: MorkvaIcons.warning,
     ),
     AutomationStatus.paused => (
       label: t.automationWidgetsPaused,
       tone: CopyTone.neutral,
-      icon: Icons.pause_rounded,
+      icon: MorkvaIcons.pause,
     ),
     AutomationStatus.active => null,
   };
@@ -402,17 +403,17 @@ ChipCopy applyChip(EffectiveApply apply, {AppLocalizations? l10n}) {
     EffectiveApply.ask => (
       label: t.automationWidgetsChipAskFirst,
       tone: CopyTone.neutral,
-      icon: Icons.visibility_outlined,
+      icon: MorkvaIcons.hourglass,
     ),
     EffectiveApply.auto => (
       label: t.automationWidgetsChipAuto,
       tone: CopyTone.success,
-      icon: Icons.bolt_rounded,
+      icon: MorkvaIcons.bolt,
     ),
     EffectiveApply.autoOff => (
       label: t.automationWidgetsChipAutoOff,
       tone: CopyTone.warning,
-      icon: Icons.bolt_rounded,
+      icon: MorkvaIcons.bolt,
     ),
   };
 }

@@ -64,13 +64,13 @@ class _NoDateTrayState extends State<NoDateTray> {
       children: [
         const SizedBox(height: Spacing.xxs),
         IconActionButton(
-          icon: Icons.chevron_left,
+          icon: MorkvaIcons.chevronLeft,
           tooltip: context.l10n.viewWidgetsShowNoDate(count),
           onPressed: () => setState(() => _expanded = true),
         ),
         const SizedBox(height: Spacing.xs),
         Icon(
-          Icons.event_busy_outlined,
+          MorkvaIcons.eventBusy,
           size: 20,
           color: theme.colorScheme.onSurfaceVariant,
         ),
@@ -112,7 +112,7 @@ class _NoDateTrayState extends State<NoDateTray> {
                 _CountBadge(count: undated.length),
                 const Spacer(),
                 IconActionButton(
-                  icon: Icons.chevron_right,
+                  icon: MorkvaIcons.chevronRight,
                   tooltip: context.l10n.viewWidgetsHideNoDate,
                   onPressed: () => setState(() => _expanded = false),
                 ),

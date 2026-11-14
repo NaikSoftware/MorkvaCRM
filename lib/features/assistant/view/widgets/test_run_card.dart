@@ -41,7 +41,7 @@ class TestRunCard extends StatelessWidget {
               Row(
                 children: [
                   Icon(
-                    Icons.science_outlined,
+                    MorkvaIcons.science,
                     size: 16,
                     color: theme.colorScheme.onSurfaceVariant,
                   ),

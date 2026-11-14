@@ -210,7 +210,7 @@ class ReviewSheet extends StatelessWidget {
                 ),
               ),
               IconActionButton(
-                icon: Icons.close,
+                icon: MorkvaIcons.close,
                 tooltip: context.l10n.automationDecideLater,
                 onPressed: () => Navigator.of(context).maybePop(),
               ),
@@ -436,7 +436,7 @@ class _Refusal extends StatelessWidget {
         child: Row(
           children: [
             Icon(
-              Icons.warning_amber_rounded,
+              MorkvaIcons.warning,
               size: 20,
               color: semantic?.onWarningContainer ?? scheme.onSurface,
             ),
@@ -500,7 +500,7 @@ class _Decided extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(Icons.error_outline, color: scheme.onErrorContainer),
+                Icon(MorkvaIcons.error, color: scheme.onErrorContainer),
                 const SizedBox(width: Spacing.xs),
                 Expanded(
                   child: Text(
@@ -539,7 +539,7 @@ class _Decided extends StatelessWidget {
               if (state.record case RunRecord(journalId: _?, undoneAt: null))
                 TextActionButton(
                   label: l10n.commonUndo,
-                  icon: Icons.undo,
+                  icon: MorkvaIcons.undo,
                   onPressed: onUndo,
                 ),
             ],

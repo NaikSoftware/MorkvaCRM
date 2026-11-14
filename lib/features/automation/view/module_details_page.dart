@@ -37,7 +37,7 @@ class ModuleDetailsPage extends StatelessWidget {
       alignment: Alignment.centerLeft,
       child: TextActionButton(
         label: l10n.commonAutomations,
-        icon: Icons.arrow_back,
+        icon: MorkvaIcons.arrowBack,
         onPressed: host.openAutomations,
       ),
     );
@@ -52,7 +52,7 @@ class ModuleDetailsPage extends StatelessWidget {
       );
     } else if (entry == null) {
       content = EmptyState(
-        icon: Icons.extension_off_outlined,
+        icon: MorkvaIcons.extensionOff,
         title: l10n.automationModuleNotInstalledTitle,
         message: l10n.automationModuleNotInstalledMessage,
       );
@@ -205,7 +205,7 @@ class _Details extends StatelessWidget {
     final engine = state.engineUnavailable
         ? AutomationBanner(
             tone: CopyTone.warning,
-            icon: Icons.warning_amber_rounded,
+            icon: MorkvaIcons.warning,
             title: l10n.automationEngineDownTitle,
             body: l10n.automationEngineDownBody,
           )
@@ -214,7 +214,7 @@ class _Details extends StatelessWidget {
       ModuleBanner.none => null,
       ModuleBanner.allow => AutomationBanner(
         tone: CopyTone.warning,
-        icon: Icons.warning_amber_rounded,
+        icon: MorkvaIcons.warning,
         title: l10n.automationModuleAllowTitle,
         body: l10n.automationModuleAllowBody,
         action: PrimaryButton(
@@ -226,7 +226,7 @@ class _Details extends StatelessWidget {
       ),
       ModuleBanner.changed => AutomationBanner(
         tone: CopyTone.warning,
-        icon: Icons.warning_amber_rounded,
+        icon: MorkvaIcons.warning,
         title: l10n.automationModuleChangedTitle(
           '${state.consent?.version}',
           entry.module.version,
@@ -241,7 +241,7 @@ class _Details extends StatelessWidget {
       ),
       ModuleBanner.broken => AutomationBanner(
         tone: CopyTone.error,
-        icon: Icons.error_outline,
+        icon: MorkvaIcons.error,
         title: l10n.automationModuleBrokenTitle,
         body: l10n.automationModuleBrokenBody,
         details: [for (final p in entry.module.manifestProblems) '$p'],
@@ -371,7 +371,7 @@ class _Header extends StatelessWidget {
         ),
         PopupMenuButton<_Menu>(
           tooltip: l10n.commonMore,
-          icon: const Icon(Icons.more_horiz),
+          icon: const Icon(MorkvaIcons.moreHoriz),
           // 44 px, like every other target here (the default is 40).
           style: IconButton.styleFrom(minimumSize: const Size.square(44)),
           onSelected: (item) => _menu(context, item),
@@ -417,13 +417,13 @@ class _About extends StatelessWidget {
               ],
               if (author != null)
                 MetaLine(
-                  icon: Icons.person_outline,
+                  icon: MorkvaIcons.person,
                   text: l10n.automationModuleAuthor(author),
                 ),
               MetaLine(
                 icon: module.source == ModuleSource.assistant
-                    ? Icons.auto_awesome_outlined
-                    : Icons.download_outlined,
+                    ? MorkvaIcons.sparkle
+                    : MorkvaIcons.download,
                 text: sourceLabel(l10n, module),
               ),
             ],
@@ -505,7 +505,7 @@ class _WhatItCanDo extends StatelessWidget {
       footer: Padding(
         padding: const EdgeInsets.all(Spacing.md),
         child: MetaLine(
-          icon: Icons.shield_outlined,
+          icon: MorkvaIcons.shield,
           text: l10n.automationModuleSandboxNote,
         ),
       ),
@@ -728,7 +728,7 @@ class _Actions extends StatelessWidget {
                         : l10n.automationAllowModuleFirst,
                     child: TextActionButton(
                       label: l10n.automationTestRun,
-                      icon: Icons.play_arrow_outlined,
+                      icon: MorkvaIcons.play,
                       onPressed: state.canTestRun
                           ? () => _test(context, a)
                           : null,
@@ -736,7 +736,7 @@ class _Actions extends StatelessWidget {
                   ),
                   TextActionButton(
                     label: l10n.automationAddToButton,
-                    icon: Icons.smart_button_outlined,
+                    icon: MorkvaIcons.smartButton,
                     onPressed: () => host.newAutomation(
                       moduleId: manifest.id,
                       actionId: a.id,
@@ -819,7 +819,7 @@ class _AutomationsUsing extends StatelessWidget {
       title: l10n.automationUsingIt,
       trailing: TextActionButton(
         label: l10n.automationNewAutomation,
-        icon: Icons.add,
+        icon: MorkvaIcons.add,
         onPressed: () => host.newAutomation(moduleId: state.module!.id),
       ),
       children: [
@@ -861,7 +861,7 @@ class _Code extends StatelessWidget {
       title: l10n.automationCode,
       trailing: SecondaryButton(
         label: l10n.automationViewCode,
-        icon: Icons.code,
+        icon: MorkvaIcons.code,
         onPressed: () =>
             showCodeViewer(context, code: module.code, hash: module.bundleHash),
       ),
@@ -871,7 +871,7 @@ class _Code extends StatelessWidget {
           child: Row(
             children: [
               Icon(
-                Icons.insert_drive_file_outlined,
+                MorkvaIcons.file,
                 size: 16,
                 color: theme.colorScheme.onSurfaceVariant,
               ),

@@ -64,7 +64,7 @@ void main() {
     // there is a real status to show.
     expect(find.byType(SyncStatusIndicator), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsNothing);
-    expect(find.byIcon(Icons.cloud_off_outlined), findsNothing);
+    expect(find.byIcon(MorkvaIcons.cloudOff), findsNothing);
     expect(find.text('Offline'), findsNothing);
   });
 

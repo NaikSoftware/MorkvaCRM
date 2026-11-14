@@ -393,12 +393,12 @@ class _AutomationsPageState extends State<AutomationsPage>
               label: expanded
                   ? l10n.automationAskMorkvaToWrite
                   : l10n.automationAskMorkva,
-              icon: Icons.auto_awesome_outlined,
+              icon: MorkvaIcons.sparkle,
               onPressed: () => ask(l10n.automationAskPrefill),
             ),
           SecondaryButton(
             label: l10n.automationImportModule,
-            icon: Icons.upload_outlined,
+            icon: MorkvaIcons.uploadFile,
             onPressed: _import,
           ),
         ],
@@ -455,7 +455,7 @@ class _AutomationsPageState extends State<AutomationsPage>
                       ),
                       child: AutomationBanner(
                         tone: CopyTone.warning,
-                        icon: Icons.warning_amber_rounded,
+                        icon: MorkvaIcons.warning,
                         title: l10n.automationEngineDownTitle,
                         body: l10n.automationEngineDownBody,
                       ),
@@ -609,7 +609,7 @@ class _NewAutomationAction extends StatelessWidget {
     final hint = context.l10n.automationInstallModuleFirst;
     final button = PrimaryButton(
       label: context.l10n.automationNewAutomation,
-      icon: Icons.add,
+      icon: MorkvaIcons.add,
       onPressed: enabled ? onPressed : null,
     );
     if (enabled) return button;
@@ -781,12 +781,12 @@ class AutomationLoadError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => EmptyState(
-    icon: Icons.cloud_off_outlined,
+    icon: MorkvaIcons.cloudOff,
     title: title,
     message: context.l10n.automationLoadErrorMessage,
     action: SecondaryButton(
       label: context.l10n.commonRetry,
-      icon: Icons.refresh,
+      icon: MorkvaIcons.refresh,
       onPressed: onRetry,
     ),
   );
@@ -1019,7 +1019,7 @@ class _ModulesTab extends StatelessWidget {
     final l10n = context.l10n;
     if (state.modules.isEmpty) {
       return EmptyState(
-        icon: Icons.extension_outlined,
+        icon: MorkvaIcons.extension,
         title: l10n.automationNoModulesTitle,
         message: l10n.automationNoModulesMessage,
         action: Wrap(
@@ -1030,12 +1030,12 @@ class _ModulesTab extends StatelessWidget {
             if (ask != null)
               PrimaryButton(
                 label: l10n.automationAskMorkva,
-                icon: Icons.auto_awesome_outlined,
+                icon: MorkvaIcons.sparkle,
                 onPressed: () => ask(l10n.automationAskPrefill),
               ),
             SecondaryButton(
               label: l10n.automationImportModule,
-              icon: Icons.upload_outlined,
+              icon: MorkvaIcons.uploadFile,
               onPressed: onImport,
             ),
           ],
@@ -1171,14 +1171,14 @@ class _ModuleCard extends StatelessWidget {
                 Divider(height: 1, color: theme.colorScheme.outlineVariant),
                 const SizedBox(height: Spacing.sm),
                 MetaLine(
-                  icon: Icons.shield_outlined,
+                  icon: MorkvaIcons.shield,
                   text: permissionSummary(l10n, entry, collections),
                 ),
                 const SizedBox(height: Spacing.xxs),
                 MetaLine(
                   icon: module.source == ModuleSource.assistant
-                      ? Icons.auto_awesome_outlined
-                      : Icons.download_outlined,
+                      ? MorkvaIcons.sparkle
+                      : MorkvaIcons.download,
                   text: [
                     module.source == ModuleSource.assistant
                         ? l10n.automationSourceAssistant
@@ -1262,14 +1262,14 @@ class _AutomationsTab extends StatelessWidget {
             ),
           Expanded(
             child: EmptyState(
-              icon: Icons.bolt_outlined,
+              icon: MorkvaIcons.bolt,
               title: l10n.automationNoAutomationsTitle,
               message: l10n.automationNoAutomationsMessage,
               action: noModules
                   ? null
                   : PrimaryButton(
                       label: l10n.automationNewAutomation,
-                      icon: Icons.add,
+                      icon: MorkvaIcons.add,
                       onPressed: () =>
                           host.newAutomation(collectionId: collectionId),
                     ),
@@ -1345,7 +1345,7 @@ class AutomationTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(size * 0.3),
         ),
         child: Icon(
-          Icons.bolt_outlined,
+          MorkvaIcons.bolt,
           size: size * 0.5,
           color: theme.colorScheme.onSurfaceVariant,
         ),
@@ -1546,7 +1546,7 @@ class FilterChipButton extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (selected && onClear == null) ...[
-            Icon(Icons.check, size: 16, color: scheme.onPrimaryContainer),
+            Icon(MorkvaIcons.check, size: 16, color: scheme.onPrimaryContainer),
             const SizedBox(width: Spacing.xxs),
           ],
           Text(
@@ -1561,7 +1561,7 @@ class FilterChipButton extends StatelessWidget {
           ],
           if (onClear != null) ...[
             const SizedBox(width: Spacing.xxs),
-            Icon(Icons.close, size: 16, color: scheme.onPrimaryContainer),
+            Icon(MorkvaIcons.close, size: 16, color: scheme.onPrimaryContainer),
           ],
         ],
       ),
@@ -1684,13 +1684,13 @@ class _RunsTab extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.bolt_outlined, size: 18),
+                    const Icon(MorkvaIcons.bolt, size: 18),
                     const SizedBox(width: Spacing.xxs),
                     Text(
                       picked?.automation.name ?? l10n.automationAnyAutomation,
                       style: Theme.of(context).textTheme.labelLarge,
                     ),
-                    const Icon(Icons.expand_more, size: 18),
+                    const Icon(MorkvaIcons.expandMore, size: 18),
                   ],
                 ),
               ),
@@ -1746,7 +1746,7 @@ class _RunsTab extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: Spacing.xl),
             child: EmptyState(
-              icon: Icons.history,
+              icon: MorkvaIcons.history,
               title: l10n.automationNoRunsTitle,
               message: l10n.automationNoRunsMessage,
             ),
@@ -1848,7 +1848,7 @@ class RunStatusIcon extends StatelessWidget {
         dimension: 16,
         child: CircularProgressIndicator(strokeWidth: 2, color: semantic.info),
       ),
-      RunStatus.queued => icon(Icons.schedule, muted),
+      RunStatus.queued => icon(MorkvaIcons.schedule, muted),
       RunStatus.awaitingReview => Container(
         width: 14,
         height: 14,
@@ -1858,21 +1858,21 @@ class RunStatusIcon extends StatelessWidget {
           border: Border.all(color: semantic.warningContainer, width: 3),
         ),
       ),
-      RunStatus.succeeded when undone => icon(Icons.undo, muted),
-      RunStatus.succeeded => icon(Icons.check_circle_outline, semantic.success),
+      RunStatus.succeeded when undone => icon(MorkvaIcons.undo, muted),
+      RunStatus.succeeded => icon(MorkvaIcons.checkCircle, semantic.success),
       RunStatus.failed when reason == RunReason.interrupted => icon(
-        Icons.help_outline,
+        MorkvaIcons.help,
         semantic.warning,
       ),
       RunStatus.failed when reason == RunReason.cancelled => icon(
-        Icons.cancel_outlined,
+        MorkvaIcons.cancel,
         muted,
       ),
       RunStatus.failed ||
-      RunStatus.timedOut => icon(Icons.cancel_outlined, scheme.error),
-      RunStatus.skipped => icon(Icons.block, muted),
-      RunStatus.expired => icon(Icons.hourglass_disabled_outlined, muted),
-      RunStatus.rejected => icon(Icons.close, muted),
+      RunStatus.timedOut => icon(MorkvaIcons.cancel, scheme.error),
+      RunStatus.skipped => icon(MorkvaIcons.block, muted),
+      RunStatus.expired => icon(MorkvaIcons.hourglassOff, muted),
+      RunStatus.rejected => icon(MorkvaIcons.close, muted),
     };
     return SizedBox.square(dimension: 24, child: Center(child: child));
   }
@@ -2043,13 +2043,13 @@ class RunRowTile extends StatelessWidget {
       ),
       RunRowAction.reviewPermissions => TextActionButton(
         label: l10n.automationReviewPermissions,
-        icon: Icons.shield_outlined,
+        icon: MorkvaIcons.shield,
         onPressed: () => host.openModule(run.moduleId),
       ),
       RunRowAction.editAutomation => TextActionButton(
         // Short in Ukrainian: the run-row action column is 200 px.
         label: l10n.automationEditAction,
-        icon: Icons.edit_outlined,
+        icon: MorkvaIcons.edit,
         onPressed: () => host.editAutomation(run.automationId!),
       ),
     };
@@ -2235,7 +2235,7 @@ class _RunAgain extends StatelessWidget {
   Widget build(BuildContext context) {
     final button = TextActionButton(
       label: label,
-      icon: Icons.refresh,
+      icon: MorkvaIcons.refresh,
       onPressed: offline ? null : onPressed,
     );
     if (!offline) return button;

@@ -59,7 +59,7 @@ class _JumpToDialogState extends State<_JumpToDialog> {
                 autofocus: true,
                 decoration: InputDecoration(
                   hintText: context.l10n.shellJumpHint,
-                  prefixIcon: const Icon(Icons.search_rounded),
+                  prefixIcon: const Icon(MorkvaIcons.search),
                 ),
                 onChanged: (v) => setState(() => _query = v),
                 onSubmitted: (_) {

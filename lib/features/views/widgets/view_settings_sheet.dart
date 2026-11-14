@@ -204,9 +204,9 @@ class _Body extends StatelessWidget {
             const SizedBox(height: Spacing.xs),
             _SettingRow(
               icon: switch (view.sort) {
-                null => Icons.swap_vert,
-                ViewSort(ascending: true) => Icons.arrow_upward,
-                _ => Icons.arrow_downward,
+                null => MorkvaIcons.swapVert,
+                ViewSort(ascending: true) => MorkvaIcons.arrowUp,
+                _ => MorkvaIcons.arrowDown,
               },
               title: l10n.viewWidgetsSort,
               value:
@@ -215,7 +215,7 @@ class _Body extends StatelessWidget {
               onTap: onSort,
             ),
             _SettingRow(
-              icon: Icons.view_column_outlined,
+              icon: MorkvaIcons.viewColumns,
               title: mode.id == ViewModeIds.table
                   ? l10n.viewWidgetsColumns
                   : l10n.viewWidgetsCardFields,
@@ -287,7 +287,7 @@ class _SettingRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: Spacing.xxs),
-          Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
+          Icon(MorkvaIcons.chevronRight, color: scheme.onSurfaceVariant),
         ],
       ),
       onTap: onTap,

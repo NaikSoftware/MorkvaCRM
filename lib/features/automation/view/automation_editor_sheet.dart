@@ -259,7 +259,7 @@ class _AutomationEditorSheetState extends State<AutomationEditorSheet> {
               titleSpacing: 0,
               leading: IconButton(
                 tooltip: l10n.commonClose,
-                icon: const Icon(Icons.close),
+                icon: const Icon(MorkvaIcons.close),
                 onPressed: () => Navigator.of(context).maybePop(),
               ),
               title: Text(title, style: theme.textTheme.titleLarge),
@@ -294,7 +294,7 @@ class _AutomationEditorSheetState extends State<AutomationEditorSheet> {
                     child: Text(title, style: theme.textTheme.headlineSmall),
                   ),
                   IconActionButton(
-                    icon: Icons.close,
+                    icon: MorkvaIcons.close,
                     tooltip: l10n.commonClose,
                     onPressed: () => Navigator.of(context).maybePop(),
                   ),
@@ -404,7 +404,7 @@ TextStyle? _muted(BuildContext context) => Theme.of(context).textTheme.bodySmall
     ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant);
 
 /// The house select's caret (the card editor's selects), not M3's triangle.
-const _chevron = Icon(Icons.expand_more, size: 20);
+const _chevron = Icon(MorkvaIcons.expandMore, size: 20);
 
 /// Select text at 14, as the card editor's.
 TextStyle? _selectStyle(BuildContext context) =>
@@ -488,7 +488,7 @@ class _Banner extends StatelessWidget {
         child: Row(
           children: [
             Icon(
-              Icons.pause_circle_outline,
+              MorkvaIcons.pauseCircle,
               size: 20,
               color: colors.foreground,
             ),
@@ -546,31 +546,31 @@ class _KindGrid extends StatelessWidget {
     final cards = [
       (
         EditorKind.cardButton,
-        Icons.smart_button_outlined,
+        MorkvaIcons.smartButton,
         l10n.automationWhenButtonCard,
         l10n.automationKindCardButtonHint,
       ),
       (
         EditorKind.collectionButton,
-        Icons.table_chart_outlined,
+        MorkvaIcons.table,
         l10n.automationWhenButtonCollection,
         l10n.automationKindCollectionButtonHint,
       ),
       (
         EditorKind.created,
-        Icons.add_box_outlined,
+        MorkvaIcons.addBox,
         l10n.automationWhenCreated,
         null,
       ),
       (
         EditorKind.updated,
-        Icons.edit_outlined,
+        MorkvaIcons.edit,
         l10n.automationWhenUpdated,
         null,
       ),
       (
         EditorKind.deleted,
-        Icons.delete_outline,
+        MorkvaIcons.delete,
         l10n.automationWhenDeleted,
         null,
       ),
@@ -923,12 +923,12 @@ class _Conditions extends StatelessWidget {
           ),
         ],
         _HelpLine(
-          icon: Icons.info_outline,
+          icon: MorkvaIcons.info,
           text: l10n.automationEventHelp,
         ),
         if (check != null)
           _HelpLine(
-            icon: Icons.history,
+            icon: MorkvaIcons.history,
             lead: l10n.automationLastChecked,
             text: '${check.cardLabel} · ${_clock(check.at)} · ${check.why}',
           ),
@@ -999,7 +999,7 @@ class _ConditionChip extends StatelessWidget {
                 IconButton(
                   tooltip: context.l10n.automationRemoveCondition(label),
                   visualDensity: VisualDensity.compact,
-                  icon: const Icon(Icons.close, size: 16),
+                  icon: const Icon(MorkvaIcons.close, size: 16),
                   onPressed: onRemove,
                 ),
               ],
@@ -1047,7 +1047,7 @@ class _AddButton extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.add, size: 16, color: ink),
+                  Icon(MorkvaIcons.add, size: 16, color: ink),
                   const SizedBox(width: Spacing.xxs),
                   Text(
                     label,
@@ -1510,7 +1510,7 @@ class _ButtonLook extends StatelessWidget {
               children: [
                 Icon(
                   s.icon == null && s.action?.icon == null
-                      ? Icons.bolt_rounded
+                      ? MorkvaIcons.bolt
                       : CollectionIcons.byKey(s.icon ?? s.action?.icon),
                   size: 18,
                   color: tint.foreground,
@@ -1592,7 +1592,7 @@ class _Apply extends StatelessWidget {
               child: Row(
                 children: [
                   Icon(
-                    Icons.lock_outline,
+                    MorkvaIcons.lock,
                     size: 14,
                     color: _muted(context)?.color,
                   ),
@@ -1682,7 +1682,7 @@ class _AdvancedState extends State<_Advanced> {
             constraints: const BoxConstraints(minHeight: 44),
             child: Row(
               children: [
-                Icon(_open ? Icons.expand_more : Icons.chevron_right, size: 20),
+                Icon(_open ? MorkvaIcons.expandMore : MorkvaIcons.chevronRight, size: 20),
                 const SizedBox(width: Spacing.xs),
                 Text(l10n.automationAdvanced, style: theme.textTheme.titleSmall),
                 const SizedBox(width: Spacing.sm),
@@ -1747,7 +1747,7 @@ class _DeleteButton extends StatelessWidget {
       minimumSize: const Size(44, 44),
     ),
     onPressed: onPressed,
-    icon: const Icon(Icons.delete_outline, size: 18),
+    icon: const Icon(MorkvaIcons.delete, size: 18),
     label: Text(context.l10n.commonDelete),
   );
 }
