@@ -190,6 +190,19 @@ class AppLocalizationsUk extends AppLocalizations {
   String get assistantConversations => 'Розмови';
 
   @override
+  String assistantDayThreads(String day, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count розмови',
+      many: '$count розмов',
+      few: '$count розмови',
+      one: '$count розмова',
+    );
+    return '$day, $_temp0';
+  }
+
+  @override
   String get assistantGreeting => 'Вітаю! Що подивимося?';
 
   @override
