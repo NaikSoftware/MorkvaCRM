@@ -144,6 +144,51 @@ void main() {
     expect(find.bySemanticsLabel('Sun 15 Nov, 2 open'), findsOneWidget);
   });
 
+  testWidgets('week strip: a disabled Today reads as disabled', (tester) async {
+    await rig.pump(tester);
+    final scheme = AppTheme.light.colorScheme;
+    final style = tester
+        .widget<OutlinedButton>(find.widgetWithText(OutlinedButton, 'Today'))
+        .style!;
+    const off = {WidgetState.disabled};
+    expect(
+      style.foregroundColor!.resolve(off),
+      scheme.onSurface.withValues(alpha: 0.38),
+    );
+    expect(
+      style.side!.resolve(off)!.color,
+      scheme.outline.withValues(alpha: 0.38),
+    );
+    expect(style.side!.resolve({})!.color, scheme.outline);
+  });
+
+  for (final (locale, month) in [
+    (null, 'November 2026'),
+    (const Locale('uk'), 'листопад 2026'),
+  ]) {
+    testWidgets('phone: "$month" gets all the width beside ‹ Today ›', (
+      tester,
+    ) async {
+      await rig.pump(tester, size: kPhone, locale: locale);
+      // The test font's 1 em glyphs overflow any phone row, so check the
+      // label takes all the free width (the real font fits in it) rather
+      // than half of it.
+      final button = find.ancestor(
+        of: find.text(month),
+        matching: find.byType(TextButton),
+      );
+      expect(
+        tester.getRect(button).right,
+        moreOrLessEquals(
+          tester
+              .getRect(find.widgetWithIcon(IconButton, Icons.chevron_left))
+              .left,
+          epsilon: 2,
+        ),
+      );
+    });
+  }
+
   testWidgets('the month picker opens on a day outside its range', (
     tester,
   ) async {

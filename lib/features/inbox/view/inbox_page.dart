@@ -335,18 +335,31 @@ class _ComposerState extends State<_Composer> {
     _focus.requestFocus();
   }
 
-  /// Keeps the chips up while [action] (a menu or picker) runs, then gives
-  /// the field its focus back.
+  /// Keeps the chips up while [action] (a picker) runs. Closing the picker
+  /// hands focus back to the field only if it was its route's last focus.
   Future<void> _hold(Future<void> Function() action) async {
     setState(() => _busy++);
     try {
       await action();
     } finally {
-      if (mounted) {
-        setState(() => _busy--);
-        _focus.requestFocus();
-      }
+      if (mounted) setState(() => _busy--);
     }
+  }
+
+  /// Focus parked above the field (web view blur) makes its own tap-outside
+  /// unfocus a no-op, leaving it in scope history for the next restore.
+  void _tapOutside(PointerDownEvent _) {
+    final primary = FocusManager.instance.primaryFocus;
+    if (_focus.hasFocus ||
+        primary == null ||
+        !_focus.ancestors.contains(primary) ||
+        _focus.enclosingScope?.focusedChild != _focus) {
+      return;
+    }
+    // unfocus() only acts on a focused (or focus-marked) node.
+    _focus
+      ..requestFocus()
+      ..unfocus();
   }
 
   Future<void> _pickDate() => _hold(() async {
@@ -403,6 +416,7 @@ class _ComposerState extends State<_Composer> {
         draft.link != null;
 
     return TextFieldTapRegion(
+      onTapOutside: _tapOutside,
       child: AnimatedContainer(
         duration: MediaQuery.disableAnimationsOf(context)
             ? Duration.zero
@@ -510,6 +524,9 @@ class _ComposerState extends State<_Composer> {
     );
   }
 
+  /// A chip menu's item: a tap on it is not a tap outside the field.
+  static Widget _inField(Widget item) => TextFieldTapRegion(child: item);
+
   Widget _dateChip(
     InboxPageState state,
     DateTime? date,
@@ -535,7 +552,7 @@ class _ComposerState extends State<_Composer> {
             child: Text(label),
           ),
         MenuItemButton(onPressed: _pickDate, child: Text(l10n.inboxPickDate)),
-      ],
+      ].map(_inField).toList(),
       builder: (context, controller, _) => InboxChip(
         icon: Icons.calendar_today_outlined,
         label: date == null ? null : dayLabel(date, locale),
@@ -572,7 +589,7 @@ class _ComposerState extends State<_Composer> {
                 : null,
             child: Text(reminderLabel(l10n, r)),
           ),
-      ],
+      ].map(_inField).toList(),
       builder: (context, controller, _) => InboxChip(
         icon: Icons.notifications_none,
         label: reminders.isEmpty

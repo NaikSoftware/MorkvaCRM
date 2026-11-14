@@ -61,38 +61,42 @@ class WeekStrip extends StatelessWidget {
 
     final header = Row(
       children: [
-        Flexible(
-          child: TextButton(
-            onPressed: () => _pick(context),
-            style: TextButton.styleFrom(
-              foregroundColor: scheme.onSurface,
-              minimumSize: const Size(44, 44),
-              // The label's text lines up with the content edge.
-              padding: const EdgeInsets.only(right: Spacing.xs),
-              textStyle: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
+        // Expanded, not Flexible + Spacer: those split the free width in
+        // half and cut "November 2026" on a phone.
+        Expanded(
+          child: Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: TextButton(
+              onPressed: () => _pick(context),
+              style: TextButton.styleFrom(
+                foregroundColor: scheme.onSurface,
+                minimumSize: const Size(44, 44),
+                // The label's text lines up with the content edge.
+                padding: const EdgeInsets.only(right: Spacing.xs),
+                textStyle: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Flexible(
-                  child: Text(
-                    monthLabel(selected, locale),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    semanticsLabel: l10n.inboxPickDateIn(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
                       monthLabel(selected, locale),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      semanticsLabel: l10n.inboxPickDateIn(
+                        monthLabel(selected, locale),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: Spacing.xxs),
-                const Icon(Icons.expand_more, size: 20),
-              ],
+                  const SizedBox(width: Spacing.xxs),
+                  const Icon(Icons.expand_more, size: 20),
+                ],
+              ),
             ),
           ),
         ),
-        const Spacer(),
         IconButton(
           constraints: const BoxConstraints.tightFor(width: 44, height: 44),
           padding: EdgeInsets.zero,
@@ -102,14 +106,27 @@ class WeekStrip extends StatelessWidget {
         ),
         OutlinedButton(
           onPressed: isToday ? null : () => onSelect(today),
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size(44, 32),
-            tapTargetSize: MaterialTapTargetSize.padded,
-            padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
-            shape: const RoundedRectangleBorder(borderRadius: Radii.smAll),
-            foregroundColor: scheme.onSurface,
-            side: BorderSide(color: scheme.outline),
-          ),
+          style:
+              OutlinedButton.styleFrom(
+                minimumSize: const Size(44, 32),
+                tapTargetSize: MaterialTapTargetSize.padded,
+                padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
+                shape: const RoundedRectangleBorder(borderRadius: Radii.smAll),
+                foregroundColor: scheme.onSurface,
+                disabledForegroundColor: scheme.onSurface.withValues(
+                  alpha: 0.38,
+                ),
+              ).copyWith(
+                // styleFrom's side would paint the disabled outline full ink;
+                // disabled fades it as the mockup does (38%).
+                side: WidgetStateProperty.resolveWith(
+                  (states) => BorderSide(
+                    color: states.contains(WidgetState.disabled)
+                        ? scheme.outline.withValues(alpha: 0.38)
+                        : scheme.outline,
+                  ),
+                ),
+              ),
           child: Text(l10n.commonToday),
         ),
         IconButton(
