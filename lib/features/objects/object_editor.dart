@@ -19,6 +19,7 @@ import '../automation/view/review_sheet.dart';
 import '../automation/widgets/action_buttons.dart';
 import '../automation/widgets/reason_copy.dart' show CopyTone;
 import '../automation/widgets/status_chip.dart';
+import '../inbox/view_card/card_inbox_button.dart';
 import '../views/widgets/view_labels.dart';
 import 'object_editor_cubit.dart';
 import 'value_editors/field_value_editor.dart';
@@ -616,6 +617,12 @@ class _ObjectEditorState extends State<ObjectEditor> {
                   dirty: state.hasUnsavedChanges,
                   hooks: _hooks,
                 ),
+                if (state.stored case final stored?)
+                  CardInboxButton(
+                    collectionId: state.collection.id,
+                    cardId: stored.id,
+                    label: state.title,
+                  ),
                 Padding(
                   padding: const EdgeInsets.only(right: Spacing.xs),
                   child: PrimaryButton(
@@ -697,9 +704,23 @@ class _Header extends StatelessWidget {
         : '${item[0].toUpperCase()}${item.substring(1)}'
               ' · created ${_shortDate(stored.createdAt)}'
               ' · edited ${_ago(stored.updatedAt)}';
+    final inbox = stored != null
+        ? CardInboxButton(
+            collectionId: collection.id,
+            cardId: stored.id,
+            label: state.title,
+          )
+        : null;
+    final inboxWidth = inbox != null && CardInboxButton.shownIn(context)
+        ? CardInboxButton.width
+        : 0;
     return LayoutBuilder(
-      builder: (context, constraints) =>
-          _bar(context, meta: meta, buttons: actions(constraints.maxWidth)),
+      builder: (context, constraints) => _bar(
+        context,
+        meta: meta,
+        buttons: actions(constraints.maxWidth - inboxWidth),
+        inbox: inbox,
+      ),
     );
   }
 
@@ -707,6 +728,7 @@ class _Header extends StatelessWidget {
     BuildContext context, {
     required String meta,
     required Widget buttons,
+    Widget? inbox,
   }) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
@@ -754,6 +776,7 @@ class _Header extends StatelessWidget {
             ),
           ),
           buttons,
+          ?inbox,
           IconActionButton(
             icon: Icons.close,
             tooltip: 'Close',

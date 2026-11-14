@@ -32,6 +32,7 @@ import '../core/automation/engine/script_engine.dart';
 import '../core/automation/runner_api.dart';
 import '../core/automation/store_catalog.dart';
 import '../core/domain/automation/automation.dart';
+import '../core/domain/inbox/inbox.dart';
 import '../core/harness/session/harness_session.dart';
 import '../design/design.dart';
 import '../features/assistant/bloc/assistant_bloc.dart';
@@ -42,6 +43,9 @@ import '../features/automation/bloc/automation_runs_cubit.dart';
 import '../features/automation/bloc/modules_cubit.dart';
 import '../features/automation/bloc/run_log_cubit.dart';
 import '../features/inbox/bloc/inbox_cubit.dart';
+import '../features/inbox/reminders/reminder_platform.dart';
+import '../features/inbox/reminders/reminder_scheduler.dart';
+import '../features/inbox/view/inbox_format.dart';
 import 'router/app_router.dart';
 
 /// App-wide scroll behavior: no colored overscroll glow (it clashed with the
@@ -282,12 +286,14 @@ class _MorkvaAppState extends State<MorkvaApp> {
           _runner.initialize(workspaceId: workspaceId, uid: user.uid);
           _inbox.initialize(workspaceId: workspaceId, uid: user.uid);
           final stores = _automationStores;
+          final inbox = InboxCubit(_inbox);
           setState(
             () => _cubits = (
               modules: ModulesCubit(_runner, stores, uid: user.uid),
               runs: AutomationRunsCubit(_runner, stores, since: since),
               runLog: RunLogCubit(_runner, stores, uid: user.uid),
-              inbox: InboxCubit(_inbox),
+              inbox: inbox,
+              reminders: _startReminders(inbox),
             ),
           );
           _sessionReady.value = true;
@@ -299,6 +305,7 @@ class _MorkvaAppState extends State<MorkvaApp> {
           // Stay provided (closed) until the next sign-in replaces them: the
           // pages under them unmount only on the redirect's frame.
           final cubits = _cubits;
+          _stopReminders(cubits);
           // The runner first: no bridge call is cut with a stale uid. Both
           // unbind at once, so the cache cancels its listeners before the
           // repository goes; their cancels need not hold it up.
@@ -337,8 +344,50 @@ class _MorkvaAppState extends State<MorkvaApp> {
     _sessionReady.dispose();
   }
 
+  /// Fires the member's reminders from the Inbox as it loads and changes.
+  ({ReminderScheduler scheduler, StreamSubscription<InboxState> feed})
+  _startReminders(InboxCubit inbox) {
+    final platform = createReminderPlatform();
+    final scheduler = ReminderScheduler(
+      now: DateTime.now,
+      attention: platform.attention,
+      store: platform.store,
+      notifier: platform.notifier,
+      bodyOf: _reminderBody,
+      onOpen: (id) => _router.go(
+        Uri(path: '/inbox', queryParameters: {'item': id}).toString(),
+      ),
+    );
+    // Only loaded lists: an empty "loading" list would advance the shared
+    // mark and skip the catch-up.
+    final feed = inbox.stream.listen((s) {
+      if (s is InboxReady) scheduler.updateItems(s.items);
+    });
+    if (inbox.state case InboxReady(:final items)) {
+      scheduler.updateItems(items);
+    }
+    scheduler.start();
+    return (scheduler: scheduler, feed: feed);
+  }
+
+  /// Synchronous, so no tick timer outlives the session.
+  static void _stopReminders(_SessionCubits? cubits) {
+    if (cubits == null) return;
+    unawaited(cubits.reminders.feed.cancel());
+    cubits.reminders.scheduler.dispose();
+  }
+
+  /// "10:00 · #1042": the time (timed items) and the linked card.
+  // shortcut: the collection name isn't in the link snapshot and there is no
+  // sync lookup here; add it when the link stores it.
+  static String _reminderBody(InboxItem item) => [
+    if (itemMinutes(item) case final m?) timeLabel(m),
+    if (item.link case final link? when link.label.isNotEmpty) link.label,
+  ].join(' · ');
+
   @override
   void dispose() {
+    _stopReminders(_cubits);
     _router.dispose();
     // `State.dispose` cannot be async, so fire-and-forget the teardown. The
     // futures involved are local cancellations/closes that complete promptly
@@ -392,6 +441,9 @@ class _MorkvaAppState extends State<MorkvaApp> {
                   BlocProvider<AutomationRunsCubit>.value(value: cubits.runs),
                   BlocProvider<RunLogCubit>.value(value: cubits.runLog),
                   BlocProvider<InboxCubit>.value(value: cubits.inbox),
+                  RepositoryProvider<ReminderScheduler>.value(
+                    value: cubits.reminders.scheduler,
+                  ),
                 ],
                 child: router,
               );
@@ -408,6 +460,8 @@ typedef _SessionCubits = ({
   AutomationRunsCubit runs,
   RunLogCubit runLog,
   InboxCubit inbox,
+  ({ReminderScheduler scheduler, StreamSubscription<InboxState> feed})
+  reminders,
 });
 
 Future<void> _close(_SessionCubits? cubits) async {

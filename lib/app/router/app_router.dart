@@ -22,6 +22,7 @@ import '../../features/automation/widgets/run_indicator.dart';
 import '../../features/auth/sign_in_page.dart';
 import '../../features/collections/collections.dart';
 import '../../features/home/home_page.dart';
+import '../../features/inbox/view/inbox_page.dart';
 import '../../features/settings/settings_page.dart';
 import '../../features/views/views.dart';
 import '../shell/app_shell.dart';
@@ -103,6 +104,7 @@ GoRouter createAppRouter(
             inSettings: location.startsWith('/settings'),
             inAutomations: location.startsWith('/automations'),
             automationsDetail: location.startsWith('/automations/'),
+            inInbox: location.startsWith('/inbox'),
             child: child,
           );
         },
@@ -118,6 +120,22 @@ GoRouter createAppRouter(
                   key: state.pageKey,
                   child: const SettingsPage(),
                 ),
+              ),
+              // The query is the page's state (the selected day, an item's
+              // editor), so the page stays (keyed by the route) as it changes.
+              GoRoute(
+                path: 'inbox',
+                pageBuilder: (context, state) {
+                  final q = state.uri.queryParameters;
+                  return collectionPage(
+                    context,
+                    key: state.pageKey,
+                    child: InboxPage(
+                      day: parseInboxDay(q['day']),
+                      itemId: q['item'],
+                    ),
+                  );
+                },
               ),
               // Modules · Automations · Runs. The query is the page's state,
               // so the page stays (keyed by the route) as it changes.
@@ -253,6 +271,16 @@ GoRouter createAppRouter(
       ),
     ],
   );
+}
+
+/// `yyyy-MM-dd` as that local calendar day; null when absent or malformed.
+DateTime? parseInboxDay(String? query) {
+  final m = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$').firstMatch(query ?? '');
+  if (m == null) return null;
+  final [y, mo, d] = [for (var i = 1; i <= 3; i++) int.parse(m[i]!)];
+  final day = DateTime(y, mo, d);
+  // No rollover: 2026-02-31 is not March 3.
+  return day.month == mo && day.day == d ? day : null;
 }
 
 /// The `/assistant` page over the session. While it is up the panel cubit
