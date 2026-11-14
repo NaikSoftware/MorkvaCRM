@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../design/design.dart';
+import '../../../../l10n/l10n.dart';
 import '../../bloc/chat_item.dart';
 import 'assistant_scope.dart';
 import 'chip_button.dart';
@@ -48,7 +49,10 @@ class ResultTableCard extends StatelessWidget {
     );
 
     final more = table != null && table.totalCount > table.rows.length
-        ? 'Showing ${table.rows.length} of ${table.totalCount}'
+        ? context.l10n.assistantShowingRows(
+            table.rows.length,
+            table.totalCount,
+          )
         : null;
 
     return Column(
@@ -69,11 +73,11 @@ class ResultTableCard extends StatelessWidget {
                 // An aggregate's groups are no card query to filter by.
                 if (table.collectionId != null && item.spec?['kind'] == 'query')
                   ChipButton(
-                    label: 'Open as filtered view',
+                    label: context.l10n.assistantOpenAsFilteredView,
                     onPressed: () => scope.actions.openTable(item),
                   ),
                 ChipButton(
-                  label: 'Copy table',
+                  label: context.l10n.assistantCopyTable,
                   onPressed: () => _copy(context, table),
                 ),
               ],
@@ -85,10 +89,11 @@ class ResultTableCard extends StatelessWidget {
 
   Future<void> _copy(BuildContext context, ResultTable table) async {
     final messenger = ScaffoldMessenger.maybeOf(context);
+    final copied = context.l10n.assistantTableCopied;
     await Clipboard.setData(ClipboardData(text: tableAsText(table)));
     messenger
       ?..hideCurrentSnackBar()
-      ..showSnackBar(const SnackBar(content: Text('Table copied')));
+      ..showSnackBar(SnackBar(content: Text(copied)));
   }
 }
 
@@ -179,7 +184,7 @@ class _ResultTable extends StatelessWidget {
           child: ObjectChip(
             label: label,
             leading: number ? const HashGlyph() : null,
-            semanticLabel: 'Open ${column.label} $label',
+            semanticLabel: context.l10n.assistantOpenCell(column.label, label),
             onTap: () => AssistantScope.of(context).actions.openObject(
               collectionId: table.collectionId!,
               cardId: row.cardId,

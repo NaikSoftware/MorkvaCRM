@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../design/design.dart';
+import '../../../../l10n/l10n.dart';
 import '../../bloc/assistant_state.dart';
 import 'assistant_scope.dart';
 import 'sparkle_icon.dart';
@@ -20,12 +21,7 @@ class EmptyChat extends StatelessWidget {
     final scheme = theme.colorScheme;
     final names = state.collectionNames;
     final name = state.userFirstName?.trim();
-    final n = names.length;
-    final reach = switch (n) {
-      0 => 'I can help you set up collections, crunch numbers',
-      1 => 'I can read your ${names.single} collection, crunch numbers',
-      _ => 'I can read all $n of your collections, crunch numbers',
-    };
+    final l10n = context.l10n;
     final consent = state.availability is AvailabilityNeedsConsent;
 
     return ListView(
@@ -49,8 +45,8 @@ class EmptyChat extends StatelessWidget {
           header: true,
           child: Text(
             name == null || name.isEmpty
-                ? 'Hi. What should we look at?'
-                : 'Hi $name. What should we look at?',
+                ? l10n.assistantGreeting
+                : l10n.assistantGreetingNamed(name),
             style: theme.textTheme.headlineMedium?.copyWith(
               fontSize: 26,
               fontWeight: FontWeight.w700,
@@ -61,8 +57,9 @@ class EmptyChat extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         Text(
-          '$reach, and make changes — you approve every change before it '
-          'happens.',
+          names.length == 1
+              ? l10n.assistantIntroOne(names.single)
+              : l10n.assistantIntro(names.length),
           style: theme.textTheme.bodyMedium?.copyWith(
             height: 1.5,
             color: scheme.onSurfaceVariant,
@@ -77,6 +74,7 @@ class EmptyChat extends StatelessWidget {
           for (final group in suggestionGroups(
             names,
             focused: state.focus?.collectionName,
+            l10n: l10n,
           )) ...[
             _SuggestionGroup(group: group, enabled: state.availability.canSend),
             const SizedBox(height: 22),
@@ -97,21 +95,27 @@ enum SuggestionKind { ask, analyze, act }
 
 /// Ask / Analyze / Act prompts: generic templates filled with the first
 /// collections' names, or plain starters when there are none. The
-/// [focused] collection (the one on screen) fills Ask and Analyze.
-List<SuggestionGroup> suggestionGroups(List<String> names, {String? focused}) {
+/// [focused] collection (the one on screen) fills Ask and Analyze. English
+/// without [l10n].
+List<SuggestionGroup> suggestionGroups(
+  List<String> names, {
+  String? focused,
+  AppLocalizations? l10n,
+}) {
+  final t = l10n ?? lookupAppLocalizations(const Locale('en'));
   if (names.isEmpty) {
-    return const [
+    return [
       (
-        title: 'Ask',
+        title: t.assistantSuggestAsk,
         kind: SuggestionKind.ask,
-        items: ['What can you help me with?'],
+        items: [t.assistantSuggestHelp],
       ),
       (
-        title: 'Act',
+        title: t.assistantSuggestAct,
         kind: SuggestionKind.act,
         items: [
-          'Create a Clients collection with name, phone and city',
-          'Set up an Orders collection linked to Clients',
+          t.assistantSuggestCreateClients,
+          t.assistantSuggestSetUpOrders,
         ],
       ),
     ];
@@ -121,25 +125,25 @@ List<SuggestionGroup> suggestionGroups(List<String> names, {String? focused}) {
   final f = focused == null || focused.isEmpty ? null : focused;
   return [
     (
-      title: 'Ask',
+      title: t.assistantSuggestAsk,
       kind: SuggestionKind.ask,
       items: [
-        'How many ${f ?? a} were added this month?',
-        'Show the 5 newest ${f ?? b}',
+        t.assistantSuggestHowMany(f ?? a),
+        t.assistantSuggestNewest(f ?? b),
       ],
     ),
     (
-      title: 'Analyze',
+      title: t.assistantSuggestAnalyze,
       kind: SuggestionKind.analyze,
       items: [
-        '${f ?? a} by month this year',
-        'Compare ${f ?? b} this month with last month',
+        t.assistantSuggestByMonth(f ?? a),
+        t.assistantSuggestCompare(f ?? b),
       ],
     ),
     (
-      title: 'Act',
+      title: t.assistantSuggestAct,
       kind: SuggestionKind.act,
-      items: ['Add a new collection linked to $a', 'Add a Notes field to $b'],
+      items: [t.assistantSuggestLinked(a), t.assistantSuggestNotes(b)],
     ),
   ];
 }
@@ -250,30 +254,28 @@ class _ConsentCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Before you start',
+            context.l10n.assistantConsentTitle,
             style: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: Spacing.xs),
           Text(
-            'To answer, Ask Morkva sends your question and the parts of your '
-            'data it needs to Google’s Gemini.',
+            context.l10n.assistantConsentData,
             style: body,
           ),
           if (freeTier) ...[
             const SizedBox(height: Spacing.xs),
             Text(
-              'On the free tier Google may use prompts and answers to improve '
-              'its products, so keep sensitive details out of your questions.',
+              context.l10n.assistantConsentFreeTier,
               style: body,
             ),
           ],
           const SizedBox(height: Spacing.xs),
-          Text('Answers can be wrong — check important numbers.', style: body),
+          Text(context.l10n.assistantDisclaimer, style: body),
           const SizedBox(height: Spacing.md),
           PrimaryButton(
-            label: 'Enable Ask Morkva',
+            label: context.l10n.assistantEnable,
             icon: Icons.check_rounded,
             onPressed: actions.grantConsent,
           ),
@@ -292,20 +294,21 @@ class AssistantUnavailable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final (title, message) = switch (availability) {
       AvailabilityDisabledByFlag() => (
-        'Ask Morkva is off',
-        'Ask Morkva isn’t enabled for your account.',
+        l10n.assistantOffTitle,
+        l10n.assistantOffBody,
       ),
       AvailabilityNotSetUp() => (
-        'Not set up yet',
-        'Ask Morkva isn’t set up for this project yet.',
+        l10n.assistantNotSetUpTitle,
+        l10n.assistantNotSetUpBody,
       ),
       AvailabilityUnavailable(:final message) => (
-        'Ask Morkva is unavailable',
+        l10n.assistantUnavailableTitle,
         message,
       ),
-      _ => ('Ask Morkva is unavailable', 'Try again later.'),
+      _ => (l10n.assistantUnavailableTitle, l10n.assistantTryLater),
     };
     return Center(
       child: SingleChildScrollView(

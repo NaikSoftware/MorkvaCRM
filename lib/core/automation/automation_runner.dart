@@ -586,7 +586,7 @@ final class AutomationRunner implements AutomationRunnerApi {
         _evaluator.record(
           a.id,
           LastCheck(
-            cardLabel: trigger.cardLabel ?? 'Untitled',
+            cardLabel: trigger.cardLabel ?? CoreWords.current.untitled,
             at: _now(),
             result: LastCheckResult.skipped,
             why: "${_reasonText(reason)} → didn't run",
@@ -642,8 +642,9 @@ final class AutomationRunner implements AutomationRunnerApi {
     final image = change.after ?? change.before!;
     final collection = session.cache.collection(change.collectionId);
     return collection == null
-        ? 'Untitled'
-        : objectLabels(collection, [image])[image.id] ?? 'Untitled';
+        ? CoreWords.current.untitled
+        : objectLabels(collection, [image])[image.id] ??
+              CoreWords.current.untitled;
   }
 
   // ----------------------------------------------------------------- queue

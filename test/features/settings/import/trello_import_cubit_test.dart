@@ -78,8 +78,10 @@ void main() {
       addTearDown(c.close);
       expect(c.state.boards, hasLength(1));
       expect(c.state.problems.map((p) => p.name), ['notes.txt', 'copy.json']);
-      expect(c.state.problems.first.message, contains('Trello board export'));
-      expect(c.state.problems.last.message, 'Already added');
+      expect(c.state.problems.map((p) => p.kind), [
+        ImportProblemKind.notABoard,
+        ImportProblemKind.alreadyAdded,
+      ]);
 
       c.dismissProblem(0);
       expect(c.state.problems.map((p) => p.name), ['copy.json']);
@@ -165,7 +167,7 @@ void main() {
       c.select(_boardId, board: false);
       expect(c.state.selectedCollectionCount, 0);
       expect(c.state.canImport, isFalse);
-      expect(c.state.importBlockedReason, 'Choose at least one collection');
+      expect(c.state.importBlockedReason, ImportBlockedReason.nothingChosen);
       expect(c.state.choices[_boardId]!.checklists, isTrue);
     });
 
@@ -173,7 +175,7 @@ void main() {
       final c = chosen()..setOffline(true);
       expect(c.state.offline, isTrue);
       expect(c.state.canImport, isFalse);
-      expect(c.state.importBlockedReason, "You're offline — connect to import");
+      expect(c.state.importBlockedReason, ImportBlockedReason.offline);
       await c.startImport();
       expect(c.state.step, TrelloImportStep.choose);
       expect(repo.saveCount, 0);
@@ -287,7 +289,7 @@ void main() {
         async.elapse(const Duration(seconds: 5));
         expect(c.state.isWriting, isFalse);
         expect(c.state.stalled, isTrue);
-        expect(c.state.failure, TrelloImportCubit.stalledMessage);
+        expect(c.state.failure, ImportFailure.stalled);
         expect(c.state.rows.first.status, ImportRowStatus.paused);
         expect(c.state.rows.first.written, 0);
 
@@ -324,9 +326,7 @@ void main() {
 
         expect(c.state.step, TrelloImportStep.importing);
         expect(c.state.stalled, isFalse);
-        expect(c.state.failure, isNotNull);
-        expect(c.state.failure, isNot(contains('permission-denied')));
-        expect(c.state.failure, TrelloImportCubit.refusedMessage);
+        expect(c.state.failure, ImportFailure.refused);
         expect(c.state.rows.first.status, ImportRowStatus.paused);
         expect(c.state.rows.skip(1).map((r) => r.status), [
           ImportRowStatus.pending,

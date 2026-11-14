@@ -138,6 +138,7 @@ class FileFieldDefinition extends FieldDefinition {
               fieldId: id,
               code: invalidExtension,
               message: '${attachment.name} has an unsupported type for $name',
+              subject: attachment.name,
             ),
           );
         }

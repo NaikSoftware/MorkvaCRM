@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/domain/domain.dart';
+import '../../../l10n/l10n.dart';
 import 'field_editor.dart';
 import 'widgets/option_set_editor.dart';
 import 'widgets/preview_affordances.dart';
@@ -13,10 +14,11 @@ class SingleSelectFieldEditor extends FieldEditor {
   String get typeId => kSingleSelectFieldType;
 
   @override
-  String get displayLabel => 'Single select';
+  String label(AppLocalizations l10n) => l10n.collectionsTypeSingleSelect;
 
   @override
-  String get description => 'Pick exactly one option from a fixed set.';
+  String description(AppLocalizations l10n) =>
+      l10n.collectionsTypeSingleSelectDescription;
 
   @override
   IconData get icon => Icons.arrow_drop_down_circle_outlined;
@@ -50,12 +52,12 @@ class SingleSelectFieldEditor extends FieldEditor {
 
   @override
   String summarize(
+    AppLocalizations l10n,
     FieldDefinition definition, {
     List<Collection> collections = const [],
   }) {
     final field = definition as SingleSelectFieldDefinition;
-    final count = field.options.length;
-    return count == 1 ? '1 option' : '$count options';
+    return l10n.collectionsOptionCount(field.options.length);
   }
 
   @override

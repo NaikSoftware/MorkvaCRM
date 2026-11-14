@@ -1,0 +1,1108 @@
+{
+ "id": "orders_pipeline",
+ "name": "Воронка замовлень",
+ "description": "Замовлення на дошці статусів, їхні позиції з позначкою виконання й залишки на складі, що резервуються самі.",
+ "icon": "cart",
+ "collections": [
+  {
+   "id": "@orders",
+   "name": "Замовлення",
+   "icon": "cart",
+   "fields": [
+    {
+     "id": "customer",
+     "name": "Клієнт",
+     "type": "text",
+     "required": true
+    },
+    {
+     "id": "no",
+     "name": "№ замовлення",
+     "type": "auto_number",
+     "prefix": "ORD-",
+     "padding": 4
+    },
+    {
+     "id": "status",
+     "name": "Статус",
+     "type": "single_select",
+     "options": [
+      {
+       "id": "ordered",
+       "label": "Замовлено",
+       "color": "#3A7BD5"
+      },
+      {
+       "id": "clarify",
+       "label": "Уточнити",
+       "color": "#C9A227"
+      },
+      {
+       "id": "queue",
+       "label": "У черзі",
+       "color": "#7E57C2"
+      },
+      {
+       "id": "progress",
+       "label": "У роботі",
+       "color": "#E8821E"
+      },
+      {
+       "id": "made",
+       "label": "Виготовлено",
+       "color": "#26A69A"
+      },
+      {
+       "id": "shipped",
+       "label": "Відправлено",
+       "color": "#43A047"
+      },
+      {
+       "id": "received",
+       "label": "Отримано",
+       "color": "#2E7D32"
+      },
+      {
+       "id": "notpicked",
+       "label": "Не забрали",
+       "color": "#E53935"
+      }
+     ]
+    },
+    {
+     "id": "deadline",
+     "name": "Термін",
+     "type": "date"
+    },
+    {
+     "id": "labels",
+     "name": "Мітки",
+     "type": "multi_select",
+     "options": [
+      {
+       "id": "gift",
+       "label": "Подарунок",
+       "color": "#D81B60"
+      },
+      {
+       "id": "design",
+       "label": "Потрібен дизайн",
+       "color": "#7E57C2"
+      },
+      {
+       "id": "cod",
+       "label": "Накладений платіж",
+       "color": "#E8821E"
+      },
+      {
+       "id": "prepaid",
+       "label": "Передплачено",
+       "color": "#43A047"
+      },
+      {
+       "id": "noturgent",
+       "label": "Не терміново",
+       "color": "#78909C"
+      },
+      {
+       "id": "hasdeadline",
+       "label": "Є термін",
+       "color": "#E53935"
+      }
+     ]
+    },
+    {
+     "id": "recipient",
+     "name": "Отримувач",
+     "type": "text"
+    },
+    {
+     "id": "phone",
+     "name": "Телефон",
+     "type": "text"
+    },
+    {
+     "id": "city",
+     "name": "Місто",
+     "type": "text"
+    },
+    {
+     "id": "point",
+     "name": "Відділення доставки",
+     "type": "text"
+    },
+    {
+     "id": "prepayment",
+     "name": "Передоплата",
+     "type": "number",
+     "unitLabel": "₴"
+    },
+    {
+     "id": "cod",
+     "name": "Накладений платіж",
+     "type": "number",
+     "unitLabel": "₴"
+    },
+    {
+     "id": "design",
+     "name": "Макети дизайну",
+     "type": "file",
+     "multiple": true
+    },
+    {
+     "id": "itemCount",
+     "name": "Позиції",
+     "type": "calculated",
+     "declaredOutputType": "number",
+     "aggregate": {
+      "source": "linkedFrom",
+      "collectionId": "@items",
+      "referenceFieldId": "order",
+      "op": "sum",
+      "fieldId": "qty"
+     }
+    },
+    {
+     "id": "itemsDone",
+     "name": "Виконано позицій",
+     "type": "calculated",
+     "declaredOutputType": "number",
+     "aggregate": {
+      "source": "linkedFrom",
+      "collectionId": "@items",
+      "referenceFieldId": "order",
+      "op": "sum",
+      "fieldId": "qty",
+      "filters": [
+       {
+        "fieldId": "done",
+        "op": "isTrue"
+       }
+      ]
+     }
+    }
+   ],
+   "views": [
+    {
+     "id": "pipeline",
+     "name": "Воронка",
+     "mode": "board",
+     "layoutFieldId": "status",
+     "fieldIds": [
+      "customer",
+      "no",
+      "deadline",
+      "labels"
+     ],
+     "filters": [],
+     "manualOrder": []
+    },
+    {
+     "id": "all",
+     "name": "Усі замовлення",
+     "mode": "table",
+     "fieldIds": [
+      "customer",
+      "no",
+      "status",
+      "deadline",
+      "city",
+      "prepayment",
+      "cod",
+      "itemCount"
+     ],
+     "filters": [],
+     "sort": {
+      "fieldId": "no",
+      "ascending": false
+     },
+     "manualOrder": []
+    }
+   ],
+   "layout": {
+    "sections": [
+     {
+      "id": "s0",
+      "title": null,
+      "collapsed": false,
+      "rows": [
+       {
+        "id": "s0r0",
+        "cells": [
+         {
+          "fieldId": "customer",
+          "span": 6
+         },
+         {
+          "fieldId": "status",
+          "span": 6
+         }
+        ]
+       },
+       {
+        "id": "s0r1",
+        "cells": [
+         {
+          "fieldId": "no",
+          "span": 6
+         },
+         {
+          "fieldId": "deadline",
+          "span": 6
+         }
+        ]
+       },
+       {
+        "id": "s0r2",
+        "cells": [
+         {
+          "fieldId": "labels",
+          "span": 12
+         }
+        ]
+       },
+       {
+        "id": "s0r3",
+        "cells": [
+         {
+          "fieldId": "itemCount",
+          "span": 6
+         },
+         {
+          "fieldId": "itemsDone",
+          "span": 6
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "id": "s1",
+      "title": "Доставка й оплата",
+      "collapsed": true,
+      "rows": [
+       {
+        "id": "s1r0",
+        "cells": [
+         {
+          "fieldId": "recipient",
+          "span": 6
+         },
+         {
+          "fieldId": "phone",
+          "span": 6
+         }
+        ]
+       },
+       {
+        "id": "s1r1",
+        "cells": [
+         {
+          "fieldId": "city",
+          "span": 6
+         },
+         {
+          "fieldId": "point",
+          "span": 6
+         }
+        ]
+       },
+       {
+        "id": "s1r2",
+        "cells": [
+         {
+          "fieldId": "prepayment",
+          "span": 6
+         },
+         {
+          "fieldId": "cod",
+          "span": 6
+         }
+        ]
+       },
+       {
+        "id": "s1r3",
+        "cells": [
+         {
+          "fieldId": "design",
+          "span": 12
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "@items",
+   "name": "Позиції замовлень",
+   "icon": "tag",
+   "fields": [
+    {
+     "id": "garment",
+     "name": "Виріб",
+     "type": "calculated",
+     "declaredOutputType": "single_select",
+     "lookup": {
+      "referenceFieldId": "sku",
+      "fieldId": "garment"
+     }
+    },
+    {
+     "id": "size",
+     "name": "Розмір",
+     "type": "calculated",
+     "declaredOutputType": "single_select",
+     "lookup": {
+      "referenceFieldId": "sku",
+      "fieldId": "size"
+     }
+    },
+    {
+     "id": "colour",
+     "name": "Колір",
+     "type": "calculated",
+     "declaredOutputType": "single_select",
+     "lookup": {
+      "referenceFieldId": "sku",
+      "fieldId": "colour"
+     }
+    },
+    {
+     "id": "sku",
+     "name": "Товар зі складу",
+     "type": "reference",
+     "targetCollectionId": "@inventory",
+     "multiple": false,
+     "required": true
+    },
+    {
+     "id": "notes",
+     "name": "Вишивка й примітки",
+     "type": "text",
+     "multiline": true
+    },
+    {
+     "id": "qty",
+     "name": "Кількість",
+     "type": "number",
+     "min": 1
+    },
+    {
+     "id": "done",
+     "name": "Готово",
+     "type": "boolean"
+    },
+    {
+     "id": "order",
+     "name": "Замовлення",
+     "type": "reference",
+     "targetCollectionId": "@orders",
+     "multiple": false,
+     "required": true
+    },
+    {
+     "id": "orderStatus",
+     "name": "Статус замовлення",
+     "type": "calculated",
+     "declaredOutputType": "single_select",
+     "lookup": {
+      "referenceFieldId": "order",
+      "fieldId": "status"
+     }
+    }
+   ],
+   "views": [
+    {
+     "id": "all",
+     "name": "Усі позиції",
+     "mode": "table",
+     "fieldIds": [
+      "garment",
+      "size",
+      "colour",
+      "notes",
+      "qty",
+      "done",
+      "order",
+      "orderStatus"
+     ],
+     "filters": [],
+     "manualOrder": []
+    },
+    {
+     "id": "todo",
+     "name": "До виготовлення",
+     "mode": "table",
+     "fieldIds": [
+      "garment",
+      "size",
+      "colour",
+      "notes",
+      "qty",
+      "order",
+      "orderStatus"
+     ],
+     "filters": [
+      {
+       "fieldId": "done",
+       "op": "isFalse"
+      }
+     ],
+     "manualOrder": []
+    }
+   ],
+   "layout": {
+    "sections": [
+     {
+      "id": "s0",
+      "title": null,
+      "collapsed": false,
+      "rows": [
+       {
+        "id": "s0r0",
+        "cells": [
+         {
+          "fieldId": "sku",
+          "span": 12
+         }
+        ]
+       },
+       {
+        "id": "s0r1",
+        "cells": [
+         {
+          "fieldId": "garment",
+          "span": 4
+         },
+         {
+          "fieldId": "size",
+          "span": 4
+         },
+         {
+          "fieldId": "colour",
+          "span": 4
+         }
+        ]
+       },
+       {
+        "id": "s0r2",
+        "cells": [
+         {
+          "fieldId": "notes",
+          "span": 12
+         }
+        ]
+       },
+       {
+        "id": "s0r3",
+        "cells": [
+         {
+          "fieldId": "qty",
+          "span": 6
+         },
+         {
+          "fieldId": "done",
+          "span": 6
+         }
+        ]
+       },
+       {
+        "id": "s0r4",
+        "cells": [
+         {
+          "fieldId": "order",
+          "span": 6
+         },
+         {
+          "fieldId": "orderStatus",
+          "span": 6
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "@inventory",
+   "name": "Склад",
+   "icon": "box",
+   "fields": [
+    {
+     "id": "name",
+     "name": "Товар",
+     "type": "text",
+     "required": true
+    },
+    {
+     "id": "garment",
+     "name": "Виріб",
+     "type": "single_select",
+     "options": [
+      {
+       "id": "hoodie",
+       "label": "Худі",
+       "color": "#3A7BD5"
+      },
+      {
+       "id": "light",
+       "label": "Легке худі",
+       "color": "#26A69A"
+      },
+      {
+       "id": "tshirt",
+       "label": "Футболка",
+       "color": "#D81B60"
+      }
+     ]
+    },
+    {
+     "id": "size",
+     "name": "Розмір",
+     "type": "single_select",
+     "options": [
+      {
+       "id": "xs",
+       "label": "XS"
+      },
+      {
+       "id": "s",
+       "label": "S"
+      },
+      {
+       "id": "m",
+       "label": "M"
+      },
+      {
+       "id": "l",
+       "label": "L"
+      },
+      {
+       "id": "xl",
+       "label": "XL"
+      }
+     ]
+    },
+    {
+     "id": "colour",
+     "name": "Колір",
+     "type": "single_select",
+     "options": [
+      {
+       "id": "black",
+       "label": "Чорний",
+       "color": "#424242"
+      },
+      {
+       "id": "white",
+       "label": "Білий",
+       "color": "#BDBDBD"
+      },
+      {
+       "id": "olive",
+       "label": "Оливковий",
+       "color": "#558B2F"
+      },
+      {
+       "id": "sand",
+       "label": "Пісочний",
+       "color": "#C9A227"
+      }
+     ]
+    },
+    {
+     "id": "received",
+     "name": "Отримано",
+     "type": "number",
+     "description": "Кожна одиниця, що надійшла на склад."
+    },
+    {
+     "id": "reserved",
+     "name": "Зарезервовано",
+     "type": "calculated",
+     "declaredOutputType": "number",
+     "aggregate": {
+      "source": "linkedFrom",
+      "collectionId": "@items",
+      "referenceFieldId": "sku",
+      "op": "sum",
+      "fieldId": "qty",
+      "filters": [
+       {
+        "fieldId": "orderStatus",
+        "op": "anyOf",
+        "operand": [
+         "ordered",
+         "clarify",
+         "queue",
+         "progress",
+         "made"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "id": "sold",
+     "name": "Продано",
+     "type": "calculated",
+     "declaredOutputType": "number",
+     "aggregate": {
+      "source": "linkedFrom",
+      "collectionId": "@items",
+      "referenceFieldId": "sku",
+      "op": "sum",
+      "fieldId": "qty",
+      "filters": [
+       {
+        "fieldId": "orderStatus",
+        "op": "anyOf",
+        "operand": [
+         "shipped",
+         "received",
+         "notpicked"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "id": "available",
+     "name": "Доступно",
+     "type": "calculated",
+     "declaredOutputType": "number",
+     "expression": "{received} - {reserved} - {sold}"
+    }
+   ],
+   "views": [
+    {
+     "id": "hoodies",
+     "name": "Худі",
+     "mode": "board",
+     "layoutFieldId": "size",
+     "fieldIds": [
+      "name",
+      "available",
+      "reserved",
+      "sold"
+     ],
+     "filters": [
+      {
+       "fieldId": "garment",
+       "op": "anyOf",
+       "operand": [
+        "hoodie"
+       ]
+      }
+     ],
+     "manualOrder": []
+    },
+    {
+     "id": "light",
+     "name": "Легкі худі",
+     "mode": "board",
+     "layoutFieldId": "size",
+     "fieldIds": [
+      "name",
+      "available",
+      "reserved",
+      "sold"
+     ],
+     "filters": [
+      {
+       "fieldId": "garment",
+       "op": "anyOf",
+       "operand": [
+        "light"
+       ]
+      }
+     ],
+     "manualOrder": []
+    },
+    {
+     "id": "tshirts",
+     "name": "Футболки",
+     "mode": "board",
+     "layoutFieldId": "size",
+     "fieldIds": [
+      "name",
+      "available",
+      "reserved",
+      "sold"
+     ],
+     "filters": [
+      {
+       "fieldId": "garment",
+       "op": "anyOf",
+       "operand": [
+        "tshirt"
+       ]
+      }
+     ],
+     "manualOrder": []
+    },
+    {
+     "id": "all",
+     "name": "Усі залишки",
+     "mode": "table",
+     "fieldIds": [
+      "name",
+      "garment",
+      "size",
+      "colour",
+      "received",
+      "reserved",
+      "sold",
+      "available"
+     ],
+     "filters": [],
+     "manualOrder": []
+    }
+   ],
+   "layout": {
+    "sections": [
+     {
+      "id": "s0",
+      "title": null,
+      "collapsed": false,
+      "rows": [
+       {
+        "id": "s0r0",
+        "cells": [
+         {
+          "fieldId": "name",
+          "span": 12
+         }
+        ]
+       },
+       {
+        "id": "s0r1",
+        "cells": [
+         {
+          "fieldId": "garment",
+          "span": 4
+         },
+         {
+          "fieldId": "size",
+          "span": 4
+         },
+         {
+          "fieldId": "colour",
+          "span": 4
+         }
+        ]
+       },
+       {
+        "id": "s0r2",
+        "cells": [
+         {
+          "fieldId": "received",
+          "span": 6
+         },
+         {
+          "fieldId": "available",
+          "span": 6
+         }
+        ]
+       },
+       {
+        "id": "s0r3",
+        "cells": [
+         {
+          "fieldId": "reserved",
+          "span": 6
+         },
+         {
+          "fieldId": "sold",
+          "span": 6
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "@certificates",
+   "name": "Подарункові сертифікати",
+   "icon": "star",
+   "fields": [
+    {
+     "id": "code",
+     "name": "Код",
+     "type": "text",
+     "required": true
+    },
+    {
+     "id": "status",
+     "name": "Статус",
+     "type": "single_select",
+     "options": [
+      {
+       "id": "created",
+       "label": "Створено",
+       "color": "#78909C"
+      },
+      {
+       "id": "issued",
+       "label": "Видано",
+       "color": "#3A7BD5"
+      },
+      {
+       "id": "used",
+       "label": "Використано",
+       "color": "#43A047"
+      }
+     ]
+    },
+    {
+     "id": "amount",
+     "name": "Сума",
+     "type": "number",
+     "unitLabel": "₴"
+    },
+    {
+     "id": "owner",
+     "name": "Кому видано",
+     "type": "text"
+    },
+    {
+     "id": "issuedOn",
+     "name": "Дата видачі",
+     "type": "date"
+    }
+   ],
+   "views": [
+    {
+     "id": "board",
+     "name": "Життєвий цикл",
+     "mode": "board",
+     "layoutFieldId": "status",
+     "fieldIds": [
+      "code",
+      "amount",
+      "owner",
+      "issuedOn"
+     ],
+     "filters": [],
+     "manualOrder": []
+    }
+   ],
+   "layout": {
+    "sections": [
+     {
+      "id": "s0",
+      "title": null,
+      "collapsed": false,
+      "rows": [
+       {
+        "id": "s0r0",
+        "cells": [
+         {
+          "fieldId": "code",
+          "span": 6
+         },
+         {
+          "fieldId": "status",
+          "span": 6
+         }
+        ]
+       },
+       {
+        "id": "s0r1",
+        "cells": [
+         {
+          "fieldId": "amount",
+          "span": 6
+         },
+         {
+          "fieldId": "issuedOn",
+          "span": 6
+         }
+        ]
+       },
+       {
+        "id": "s0r2",
+        "cells": [
+         {
+          "fieldId": "owner",
+          "span": 12
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  }
+ ],
+ "objects": [
+  {
+   "id": "@k1",
+   "collectionId": "@inventory",
+   "values": {
+    "name": "Худі · Чорний · M",
+    "garment": "hoodie",
+    "colour": "black",
+    "size": "m",
+    "received": 10
+   }
+  },
+  {
+   "id": "@k2",
+   "collectionId": "@inventory",
+   "values": {
+    "name": "Худі · Оливковий · L",
+    "garment": "hoodie",
+    "colour": "olive",
+    "size": "l",
+    "received": 5
+   }
+  },
+  {
+   "id": "@k3",
+   "collectionId": "@inventory",
+   "values": {
+    "name": "Футболка · Білий · S",
+    "garment": "tshirt",
+    "colour": "white",
+    "size": "s",
+    "received": 8
+   }
+  },
+  {
+   "id": "@k4",
+   "collectionId": "@inventory",
+   "values": {
+    "name": "Легке худі · Пісочний · M",
+    "garment": "light",
+    "colour": "sand",
+    "size": "m",
+    "received": 4
+   }
+  },
+  {
+   "id": "@o1",
+   "collectionId": "@orders",
+   "values": {
+    "customer": "Олена",
+    "status": "ordered",
+    "labels": [
+     "gift",
+     "prepaid"
+    ],
+    "recipient": "Олена Шевчук",
+    "city": "Львів",
+    "prepayment": 500
+   }
+  },
+  {
+   "id": "@o2",
+   "collectionId": "@orders",
+   "values": {
+    "customer": "Тарас",
+    "status": "progress",
+    "labels": [
+     "cod"
+    ],
+    "recipient": "Тарас Коваль",
+    "city": "Київ",
+    "cod": 1800
+   }
+  },
+  {
+   "id": "@o3",
+   "collectionId": "@orders",
+   "values": {
+    "customer": "Ірина",
+    "status": "shipped",
+    "labels": [
+     "prepaid"
+    ],
+    "recipient": "Ірина Мельник",
+    "city": "Одеса",
+    "prepayment": 3600
+   }
+  },
+  {
+   "id": "@i1",
+   "collectionId": "@items",
+   "values": {
+    "sku": [
+     "@k1"
+    ],
+    "notes": "«Львів» на грудях",
+    "qty": 1,
+    "order": [
+     "@o1"
+    ]
+   }
+  },
+  {
+   "id": "@i2",
+   "collectionId": "@items",
+   "values": {
+    "sku": [
+     "@k3"
+    ],
+    "notes": "Кіт на спині, біла нитка",
+    "qty": 2,
+    "order": [
+     "@o1"
+    ]
+   }
+  },
+  {
+   "id": "@i3",
+   "collectionId": "@items",
+   "values": {
+    "sku": [
+     "@k2"
+    ],
+    "qty": 1,
+    "done": true,
+    "order": [
+     "@o2"
+    ]
+   }
+  },
+  {
+   "id": "@i4",
+   "collectionId": "@items",
+   "values": {
+    "sku": [
+     "@k1"
+    ],
+    "notes": "Без нанесення",
+    "qty": 2,
+    "done": true,
+    "order": [
+     "@o3"
+    ]
+   }
+  },
+  {
+   "id": "@c1",
+   "collectionId": "@certificates",
+   "values": {
+    "code": "GIFT-1001",
+    "status": "issued",
+    "amount": 1000,
+    "owner": "Марія"
+   }
+  },
+  {
+   "id": "@c2",
+   "collectionId": "@certificates",
+   "values": {
+    "code": "GIFT-1002",
+    "status": "created",
+    "amount": 500
+   }
+  }
+ ]
+}

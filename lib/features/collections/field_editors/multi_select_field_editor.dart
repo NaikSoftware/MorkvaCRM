@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/domain/domain.dart';
+import '../../../l10n/l10n.dart';
 import 'field_editor.dart';
 import 'widgets/option_set_editor.dart';
 import 'widgets/preview_affordances.dart';
@@ -13,10 +14,11 @@ class MultiSelectFieldEditor extends FieldEditor {
   String get typeId => kMultiSelectFieldType;
 
   @override
-  String get displayLabel => 'Multi select';
+  String label(AppLocalizations l10n) => l10n.collectionsTypeMultiSelect;
 
   @override
-  String get description => 'Pick any number of options (tags).';
+  String description(AppLocalizations l10n) =>
+      l10n.collectionsTypeMultiSelectDescription;
 
   @override
   IconData get icon => Icons.checklist;
@@ -50,12 +52,12 @@ class MultiSelectFieldEditor extends FieldEditor {
 
   @override
   String summarize(
+    AppLocalizations l10n,
     FieldDefinition definition, {
     List<Collection> collections = const [],
   }) {
     final field = definition as MultiSelectFieldDefinition;
-    final count = field.options.length;
-    return count == 1 ? '1 option' : '$count options';
+    return l10n.collectionsOptionCount(field.options.length);
   }
 
   @override

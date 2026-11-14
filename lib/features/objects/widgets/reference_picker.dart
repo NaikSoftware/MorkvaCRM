@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../../views/widgets/view_labels.dart';
 import '../value_editors/field_value_editor.dart';
 
@@ -80,7 +81,7 @@ class _ReferencePickerState extends State<ReferencePicker> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final target = widget.choices.targetOf(widget.field);
-    final targetName = target?.name ?? 'This collection';
+    final l10n = context.l10n;
     final items = target?.name.trim().toLowerCase() ?? 'items';
     final item = target == null ? 'item' : itemLabelOf(target);
     final labels = widget.choices.labelsFor(widget.field) ?? const {};
@@ -112,22 +113,24 @@ class _ReferencePickerState extends State<ReferencePicker> {
                 children: [
                   Expanded(
                     child: Text(
-                      _multiple ? 'Link $items' : 'Link $item',
+                      _multiple
+                          ? l10n.objectsLinkItems(items)
+                          : l10n.objectsLinkItem(item),
                       style: theme.textTheme.titleLarge,
                     ),
                   ),
                   if (_multiple && target != null)
-                    Text('from $targetName', style: muted),
+                    Text(l10n.objectsFromCollection(target.name), style: muted),
                 ],
               ),
               const SizedBox(height: Spacing.sm),
               MorkvaTextField(
                 autofocus: true,
-                hint: 'Search $items',
+                hint: l10n.objectsSearchItems(items),
                 prefixIcon: const Icon(Icons.search),
                 suffixText: q.isEmpty
                     ? null
-                    : '${rows.length} of ${labels.length}',
+                    : l10n.objectsShownOf(rows.length, labels.length),
                 textInputAction: TextInputAction.search,
                 onChanged: (text) => setState(() => _query = text),
               ),
@@ -138,9 +141,11 @@ class _ReferencePickerState extends State<ReferencePicker> {
           child: labels.isEmpty || rows.isEmpty
               ? _Notice(
                   title: labels.isEmpty
-                      ? '$targetName has no items yet'
-                      : 'No $items match “${_query.trim()}”',
-                  subtitle: labels.isEmpty ? null : 'Try another name',
+                      ? target == null
+                            ? l10n.objectsThisCollectionEmpty
+                            : l10n.objectsCollectionEmpty(target.name)
+                      : l10n.objectsNoMatch(items, _query.trim()),
+                  subtitle: labels.isEmpty ? null : l10n.objectsTryAnotherName,
                 )
               : ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
@@ -172,7 +177,12 @@ class _ReferencePickerState extends State<ReferencePicker> {
           child: Row(
             children: [
               if (_multiple)
-                Expanded(child: Text('${_checked.length} linked', style: muted))
+                Expanded(
+                  child: Text(
+                    l10n.coreLinkedCount(_checked.length),
+                    style: muted,
+                  ),
+                )
               else ...[
                 if (widget.selected.isNotEmpty)
                   TextButton(
@@ -181,18 +191,18 @@ class _ReferencePickerState extends State<ReferencePicker> {
                       minimumSize: const Size(44, 44),
                     ),
                     onPressed: () => Navigator.of(context).pop(<String>[]),
-                    child: const Text('Unlink'),
+                    child: Text(l10n.objectsUnlink),
                   ),
                 const Spacer(),
               ],
               TextActionButton(
-                label: 'Cancel',
+                label: l10n.commonCancel,
                 onPressed: () => Navigator.of(context).pop(),
               ),
               if (_multiple) ...[
                 const SizedBox(width: Spacing.xs),
                 PrimaryButton(
-                  label: 'Done',
+                  label: l10n.commonDone,
                   // Keep the target's order, then any ids it no longer has.
                   onPressed: () => Navigator.of(context).pop([
                     for (final id in labels.keys)
@@ -274,7 +284,7 @@ class _Row extends StatelessWidget {
                     Icon(
                       Icons.check,
                       color: scheme.primary,
-                      semanticLabel: 'Linked',
+                      semanticLabel: context.l10n.objectsLinked,
                     ),
                 ],
               ),

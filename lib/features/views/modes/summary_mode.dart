@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../widgets/view_labels.dart';
 import 'view_mode.dart';
 
@@ -15,16 +16,16 @@ class SummaryMode extends ViewMode {
   String get id => ViewModeIds.summary;
 
   @override
-  String get label => 'Summary';
+  String get label => l10n.viewsModeSummary;
 
   @override
   IconData get icon => Icons.space_dashboard_outlined;
 
   @override
-  String get description => 'Big numbers per item, like a dashboard.';
+  String get description => l10n.viewsModeSummaryDescription;
 
   @override
-  String get fieldsLabel => 'Setup tiles';
+  String get fieldsLabel => l10n.viewsSetupTiles;
 
   @override
   Widget buildBody(BuildContext context, ViewModeData data) =>
@@ -74,7 +75,7 @@ class SummaryPanels extends StatelessWidget {
                 hero: n == tiles.indexWhere(isNumericField),
                 caption: switch (f) {
                   CalculatedFieldDefinition() => state.calculationNotes[f.id],
-                  NumberFieldDefinition() => 'Entered by hand',
+                  NumberFieldDefinition() => context.l10n.viewsEnteredByHand,
                   _ => null,
                 },
               ),
@@ -130,14 +131,14 @@ class _Panel extends StatelessWidget {
                 OutlinedButton.icon(
                   onPressed: onEdit,
                   icon: const Icon(Icons.edit_outlined, size: 18),
-                  label: const Text('Edit values'),
+                  label: Text(context.l10n.viewsEditValues),
                 ),
               ],
             ),
             const SizedBox(height: Spacing.md),
             if (tiles.isEmpty)
               Text(
-                'Pick fields to show with “Setup tiles”.',
+                context.l10n.viewsPickTilesHint,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: scheme.onSurfaceVariant,
                 ),
@@ -217,7 +218,7 @@ class _Tile extends StatelessWidget {
         : theme.textTheme.titleMedium?.copyWith(color: ink);
     return Semantics(
       container: true,
-      label: '$label: ${empty ? 'empty' : value}',
+      label: empty ? context.l10n.viewsTileEmpty(label) : '$label: $value',
       excludeSemantics: true,
       child: Container(
         constraints: BoxConstraints(minHeight: large ? 116 : 92),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../design/design.dart';
+import '../../../../l10n/l10n.dart';
 import 'assistant_scope.dart';
 
 /// The composer's context chip ("Looking at: Orders › Unpaid · 23 shown",
@@ -63,10 +64,10 @@ class FocusChip extends StatelessWidget {
         ),
         // A 32 px visual inside a 44 px hit area.
         Tooltip(
-          message: 'Remove context',
+          message: context.l10n.assistantRemoveContext,
           child: PressableScale(
             onPressed: onRemove,
-            semanticLabel: 'Remove context',
+            semanticLabel: context.l10n.assistantRemoveContext,
             borderRadius: Radii.mdAll,
             child: SizedBox.square(
               dimension: 44,

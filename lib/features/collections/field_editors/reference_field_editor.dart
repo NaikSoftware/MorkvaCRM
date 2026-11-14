@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import 'field_editor.dart';
 import 'widgets/config_controls.dart';
 import 'widgets/preview_affordances.dart';
@@ -14,10 +15,11 @@ class ReferenceFieldEditor extends FieldEditor {
   String get typeId => kReferenceFieldType;
 
   @override
-  String get displayLabel => 'Reference';
+  String label(AppLocalizations l10n) => l10n.collectionsTypeReference;
 
   @override
-  String get description => 'Link to objects in another collection.';
+  String description(AppLocalizations l10n) =>
+      l10n.collectionsTypeReferenceDescription;
 
   @override
   IconData get icon => Icons.link;
@@ -55,6 +57,7 @@ class ReferenceFieldEditor extends FieldEditor {
     // dropdown shows its hint instead of asserting on an unknown value.
     final hasTarget = collections.any((c) => c.id == field.targetCollectionId);
 
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -65,15 +68,17 @@ class ReferenceFieldEditor extends FieldEditor {
             isExpanded: true,
             // Inherit the themed input decoration so the picker matches the
             // MorkvaTextFields elsewhere in the config panel.
-            decoration: const InputDecoration(labelText: 'Target collection'),
-            hint: const Text('Choose a collection'),
+            decoration: InputDecoration(
+              labelText: l10n.collectionsTargetCollection,
+            ),
+            hint: Text(l10n.collectionsChooseCollection),
             items: [
               for (final collection in collections)
                 DropdownMenuItem(
                   value: collection.id,
                   child: Text(
                     collection.id == editingCollectionId
-                        ? '${collection.name} (this collection)'
+                        ? l10n.collectionsThisCollection(collection.name)
                         : collection.name,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -85,17 +90,15 @@ class ReferenceFieldEditor extends FieldEditor {
           ),
         ),
         if (field.targetCollectionId.isEmpty)
-          const Padding(
-            padding: EdgeInsets.only(bottom: Spacing.sm),
+          Padding(
+            padding: const EdgeInsets.only(bottom: Spacing.sm),
             child: InlineWarningNote(
-              message:
-                  'Pick a target collection — this reference points nowhere '
-                  'until you do.',
+              message: l10n.collectionsPickTargetWarning,
             ),
           ),
         ConfigSwitch(
-          label: 'Allow multiple',
-          subtitle: 'Reference more than one object.',
+          label: l10n.collectionsAllowMultiple,
+          subtitle: l10n.collectionsReferenceMultipleHint,
           value: field.multiple,
           onChanged: (value) => onChanged(update(multiple: value)),
         ),
@@ -105,11 +108,14 @@ class ReferenceFieldEditor extends FieldEditor {
 
   @override
   String summarize(
+    AppLocalizations l10n,
     FieldDefinition definition, {
     List<Collection> collections = const [],
   }) {
     final field = definition as ReferenceFieldDefinition;
-    if (field.targetCollectionId.isEmpty) return '(no target)';
+    if (field.targetCollectionId.isEmpty) {
+      return l10n.collectionsSummaryNoTarget;
+    }
     // Resolve the target's human name rather than printing the raw id.
     String? targetName;
     for (final collection in collections) {
@@ -118,8 +124,10 @@ class ReferenceFieldEditor extends FieldEditor {
         break;
       }
     }
-    final label = targetName ?? '(unknown)';
-    return field.multiple ? '→ $label (many)' : '→ $label';
+    final label = targetName ?? l10n.collectionsSummaryUnknownTarget;
+    return field.multiple
+        ? l10n.collectionsSummaryReferenceMany(label)
+        : '→ $label';
   }
 
   @override

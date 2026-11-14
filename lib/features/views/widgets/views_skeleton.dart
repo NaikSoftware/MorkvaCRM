@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 
 /// The loading placeholder in the Table's shape: a header, tabs, the toolbar
 /// and rows of
@@ -74,7 +75,7 @@ class _ViewsSkeletonState extends State<ViewsSkeleton>
 
     return Semantics(
       container: true,
-      label: 'Loading',
+      label: context.l10n.viewWidgetsLoading,
       child: FadeTransition(
         opacity: _pulse,
         child: Padding(

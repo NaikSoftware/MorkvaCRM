@@ -89,15 +89,15 @@ void main() {
     blocTest<AuthCubit, AuthState>(
       'signInWithGoogle on AuthException emits AuthLoading then AuthError',
       build: () {
-        when(
-          () => repository.signInWithGoogle(),
-        ).thenThrow(const AuthException('cancelled'));
+        when(() => repository.signInWithGoogle()).thenThrow(
+          const AuthException(AuthFailure.signInFailed, detail: 'cancelled'),
+        );
         return AuthCubit(repository);
       },
       act: (cubit) => cubit.signInWithGoogle(),
       expect: () => [
         const AuthLoading(),
-        const AuthError(message: 'cancelled'),
+        const AuthError(failure: AuthFailure.signInFailed, detail: 'cancelled'),
       ],
     );
 
@@ -138,7 +138,7 @@ void main() {
       cubit.signInWithGoogle(); // AuthLoading
       cubit.cancelSignIn(); // AuthUnauthenticated
       // The orphaned popup future rejects late — must be swallowed, not shown.
-      completer.completeError(const AuthException('popup closed late'));
+      completer.completeError(const AuthException(AuthFailure.signInFailed));
       await Future<void>.delayed(Duration.zero);
       await sub.cancel();
 
@@ -167,13 +167,21 @@ void main() {
     blocTest<AuthCubit, AuthState>(
       'signOut failure emits AuthError',
       build: () {
-        when(
-          () => repository.signOut(),
-        ).thenThrow(const AuthException('network down'));
+        when(() => repository.signOut()).thenThrow(
+          const AuthException(
+            AuthFailure.signOutFailed,
+            detail: 'network down',
+          ),
+        );
         return AuthCubit(repository);
       },
       act: (cubit) => cubit.signOut(),
-      expect: () => [const AuthError(message: 'network down')],
+      expect: () => [
+        const AuthError(
+          failure: AuthFailure.signOutFailed,
+          detail: 'network down',
+        ),
+      ],
     );
 
     test('close cancels the auth-state subscription', () async {
@@ -196,7 +204,7 @@ void main() {
         final future = cubit
             .signInWithGoogle(); // emits AuthLoading, then awaits
         await cubit.close();
-        completer.completeError(const AuthException('too late'));
+        completer.completeError(const AuthException(AuthFailure.signInFailed));
 
         // The guarded emit in the catch block must be a no-op after close.
         await expectLater(future, completes);
@@ -210,7 +218,7 @@ void main() {
 
       final future = cubit.signOut();
       await cubit.close();
-      completer.completeError(const AuthException('too late'));
+      completer.completeError(const AuthException(AuthFailure.signInFailed));
 
       await expectLater(future, completes);
     });

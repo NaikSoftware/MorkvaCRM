@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/domain/domain.dart';
 import '../../../../design/design.dart';
+import '../../../../l10n/l10n.dart';
 import '../../util/id_generator.dart';
 import 'color_swatch_picker.dart';
 
@@ -62,7 +63,7 @@ class _OptionSetEditorState extends State<OptionSetEditor> {
   void _addOption() {
     final option = SelectOption(
       id: _ids.optionId(),
-      label: 'Option ${widget.options.length + 1}',
+      label: context.l10n.collectionsOptionDefault(widget.options.length + 1),
     );
     widget.onChanged([...widget.options, option]);
   }
@@ -110,7 +111,7 @@ class _OptionSetEditorState extends State<OptionSetEditor> {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: Spacing.xs),
             child: Text(
-              'No options yet — add the first choice.',
+              context.l10n.collectionsNoOptions,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -141,7 +142,7 @@ class _OptionSetEditorState extends State<OptionSetEditor> {
         Align(
           alignment: Alignment.centerLeft,
           child: TextActionButton(
-            label: 'Add option',
+            label: context.l10n.collectionsAddOption,
             icon: Icons.add,
             onPressed: _addOption,
           ),
@@ -182,7 +183,7 @@ class _OptionRow extends StatelessWidget {
                 index: index,
                 child: IconActionButton(
                   icon: Icons.drag_indicator,
-                  tooltip: 'Drag to reorder',
+                  tooltip: context.l10n.collectionsDragToReorder,
                   // Reordering is driven by the wrapping listener, not a tap.
                   onPressed: () {},
                 ),
@@ -199,14 +200,14 @@ class _OptionRow extends StatelessWidget {
               Expanded(
                 child: MorkvaTextField(
                   controller: controller,
-                  hint: 'Option label',
+                  hint: context.l10n.collectionsOptionLabel,
                   onChanged: onLabelChanged,
                 ),
               ),
               const SizedBox(width: Spacing.xxs),
               IconActionButton(
                 icon: Icons.close,
-                tooltip: 'Remove option',
+                tooltip: context.l10n.collectionsRemoveOption,
                 onPressed: onRemove,
               ),
             ],

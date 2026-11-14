@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/domain/domain.dart';
 import '../../design/design.dart';
+import '../../l10n/l10n.dart';
 
 /// "Jump to…": filter the workspace's collections by name and open one.
 /// Resolves to the picked collection's id, or null when dismissed.
@@ -56,9 +57,9 @@ class _JumpToDialogState extends State<_JumpToDialog> {
             children: [
               TextField(
                 autofocus: true,
-                decoration: const InputDecoration(
-                  hintText: 'Jump to a collection',
-                  prefixIcon: Icon(Icons.search_rounded),
+                decoration: InputDecoration(
+                  hintText: context.l10n.shellJumpHint,
+                  prefixIcon: const Icon(Icons.search_rounded),
                 ),
                 onChanged: (v) => setState(() => _query = v),
                 onSubmitted: (_) {
@@ -73,7 +74,7 @@ class _JumpToDialogState extends State<_JumpToDialog> {
                     ? Padding(
                         padding: const EdgeInsets.all(Spacing.lg),
                         child: Text(
-                          'No collection matches "${_query.trim()}"',
+                          context.l10n.shellJumpNoMatch(_query.trim()),
                           textAlign: TextAlign.center,
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: scheme.onSurfaceVariant,

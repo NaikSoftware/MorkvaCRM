@@ -74,6 +74,7 @@ class MultiSelectFieldDefinition extends FieldDefinition {
             fieldId: id,
             code: ValidationError.invalidOption,
             message: '"$optionId" is not a valid option for $name',
+            subject: optionId,
           ),
         );
       }

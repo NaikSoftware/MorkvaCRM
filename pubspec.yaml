@@ -68,6 +68,9 @@ dependencies:
   # but allows 7.x, like firebase_auth 6.5.5: any firebase_ai import fails to compile. Pin until
   # the Firebase stack moves to platform_interface 8.
   firebase_app_check: 0.4.5
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:
@@ -91,6 +94,7 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  generate: true
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

@@ -1,6 +1,10 @@
+import 'dart:ui' show Locale;
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:morkva_crm/core/domain/view/view_definition.dart';
+
+import '../../../l10n/l10n.dart';
 
 /// Which kind of page the user is on. The wire names (`.name`) are the
 /// `ScreenContext.page` values.
@@ -79,14 +83,20 @@ final class AssistantFocus extends Equatable {
   /// The composer chip's text: "Looking at: #1042" with a card open,
   /// otherwise "Looking at: Orders › Unpaid · 23 shown"; null when nothing
   /// nameable is on screen.
-  String? get label {
+  String? get label => labelIn(lookupAppLocalizations(const Locale('en')));
+
+  /// [label] in [l10n]'s language.
+  String? labelIn(AppLocalizations l10n) {
     if (openCardId != null && _present(openCardTitle)) {
-      return 'Looking at: $openCardTitle';
+      return l10n.assistantLookingAt(openCardTitle ?? '');
     }
     if (!_present(collectionName)) return null;
     final view = _present(viewName) ? ' › $viewName' : '';
-    final shown = shownCount == null ? '' : ' · $shownCount shown';
-    return 'Looking at: $collectionName$view$shown';
+    final shown = switch (shownCount) {
+      null => '',
+      final n => ' · ${l10n.assistantShownCount(n)}',
+    };
+    return l10n.assistantLookingAt('$collectionName$view$shown');
   }
 
   /// The `ScreenContext` JSON the harness reads (`ScreenContext.fromJson`):

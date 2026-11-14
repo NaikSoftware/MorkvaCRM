@@ -25,6 +25,7 @@ enum AggregateOp {
   min,
   max;
 
+  /// The English name (harness text); the UI words [name] itself.
   String get label => switch (this) {
     count => 'Count',
     sum => 'Sum',

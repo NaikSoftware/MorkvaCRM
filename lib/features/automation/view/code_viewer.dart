@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import 'automations_page.dart';
 
 /// The read-only code viewer (UX §2): a 900 × 80% dialog on wide layouts, a
@@ -58,8 +59,9 @@ class CodeViewer extends StatelessWidget {
     final lines = const LineSplitter().convert(code);
     final gutter = '${lines.length}'.length * 8.0 + Spacing.md;
     final longest = lines.fold(0, (n, l) => math.max(n, l.length));
+    final l10n = context.l10n;
     final meta = [
-      kbLabel(utf8.encode(code).length),
+      kbLabel(l10n, utf8.encode(code).length),
       if (hash != null) shortHash(hash!),
     ].join(' · ');
 
@@ -87,12 +89,12 @@ class CodeViewer extends StatelessWidget {
           ),
           IconActionButton(
             icon: Icons.copy_outlined,
-            tooltip: 'Copy',
+            tooltip: l10n.commonCopy,
             onPressed: () => Clipboard.setData(ClipboardData(text: code)),
           ),
           IconActionButton(
             icon: Icons.close,
-            tooltip: 'Close',
+            tooltip: l10n.commonClose,
             onPressed: () => Navigator.of(context).pop(),
           ),
         ],

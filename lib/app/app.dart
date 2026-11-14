@@ -4,7 +4,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 // flutter_bloc's providers reject a Listenable (the focus notifier).
 import 'package:provider/provider.dart' show ChangeNotifierProvider;
 
@@ -30,6 +32,7 @@ import '../core/automation/engine/script_engine.dart';
 import '../core/automation/runner_api.dart';
 import '../core/automation/store_catalog.dart';
 import '../core/domain/automation/automation.dart';
+import '../core/domain/core_words.dart';
 import '../core/harness/session/harness_session.dart';
 import '../design/design.dart';
 import '../features/assistant/bloc/assistant_bloc.dart';
@@ -39,6 +42,7 @@ import '../features/assistant/bloc/assistant_session.dart';
 import '../features/automation/bloc/automation_runs_cubit.dart';
 import '../features/automation/bloc/modules_cubit.dart';
 import '../features/automation/bloc/run_log_cubit.dart';
+import '../l10n/l10n.dart';
 import 'router/app_router.dart';
 
 /// App-wide scroll behavior: no colored overscroll glow (it clashed with the
@@ -360,7 +364,14 @@ class _MorkvaAppState extends State<MorkvaApp> {
         child: BlocListener<AuthCubit, AuthState>(
           listener: _onAuthChanged,
           child: MaterialApp.router(
-            title: 'Morkva CRM',
+            onGenerateTitle: (context) => context.l10n.appTitle,
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: AppLocalizations.supportedLocales,
             debugShowCheckedModeBanner: false,
             theme: AppTheme.light,
             darkTheme: AppTheme.dark,
@@ -368,6 +379,10 @@ class _MorkvaAppState extends State<MorkvaApp> {
             scrollBehavior: const AppScrollBehavior(),
             routerConfig: _router,
             builder: (context, child) {
+              // DateFormat in lib/core (no BuildContext) reads this.
+              Intl.defaultLocale = Localizations.localeOf(context).toString();
+              // So do core's fallback words ("Untitled", "Yes"…).
+              CoreWords.current = context.l10n.coreWords;
               final router = KeyedSubtree(key: _routerKey, child: child!);
               final cubits = _cubits;
               if (cubits == null) return router;

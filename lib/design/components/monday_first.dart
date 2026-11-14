@@ -2,20 +2,23 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 /// Makes the date pickers below [child] start weeks on Monday, like the
-/// calendar month grid, so every calendar in the app agrees.
-// shortcut: Monday is fixed and the strings are the default English ones;
-// follow MaterialLocalizations.firstDayOfWeekIndex once the app has locales.
+/// calendar month grid, so every calendar in the app agrees. Locales that
+/// already start on Monday (Ukrainian) keep their own strings; the rest get
+/// the English ones with a Monday start.
 class MondayFirst extends StatelessWidget {
   const MondayFirst({super.key, required this.child});
 
   final Widget child;
 
   @override
-  Widget build(BuildContext context) => Localizations.override(
-    context: context,
-    delegates: const [_MondayFirstDelegate()],
-    child: child,
-  );
+  Widget build(BuildContext context) =>
+      MaterialLocalizations.of(context).firstDayOfWeekIndex == 1
+      ? child
+      : Localizations.override(
+          context: context,
+          delegates: const [_MondayFirstDelegate()],
+          child: child,
+        );
 }
 
 class _MondayFirstLocalizations extends DefaultMaterialLocalizations {

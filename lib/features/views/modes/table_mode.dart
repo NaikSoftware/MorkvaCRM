@@ -8,6 +8,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../app/shell/app_shell.dart';
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../collection_views_cubit.dart';
 import '../widgets/edge_fade.dart';
 import '../widgets/no_matches_notice.dart';
@@ -24,16 +25,16 @@ class TableMode extends ViewMode {
   String get id => ViewModeIds.table;
 
   @override
-  String get label => 'Table';
+  String get label => l10n.viewsModeTable;
 
   @override
   IconData get icon => Icons.table_rows_outlined;
 
   @override
-  String get description => 'Rows and columns, sortable by any field.';
+  String get description => l10n.viewsModeTableDescription;
 
   @override
-  String get fieldsLabel => 'Columns';
+  String get fieldsLabel => l10n.viewsColumns;
 
   @override
   bool get drawsNoMatches => true;
@@ -181,7 +182,7 @@ class _ViewTableState extends State<ViewTable> {
                                         if (empty) {
                                           return _GhostRow(
                                             layout: layout,
-                                            label: 'New ${data.itemLabel}',
+                                            label: context.l10n.viewsNewItem(data.itemLabel),
                                             onAdd: () => data.quickAdd(),
                                             onChangeFields: data.editFields,
                                           );
@@ -210,9 +211,16 @@ class _ViewTableState extends State<ViewTable> {
                   ),
                   _Footer(
                     text: state.isFiltered
-                        ? '${state.objects.length} of ${state.totalCount}'
-                        : '${state.totalCount} '
-                              '${state.totalCount == 1 ? data.itemLabel : collection.name.toLowerCase()}',
+                        ? context.l10n.viewsShownOfTotal(
+                            state.objects.length,
+                            state.totalCount,
+                          )
+                        : context.l10n.viewsTotalCount(
+                            state.totalCount,
+                            state.totalCount == 1
+                                ? data.itemLabel
+                                : collection.name.toLowerCase(),
+                          ),
                   ),
                 ],
               ),
@@ -424,11 +432,13 @@ class _HeaderCell extends StatelessWidget {
           )
         : null;
     final direction = sorted
-        ? (sort!.ascending ? 'ascending' : 'descending')
+        ? (sort!.ascending
+              ? context.l10n.viewsSortAscending
+              : context.l10n.viewsSortDescending)
         : null;
     return Semantics(
       button: true,
-      label: 'Sort by ${field.name}',
+      label: context.l10n.viewsSortBy(field.name),
       value: direction,
       excludeSemantics: true,
       child: InkWell(
@@ -518,7 +528,7 @@ class _ObjectRowState extends State<_ObjectRow> {
       },
       child: Semantics(
         button: true,
-        label: untitled ? 'Untitled' : titleText,
+        label: untitled ? context.l10n.commonUntitled : titleText,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: widget.onOpen,
@@ -540,7 +550,7 @@ class _ObjectRowState extends State<_ObjectRow> {
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    untitled ? 'Untitled' : titleText,
+                    untitled ? context.l10n.commonUntitled : titleText,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodyMedium?.copyWith(
@@ -621,7 +631,7 @@ class ViewTableCell extends StatelessWidget {
         Icons.check_rounded,
         size: 20,
         color: theme.colorScheme.primary,
-        semanticLabel: 'Yes',
+        semanticLabel: context.l10n.coreYes,
       ),
       (BooleanFieldDefinition(), _) => null,
       _ => Text(
@@ -712,8 +722,8 @@ class _GhostRow extends StatelessWidget {
                               Icons.view_column_outlined,
                               size: 18,
                             ),
-                            label: const Text(
-                              'Change fields',
+                            label: Text(
+                              context.l10n.viewsChangeFields,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),

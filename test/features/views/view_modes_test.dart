@@ -1,6 +1,9 @@
+import 'dart:ui' show Locale;
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/domain.dart';
 import 'package:morkva_crm/features/views/views.dart';
+import 'package:morkva_crm/l10n/l10n.dart';
 
 import 'views_fixtures.dart';
 
@@ -32,6 +35,35 @@ void main() {
       expect(of('Inventory'), 'inventory');
       expect(of('Glass'), 'glass');
       expect(of('  '), 'item');
+    });
+
+    test('filterLabel in Ukrainian lets a colon carry "is"', () {
+      final uk = lookupAppLocalizations(const Locale('uk'));
+      String of(ViewFilter f) => filterLabel(f, deals, l10n: uk);
+      expect(
+        of(
+          const ViewFilter(
+            fieldId: 'stage',
+            op: FilterOp.anyOf,
+            operand: ['lead'],
+          ),
+        ),
+        'Stage: Lead',
+      );
+      expect(
+        of(
+          const ViewFilter(
+            fieldId: 'stage',
+            op: FilterOp.noneOf,
+            operand: ['lead'],
+          ),
+        ),
+        'Stage: не Lead',
+      );
+      expect(
+        of(const ViewFilter(fieldId: 'stage', op: FilterOp.isEmpty)),
+        'Stage: не заповнено',
+      );
     });
 
     test('filterLabel names the field, operator and value', () {

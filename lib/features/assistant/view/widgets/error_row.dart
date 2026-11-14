@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../bloc/chat_item.dart';
 import 'assistant_scope.dart';
 import 'chip_button.dart';
@@ -59,7 +60,7 @@ class ErrorRow extends StatelessWidget {
               if (item.retryable) ...[
                 const SizedBox(width: 10),
                 TintedButton(
-                  label: 'Try again',
+                  label: context.l10n.commonTryAgain,
                   fontSize: 13,
                   foreground: scheme.onSurface,
                   onPressed: actions.retry,

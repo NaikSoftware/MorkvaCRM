@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../../views/widgets/option_pill.dart';
 import '../../views/widgets/view_labels.dart';
 import '../object_editor.dart';
@@ -37,7 +38,7 @@ class SublistSection extends StatelessWidget {
       context,
       collection: _collection,
       prefill: cubit.prefillFor(sublist),
-      prefillNote: 'Linked to this ${itemLabelOf(parent)}',
+      prefillNote: context.l10n.objectsLinkedToThis(itemLabelOf(parent)),
       derive: (draft) => cubit.deriveChild(sublist, draft),
       notes: _notes(cubit),
     );
@@ -53,6 +54,7 @@ class SublistSection extends StatelessWidget {
   Future<void> _open(BuildContext context, MorkvaObject item) async {
     final cubit = context.read<ObjectEditorCubit>();
     final messenger = ScaffoldMessenger.maybeOf(context);
+    final l10n = context.l10n;
     final result = await showObjectEditor(
       context,
       collection: _collection,
@@ -64,7 +66,9 @@ class SublistSection extends StatelessWidget {
     if (!await cubit.deleteChild(sublist, item)) {
       messenger?.showSnackBar(
         SnackBar(
-          content: Text("Couldn't delete the ${itemLabelOf(_collection)}"),
+          content: Text(
+            l10n.objectsCouldNotDeleteItem(itemLabelOf(_collection)),
+          ),
         ),
       );
     }
@@ -77,6 +81,7 @@ class SublistSection extends StatelessWidget {
     bool value,
   ) async {
     final messenger = ScaffoldMessenger.maybeOf(context);
+    final l10n = context.l10n;
     final ok = await context.read<ObjectEditorCubit>().setChildValue(
       sublist,
       item,
@@ -85,7 +90,7 @@ class SublistSection extends StatelessWidget {
     );
     if (!ok) {
       messenger?.showSnackBar(
-        SnackBar(content: Text("Couldn't update ${field.name}")),
+        SnackBar(content: Text(l10n.objectsCouldNotUpdate(field.name))),
       );
     }
   }
@@ -102,12 +107,16 @@ class SublistSection extends StatelessWidget {
     final muted = theme.textTheme.bodySmall?.copyWith(
       color: scheme.onSurfaceVariant,
     );
+    final l10n = context.l10n;
     final count = items == null || items.isEmpty
         ? null
         : check == null
         ? '${items.length}'
-        : '${items.where((i) => _isOn(i, check)).length} of ${items.length} '
-              '${check.name.toLowerCase()}';
+        : l10n.objectsCheckedOf(
+            items.where((i) => _isOn(i, check)).length,
+            items.length,
+            check.name.toLowerCase(),
+          );
     final item = itemLabelOf(_collection);
     return Semantics(
       container: true,
@@ -134,12 +143,12 @@ class SublistSection extends StatelessWidget {
               const SizedBox(width: Spacing.sm),
               SecondaryButton(
                 icon: Icons.add,
-                label: 'Add $item',
+                label: l10n.objectsAddItem(item),
                 onPressed: () => _add(context),
               ),
             ],
           ),
-          Text('Linking here via ${sublist.via.name}', style: muted),
+          Text(l10n.objectsLinkingVia(sublist.via.name), style: muted),
           const SizedBox(height: Spacing.xs),
           if (items == null)
             const Padding(
@@ -154,7 +163,7 @@ class SublistSection extends StatelessWidget {
                 border: Border.all(color: scheme.outlineVariant),
               ),
               child: Text(
-                'No ${_collection.name.toLowerCase()} yet',
+                l10n.objectsNoItemsYet(_collection.name.toLowerCase()),
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: scheme.onSurfaceVariant,
                 ),
@@ -273,7 +282,12 @@ class SublistRow {
         note = text;
       }
     }
-    return SublistRow._(title ?? 'Untitled', note, pills, amount);
+    return SublistRow._(
+      title ?? CoreWords.current.untitled,
+      note,
+      pills,
+      amount,
+    );
   }
 
   final String title;

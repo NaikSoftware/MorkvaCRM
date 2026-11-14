@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/shell/app_shell.dart';
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../collection_views_cubit.dart';
 import '../collection_views_state.dart';
 import '../widgets/board/board_card_draggable.dart';
@@ -30,13 +31,13 @@ class BoardMode extends ViewMode {
   String get id => ViewModeIds.board;
 
   @override
-  String get label => 'Board';
+  String get label => l10n.viewsModeBoard;
 
   @override
   IconData get icon => Icons.view_kanban_outlined;
 
   @override
-  String get description => 'Cards in columns by a choice or reference field.';
+  String get description => l10n.viewsModeBoardDescription;
 
   @override
   bool get needsLayoutField => true;
@@ -53,7 +54,7 @@ class BoardMode extends ViewMode {
   @override
   String? unavailableReason(Collection collection) =>
       groupableFields(collection).isEmpty
-      ? 'Needs a choice or reference field'
+      ? l10n.viewsNeedsChoiceOrReference
       : null;
 
   @override
@@ -69,7 +70,10 @@ class BoardMode extends ViewMode {
       selectedId: data.state.layoutField?.id,
       builder: (open) => ToolbarButton(
         icon: Icons.view_kanban_outlined,
-        label: 'Group: ${data.state.layoutField?.name ?? 'None'}',
+        label: switch (data.state.layoutField?.name) {
+          final name? => context.l10n.viewsGroupChip(name),
+          null => context.l10n.viewsGroupChipNone,
+        },
         onPressed: open,
       ),
     );
@@ -288,9 +292,13 @@ class _BoardViewState extends State<BoardView> {
     if (undo == null) return;
     final now = cubit.state;
     final hidden = now is ViewsReady && now.objectById(id) == null;
-    final message = within
-        ? 'Reordered in ${to.label}${sorted ? ' — sort turned off' : ''}'
-        : 'Moved to ${to.label}${hidden ? ' — hidden by filter' : ''}';
+    final l10n = context.l10n;
+    final message = switch ((within, sorted, hidden)) {
+      (true, true, _) => l10n.viewsReorderedInSortOff(to.label),
+      (true, false, _) => l10n.viewsReorderedIn(to.label),
+      (false, _, true) => l10n.viewsMovedToHidden(to.label),
+      (false, _, false) => l10n.viewsMovedTo(to.label),
+    };
     widget.data.notify(message, undo: undo);
   }
 
@@ -365,7 +373,9 @@ class _BoardViewState extends State<BoardView> {
       field: field,
       width: width,
       itemLabel: data.itemLabel,
-      itemsLabel: itemsLabel.isEmpty ? 'items' : itemsLabel,
+      itemsLabel: itemsLabel.isEmpty
+          ? context.l10n.viewsItemsFallback
+          : itemsLabel,
       referenceLabels: state.referenceLabels,
       onOpen: data.openObject,
       onAdd: () => data.quickAdd(groupKey: group.key),
@@ -534,7 +544,7 @@ class BoardPageIndicator extends StatelessWidget {
     final scheme = theme.colorScheme;
     return Semantics(
       container: true,
-      label: 'Column ${current + 1} of $count',
+      label: context.l10n.viewsColumnOf(current + 1, count),
       excludeSemantics: true,
       child: SizedBox(
         height: BoardPageIndicator.height,
@@ -602,7 +612,10 @@ class ColumnJumpList extends StatelessWidget {
               Spacing.lg,
               Spacing.xs,
             ),
-            child: Text('Jump to column', style: theme.textTheme.titleMedium),
+            child: Text(
+              context.l10n.viewsJumpToColumn,
+              style: theme.textTheme.titleMedium,
+            ),
           ),
           Flexible(
             child: ListView.builder(
@@ -667,12 +680,15 @@ class _NoGrouping extends StatelessWidget {
     if (fields.isEmpty) {
       return EmptyState(
         icon: Icons.view_kanban_outlined,
-        title: 'Board needs a choice or reference field',
-        message:
-            'Add a choice or reference field, and each of its values '
-            'becomes a column you can drag ${data.itemLabel}s between.',
+        title: context.l10n.viewsBoardNeedsField,
+        message: context.l10n.viewsBoardNeedsFieldMessage(
+          switch (collection.name.trim().toLowerCase()) {
+            '' => context.l10n.viewsItemsFallback,
+            final items => items,
+          },
+        ),
         action: PrimaryButton(
-          label: 'Add field',
+          label: context.l10n.viewsAddField,
           icon: Icons.add,
           onPressed: () => context.go('/collections/${collection.id}/edit'),
         ),
@@ -680,13 +696,13 @@ class _NoGrouping extends StatelessWidget {
     }
     return EmptyState(
       icon: Icons.view_kanban_outlined,
-      title: 'Choose how to group this board',
-      message: 'Each value of the field becomes a column.',
+      title: context.l10n.viewsBoardChooseGroup,
+      message: context.l10n.viewsBoardChooseGroupMessage,
       action: GroupByMenu(
         fields: fields,
         selectedId: null,
         builder: (open) => PrimaryButton(
-          label: 'Group by…',
+          label: context.l10n.viewsGroupByAction,
           icon: Icons.view_kanban_outlined,
           onPressed: open,
         ),

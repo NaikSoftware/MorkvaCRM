@@ -24,13 +24,24 @@ class CollectionEditorCubit extends Cubit<CollectionEditorState> {
     this._repository,
     this._registry, {
     IdGenerator? idGenerator,
+    String Function(SchemaIssue issue)? describeIssue,
+    String Function(String error)? describeSaveError,
   }) : _ids = idGenerator ?? IdGenerator(),
+       _describeIssue = describeIssue ?? ((issue) => issue.message),
+       _describeSaveError =
+           describeSaveError ?? ((error) => 'Failed to save: $error'),
        _fieldTypes = defaultFieldTypeRegistry(),
        super(const CollectionEditorLoading());
 
   final DataRepository _repository;
   final FieldEditorRegistry _registry;
   final IdGenerator _ids;
+
+  /// Words a blocking schema issue for [CollectionEditorReady.error].
+  final String Function(SchemaIssue issue) _describeIssue;
+
+  /// Words a failed save (raw error text) for [CollectionEditorReady.error].
+  final String Function(String error) _describeSaveError;
 
   /// The canonical domain type registry, owned here so the cubit can rebuild a
   /// field's common envelope via a lossless toJson → definitionFromJson
@@ -86,15 +97,16 @@ class CollectionEditorCubit extends Cubit<CollectionEditorState> {
 
   /// Appends a default field of [typeId] to the draft and selects it.
   ///
-  /// A no-op if [typeId] has no registered editor.
-  void addField(String typeId) {
+  /// Its name is [label] (the type's English label by default), numbered when
+  /// taken. A no-op if [typeId] has no registered editor.
+  void addField(String typeId, {String? label}) {
     final ready = _ready;
     if (ready == null) return;
     final editor = _registry.forType(typeId);
     if (editor == null) return;
 
     final fieldId = _ids.fieldId();
-    final name = _uniqueFieldName(ready.draft, editor.displayLabel);
+    final name = _uniqueFieldName(ready.draft, label ?? editor.displayLabel);
     final field = editor.createDefault(id: fieldId, name: name);
     final fields = [...ready.draft.fields, field];
     final layout = ready.draft.layout.reconcile(
@@ -291,7 +303,9 @@ class CollectionEditorCubit extends Cubit<CollectionEditorState> {
 
     final validation = _validate(ready);
     if (validation.hasBlocking) {
-      emit(ready.copyWith(error: validation.blocking.first.message));
+      emit(
+        ready.copyWith(error: _describeIssue(validation.blocking.first)),
+      );
       return false;
     }
 
@@ -305,7 +319,10 @@ class CollectionEditorCubit extends Cubit<CollectionEditorState> {
         final current = _ready;
         if (current != null) {
           emit(
-            current.copyWith(saving: false, error: 'Failed to save: $error'),
+            current.copyWith(
+              saving: false,
+              error: _describeSaveError('$error'),
+            ),
           );
         }
       }

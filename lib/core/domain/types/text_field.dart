@@ -71,6 +71,7 @@ class TextFieldDefinition extends FieldDefinition {
           fieldId: id,
           code: ValidationError.tooLong,
           message: '$name must be at most $maxLength characters',
+          maximum: maxLength,
         ),
       );
     }

@@ -5,6 +5,7 @@ import '../../../api/data/data_repository.dart';
 import '../../../core/domain/automation/automation.dart';
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../../views/widgets/option_pill.dart';
 import '../bloc/module_details_cubit.dart';
 import '../bloc/modules_cubit.dart';
@@ -31,10 +32,11 @@ class ModuleDetailsPage extends StatelessWidget {
     final state = context.watch<ModuleDetailsCubit>().state;
     final host = context.read<AutomationsHost>();
     final pad = automationsExpanded(context) ? Spacing.xxl : Spacing.md;
+    final l10n = context.l10n;
     final back = Align(
       alignment: Alignment.centerLeft,
       child: TextActionButton(
-        label: 'Automations',
+        label: l10n.commonAutomations,
         icon: Icons.arrow_back,
         onPressed: host.openAutomations,
       ),
@@ -45,14 +47,14 @@ class ModuleDetailsPage extends StatelessWidget {
       content = const Center(child: LoadingIndicator());
     } else if (state.loadFailed) {
       content = AutomationLoadError(
-        title: "Couldn't load this module",
+        title: l10n.automationLoadModuleFailed,
         onRetry: context.read<ModuleDetailsCubit>().retry,
       );
     } else if (entry == null) {
-      content = const EmptyState(
+      content = EmptyState(
         icon: Icons.extension_off_outlined,
-        title: 'This module isn\'t installed',
-        message: 'It was uninstalled, or the link is out of date.',
+        title: l10n.automationModuleNotInstalledTitle,
+        message: l10n.automationModuleNotInstalledMessage,
       );
     } else {
       content = _Details(state: state, entry: entry, now: now);
@@ -199,12 +201,13 @@ class _Details extends StatelessWidget {
     ModuleDetailsCubit cubit,
     List<Collection> collections,
   ) {
+    final l10n = context.l10n;
     final engine = state.engineUnavailable
-        ? const AutomationBanner(
+        ? AutomationBanner(
             tone: CopyTone.warning,
             icon: Icons.warning_amber_rounded,
-            title: "Automations can't run on this device right now.",
-            body: 'Runs are skipped and logged.',
+            title: l10n.automationEngineDownTitle,
+            body: l10n.automationEngineDownBody,
           )
         : null;
     final banner = switch (state.banner) {
@@ -212,10 +215,10 @@ class _Details extends StatelessWidget {
       ModuleBanner.allow => AutomationBanner(
         tone: CopyTone.warning,
         icon: Icons.warning_amber_rounded,
-        title: 'Allow this module to run.',
-        body: 'Review what it can do before its actions can run.',
+        title: l10n.automationModuleAllowTitle,
+        body: l10n.automationModuleAllowBody,
         action: PrimaryButton(
-          label: 'Review permissions',
+          label: l10n.automationReviewPermissions,
           onPressed: state.busy
               ? null
               : () => openConsent(context, cubit, collections),
@@ -224,12 +227,13 @@ class _Details extends StatelessWidget {
       ModuleBanner.changed => AutomationBanner(
         tone: CopyTone.warning,
         icon: Icons.warning_amber_rounded,
-        title:
-            'This module changed (v${state.consent?.version} → '
-            'v${entry.module.version}).',
-        body: 'Its automations are paused until you allow the new version.',
+        title: l10n.automationModuleChangedTitle(
+          '${state.consent?.version}',
+          entry.module.version,
+        ),
+        body: l10n.automationModuleChangedBody,
         action: PrimaryButton(
-          label: 'Review changes',
+          label: l10n.automationReviewChanges,
           onPressed: state.busy
               ? null
               : () => openConsent(context, cubit, collections),
@@ -238,8 +242,8 @@ class _Details extends StatelessWidget {
       ModuleBanner.broken => AutomationBanner(
         tone: CopyTone.error,
         icon: Icons.error_outline,
-        title: "This module's file is no longer valid.",
-        body: 'Import it again.',
+        title: l10n.automationModuleBrokenTitle,
+        body: l10n.automationModuleBrokenBody,
         details: [for (final p in entry.module.manifestProblems) '$p'],
       ),
     };
@@ -273,13 +277,15 @@ Future<void> openConsent(
         ? const ConsentScope.only({})
         : ConsentScope.of(consent),
     mode: ConsentMode.allow,
-    source: sourceLabel(module),
+    source: sourceLabel(context.l10n, module),
   );
   if (scope != null) await cubit.allow(view, scope);
 }
 
-String sourceLabel(ModuleRecord module) =>
-    module.source == ModuleSource.assistant ? 'Made by Ask Morkva' : 'Imported';
+String sourceLabel(AppLocalizations l10n, ModuleRecord module) =>
+    module.source == ModuleSource.assistant
+    ? l10n.automationSourceAssistant
+    : l10n.automationSourceImported;
 
 enum _Menu { export, uninstall }
 
@@ -293,31 +299,30 @@ class _Header extends StatelessWidget {
     final cubit = context.read<ModuleDetailsCubit>();
     final host = context.read<AutomationsHost>();
     final name = entry.module.name;
+    final l10n = context.l10n;
     switch (item) {
       case _Menu.export:
         final file = cubit.exportFile();
         if (file == null) return;
         if (await host.saveFile(file.name, file.text) && context.mounted) {
-          showAutomationSnack(context, 'Exported ${file.name}');
+          showAutomationSnack(context, l10n.automationExportedSnack(file.name));
         }
       case _Menu.uninstall:
         final n = state.automations.length;
         final ok = await MorkvaConfirmDialog.show(
           context,
-          title: 'Uninstall "$name"?',
-          message:
-              '${switch (n) {
-                0 => 'Its',
-                1 => 'Its automation and its button are deleted, its',
-                _ => 'Its $n automations and their buttons are deleted, its',
-              }} pending reviews are dropped and its permissions are removed. '
-              'The run history stays.',
-          confirmLabel: 'Uninstall',
+          title: l10n.automationUninstallTitle(name),
+          message: switch (n) {
+            0 => l10n.automationUninstallMessageNone,
+            1 => l10n.automationUninstallMessageOne,
+            _ => l10n.automationUninstallMessageMany(n),
+          },
+          confirmLabel: l10n.automationUninstall,
           destructive: true,
         );
         if (ok != true || !context.mounted) return;
         if (await cubit.uninstall() && context.mounted) {
-          showAutomationSnack(context, 'Uninstalled $name');
+          showAutomationSnack(context, l10n.automationUninstalledSnack(name));
           host.openAutomations();
         }
     }
@@ -328,11 +333,12 @@ class _Header extends StatelessWidget {
     final theme = Theme.of(context);
     final module = entry.module;
     final author = module.manifest?.author;
+    final l10n = context.l10n;
     final meta = [
-      sourceLabel(module),
-      if (author != null) 'Author: $author (from the file)',
+      sourceLabel(l10n, module),
+      if (author != null) l10n.automationModuleAuthor(author),
       dayMonth(module.updatedAt),
-      kbLabel(module.codeBytes),
+      kbLabel(l10n, module.codeBytes),
     ].join(' · ');
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -364,17 +370,20 @@ class _Header extends StatelessWidget {
           ),
         ),
         PopupMenuButton<_Menu>(
-          tooltip: 'More',
+          tooltip: l10n.commonMore,
           icon: const Icon(Icons.more_horiz),
           // 44 px, like every other target here (the default is 40).
           style: IconButton.styleFrom(minimumSize: const Size.square(44)),
           onSelected: (item) => _menu(context, item),
           itemBuilder: (_) => [
             if (module.manifest != null)
-              const PopupMenuItem(value: _Menu.export, child: Text('Export')),
-            const PopupMenuItem(
+              PopupMenuItem(
+                value: _Menu.export,
+                child: Text(l10n.automationExport),
+              ),
+            PopupMenuItem(
               value: _Menu.uninstall,
-              child: Text('Uninstall'),
+              child: Text(l10n.automationUninstall),
             ),
           ],
         ),
@@ -392,9 +401,10 @@ class _About extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final author = module.manifest?.author;
+    final l10n = context.l10n;
     return AutomationSection(
       divided: false,
-      title: 'About',
+      title: l10n.automationModuleAbout,
       children: [
         Padding(
           padding: const EdgeInsets.all(Spacing.md),
@@ -408,13 +418,13 @@ class _About extends StatelessWidget {
               if (author != null)
                 MetaLine(
                   icon: Icons.person_outline,
-                  text: 'Author: $author (from the file)',
+                  text: l10n.automationModuleAuthor(author),
                 ),
               MetaLine(
                 icon: module.source == ModuleSource.assistant
                     ? Icons.auto_awesome_outlined
                     : Icons.download_outlined,
-                text: sourceLabel(module),
+                text: sourceLabel(l10n, module),
               ),
             ],
           ),
@@ -446,19 +456,18 @@ class _WhatItCanDo extends StatelessWidget {
       collections: collections,
       initial: ConsentScope.of(consent),
       mode: ConsentMode.edit,
-      source: sourceLabel(entry.module),
+      source: sourceLabel(context.l10n, entry.module),
     );
     if (scope != null) await cubit.changeAccess(scope);
   }
 
   Future<void> _revoke(BuildContext context) async {
+    final l10n = context.l10n;
     final ok = await MorkvaConfirmDialog.show(
       context,
-      title: 'Revoke access for "${entry.module.name}"?',
-      message:
-          'Its automations stop running and pending reviews are dropped until '
-          'you allow it again.',
-      confirmLabel: 'Revoke',
+      title: l10n.automationRevokeTitle(entry.module.name),
+      message: l10n.automationRevokeMessage,
+      confirmLabel: l10n.automationRevoke,
       destructive: true,
     );
     if (ok == true && context.mounted) {
@@ -470,11 +479,12 @@ class _WhatItCanDo extends StatelessWidget {
   Widget build(BuildContext context) {
     final consent = state.consent;
     final allowed = consent != null && state.status == ModuleStatus.ok;
+    final l10n = context.l10n;
     final where = consent == null
         ? null
-        : scopeLine(consent.collections, collections);
+        : scopeLine(l10n, consent.collections, collections);
     return AutomationSection(
-      title: 'What it can do',
+      title: l10n.automationWhatItCanDo,
       trailing: consent == null
           ? null
           : Wrap(
@@ -482,24 +492,21 @@ class _WhatItCanDo extends StatelessWidget {
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 _ErrorTextButton(
-                  label: 'Revoke',
+                  label: l10n.automationRevoke,
                   onPressed: state.busy ? null : () => _revoke(context),
                 ),
                 if (allowed)
                   SecondaryButton(
-                    label: 'Change access',
+                    label: l10n.automationChangeAccess,
                     onPressed: state.busy ? null : () => _changeAccess(context),
                   ),
               ],
             ),
-      footer: const Padding(
-        padding: EdgeInsets.all(Spacing.md),
+      footer: Padding(
+        padding: const EdgeInsets.all(Spacing.md),
         child: MetaLine(
           icon: Icons.shield_outlined,
-          text:
-              "Modules can't reach the internet, your account or other apps. "
-              'Every change goes through a preview unless you turn on '
-              'auto-apply below.',
+          text: l10n.automationModuleSandboxNote,
         ),
       ),
       children: [
@@ -512,7 +519,7 @@ class _WhatItCanDo extends StatelessWidget {
               0,
             ),
             child: Text(
-              'Will ask for:',
+              l10n.automationWillAskForLabel,
               style: Theme.of(context).textTheme.labelMedium,
             ),
           ),
@@ -571,16 +578,16 @@ class _AutoApply extends StatelessWidget {
     final muted = theme.textTheme.bodyMedium?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
+    final l10n = context.l10n;
     if (!state.autoApplyOffered) {
       return AutomationSection(
         divided: false,
-        title: 'Apply changes automatically',
+        title: l10n.automationAutoApplyTitle,
         children: [
           Padding(
             padding: const EdgeInsets.all(Spacing.md),
             child: Text(
-              'This module can delete or change structure, so its changes '
-              'always wait for your review.',
+              l10n.automationAutoApplyNotOffered,
               style: muted,
             ),
           ),
@@ -590,10 +597,10 @@ class _AutoApply extends StatelessWidget {
     final enabled = state.autoApplyEnabled && !state.busy;
     return AutomationSection(
       divided: false,
-      title: 'Apply changes automatically',
+      title: l10n.automationAutoApplyTitle,
       trailing: Semantics(
-        label: 'Apply changes automatically',
-        hint: state.autoApplyEnabled ? null : 'Allow this module first',
+        label: l10n.automationAutoApplyTitle,
+        hint: state.autoApplyEnabled ? null : l10n.automationAllowModuleFirst,
         child: Switch(
           value: state.autoApplyOn,
           onChanged: enabled ? (on) => _toggle(context, on) : null,
@@ -605,17 +612,11 @@ class _AutoApply extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Small card creates and edits from this module — up to 20 '
-                'cards, nothing cleared — are applied without asking. Bigger '
-                'changes, deletes and structure changes always wait for you. '
-                'You can undo an applied run until you reload Morkva.',
-                style: muted,
-              ),
+              Text(l10n.automationAutoApplyExplanation, style: muted),
               if (!state.autoApplyEnabled) ...[
                 const SizedBox(height: Spacing.xs),
                 Text(
-                  'Allow this module first',
+                  l10n.automationAllowModuleFirst,
                   style: theme.textTheme.labelMedium,
                 ),
               ],
@@ -628,17 +629,17 @@ class _AutoApply extends StatelessWidget {
 }
 
 /// "Date field — a field picker".
-String inputLine(InputSpec? input) {
+String inputLine(AppLocalizations l10n, InputSpec? input) {
   if (input == null || input.properties.isEmpty) return '';
   return [
     for (final MapEntry(:key, :value) in input.properties.entries)
       '${value.title ?? key} — ${switch (value) {
-        InputProperty(format: InputFormat.field) => 'a field picker',
-        InputProperty(format: InputFormat.collection) => 'a collection picker',
-        InputProperty(enumValues: _?) => 'a choice',
-        InputProperty(type: InputType.boolean) => 'on or off',
-        InputProperty(type: InputType.number || InputType.integer) => 'a number',
-        _ => 'text',
+        InputProperty(format: InputFormat.field) => l10n.automationInputField,
+        InputProperty(format: InputFormat.collection) => l10n.automationInputCollection,
+        InputProperty(enumValues: _?) => l10n.automationInputChoice,
+        InputProperty(type: InputType.boolean) => l10n.automationInputOnOff,
+        InputProperty(type: InputType.number || InputType.integer) => l10n.automationInputNumber,
+        _ => l10n.automationInputText,
       }}',
   ].join(' · ');
 }
@@ -709,8 +710,9 @@ class _Actions extends StatelessWidget {
     final muted = theme.textTheme.bodySmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
+    final l10n = context.l10n;
     return AutomationSection(
-      title: 'Actions',
+      title: l10n.automationActions,
       children: [
         for (final a in manifest.actions)
           LayoutBuilder(
@@ -721,9 +723,11 @@ class _Actions extends StatelessWidget {
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Semantics(
-                    hint: state.canTestRun ? null : 'Allow this module first',
+                    hint: state.canTestRun
+                        ? null
+                        : l10n.automationAllowModuleFirst,
                     child: TextActionButton(
-                      label: 'Test run',
+                      label: l10n.automationTestRun,
                       icon: Icons.play_arrow_outlined,
                       onPressed: state.canTestRun
                           ? () => _test(context, a)
@@ -731,7 +735,7 @@ class _Actions extends StatelessWidget {
                     ),
                   ),
                   TextActionButton(
-                    label: 'Add to a button',
+                    label: l10n.automationAddToButton,
                     icon: Icons.smart_button_outlined,
                     onPressed: () => host.newAutomation(
                       moduleId: manifest.id,
@@ -739,7 +743,7 @@ class _Actions extends StatelessWidget {
                     ),
                   ),
                   if (!state.canTestRun)
-                    Text('Allow this module first', style: muted),
+                    Text(l10n.automationAllowModuleFirst, style: muted),
                 ],
               );
               // Wide: the buttons at the row's end, as the mockup; narrow
@@ -769,7 +773,7 @@ class _Actions extends StatelessWidget {
                             children: [
                               Text(a.label, style: theme.textTheme.titleSmall),
                               HugChip(
-                                label: scopeTag(a.scope),
+                                label: scopeTag(l10n, a.scope),
                                 tone: CopyTone.neutral,
                               ),
                             ],
@@ -779,7 +783,7 @@ class _Actions extends StatelessWidget {
                               a.description!,
                               style: theme.textTheme.bodyMedium,
                             ),
-                          if (inputLine(a.input) case final line
+                          if (inputLine(l10n, a.input) case final line
                               when line.isNotEmpty)
                             Text(line, style: muted),
                           if (!wide) buttons,
@@ -810,10 +814,11 @@ class _AutomationsUsing extends StatelessWidget {
   Widget build(BuildContext context) {
     final host = context.read<AutomationsHost>();
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     return AutomationSection(
-      title: 'Automations using it',
+      title: l10n.automationUsingIt,
       trailing: TextActionButton(
-        label: 'New automation',
+        label: l10n.automationNewAutomation,
         icon: Icons.add,
         onPressed: () => host.newAutomation(moduleId: state.module!.id),
       ),
@@ -822,7 +827,7 @@ class _AutomationsUsing extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(Spacing.md),
             child: Text(
-              'No automations use it yet.',
+              l10n.automationUsingItNone,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -850,11 +855,12 @@ class _Code extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     return AutomationSection(
       divided: false,
-      title: 'Code',
+      title: l10n.automationCode,
       trailing: SecondaryButton(
-        label: 'View code',
+        label: l10n.automationViewCode,
         icon: Icons.code,
         onPressed: () =>
             showCodeViewer(context, code: module.code, hash: module.bundleHash),
@@ -872,7 +878,7 @@ class _Code extends StatelessWidget {
               const SizedBox(width: Spacing.xs),
               Flexible(
                 child: Text(
-                  'module.js · ${kbLabel(module.codeBytes)} · '
+                  'module.js · ${kbLabel(l10n, module.codeBytes)} · '
                   '${shortHash(module.bundleHash)}',
                   style: MorkvaTypography.mono(
                     theme.textTheme.bodySmall!,
@@ -899,10 +905,11 @@ class _RecentRuns extends StatelessWidget {
     final runLog = context.watch<RunLogCubit>().state;
     final theme = Theme.of(context);
     final rows = [for (final r in state.recentRuns) ?runLog.row(r.id)];
+    final l10n = context.l10n;
     return AutomationSection(
-      title: 'Recent runs',
+      title: l10n.automationRecentRuns,
       trailing: TextActionButton(
-        label: 'All runs',
+        label: l10n.automationAllRuns,
         onPressed: () => host.openAutomations(
           tab: AutomationsTab.runs,
           moduleId: state.module!.id,
@@ -913,7 +920,7 @@ class _RecentRuns extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(Spacing.md),
             child: Text(
-              'No runs yet.',
+              l10n.automationNoRunsShort,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),

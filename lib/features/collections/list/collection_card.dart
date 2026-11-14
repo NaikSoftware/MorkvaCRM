@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 
 /// What an overflow-menu selection on a [CollectionCard] resolves to.
 enum CollectionCardAction { customize, rename, delete }
@@ -48,10 +49,11 @@ class CollectionCard extends StatelessWidget {
     final scheme = theme.colorScheme;
     final fieldCount = collection.fields.length;
     final description = collection.description?.trim() ?? '';
+    final l10n = context.l10n;
 
     return SurfaceCard(
       onTap: onOpen,
-      semanticLabel: 'Open ${collection.name}',
+      semanticLabel: l10n.collectionsOpenCollection(collection.name),
       padding: const EdgeInsets.fromLTRB(
         Spacing.md,
         Spacing.md,
@@ -73,7 +75,9 @@ class CollectionCard extends StatelessWidget {
               const Spacer(),
               if (onTogglePin != null)
                 IconButton(
-                  tooltip: pinned ? 'Unpin from sidebar' : 'Pin to sidebar',
+                  tooltip: pinned
+                      ? l10n.collectionsUnpinFromSidebar
+                      : l10n.collectionsPinToSidebar,
                   isSelected: pinned,
                   visualDensity: VisualDensity.compact,
                   onPressed: onTogglePin,
@@ -121,8 +125,8 @@ class CollectionCard extends StatelessWidget {
           const Spacer(),
           Text(
             fieldCount == 0
-                ? 'No fields yet'
-                : '$fieldCount ${fieldCount == 1 ? 'field' : 'fields'}',
+                ? l10n.collectionsNoFieldsYet
+                : l10n.commonFieldCount(fieldCount),
             style: theme.textTheme.labelMedium?.copyWith(
               color: scheme.onSurfaceVariant,
             ),
@@ -143,28 +147,29 @@ class _OverflowMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
     return PopupMenuButton<CollectionCardAction>(
-      tooltip: 'More actions',
+      tooltip: l10n.collectionsMoreActions,
       icon: Icon(Icons.more_vert, size: 20, color: scheme.onSurfaceVariant),
       style: IconButton.styleFrom(visualDensity: VisualDensity.compact),
       padding: EdgeInsets.zero,
       splashRadius: 20,
       onSelected: onAction,
       itemBuilder: (context) => [
-        const PopupMenuItem(
+        PopupMenuItem(
           value: CollectionCardAction.customize,
           child: ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.tune),
-            title: Text('Customize'),
+            leading: const Icon(Icons.tune),
+            title: Text(l10n.collectionsCustomize),
           ),
         ),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: CollectionCardAction.rename,
           child: ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.edit_outlined),
-            title: Text('Rename'),
+            leading: const Icon(Icons.edit_outlined),
+            title: Text(l10n.commonRename),
           ),
         ),
         PopupMenuItem(
@@ -172,7 +177,10 @@ class _OverflowMenu extends StatelessWidget {
           child: ListTile(
             contentPadding: EdgeInsets.zero,
             leading: Icon(Icons.delete_outline, color: scheme.error),
-            title: Text('Delete', style: TextStyle(color: scheme.error)),
+            title: Text(
+              l10n.commonDelete,
+              style: TextStyle(color: scheme.error),
+            ),
           ),
         ),
       ],

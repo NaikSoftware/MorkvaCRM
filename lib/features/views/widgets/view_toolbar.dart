@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import 'view_labels.dart';
 
 /// One toolbar row: filter chips and a dashed "+ Filter" on the left; on wide
@@ -65,6 +66,7 @@ class ViewToolbar extends StatelessWidget {
                 view.filters[i],
                 collection,
                 referenceLabels: referenceLabels,
+                l10n: context.l10n,
               ),
               onPressed: () => onEditFilter(i),
               onRemove: () => onRemoveFilter(i),
@@ -105,7 +107,9 @@ class ViewToolbar extends StatelessWidget {
                       ViewSort(ascending: true) => Icons.arrow_upward,
                       _ => Icons.arrow_downward,
                     },
-                    label: sortLabel(sort, collection) ?? 'Sort',
+                    label:
+                        sortLabel(sort, collection, l10n: context.l10n) ??
+                        context.l10n.viewWidgetsSort,
                     onPressed: onSort,
                   ),
                 if (onEditFields != null)
@@ -243,7 +247,7 @@ class _FilterChip extends StatelessWidget {
       onPressed: onPressed,
       onDeleted: onRemove,
       deleteIcon: const Icon(Icons.close, size: 16),
-      deleteButtonTooltipMessage: 'Remove filter',
+      deleteButtonTooltipMessage: context.l10n.viewWidgetsRemoveFilter,
       backgroundColor: scheme.primaryContainer,
       side: BorderSide.none,
       shape: const RoundedRectangleBorder(borderRadius: Radii.smAll),
@@ -268,7 +272,7 @@ class _AddFilterButton extends StatelessWidget {
     final scheme = theme.colorScheme;
     return Semantics(
       button: true,
-      label: 'Add filter',
+      label: context.l10n.viewWidgetsAddFilter,
       excludeSemantics: true,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -296,7 +300,7 @@ class _AddFilterButton extends StatelessWidget {
                         ),
                         const SizedBox(width: Spacing.xxs),
                         Text(
-                          'Filter',
+                          context.l10n.viewWidgetsFilter,
                           style: theme.textTheme.labelLarge?.copyWith(
                             color: scheme.onSurfaceVariant,
                           ),

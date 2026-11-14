@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/domain/domain.dart';
+import '../../../l10n/l10n.dart';
 import 'field_editor.dart';
 import 'widgets/config_controls.dart';
 import 'widgets/preview_affordances.dart';
@@ -13,10 +14,11 @@ class FileFieldEditor extends FieldEditor {
   String get typeId => kFileFieldType;
 
   @override
-  String get displayLabel => 'File';
+  String label(AppLocalizations l10n) => l10n.collectionsTypeFile;
 
   @override
-  String get description => 'One or more file attachments.';
+  String description(AppLocalizations l10n) =>
+      l10n.collectionsTypeFileDescription;
 
   @override
   IconData get icon => Icons.attach_file;
@@ -49,18 +51,19 @@ class FileFieldEditor extends FieldEditor {
           : allowedExtensions(),
     );
 
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ConfigSwitch(
-          label: 'Allow multiple',
-          subtitle: 'Attach more than one file.',
+          label: l10n.collectionsAllowMultiple,
+          subtitle: l10n.collectionsFileMultipleHint,
           value: field.multiple,
           onChanged: (value) => onChanged(update(multiple: value)),
         ),
         ConfigTextField(
-          label: 'Allowed extensions',
-          hint: 'e.g. png, jpg, pdf — comma separated, blank for any',
+          label: l10n.collectionsAllowedExtensions,
+          hint: l10n.collectionsAllowedExtensionsHint,
           value: (field.allowedExtensions ?? const []).join(', '),
           onChanged: (text) => onChanged(
             update(allowedExtensions: () => _parseExtensions(text)),
@@ -83,12 +86,13 @@ class FileFieldEditor extends FieldEditor {
 
   @override
   String summarize(
+    AppLocalizations l10n,
     FieldDefinition definition, {
     List<Collection> collections = const [],
   }) {
     final field = definition as FileFieldDefinition;
     final parts = <String>[
-      if (field.multiple) 'multiple',
+      if (field.multiple) l10n.collectionsSummaryMultiple,
       if (field.allowedExtensions != null) field.allowedExtensions!.join('/'),
     ];
     return parts.join(' · ');
@@ -98,9 +102,9 @@ class FileFieldEditor extends FieldEditor {
   Widget buildPreviewAffordance(
     BuildContext context,
     FieldDefinition definition,
-  ) => const PreviewStubInput(
+  ) => PreviewStubInput(
     icon: Icons.attach_file,
     height: 36,
-    hint: 'No file',
+    hint: context.l10n.collectionsNoFile,
   );
 }

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../field_editors/field_editor.dart';
 import 'collection_editor_cubit.dart';
 
@@ -52,7 +53,7 @@ class FieldConfigPanel extends StatelessWidget {
             ],
             Expanded(
               child: Text(
-                resolvedEditor?.displayLabel ?? field.type,
+                resolvedEditor?.label(context.l10n) ?? field.type,
                 style: theme.textTheme.titleMedium,
               ),
             ),
@@ -100,10 +101,11 @@ class FieldConfigPanel extends StatelessWidget {
                 Icons.flag_outlined,
                 color: scheme.onSurfaceVariant,
               ),
-              title: Text('Required', style: theme.textTheme.titleSmall),
-              subtitle: const Text(
-                'A value must be set before an object is valid.',
+              title: Text(
+                context.l10n.collectionsRequired,
+                style: theme.textTheme.titleSmall,
               ),
+              subtitle: Text(context.l10n.collectionsRequiredHint),
               value: field.isRequired,
               onChanged: (value) =>
                   cubit.updateFieldEnvelope(field.id, isRequired: value),
@@ -115,7 +117,7 @@ class FieldConfigPanel extends StatelessWidget {
         if (resolvedEditor != null) ...[
           const Divider(height: Spacing.xl),
           Text(
-            'Options',
+            context.l10n.collectionsOptions,
             style: theme.textTheme.titleSmall?.copyWith(
               color: scheme.onSurfaceVariant,
             ),
@@ -165,8 +167,8 @@ class _EnvelopeNameFieldState extends State<_EnvelopeNameField> {
   Widget build(BuildContext context) {
     return MorkvaTextField(
       controller: _controller,
-      label: 'Field name',
-      hint: 'Title, Status, Due date…',
+      label: context.l10n.collectionsFieldName,
+      hint: context.l10n.collectionsFieldNameHint,
       onChanged: widget.onChanged,
     );
   }
@@ -203,8 +205,8 @@ class _EnvelopeDescriptionFieldState extends State<_EnvelopeDescriptionField> {
   Widget build(BuildContext context) {
     return MorkvaTextField(
       controller: _controller,
-      label: 'Help text',
-      hint: 'Optional — guidance shown with this field',
+      label: context.l10n.collectionsHelpText,
+      hint: context.l10n.collectionsHelpTextHint,
       onChanged: widget.onChanged,
     );
   }
@@ -229,8 +231,7 @@ class _TypeLockNote extends StatelessWidget {
           const SizedBox(width: Spacing.xs),
           Expanded(
             child: Text(
-              'Type is locked after the first save. To change it, remove this '
-              'field and add a new one.',
+              context.l10n.collectionsTypeLocked,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: scheme.onSurfaceVariant,
               ),

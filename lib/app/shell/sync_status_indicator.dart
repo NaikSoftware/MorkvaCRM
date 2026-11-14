@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../api/sync/sync_status.dart';
 import '../../api/sync/sync_status_cubit.dart';
 import '../../design/design.dart';
+import '../../l10n/l10n.dart';
 
 /// A compact pill that reports the workspace's [SyncStatus] at a glance.
 ///
@@ -60,6 +61,7 @@ class _SyncChipSpec {
   static _SyncChipSpec of(BuildContext context, SyncStatus status) {
     final scheme = Theme.of(context).colorScheme;
     final semantic = Theme.of(context).extension<MorkvaSemanticColors>()!;
+    final l10n = context.l10n;
 
     return switch (status) {
       // No signal yet — the indicator hides via an early return in the builder,
@@ -71,27 +73,27 @@ class _SyncChipSpec {
       ),
       // Healthy: quiet by design — muted ink, no semantic color.
       SyncSynced() => _SyncChipSpec(
-        label: 'Synced',
+        label: l10n.shellSyncSynced,
         foreground: scheme.onSurfaceVariant,
         icon: Icons.cloud_done_outlined,
       ),
       SyncPending() => _SyncChipSpec(
-        label: 'Syncing…',
+        label: l10n.shellSyncSyncing,
         foreground: semantic.info,
         showSpinner: true,
       ),
       SyncOffline() => _SyncChipSpec(
-        label: 'Offline',
+        label: l10n.shellSyncOffline,
         foreground: scheme.onSurfaceVariant,
         icon: Icons.cloud_off_outlined,
       ),
       SyncConflict() => _SyncChipSpec(
-        label: 'Conflict',
+        label: l10n.shellSyncConflict,
         foreground: semantic.warning,
         icon: Icons.warning_amber_rounded,
       ),
       SyncError() => _SyncChipSpec(
-        label: 'Sync error',
+        label: l10n.shellSyncError,
         foreground: scheme.error,
         icon: Icons.error_outline_rounded,
       ),
@@ -150,17 +152,17 @@ class _SyncChip extends StatelessWidget {
 
     if (onTap == null) {
       return Semantics(
-        label: 'Sync status: ${spec.label}',
+        label: context.l10n.shellSyncStatus(spec.label),
         container: true,
         child: pill,
       );
     }
 
     return Tooltip(
-      message: 'Dismiss conflict warning',
+      message: context.l10n.syncConflictDismiss,
       child: PressableScale(
         onPressed: onTap,
-        semanticLabel: 'Sync status: ${spec.label}. Tap to dismiss.',
+        semanticLabel: context.l10n.shellSyncStatusDismiss(spec.label),
         borderRadius: Radii.fullAll,
         child: pill,
       ),

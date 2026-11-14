@@ -8,6 +8,7 @@ import '../../../core/domain/automation/automation.dart';
 import '../../../core/domain/collection.dart';
 import '../../../core/domain/ids.dart';
 import '../../../core/domain/view/view_definition.dart';
+import '../../../l10n/l10n.dart';
 import 'modules_cubit.dart';
 
 /// The editor's "When" (UX §3.2).
@@ -183,7 +184,7 @@ final class AutomationEditorState extends Equatable {
     final a = action;
     final c = collection;
     if (a == null || c == null) return null;
-    return '${a.label} on ${c.name}';
+    return currentAppStrings().automationWidgetsDefaultName(a.label, c.name);
   }
 
   String get defaultLabel => buttonLabelOf(action?.label ?? '');
@@ -477,46 +478,50 @@ class AutomationEditorCubit extends Cubit<AutomationEditorState> {
   /// The form's own checks (UX §3 "Validation"), before the runner's.
   List<AutomationProblem> _check() {
     final s = state;
+    final l10n = currentAppStrings();
     final problems = <AutomationProblem>[];
     void add(String path, String message) =>
         problems.add(AutomationProblem(path, 'invalid', message));
-    if (s.name.trim().isEmpty) add('name', 'Give it a name');
+    if (s.name.trim().isEmpty) add('name', l10n.automationWidgetsProblemName);
     final collection = s.collection;
     if (collection == null) {
-      add('collectionId', 'Pick a collection');
+      add('collectionId', l10n.automationWidgetsProblemCollection);
     } else if (s.module != null && !s.collectionAllowed(collection.id)) {
-      add('collectionId', 'The module isn\'t allowed in ${collection.name}');
+      add(
+        'collectionId',
+        l10n.automationWidgetsProblemCollectionNotAllowed(collection.name),
+      );
     }
     final action = s.action;
     if (action == null) {
-      add('actionId', 'Pick an action');
+      add('actionId', l10n.automationWidgetsProblemAction);
     } else if (!s.kind.fits(action.scope)) {
       add(
         'actionId',
         s.kind == EditorKind.collectionButton
-            ? 'This action runs on a card — use a card button or an event'
-            : 'This action runs on a collection — use a collection button',
+            ? l10n.automationWidgetsProblemCardAction
+            : l10n.automationWidgetsProblemCollectionAction,
       );
     }
     for (final key in action?.input?.required ?? const <String>[]) {
       if (s.params[key] == null || s.params[key] == '') {
         final title = action!.input!.properties[key]?.title ?? key;
-        add('params.$key', 'Fill in $title');
+        add('params.$key', l10n.automationWidgetsProblemFillIn(title));
       }
     }
     if (s.kind == EditorKind.updated &&
         s.where.isEmpty &&
         s.fields.isEmpty &&
         !s.anyChange) {
-      add('where', 'Add at least one condition or pick fields to watch');
+      add('where', l10n.automationWidgetsProblemWhere);
     }
     if (s.apply == ApplyMode.auto &&
         s.autoAvailability != AutoAvailability.available) {
       add(
         'apply',
         s.autoAvailability == AutoAvailability.alwaysAsks
-            ? 'This module can delete or change structure, so it always asks.'
-            : 'Turn on auto-apply for this module first',
+            ? l10n.automationWidgetsProblemAlwaysAsks
+            : l10n.automationWidgetsProblemTurnOnAutoFirst,
       );
     }
     return problems;

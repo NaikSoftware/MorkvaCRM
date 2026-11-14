@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import '../collection_views_cubit.dart';
 import '../collection_views_state.dart';
 import '../modes/view_mode.dart';
@@ -82,6 +83,7 @@ class _Body extends StatelessWidget {
     final view = state.activeView;
     final mode = modes.resolve(view.mode);
     final cubit = context.read<CollectionViewsCubit>();
+    final l10n = context.l10n;
     final unavailable = [
       for (final m in modes.modes)
         if (m.unavailableReason(collection) case final reason?)
@@ -106,7 +108,7 @@ class _Body extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
             child: Text.rich(
               TextSpan(
-                text: 'View settings',
+                text: l10n.viewWidgetsViewSettings,
                 style: theme.textTheme.titleMedium,
                 children: [
                   TextSpan(
@@ -121,7 +123,7 @@ class _Body extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          const _SectionLabel('Mode'),
+          _SectionLabel(l10n.viewWidgetsMode),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
             child: SegmentedButton<String>(
@@ -174,7 +176,7 @@ class _Body extends StatelessWidget {
                 children: [
                   if (!mode.needsLayoutField)
                     ChoiceChip(
-                      label: const Text('None'),
+                      label: Text(l10n.commonNone),
                       selected: state.layoutField == null,
                       onSelected: (_) => cubit.setLayoutField(null),
                     ),
@@ -206,16 +208,18 @@ class _Body extends StatelessWidget {
                 ViewSort(ascending: true) => Icons.arrow_upward,
                 _ => Icons.arrow_downward,
               },
-              title: 'Sort',
+              title: l10n.viewWidgetsSort,
               value:
-                  sortLabel(view.sort, collection) ??
-                  (allowManual ? 'Manual order' : 'None'),
+                  sortLabel(view.sort, collection, l10n: l10n) ??
+                  (allowManual ? l10n.viewWidgetsManualOrder : l10n.commonNone),
               onTap: onSort,
             ),
             _SettingRow(
               icon: Icons.view_column_outlined,
-              title: mode.id == ViewModeIds.table ? 'Columns' : 'Card fields',
-              value: '${view.fieldIds.length} shown',
+              title: mode.id == ViewModeIds.table
+                  ? l10n.viewWidgetsColumns
+                  : l10n.viewWidgetsCardFields,
+              value: l10n.viewWidgetsShownCount(view.fieldIds.length),
               onTap: () => onEditFields(mode),
             ),
           ],

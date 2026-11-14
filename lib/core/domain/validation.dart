@@ -4,17 +4,33 @@ import 'package:equatable/equatable.dart';
 ///
 /// [code] is a stable, machine-readable identifier (e.g. `required`,
 /// `out_of_range`) the UI can branch on or localize; [message] is a
-/// human-readable default. [fieldId] identifies the offending field.
+/// human-readable default in English (the harness reads it; the UI words
+/// [code] with [subject], [minimum] and [maximum]). [fieldId] identifies the
+/// offending field.
 class ValidationError extends Equatable {
   const ValidationError({
     required this.fieldId,
     required this.code,
     required this.message,
+    this.subject,
+    this.minimum,
+    this.maximum,
   });
 
   final String fieldId;
   final String code;
   final String message;
+
+  /// What the error is about besides the field: the unknown option id, the
+  /// file name.
+  final String? subject;
+
+  /// The lower bound broken ([outOfRange]): a `num` or a `DateTime`.
+  final Object? minimum;
+
+  /// The upper bound broken ([outOfRange]: a `num` or a `DateTime`;
+  /// [tooLong]: the most characters).
+  final Object? maximum;
 
   /// Common, type-agnostic codes. Field types may define additional codes.
   static const String requiredCode = 'required';

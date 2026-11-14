@@ -33,7 +33,7 @@ final class CollectionsListReady extends CollectionsListState {
   List<Object?> get props => [collections];
 }
 
-/// The collections stream failed; carries a user-facing [message].
+/// The collections stream failed; [message] is the raw error text.
 final class CollectionsListError extends CollectionsListState {
   const CollectionsListError({required this.message});
 

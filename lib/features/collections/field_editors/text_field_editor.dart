@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/domain/domain.dart';
+import '../../../l10n/l10n.dart';
 import 'field_editor.dart';
 import 'widgets/config_controls.dart';
 import 'widgets/preview_affordances.dart';
@@ -13,10 +14,11 @@ class TextFieldEditor extends FieldEditor {
   String get typeId => kTextFieldType;
 
   @override
-  String get displayLabel => 'Text';
+  String label(AppLocalizations l10n) => l10n.collectionsTypeText;
 
   @override
-  String get description => 'Free text, single- or multi-line.';
+  String description(AppLocalizations l10n) =>
+      l10n.collectionsTypeTextDescription;
 
   @override
   IconData get icon => Icons.text_fields;
@@ -34,12 +36,13 @@ class TextFieldEditor extends FieldEditor {
     required String editingCollectionId,
   }) {
     final field = definition as TextFieldDefinition;
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ConfigSwitch(
-          label: 'Multiline',
-          subtitle: 'Allow line breaks in the value.',
+          label: l10n.collectionsMultiline,
+          subtitle: l10n.collectionsMultilineHint,
           value: field.multiline,
           onChanged: (value) => onChanged(
             TextFieldDefinition(
@@ -53,8 +56,8 @@ class TextFieldEditor extends FieldEditor {
           ),
         ),
         ConfigTextField(
-          label: 'Max length',
-          hint: 'No limit',
+          label: l10n.collectionsMaxLength,
+          hint: l10n.collectionsNoLimit,
           value: field.maxLength?.toString() ?? '',
           keyboardType: TextInputType.number,
           onChanged: (text) => onChanged(
@@ -74,13 +77,14 @@ class TextFieldEditor extends FieldEditor {
 
   @override
   String summarize(
+    AppLocalizations l10n,
     FieldDefinition definition, {
     List<Collection> collections = const [],
   }) {
     final field = definition as TextFieldDefinition;
     final parts = <String>[
-      if (field.multiline) 'multiline',
-      if (field.maxLength != null) 'max ${field.maxLength}',
+      if (field.multiline) l10n.collectionsSummaryMultiline,
+      if (field.maxLength case final max?) l10n.collectionsSummaryMax(max),
     ];
     return parts.join(' · ');
   }

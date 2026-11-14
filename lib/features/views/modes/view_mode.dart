@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/domain/domain.dart';
+import '../../../l10n/l10n.dart';
 import '../collection_views_cubit.dart';
 import '../collection_views_state.dart';
 
@@ -40,6 +41,11 @@ class ViewModeData {
 abstract class ViewMode {
   const ViewMode();
 
+  /// The app's strings for the labels below, which are read without a
+  /// [BuildContext]; follows the app's locale (`Intl.defaultLocale`).
+  @protected
+  AppLocalizations get l10n => currentAppStrings();
+
   /// Stable id stored in [ViewDefinition.mode] (see [ViewModeIds]).
   String get id;
   String get label;
@@ -68,13 +74,13 @@ abstract class ViewMode {
   bool get drawsNoMatches => false;
 
   /// Heading of the layout-field picker in the new-view dialog.
-  String get layoutFieldLabel => 'Group by';
+  String get layoutFieldLabel => l10n.viewsGroupBy;
 
   /// Link shown on an unavailable tile that opens the collection editor.
-  String get addFieldLabel => 'Add field';
+  String get addFieldLabel => l10n.viewsAddField;
 
   /// Label of the toolbar button that edits the shown fields.
-  String get fieldsLabel => 'Setup card';
+  String get fieldsLabel => l10n.viewsSetupCard;
 
   /// The mode's data area.
   Widget buildBody(BuildContext context, ViewModeData data);

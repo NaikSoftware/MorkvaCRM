@@ -25,7 +25,8 @@ enum FormulaType {
     date => kDateFieldType,
   };
 
-  /// Human name for messages ("Number", "Yes / No").
+  /// English name for [FormulaError.message] ("Number", "Yes / No"); the UI
+  /// words [name] itself.
   String get label => switch (this) {
     number => 'Number',
     text => 'Text',
@@ -59,12 +60,104 @@ FormulaType? formulaTypeOfField(FieldDefinition field) => switch (field) {
   _ => null,
 };
 
+/// What went wrong in a formula; the UI words it from the [FormulaError]'s
+/// [FormulaError.text], [FormulaError.left] and [FormulaError.right].
+enum FormulaErrorCode {
+  empty,
+
+  /// [FormulaError.text] is the token.
+  notANumber,
+  unclosedText,
+  unclosedField,
+
+  /// [FormulaError.text] is the unexpected character or token.
+  unexpected,
+
+  /// [FormulaError.text] is the name typed between braces.
+  noSuchField,
+  ownField,
+
+  /// [FormulaError.text] is the field name.
+  fieldNotUsable,
+
+  /// [FormulaError.text] is the field name typed without braces.
+  fieldWithoutBraces,
+
+  /// [FormulaError.text] is the name.
+  unknownFunction,
+
+  /// [FormulaError.text] is the function name (also for every code below).
+  wrongArguments,
+  unclosedCall,
+  expectsNumbers,
+  expectsBooleans,
+  expectsText,
+  expectsDate,
+  needsCondition,
+
+  /// [FormulaError.left] / [FormulaError.right] are the branch types.
+  branchTypesDiffer,
+  unclosedBracket,
+  endsEarly,
+  negateNeedsNumber,
+  joinWithAmpersand,
+
+  /// [FormulaError.text] is the operator; [FormulaError.left] /
+  /// [FormulaError.right] the operand types.
+  cannotCombine,
+}
+
 /// A parse or type error at [offset] (a character index of the source).
 class FormulaError {
-  const FormulaError(this.message, this.offset);
+  const FormulaError(
+    this.code,
+    this.offset, {
+    this.text = '',
+    this.left,
+    this.right,
+  });
 
-  final String message;
+  final FormulaErrorCode code;
   final int offset;
+
+  /// The token, name, function or operator the error is about (see [code]).
+  final String text;
+  final FormulaType? left;
+  final FormulaType? right;
+
+  /// The error in English (the harness and tests read it; the UI words
+  /// [code] itself).
+  String get message => switch (code) {
+    FormulaErrorCode.empty => 'Enter a formula',
+    FormulaErrorCode.notANumber => '"$text" is not a number',
+    FormulaErrorCode.unclosedText => 'Close the text with "',
+    FormulaErrorCode.unclosedField => 'Close the field with }',
+    FormulaErrorCode.unexpected => 'Unexpected "$text"',
+    FormulaErrorCode.noSuchField => 'No field named "$text"',
+    FormulaErrorCode.ownField => "A formula can't use its own field",
+    FormulaErrorCode.fieldNotUsable =>
+      '"$text" can\'t be used in a formula — '
+          'use an Aggregate field to summarize linked items',
+    FormulaErrorCode.fieldWithoutBraces =>
+      'Put field names in braces: {$text}',
+    FormulaErrorCode.unknownFunction => 'Unknown function "$text"',
+    FormulaErrorCode.wrongArguments => 'Use ${formulaFunctions[text]?.usage}',
+    FormulaErrorCode.unclosedCall => 'Close $text( with )',
+    FormulaErrorCode.expectsNumbers => '$text expects numbers',
+    FormulaErrorCode.expectsBooleans => '$text expects Yes / No values',
+    FormulaErrorCode.expectsText => '$text expects text',
+    FormulaErrorCode.expectsDate => '$text expects a date',
+    FormulaErrorCode.needsCondition => '$text needs a Yes / No condition',
+    FormulaErrorCode.branchTypesDiffer =>
+      '$text needs "then" and "else" of the same type '
+          '(${left?.label} vs ${right?.label})',
+    FormulaErrorCode.unclosedBracket => 'Close the bracket with )',
+    FormulaErrorCode.endsEarly => 'The formula ends too early',
+    FormulaErrorCode.negateNeedsNumber => '"-" needs a number',
+    FormulaErrorCode.joinWithAmpersand => 'Use & to join text',
+    FormulaErrorCode.cannotCombine =>
+      '"$text" can\'t combine ${left?.label} and ${right?.label}',
+  };
 
   @override
   String toString() => 'FormulaError($message @ $offset)';
@@ -128,7 +221,10 @@ FormulaCompileResult compileFormula(
   String? selfId,
 }) {
   if (source.trim().isEmpty) {
-    return (formula: null, error: const FormulaError('Enter a formula', 0));
+    return (
+      formula: null,
+      error: const FormulaError(FormulaErrorCode.empty, 0),
+    );
   }
   try {
     final parser = _Parser(source, fields, selfId);
@@ -207,30 +303,33 @@ class FormulaFunction {
   /// null = any number.
   final int? maxArgs;
 
-  /// Returns the result type for the argument types, or throws a message.
+  /// Returns the result type for the argument types, or throws a
+  /// [FormulaErrorCode] (a [FormulaError] when it needs the types).
   final FormulaType Function(List<FormulaType> args) check;
   final Object? Function(List<Object?> args, DateTime today) apply;
 }
 
 FormulaType _numbers(List<FormulaType> args) {
-  if (args.any((t) => t != FormulaType.number)) throw 'expects numbers';
+  if (args.any((t) => t != FormulaType.number)) {
+    throw FormulaErrorCode.expectsNumbers;
+  }
   return FormulaType.number;
 }
 
 FormulaType _booleans(List<FormulaType> args) {
   if (args.any((t) => t != FormulaType.boolean)) {
-    throw 'expects Yes / No values';
+    throw FormulaErrorCode.expectsBooleans;
   }
   return FormulaType.boolean;
 }
 
 FormulaType _oneText(List<FormulaType> args) {
-  if (args.first != FormulaType.text) throw 'expects text';
+  if (args.first != FormulaType.text) throw FormulaErrorCode.expectsText;
   return FormulaType.text;
 }
 
 FormulaType _oneDate(List<FormulaType> args) {
-  if (args.first != FormulaType.date) throw 'expects a date';
+  if (args.first != FormulaType.date) throw FormulaErrorCode.expectsDate;
   return FormulaType.number;
 }
 
@@ -255,9 +354,16 @@ final Map<String, FormulaFunction> formulaFunctions = {
       minArgs: 3,
       maxArgs: 3,
       check: (a) {
-        if (a[0] != FormulaType.boolean) throw 'needs a Yes / No condition';
+        if (a[0] != FormulaType.boolean) {
+          throw FormulaErrorCode.needsCondition;
+        }
         if (a[1] != a[2]) {
-          throw 'needs "then" and "else" of the same type (${a[1].label} vs ${a[2].label})';
+          throw FormulaError(
+            FormulaErrorCode.branchTypesDiffer,
+            0,
+            left: a[1],
+            right: a[2],
+          );
         }
         return a[1];
       },
@@ -512,7 +618,7 @@ class _Unary extends _Expr {
   @override
   FormulaType _check() {
     if (operand.check() != FormulaType.number) {
-      throw FormulaError('"-" needs a number', offset);
+      throw FormulaError(FormulaErrorCode.negateNeedsNumber, offset);
     }
     return FormulaType.number;
   }
@@ -541,7 +647,7 @@ class _Binary extends _Expr {
         if (l == n && r == n) return n;
         if ((l == d && r == n) || (l == n && r == d)) return d;
         if (l == FormulaType.text || r == FormulaType.text) {
-          throw FormulaError('Use & to join text', offset);
+          throw FormulaError(FormulaErrorCode.joinWithAmpersand, offset);
         }
       case '-':
         if (l == n && r == n) return n;
@@ -555,8 +661,11 @@ class _Binary extends _Expr {
         if (l == r && l != FormulaType.boolean) return FormulaType.boolean;
     }
     throw FormulaError(
-      '"$op" can\'t combine ${l.label} and ${r.label}',
+      FormulaErrorCode.cannotCombine,
       offset,
+      text: op,
+      left: l,
+      right: r,
     );
   }
 
@@ -644,12 +753,20 @@ class _Call extends _Expr {
     final f = function;
     final max = f.maxArgs;
     if (types.length < f.minArgs || (max != null && types.length > max)) {
-      throw FormulaError('Use ${f.usage}', offset);
+      throw FormulaError(FormulaErrorCode.wrongArguments, offset, text: f.name);
     }
     try {
       return f.check(types);
-    } on String catch (message) {
-      throw FormulaError('${f.name} $message', offset);
+    } on FormulaErrorCode catch (code) {
+      throw FormulaError(code, offset, text: f.name);
+    } on FormulaError catch (e) {
+      throw FormulaError(
+        e.code,
+        offset,
+        text: f.name,
+        left: e.left,
+        right: e.right,
+      );
     }
   }
 
@@ -702,7 +819,11 @@ List<_Token> _tokenize(String s) {
       }
       final text = s.substring(start, i);
       if (num.tryParse(text) == null) {
-        throw FormulaError('"$text" is not a number', start);
+        throw FormulaError(
+          FormulaErrorCode.notANumber,
+          start,
+          text: text,
+        );
       }
       tokens.add(_Token(_T.number, text, start));
     } else if (c == '"' || c == '“' || c == '”') {
@@ -712,12 +833,16 @@ List<_Token> _tokenize(String s) {
         buffer.write(s[i]);
         i++;
       }
-      if (i >= s.length) throw FormulaError('Close the text with "', start);
+      if (i >= s.length) {
+        throw FormulaError(FormulaErrorCode.unclosedText, start);
+      }
       i++;
       tokens.add(_Token(_T.string, buffer.toString(), start));
     } else if (c == '{') {
       final close = s.indexOf('}', i);
-      if (close < 0) throw FormulaError('Close the field with }', start);
+      if (close < 0) {
+        throw FormulaError(FormulaErrorCode.unclosedField, start);
+      }
       tokens.add(_Token(_T.field, s.substring(i + 1, close), start));
       i = close + 1;
     } else if (isNameChar(c)) {
@@ -741,7 +866,7 @@ List<_Token> _tokenize(String s) {
       } else if ('+-*/&=<>×÷'.contains(c)) {
         tokens.add(_Token(_T.op, c == '×' ? '*' : (c == '÷' ? '/' : c), i++));
       } else {
-        throw FormulaError('Unexpected "$c"', i);
+        throw FormulaError(FormulaErrorCode.unexpected, i, text: c);
       }
     }
   }
@@ -767,7 +892,11 @@ class _Parser {
   _Expr parse() {
     final e = _comparison();
     if (_peek.kind != _T.end) {
-      throw FormulaError('Unexpected "${_peek.text}"', _peek.offset);
+      throw FormulaError(
+        FormulaErrorCode.unexpected,
+        _peek.offset,
+        text: _peek.text,
+      );
     }
     return e;
   }
@@ -830,17 +959,21 @@ class _Parser {
       case _T.field:
         final field = _resolve(t.text, fields);
         if (field == null) {
-          throw FormulaError('No field named "${t.text.trim()}"', t.offset);
+          throw FormulaError(
+            FormulaErrorCode.noSuchField,
+            t.offset,
+            text: t.text.trim(),
+          );
         }
         if (field.id == selfId) {
-          throw FormulaError("A formula can't use its own field", t.offset);
+          throw FormulaError(FormulaErrorCode.ownField, t.offset);
         }
         final type = formulaTypeOfField(field);
         if (type == null) {
           throw FormulaError(
-            '"${field.name}" can\'t be used in a formula — '
-            'use an Aggregate field to summarize linked items',
+            FormulaErrorCode.fieldNotUsable,
             t.offset,
+            text: field.name,
           );
         }
         fieldIds.add(field.id);
@@ -856,15 +989,24 @@ class _Parser {
         final function = formulaFunctions[upper];
         if (function == null) {
           final asField = _resolve(t.text, fields);
-          throw FormulaError(
-            asField != null
-                ? 'Put field names in braces: {${asField.name}}'
-                : 'Unknown function "${t.text}"',
-            t.offset,
-          );
+          throw asField != null
+              ? FormulaError(
+                  FormulaErrorCode.fieldWithoutBraces,
+                  t.offset,
+                  text: asField.name,
+                )
+              : FormulaError(
+                  FormulaErrorCode.unknownFunction,
+                  t.offset,
+                  text: t.text,
+                );
         }
         if (_peek.kind != _T.lparen) {
-          throw FormulaError('Use ${function.usage}', t.offset);
+          throw FormulaError(
+            FormulaErrorCode.wrongArguments,
+            t.offset,
+            text: function.name,
+          );
         }
         if (function.name == 'ISBLANK') readsBlanks = true;
         _next();
@@ -877,19 +1019,27 @@ class _Parser {
           }
         }
         if (_next().kind != _T.rparen) {
-          throw FormulaError('Close ${function.name}( with )', t.offset);
+          throw FormulaError(
+            FormulaErrorCode.unclosedCall,
+            t.offset,
+            text: function.name,
+          );
         }
         return _Call(t.offset, function, args);
       case _T.lparen:
         final e = _comparison();
         if (_next().kind != _T.rparen) {
-          throw FormulaError('Close the bracket with )', t.offset);
+          throw FormulaError(FormulaErrorCode.unclosedBracket, t.offset);
         }
         return e;
       case _T.end:
-        throw FormulaError('The formula ends too early', t.offset);
+        throw FormulaError(FormulaErrorCode.endsEarly, t.offset);
       default:
-        throw FormulaError('Unexpected "${t.text}"', t.offset);
+        throw FormulaError(
+          FormulaErrorCode.unexpected,
+          t.offset,
+          text: t.text,
+        );
     }
   }
 }

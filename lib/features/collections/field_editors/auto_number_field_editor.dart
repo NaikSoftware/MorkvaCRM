@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/domain/domain.dart';
 import '../../../design/design.dart';
+import '../../../l10n/l10n.dart';
 import 'field_editor.dart';
 import 'widgets/config_controls.dart';
 import 'widgets/preview_affordances.dart';
@@ -17,10 +18,11 @@ class AutoNumberFieldEditor extends FieldEditor {
   String get typeId => kAutoNumberFieldType;
 
   @override
-  String get displayLabel => 'Auto number';
+  String label(AppLocalizations l10n) => l10n.collectionsTypeAutoNumber;
 
   @override
-  String get description => 'An automatically assigned sequence number.';
+  String description(AppLocalizations l10n) =>
+      l10n.collectionsTypeAutoNumberDescription;
 
   @override
   IconData get icon => Icons.tag;
@@ -56,6 +58,7 @@ class AutoNumberFieldEditor extends FieldEditor {
       start: start ?? field.start,
     );
 
+    final l10n = context.l10n;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final next = formatFieldValue(field, AutoNumberFieldValue(field.start));
@@ -63,7 +66,7 @@ class AutoNumberFieldEditor extends FieldEditor {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ConfigTextField(
-          label: 'Start at',
+          label: l10n.collectionsStartAt,
           hint: '1',
           value: field.start == 1 ? '' : '${field.start}',
           keyboardType: TextInputType.number,
@@ -73,15 +76,15 @@ class AutoNumberFieldEditor extends FieldEditor {
           },
         ),
         ConfigTextField(
-          label: 'Prefix',
-          hint: 'e.g. ORD-',
+          label: l10n.collectionsPrefix,
+          hint: l10n.collectionsPrefixHint,
           value: field.prefix ?? '',
           onChanged: (text) =>
               onChanged(update(prefix: () => text.isEmpty ? null : text)),
         ),
         ConfigTextField(
-          label: 'Digits',
-          hint: 'e.g. 4 → 0042',
+          label: l10n.collectionsDigits,
+          hint: l10n.collectionsDigitsHint,
           value: field.padding?.toString() ?? '',
           keyboardType: TextInputType.number,
           onChanged: (text) =>
@@ -97,7 +100,7 @@ class AutoNumberFieldEditor extends FieldEditor {
           child: Text.rich(
             TextSpan(
               children: [
-                const TextSpan(text: 'First number  '),
+                TextSpan(text: '${l10n.collectionsFirstNumber}  '),
                 TextSpan(
                   text: next,
                   style: MorkvaTypography.tabular(
@@ -115,8 +118,7 @@ class AutoNumberFieldEditor extends FieldEditor {
         ),
         const SizedBox(height: Spacing.xs),
         Text(
-          'New items get the next number when they are saved. '
-          'Items that already exist stay unnumbered.',
+          l10n.collectionsAutoNumberNote,
           style: theme.textTheme.bodySmall?.copyWith(
             color: scheme.onSurfaceVariant,
           ),
@@ -127,16 +129,20 @@ class AutoNumberFieldEditor extends FieldEditor {
 
   @override
   String summarize(
+    AppLocalizations l10n,
     FieldDefinition definition, {
     List<Collection> collections = const [],
   }) {
     final field = definition as AutoNumberFieldDefinition;
     final parts = <String>[
       if (field.prefix != null) field.prefix!,
-      if (field.padding != null) '${field.padding} digits',
-      if (field.start != 1) 'from ${field.start}',
+      if (field.padding case final digits?)
+        l10n.collectionsSummaryDigits(digits),
+      if (field.start != 1) l10n.collectionsSummaryFrom(field.start),
     ];
-    return parts.isEmpty ? 'auto' : parts.join(' · ');
+    return parts.isEmpty
+        ? l10n.collectionsSummaryAuto
+        : parts.join(' · ');
   }
 
   @override
