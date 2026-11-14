@@ -73,10 +73,7 @@ String dayLabel(
   final diff = today.difference(d).inDays;
   if (diff == 0) return t.commonToday;
   if (diff == 1) return t.commonYesterday;
-  return DateFormat(
-    d.year == now.year ? 'd MMM' : 'd MMM y',
-    locale,
-  ).format(d);
+  return DateFormat(d.year == now.year ? 'd MMM' : 'd MMM y', locale).format(d);
 }
 
 /// The conversation list: search, grouped by day, delete with a confirm,
@@ -117,9 +114,7 @@ class _ThreadListViewState extends State<ThreadListView> {
     final ok = await MorkvaConfirmDialog.show(
       context,
       title: context.l10n.assistantDeleteThreadTitle,
-      message: context.l10n.assistantDeleteThreadBody(
-        t.titleIn(context.l10n),
-      ),
+      message: context.l10n.assistantDeleteThreadBody(t.titleIn(context.l10n)),
       confirmLabel: context.l10n.commonDelete,
       destructive: true,
     );
@@ -139,8 +134,8 @@ class _ThreadListViewState extends State<ThreadListView> {
     ]..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     final now = widget.now();
 
-    final children = <Widget>[];
-    String? day;
+    // Newest first, so each day's threads are contiguous.
+    final days = <String, List<ThreadSummary>>{};
     for (final t in shown) {
       final label = dayLabel(
         t.updatedAt,
@@ -148,20 +143,24 @@ class _ThreadListViewState extends State<ThreadListView> {
         l10n: context.l10n,
         locale: Localizations.localeOf(context).toString(),
       );
-      if (label != day) {
-        day = label;
-        children.add(_DayHeader(label));
-      }
-      children.add(
-        _ThreadTile(
-          thread: t,
-          current: t.id == widget.currentId,
-          enabled: !widget.disabled,
-          onTap: () => widget.onSelect(t.id),
-          onDelete: () => _confirmDelete(t),
-        ),
-      );
+      (days[label] ??= []).add(t);
     }
+    final children = <Widget>[
+      for (final MapEntry(key: label, value: threads) in days.entries) ...[
+        _DayHeader(label, threads.length),
+        _DayCard([
+          for (final (i, t) in threads.indexed)
+            _ThreadTile(
+              thread: t,
+              divider: i > 0,
+              current: t.id == widget.currentId,
+              enabled: !widget.disabled,
+              onTap: () => widget.onSelect(t.id),
+              onDelete: () => _confirmDelete(t),
+            ),
+        ]),
+      ],
+    ];
 
     final Widget body;
     if (widget.loading) {
@@ -209,25 +208,79 @@ class _ThreadListViewState extends State<ThreadListView> {
   }
 }
 
+/// "TODAY  3 ————": the day, its conversation count and a rule to the edge.
 class _DayHeader extends StatelessWidget {
-  const _DayHeader(this.label);
+  const _DayHeader(this.label, this.count);
 
   final String label;
+  final int count;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(4, 16, 4, 6),
-    child: Semantics(
-      header: true,
-      child: Text(
-        label.toUpperCase(),
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.88,
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final style = theme.textTheme.labelSmall?.copyWith(
+      fontWeight: FontWeight.w700,
+      letterSpacing: 0.88,
+    );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, Spacing.md, 4, Spacing.xs),
+      child: Semantics(
+        header: true,
+        label: context.l10n.assistantDayThreads(label, count),
+        child: ExcludeSemantics(
+          child: Row(
+            children: [
+              Text(label.toUpperCase(), style: style),
+              const SizedBox(width: Spacing.xs),
+              Text(
+                '$count',
+                style: style?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(width: Spacing.xs),
+              Expanded(
+                child: Container(
+                  height: 1,
+                  color: theme.colorScheme.outlineVariant,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
+}
+
+/// One day's conversations on a card.
+class _DayCard extends StatelessWidget {
+  const _DayCard(this.tiles);
+
+  final List<Widget> tiles;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final colors = AssistantColors.of(context);
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(color: colors.panel, borderRadius: Radii.lgAll),
+      // In front, so a washed first or last row can't paint over the
+      // outline's rounded corners.
+      foregroundDecoration: BoxDecoration(
+        // Light `border` is too faint against the paper canvas.
+        border: Border.all(
+          color: scheme.brightness == Brightness.dark
+              ? colors.border
+              : scheme.outlineVariant,
+        ),
+        borderRadius: Radii.lgAll,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: tiles,
+      ),
+    );
+  }
 }
 
 /// With a mouse, the delete button shows on hover or keyboard focus; on
@@ -235,6 +288,7 @@ class _DayHeader extends StatelessWidget {
 class _ThreadTile extends StatefulWidget {
   const _ThreadTile({
     required this.thread,
+    required this.divider,
     required this.current,
     required this.enabled,
     required this.onTap,
@@ -242,6 +296,10 @@ class _ThreadTile extends StatefulWidget {
   });
 
   final ThreadSummary thread;
+
+  /// A rule above the row, inset to the title. Drawn on the row's own fill
+  /// so two washed rows don't show a card-coloured notch between them.
+  final bool divider;
   final bool current;
   final bool enabled;
   final VoidCallback onTap;
@@ -258,93 +316,144 @@ class _ThreadTileState extends State<_ThreadTile> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final colors = AssistantColors.of(context);
-    final _ThreadTile(:thread, :current, :enabled, :onTap, :onDelete) = widget;
+    final _ThreadTile(
+      :thread,
+      :divider,
+      :current,
+      :enabled,
+      :onTap,
+      :onDelete,
+    ) = widget;
     final time = clockTime(thread.updatedAt);
-    final meta = thread.snippet == null ? time : '$time · ${thread.snippet}';
+    final snippet = thread.snippet;
+    final meta = snippet == null ? time : '$time · $snippet';
     final title = thread.titleIn(context.l10n);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: MouseRegion(
-        onEnter: (_) => setState(() => _hovered = true),
-        onExit: (_) => setState(() => _hovered = false),
-        child: Opacity(
-          opacity: enabled ? 1 : 0.5,
-          child: Container(
-            decoration: BoxDecoration(
-              color: current ? colors.panel : Colors.transparent,
-              borderRadius: Radii.mdAll,
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: PressableScale(
-                    onPressed: enabled ? onTap : null,
-                    semanticLabel: '$title, $meta',
-                    borderRadius: Radii.mdAll,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(minHeight: 56),
-                      child: Padding(
-                        padding: const EdgeInsetsDirectional.fromSTEB(
-                          12,
-                          8,
-                          4,
-                          8,
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.titleSmall,
+    final hovered = _hovered && enabled;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: Opacity(
+        opacity: enabled ? 1 : 0.5,
+        child: AnimatedContainer(
+          duration: MotionDurations.fast,
+          color: current
+              ? colors.objectChip
+              : hovered
+              // A neutral state layer, so hover never reads as "current".
+              ? Color.alphaBlend(
+                  scheme.onSurface.withValues(alpha: 0.04),
+                  colors.panel,
+                )
+              : colors.panel,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (divider)
+                Container(
+                  height: 1,
+                  // Aligned with the title.
+                  margin: const EdgeInsetsDirectional.only(start: 16),
+                  color: scheme.outlineVariant,
+                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: PressableScale(
+                      onPressed: enabled ? onTap : null,
+                      semanticLabel: '$title, $meta',
+                      child: ExcludeSemantics(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(minHeight: 56),
+                          child: Padding(
+                            padding: const EdgeInsetsDirectional.fromSTEB(
+                              16,
+                              10,
+                              8,
+                              10,
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              meta,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodySmall,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Row(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.baseline,
+                                  textBaseline: TextBaseline.alphabetic,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        title,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: theme.textTheme.titleSmall,
+                                      ),
+                                    ),
+                                    const SizedBox(width: Spacing.xs),
+                                    Text(
+                                      time,
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                                if (snippet != null) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    snippet,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.bodySmall,
+                                  ),
+                                ],
+                              ],
                             ),
-                          ],
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-                ListenableBuilder(
-                  listenable: RendererBinding.instance.mouseTracker,
-                  builder: (context, child) {
-                    final shown =
-                        _hovered ||
-                        _focused ||
-                        !RendererBinding.instance.mouseTracker.mouseIsConnected;
-                    // Hidden: no pointer hits, but still in the focus order;
-                    // focusing it reveals it.
-                    return IgnorePointer(
-                      ignoring: !shown,
-                      child: AnimatedOpacity(
-                        opacity: shown ? 1 : 0,
-                        duration: MotionDurations.fast,
-                        child: child,
+                  ListenableBuilder(
+                    listenable: RendererBinding.instance.mouseTracker,
+                    builder: (context, child) {
+                      final shown =
+                          _hovered ||
+                          _focused ||
+                          !RendererBinding
+                              .instance
+                              .mouseTracker
+                              .mouseIsConnected;
+                      // Hidden: no pointer hits, but still in the focus order;
+                      // focusing it reveals it.
+                      return IgnorePointer(
+                        ignoring: !shown,
+                        child: AnimatedOpacity(
+                          opacity: shown ? 1 : 0,
+                          duration: MotionDurations.fast,
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: Focus(
+                      canRequestFocus: false,
+                      skipTraversal: true,
+                      onFocusChange: (f) => setState(() => _focused = f),
+                      child: IconActionButton(
+                        icon: Icons.delete_outline_rounded,
+                        tooltip: context.l10n.assistantDeleteThreadTooltip(
+                          title,
+                        ),
+                        onPressed: enabled ? onDelete : null,
                       ),
-                    );
-                  },
-                  child: Focus(
-                    canRequestFocus: false,
-                    skipTraversal: true,
-                    onFocusChange: (f) => setState(() => _focused = f),
-                    child: IconActionButton(
-                      icon: Icons.delete_outline_rounded,
-                      tooltip: context.l10n.assistantDeleteThreadTooltip(title),
-                      onPressed: enabled ? onDelete : null,
                     ),
                   ),
-                ),
-              ],
-            ),
+                  const SizedBox(width: 4),
+                ],
+              ),
+            ],
           ),
         ),
       ),

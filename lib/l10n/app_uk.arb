@@ -56,6 +56,7 @@
   "assistantCloseAssistant": "Закрити помічника",
   "assistantBackToConversation": "Назад до розмови",
   "assistantConversations": "Розмови",
+  "assistantDayThreads": "{day}, {count, plural, one{{count} розмова} few{{count} розмови} many{{count} розмов} other{{count} розмови}}",
   "assistantGreeting": "Вітаю! Що подивимося?",
   "assistantGreetingNamed": "Вітаю, {name}! Що подивимося?",
   "assistantIntroOne": "Я можу читати вашу колекцію «{name}», рахувати показники та вносити зміни — кожну зміну ви підтверджуєте заздалегідь.",

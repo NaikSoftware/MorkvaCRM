@@ -434,6 +434,12 @@ abstract class AppLocalizations {
   /// **'Conversations'**
   String get assistantConversations;
 
+  /// Screen-reader label of a day header in the conversation history: the day and how many conversations it holds.
+  ///
+  /// In en, this message translates to:
+  /// **'{day}, {count, plural, =1{1 conversation} other{{count} conversations}}'**
+  String assistantDayThreads(String day, int count);
+
   /// No description provided for @assistantGreeting.
   ///
   /// In en, this message translates to:
