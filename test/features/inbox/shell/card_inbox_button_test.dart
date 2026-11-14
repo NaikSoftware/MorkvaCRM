@@ -169,7 +169,8 @@ void main() {
     expect(find.text('Item done'), findsNothing);
     expect(find.text('Item other'), findsNothing);
     expect(find.text('Add to Inbox…'), findsOneWidget);
-    // The panel opens under the button, right edges aligned.
+    // The panel opens under the button, right edges aligned; items sit
+    // 8 px inside it.
     final add = tester.getRect(
       find.ancestor(
         of: find.text('Add to Inbox…'),
@@ -177,8 +178,8 @@ void main() {
       ),
     );
     final button = tester.getRect(find.byTooltip('Inbox · 3 open'));
-    expect(add.width, CardInboxButton.menuWidth);
-    expect(add.right, button.right);
+    expect(add.width, CardInboxButton.menuWidth - 2 * Spacing.xs);
+    expect(add.right, button.right - Spacing.xs);
     expect(add.top, greaterThan(button.bottom));
     // Overdue first, undated last.
     final ys = [

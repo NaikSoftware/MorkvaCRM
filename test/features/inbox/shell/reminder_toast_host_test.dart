@@ -192,6 +192,11 @@ void main() {
     expect(card.width, ReminderToastHost.width);
     expect(card.right, 1280 - Spacing.md);
     expect(card.bottom, 800 - Spacing.md);
+    // Done's check lines up with the title.
+    expect(
+      tester.getTopLeft(find.byIcon(Icons.check_rounded)).dx,
+      tester.getTopLeft(find.text('Pay the invoice')).dx,
+    );
 
     await tester.tap(find.text('Done'));
     await tester.pumpAndSettle();

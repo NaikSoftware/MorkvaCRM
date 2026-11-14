@@ -86,11 +86,14 @@ class _CardLinkPickerState extends State<CardLinkPicker> {
   @override
   Widget build(BuildContext context) {
     final collection = _collection;
+    // Hugs its content (the dialog grows up to its max height); the
+    // stretch keeps both steps the dialog's full width.
     return Column(
+      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _Header(collection: collection, onBack: _back),
-        Expanded(
+        Flexible(
           child: collection == null
               ? CollectionsWatcher(
                   builder: (context, byId) => _collections(byId?.values),
@@ -106,7 +109,7 @@ class _CardLinkPickerState extends State<CardLinkPicker> {
                     AsyncSnapshot(hasError: true) => _Notice(
                       context.l10n.inboxCardsLoadFailed,
                     ),
-                    _ => const Center(child: LoadingIndicator()),
+                    _ => const _Loading(),
                   },
                 ),
         ),
@@ -114,22 +117,38 @@ class _CardLinkPickerState extends State<CardLinkPicker> {
     );
   }
 
-  Widget _search({required String hint, String? suffix}) => Padding(
-    padding: const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, Spacing.sm),
-    child: MorkvaTextField(
-      // A new field per step, so the query resets.
-      key: ValueKey(_collection?.id),
-      autofocus: true,
-      hint: hint,
-      prefixIcon: const Icon(Icons.search),
-      suffixText: suffix,
-      textInputAction: TextInputAction.search,
-      onChanged: (text) => setState(() => _query = text),
-    ),
-  );
+  Widget _search({required String hint, String? suffix}) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    OutlineInputBorder stadium(BorderSide side) =>
+        OutlineInputBorder(borderRadius: Radii.fullAll, borderSide: side);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(Spacing.lg, 0, Spacing.lg, Spacing.sm),
+      // A stadium field, as the mockup (no shared stadium search exists).
+      child: Theme(
+        data: theme.copyWith(
+          inputDecorationTheme: theme.inputDecorationTheme.copyWith(
+            border: stadium(BorderSide(color: scheme.outline)),
+            enabledBorder: stadium(BorderSide(color: scheme.outline)),
+            focusedBorder: stadium(BorderSide(color: scheme.primary, width: 2)),
+          ),
+        ),
+        child: MorkvaTextField(
+          // A new field per step, so the query resets.
+          key: ValueKey(_collection?.id),
+          autofocus: true,
+          hint: hint,
+          prefixIcon: const Icon(Icons.search),
+          suffixText: suffix,
+          textInputAction: TextInputAction.search,
+          onChanged: (text) => setState(() => _query = text),
+        ),
+      ),
+    );
+  }
 
   Widget _collections(Iterable<Collection>? all) {
-    if (all == null) return const Center(child: LoadingIndicator());
+    if (all == null) return const _Loading();
     final l10n = context.l10n;
     final q = _query.trim().toLowerCase();
     final rows = [
@@ -137,10 +156,11 @@ class _CardLinkPickerState extends State<CardLinkPicker> {
         if (q.isEmpty || c.name.toLowerCase().contains(q)) c,
     ];
     return Column(
+      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _search(hint: l10n.inboxSearchCollections),
-        Expanded(
+        Flexible(
           child: rows.isEmpty
               ? _Notice(
                   all.isEmpty
@@ -148,6 +168,7 @@ class _CardLinkPickerState extends State<CardLinkPicker> {
                       : l10n.inboxNoCollectionsMatch(_query.trim()),
                 )
               : ListView.builder(
+                  shrinkWrap: true,
                   padding: const EdgeInsets.fromLTRB(
                     Spacing.sm,
                     0,
@@ -184,6 +205,7 @@ class _CardLinkPickerState extends State<CardLinkPicker> {
         if (q.isEmpty || e.value.toLowerCase().contains(q)) e,
     ];
     return Column(
+      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _search(
@@ -192,7 +214,7 @@ class _CardLinkPickerState extends State<CardLinkPicker> {
               ? null
               : l10n.inboxShownOf(rows.length, labels.length),
         ),
-        Expanded(
+        Flexible(
           child: rows.isEmpty
               ? _Notice(
                   labels.isEmpty
@@ -200,6 +222,7 @@ class _CardLinkPickerState extends State<CardLinkPicker> {
                       : l10n.inboxNoCardsMatch(_query.trim()),
                 )
               : ListView.builder(
+                  shrinkWrap: true,
                   padding: const EdgeInsets.fromLTRB(
                     Spacing.sm,
                     0,
@@ -267,7 +290,7 @@ class _Header extends StatelessWidget {
                   c?.name ?? l10n.inboxLinkCard,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.titleLarge,
+                  style: theme.textTheme.headlineSmall,
                 ),
                 Text(
                   c == null
@@ -360,6 +383,17 @@ class _Row extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A spinner that keeps the hugging dialog short while loading.
+class _Loading extends StatelessWidget {
+  const _Loading();
+
+  @override
+  Widget build(BuildContext context) => const Padding(
+    padding: EdgeInsets.all(Spacing.xl),
+    child: Center(heightFactor: 1, child: LoadingIndicator()),
+  );
 }
 
 class _Notice extends StatelessWidget {

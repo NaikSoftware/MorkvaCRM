@@ -186,18 +186,10 @@ class _InboxLinkChipState extends State<InboxLinkChip> {
         : '${collection.name} · ${link.label}';
     final ink = muted ? scheme.onSurfaceVariant : scheme.onSurface;
 
-    final chip = Container(
-      height: 28,
-      padding: EdgeInsets.fromLTRB(
-        Spacing.xxs,
-        0,
-        widget.onClear == null ? 10 : Spacing.xxs,
-        0,
-      ),
-      decoration: BoxDecoration(
-        color: muted ? Colors.transparent : scheme.surfaceContainer,
-        borderRadius: Radii.smAll,
-        border: muted ? Border.all(color: scheme.outlineVariant) : null,
+    final content = Padding(
+      padding: EdgeInsets.only(
+        left: Spacing.xxs,
+        right: widget.onClear == null ? 10 : 0,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -239,7 +231,7 @@ class _InboxLinkChipState extends State<InboxLinkChip> {
           ),
           if (widget.onClear case final clear?)
             SizedBox.square(
-              dimension: 28,
+              dimension: 44,
               child: IconButton(
                 padding: EdgeInsets.zero,
                 iconSize: 16,
@@ -251,6 +243,23 @@ class _InboxLinkChipState extends State<InboxLinkChip> {
             ),
         ],
       ),
+    );
+    // A 28 px pill under a 44 px row (the ×'s hit box).
+    final chip = Stack(
+      children: [
+        Positioned.fill(
+          top: 8,
+          bottom: 8,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: muted ? Colors.transparent : scheme.surfaceContainer,
+              borderRadius: Radii.smAll,
+              border: muted ? Border.all(color: scheme.outlineVariant) : null,
+            ),
+          ),
+        ),
+        SizedBox(height: 44, child: content),
+      ],
     );
 
     final VoidCallback? onTap =

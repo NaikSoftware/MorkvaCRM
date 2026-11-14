@@ -4,7 +4,7 @@ import '../../../design/design.dart';
 import '../../../l10n/l10n.dart';
 
 /// A 32 px value chip in a 44 px hit box: an optional [icon], a [label]
-/// (none = icon-only), an optional × ([onClear]). [selected] fills it
+/// (none = icon-only), an optional 44 px × ([onClear]). [selected] fills it
 /// primaryContainer with a check (date presets).
 class InboxChip extends StatelessWidget {
   const InboxChip({
@@ -42,8 +42,20 @@ class InboxChip extends StatelessWidget {
         : scheme.onSurface.withValues(alpha: 0.38);
     final label = this.label;
     final leading = selected ? Icons.check : icon;
-    Widget chip = Container(
-      height: 32,
+    final pill = BoxDecoration(
+      color: selected
+          ? scheme.primaryContainer
+          : outlined
+          ? Colors.transparent
+          : scheme.surfaceContainer,
+      borderRadius: Radii.smAll,
+      border: outlined
+          ? Border.all(color: scheme.outline.withValues(alpha: 0.6))
+          : null,
+    );
+    final content = Container(
+      // 44 tall (the ×'s hit box) over a 32 px pill.
+      height: 44,
       constraints: const BoxConstraints(minWidth: 32),
       padding: EdgeInsets.only(
         left: label == null ? 0 : Spacing.xs + 2,
@@ -52,17 +64,6 @@ class InboxChip extends StatelessWidget {
             : onClear == null
             ? Spacing.sm
             : 0,
-      ),
-      decoration: BoxDecoration(
-        color: selected
-            ? scheme.primaryContainer
-            : outlined
-            ? Colors.transparent
-            : scheme.surfaceContainer,
-        borderRadius: Radii.smAll,
-        border: outlined
-            ? Border.all(color: scheme.outline.withValues(alpha: 0.6))
-            : null,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -86,7 +87,7 @@ class InboxChip extends StatelessWidget {
           ],
           if (onClear case final clear?)
             SizedBox.square(
-              dimension: 32,
+              dimension: 44,
               child: IconButton(
                 padding: EdgeInsets.zero,
                 iconSize: 16,
@@ -98,6 +99,16 @@ class InboxChip extends StatelessWidget {
             ),
         ],
       ),
+    );
+    Widget chip = Stack(
+      children: [
+        Positioned.fill(
+          top: 6,
+          bottom: 6,
+          child: DecoratedBox(decoration: pill),
+        ),
+        content,
+      ],
     );
     chip = InkWell(
       onTap: onPressed,

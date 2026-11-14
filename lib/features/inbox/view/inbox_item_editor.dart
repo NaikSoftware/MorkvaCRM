@@ -20,6 +20,9 @@ import 'inbox_link_chip.dart';
 /// The editor dialog's width on wide screens.
 const double kInboxEditorMaxWidth = 480;
 
+/// How much of the page shows above the phone editor sheet.
+const double _sheetPeek = 40;
+
 /// The signed-in member's uid, or null when signed out.
 String? inboxUid(BuildContext context) =>
     switch (context.read<AuthCubit?>()?.state) {
@@ -29,7 +32,7 @@ String? inboxUid(BuildContext context) =>
 
 /// Opens the Inbox item editor: [item] to edit, or a new item of [kind]
 /// pre-linked to [link] and dated [day] (a local calendar day). A 480 px
-/// dialog on wide screens, a full-height root bottom sheet on phones.
+/// dialog on wide screens, a near-full-height root bottom sheet on phones.
 ///
 /// [now] and [notifier] are for tests (the clock; the browser's
 /// notification permission).
@@ -87,17 +90,19 @@ Future<void> showInboxItemEditor(
       useRootNavigator: true,
       isScrollControlled: true,
       useSafeArea: true,
-      showDragHandle: true,
-      // A drag would close it past "Discard changes?".
+      // A drag would close it past "Discard changes?", so no handle either.
       enableDrag: false,
       backgroundColor: Theme.of(context).colorScheme.surface,
-      builder: (context) => SizedBox(
-        height: MediaQuery.sizeOf(context).height,
-        child: Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.viewInsetsOf(context).bottom,
+      // The page peeks above the sheet (below the safe area).
+      builder: (context) => LayoutBuilder(
+        builder: (context, constraints) => SizedBox(
+          height: constraints.maxHeight - _sheetPeek,
+          child: Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.viewInsetsOf(context).bottom,
+            ),
+            child: editor,
           ),
-          child: editor,
         ),
       ),
     );
@@ -296,9 +301,7 @@ class _InboxItemEditorState extends State<InboxItemEditor> {
                   maxLength: InboxItem.titleMax,
                   maxLines: 1,
                   textInputAction: TextInputAction.done,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: theme.textTheme.headlineSmall,
                   decoration: InputDecoration(
                     hintText: l10n.inboxTitleHint,
                     border: InputBorder.none,
@@ -307,6 +310,10 @@ class _InboxItemEditorState extends State<InboxItemEditor> {
                     filled: false,
                     counterText: '',
                     isDense: true,
+                    // Not the theme's 16 px inset: text starts at the gap.
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: Spacing.xs,
+                    ),
                   ),
                   onChanged: (t) => _edit((d) => d.copyWith(title: t)),
                   onSubmitted: (_) => _save(),
@@ -455,8 +462,10 @@ class _InboxItemEditorState extends State<InboxItemEditor> {
                                 date,
                                 Localizations.localeOf(context).toString(),
                               ),
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                fontWeight: FontWeight.w600,
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontFeatures: const [
+                                  FontFeature.tabularFigures(),
+                                ],
                               ),
                             ),
                           ),

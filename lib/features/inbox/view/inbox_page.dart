@@ -207,7 +207,7 @@ class _InboxViewState extends State<_InboxView> {
                         ),
                         const SizedBox(height: Spacing.md),
                         _Composer(compact: compact),
-                        const SizedBox(height: Spacing.sm),
+                        SizedBox(height: compact ? Spacing.xs : Spacing.sm),
                         ...switch (inboxState) {
                           InboxLoading() => [
                             const Padding(
@@ -227,6 +227,8 @@ class _InboxViewState extends State<_InboxView> {
                                 icon: Icons.inbox_outlined,
                                 title: l10n.inboxEmptyTitle,
                                 message: l10n.inboxEmptyMessage,
+                                // Line 1 ends at "reminded.", as the mockup.
+                                messageMaxWidth: 290,
                               ),
                             ),
                           ],
@@ -430,7 +432,13 @@ class _ComposerState extends State<_Composer> {
             width: 2,
           ),
         ),
-        padding: const EdgeInsets.fromLTRB(4, 4, Spacing.sm, 4),
+        // Phone: the text lines up with the row titles below.
+        padding: EdgeInsets.fromLTRB(
+          widget.compact ? 2 : Spacing.xxs,
+          Spacing.xxs,
+          Spacing.sm,
+          Spacing.xxs,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -447,7 +455,7 @@ class _ComposerState extends State<_Composer> {
                     icon: InboxKindGlyph(kind: draft.kind),
                   ),
                 ),
-                const SizedBox(width: Spacing.xxs),
+                SizedBox(width: widget.compact ? 2 : Spacing.xxs),
                 Expanded(
                   child: TextField(
                     controller: _text,
@@ -467,6 +475,10 @@ class _ComposerState extends State<_Composer> {
                       filled: false,
                       counterText: '',
                       isDense: true,
+                      // Not the theme's 16 px inset: text starts at the gap.
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: Spacing.sm,
+                      ),
                     ),
                     onSubmitted: (_) => _add(),
                     // Non-null: Enter keeps the focus for the next item.
@@ -668,11 +680,14 @@ class _SectionsState extends State<_Sections> {
         ? l10n.commonToday
         : dayLabel(widget.day, Localizations.localeOf(context).toString());
     final timed = s.day.any((i) => !i.allDay);
+    // The first caption sits closer to the composer.
+    final firstTop = widget.compact ? 0.0 : Spacing.xxs;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (s.overdue.isNotEmpty) ...[
           _SectionHeader(
+            top: firstTop,
             caption: l10n.inboxOverdue,
             count: s.overdue.length,
             color: scheme.error,
@@ -696,6 +711,7 @@ class _SectionsState extends State<_Sections> {
           ]),
         ],
         _SectionHeader(
+          top: s.overdue.isEmpty ? firstTop : Spacing.sm,
           caption: dayName,
           count: s.day.length,
           color: isToday
@@ -741,8 +757,10 @@ class _SectionHeader extends StatelessWidget {
     this.trailing,
     this.open,
     this.onToggle,
+    this.top = Spacing.sm,
   });
 
+  final double top;
   final String caption;
   final int count;
   final Color? color;
@@ -815,7 +833,7 @@ class _SectionHeader extends StatelessWidget {
             ),
           );
     return Padding(
-      padding: const EdgeInsets.only(top: Spacing.sm),
+      padding: EdgeInsets.only(top: top),
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: 44),
         child: Row(children: [label, const Spacer(), ?trailing]),
@@ -838,6 +856,8 @@ class _QuietLine extends StatelessWidget {
       alignment: Alignment.centerLeft,
       padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
       decoration: BoxDecoration(
+        // Filled, so the page doodles don't show through.
+        color: scheme.surface,
         borderRadius: Radii.lgAll,
         border: Border.all(color: scheme.outlineVariant),
       ),

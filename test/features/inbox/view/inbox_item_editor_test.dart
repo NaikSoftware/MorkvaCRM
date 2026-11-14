@@ -93,6 +93,27 @@ void main() {
       expect(fields['link'], isNull);
     });
 
+    testWidgets('a × clears from anywhere in its 44 px box', (tester) async {
+      await open(tester, 'Pay invoice');
+      // 18 px above the glyph: outside the 28/32 px pill, inside 44.
+      Future<void> tapAbove(String tooltip) async {
+        await tester.tapAt(
+          tester.getCenter(find.byTooltip(tooltip)) - const Offset(0, 18),
+        );
+        await tester.pumpAndSettle();
+      }
+
+      await tapAbove('Remove link');
+      expect(find.text('Link a card'), findsOneWidget);
+      await tapAbove('Clear time');
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+      final (_, _, fields) = lastWrite();
+      expect(fields['link'], isNull);
+      // All-day now: stored as UTC midnight.
+      expect(fields['dueAt'], DateTime.utc(2026, 11, 14));
+    });
+
     testWidgets('clearing the date drops time and reminders', (tester) async {
       await open(tester, 'Pay invoice');
       await tester.tap(find.byTooltip('Clear date'));
@@ -146,9 +167,14 @@ void main() {
       expect(find.text('Pay invoice'), findsOneWidget);
     });
 
-    testWidgets('phone: a full-height sheet', (tester) async {
+    testWidgets('phone: a sheet under a 40 px peek', (tester) async {
       await open(tester, 'Pay invoice', size: kPhone);
       expect(find.byType(BottomSheet), findsOneWidget);
+      expect(tester.getTopLeft(find.byType(BottomSheet)).dy, 40);
+      expect(
+        tester.widget<BottomSheet>(find.byType(BottomSheet)).showDragHandle,
+        isNot(isTrue),
+      );
       expect(tester.takeException(), isNull);
       await tester.tap(find.text('Tomorrow'));
       await tester.pumpAndSettle();

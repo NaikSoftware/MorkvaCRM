@@ -389,6 +389,13 @@ class _ReminderToast extends StatelessWidget {
                 children: [
                   if (onDone case final onDone?)
                     TextButton.icon(
+                      // The check lines up with the title (44 + 4 px in).
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsetsDirectional.only(
+                          start: Spacing.xs,
+                          end: Spacing.sm,
+                        ),
+                      ),
                       onPressed: onDone,
                       icon: const Icon(Icons.check_rounded, size: 16),
                       label: Text(l10n.inboxDone),

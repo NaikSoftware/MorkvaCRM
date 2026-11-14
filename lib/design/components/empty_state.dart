@@ -21,6 +21,7 @@ class EmptyState extends StatelessWidget {
     this.actionLabel,
     this.onAction,
     this.action,
+    this.messageMaxWidth = 320,
   });
 
   /// The anchoring glyph (tinted [ColorScheme.primary]).
@@ -42,8 +43,8 @@ class EmptyState extends StatelessWidget {
   /// A custom action widget; takes precedence over [actionLabel] / [onAction].
   final Widget? action;
 
-  /// Comfortable reading measure for the supporting line (~65 characters).
-  static const double _messageMaxWidth = 320;
+  /// The supporting line's measure (default: a comfortable ~65 characters).
+  final double messageMaxWidth;
 
   Widget? _buildAction() {
     if (action != null) return action;
@@ -82,7 +83,7 @@ class EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: Spacing.sm),
             ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: _messageMaxWidth),
+              constraints: BoxConstraints(maxWidth: messageMaxWidth),
               child: Text(
                 message,
                 style: textTheme.bodyMedium

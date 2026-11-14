@@ -75,30 +75,60 @@ class CardInboxButton extends StatelessWidget {
             onPressed: add,
           );
         }
+        final theme = Theme.of(context);
+        final accent = theme.extension<MorkvaSemanticColors>()?.primaryText;
         return MenuAnchor(
           // The panel opens leftwards under the button.
           alignmentOffset: const Offset(width - menuWidth, Spacing.xxs),
+          // The panel is bare: the surface below paints the level2 shadow.
+          clipBehavior: Clip.none,
+          style: const MenuStyle(
+            backgroundColor: WidgetStatePropertyAll(Colors.transparent),
+            surfaceTintColor: WidgetStatePropertyAll(Colors.transparent),
+            shadowColor: WidgetStatePropertyAll(Colors.transparent),
+            elevation: WidgetStatePropertyAll(0),
+            padding: WidgetStatePropertyAll(EdgeInsets.zero),
+          ),
           menuChildren: [
-            // A fixed width (items stretch), so the right edges align.
-            SizedBox(
-              width: menuWidth,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (final item in linked)
-                    _ItemEntry(
-                      item: item,
-                      onOpen: () =>
-                          unawaited(showInboxItemEditor(context, item: item)),
+            DecoratedBox(
+              decoration: const BoxDecoration(
+                borderRadius: Radii.mdAll,
+                boxShadow: MorkvaElevation.level2,
+              ),
+              child: Material(
+                color: theme.colorScheme.surfaceContainerLowest,
+                borderRadius: Radii.mdAll,
+                clipBehavior: Clip.antiAlias,
+                // A fixed width (items stretch), so the right edges align.
+                child: SizedBox(
+                  width: menuWidth,
+                  child: Padding(
+                    padding: const EdgeInsets.all(Spacing.xs),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (final item in linked)
+                          _ItemEntry(
+                            item: item,
+                            onOpen: () => unawaited(
+                              showInboxItemEditor(context, item: item),
+                            ),
+                          ),
+                        const Divider(height: Spacing.xs),
+                        MenuItemButton(
+                          style: MenuItemButton.styleFrom(
+                            foregroundColor: accent,
+                            iconColor: accent,
+                          ),
+                          leadingIcon: const Icon(Icons.add_rounded),
+                          onPressed: add,
+                          child: Text(context.l10n.inboxAddToInboxMenu),
+                        ),
+                      ],
                     ),
-                  const Divider(height: Spacing.xs),
-                  MenuItemButton(
-                    leadingIcon: const Icon(Icons.add_rounded),
-                    onPressed: add,
-                    child: Text(context.l10n.inboxAddToInboxMenu),
                   ),
-                ],
+                ),
               ),
             ),
           ],
