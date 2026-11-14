@@ -89,7 +89,7 @@ class _DateBox extends StatelessWidget {
                 : context.l10n.objectsPickDate,
             error: ctx.error == null ? null : const SizedBox.shrink(),
             prefixIcon: Icon(
-              MorkvaIcons.calendarDay,
+              MorkvaIcons.event,
               size: 18,
               color: scheme.onSurfaceVariant,
             ),

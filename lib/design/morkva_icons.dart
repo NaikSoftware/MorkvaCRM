@@ -487,6 +487,9 @@ abstract final class MorkvaIcons {
   /// Appearance / theme colours.
   static const IconData palette = IconData(0xe094, fontFamily: _family);
 
+  /// App settings.
+  static const IconData settings = IconData(0xe095, fontFamily: _family);
+
   /// Every icon by name, for previews and tests.
   static const Map<String, IconData> all = {
     'add': add,
@@ -638,5 +641,6 @@ abstract final class MorkvaIcons {
     'darkMode': darkMode,
     'themeAuto': themeAuto,
     'palette': palette,
+    'settings': settings,
   };
 }

@@ -160,11 +160,16 @@ def build_dart(concepts, cps, out):
     ]
     for c in concepts:
         rtl = ", matchTextDirection: true" if "rtl" in c["flags"] else ""
+        decl = (f"  static const IconData {c['name']} ="
+                f" IconData(0x{cps[c['name']]:x}, fontFamily: _family{rtl});")
+        if len(decl) > 80:  # the shape dart format gives a long call
+            args = [f"0x{cps[c['name']]:x}", "fontFamily: _family", *(["matchTextDirection: true"] if rtl else [])]
+            decl = (f"  static const IconData {c['name']} = IconData(\n"
+                    + "".join(f"    {a},\n" for a in args) + "  );")
         lines += [
             "",
             f"  /// {c['meaning'].split(';')[-1].strip().capitalize()}.",
-            f"  static const IconData {c['name']} ="
-            f" IconData(0x{cps[c['name']]:x}, fontFamily: _family{rtl});",
+            decl,
         ]
     lines += [
         "",

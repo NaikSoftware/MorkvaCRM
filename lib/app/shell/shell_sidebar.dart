@@ -311,7 +311,7 @@ class ShellSidebar extends StatelessWidget {
             tooltip: l10n.commonSettings,
             selected: place == ShellPlace.settings,
             onTap: onSettings,
-            child: Icon(MorkvaIcons.tune, color: scheme.onSurfaceVariant),
+            child: Icon(MorkvaIcons.settings, color: scheme.onSurfaceVariant),
           ),
           const SizedBox(height: Spacing.xxs),
           UserAvatar(user: user, showSync: true),
@@ -794,7 +794,7 @@ class _ProfileRow extends StatelessWidget {
                   ? scheme.surfaceContainerLowest
                   : null,
             ),
-            icon: const Icon(MorkvaIcons.tune),
+            icon: const Icon(MorkvaIcons.settings),
           ),
         ],
       ),

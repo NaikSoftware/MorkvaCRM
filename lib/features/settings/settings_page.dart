@@ -177,8 +177,9 @@ class _ThemeCard extends StatelessWidget {
         ),
       ],
       selected: {mode},
-      // The default check mark stands in for the picked segment's icon: a
-      // cue beyond the fill colour (WCAG 1.4.11).
+      // The check mark stands in for the picked segment's icon: a cue beyond
+      // the fill colour (WCAG 1.4.11).
+      selectedIcon: const Icon(MorkvaIcons.check),
       style: sheetSegmentedStyle,
       onSelectionChanged: (s) =>
           context.read<ThemeModeCubit>().select(s.single),

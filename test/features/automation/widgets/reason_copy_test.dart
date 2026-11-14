@@ -131,7 +131,7 @@ void main() {
         tone: CopyTone.success,
         icon: MorkvaIcons.check,
       ));
-      expect(applyChip(EffectiveApply.ask).icon, MorkvaIcons.visibility);
+      expect(applyChip(EffectiveApply.ask).icon, MorkvaIcons.hourglass);
       expect(moduleChip(ModuleStatus.needsConsent).tone, CopyTone.warning);
       expect(moduleChip(ModuleStatus.broken).tone, CopyTone.error);
       for (final status in AutomationStatus.values) {

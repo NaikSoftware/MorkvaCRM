@@ -398,7 +398,7 @@ class _AutomationsPageState extends State<AutomationsPage>
             ),
           SecondaryButton(
             label: l10n.automationImportModule,
-            icon: MorkvaIcons.upload,
+            icon: MorkvaIcons.uploadFile,
             onPressed: _import,
           ),
         ],
@@ -1035,7 +1035,7 @@ class _ModulesTab extends StatelessWidget {
               ),
             SecondaryButton(
               label: l10n.automationImportModule,
-              icon: MorkvaIcons.upload,
+              icon: MorkvaIcons.uploadFile,
               onPressed: onImport,
             ),
           ],

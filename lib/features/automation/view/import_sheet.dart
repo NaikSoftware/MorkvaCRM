@@ -131,7 +131,7 @@ class _ImportSheetState extends State<ImportSheet> {
 
     return AutomationSheetFrame(
       header: SheetHeader(
-        icon: MorkvaIcons.upload,
+        icon: MorkvaIcons.uploadFile,
         title: l10n.automationImportModule,
       ),
       body: [

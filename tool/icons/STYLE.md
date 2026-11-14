@@ -107,7 +107,7 @@ Check every glyph in the sheet at 14 and 16 px on cream **and** on espresso (see
 
 **Off / disabled.** Use a `\` slash from (4.25, 4.25) to (19.75, 19.75), 2.46u wide with horizontal cuts. Cut the base back 1.5u on both sides of the slash as real geometry. Butt edges, no rounded cut-ends.
 - **Test first:** if any main stroke of the base runs within 20° of `\` and within 3u of the slash centreline, do not slash it. That stroke would vanish (the funnel's left wall, the search handle). Use the remove badge instead.
-- Use the slash for cloudOff, wifiOff, timerOff, extensionOff, colorReset and block.
+- Use the slash for cloudOff, timerOff, extensionOff and block. wifiOff, linkOff and colorReset take the x badge: the slash erased their bases (colorReset's drop flank runs within ~11° of it and read as stripes).
 - Use the x badge for filterOff and hourglassOff (the hourglass sides run along both diagonals, so it fails the test).
 - The concept list asks for "funnel with slash"; filterOff ships with the x badge because the slash failed the test. A funnel with a corner x is also how some stock sets draw filter-x, so the contrast strokes and cuts carry the difference.
 - searchOff puts the x **inside the lens counter**, square-cut, with ≥ 1.5u clearance, because the handle already fills the badge quadrant.

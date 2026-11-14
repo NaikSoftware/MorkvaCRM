@@ -147,3 +147,4 @@ lightMode	light_mode_outlined	sun with rays; light theme
 darkMode	dark_mode_outlined	crescent moon; dark theme	
 themeAuto	contrast_rounded	circle split into a solid half and an open half; follow system theme	
 palette	palette_outlined	painter palette with thumb hole and paint dots; appearance / theme colours	
+settings	settings_outlined,settings	gear / cog; app settings	

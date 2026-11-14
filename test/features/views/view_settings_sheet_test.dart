@@ -259,8 +259,7 @@ void main() {
         objects: const [],
       ),
     );
-    // Two Customize actions, plus the sidebar's Settings (also tune).
-    expect(find.byIcon(MorkvaIcons.tune), findsNWidgets(3));
+    expect(find.byIcon(MorkvaIcons.tune), findsNWidgets(2));
     expect(find.text('Customize'), findsNWidgets(2));
   });
 

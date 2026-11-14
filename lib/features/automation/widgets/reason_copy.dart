@@ -403,7 +403,7 @@ ChipCopy applyChip(EffectiveApply apply, {AppLocalizations? l10n}) {
     EffectiveApply.ask => (
       label: t.automationWidgetsChipAskFirst,
       tone: CopyTone.neutral,
-      icon: MorkvaIcons.visibility,
+      icon: MorkvaIcons.hourglass,
     ),
     EffectiveApply.auto => (
       label: t.automationWidgetsChipAuto,

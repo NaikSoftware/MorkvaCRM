@@ -454,7 +454,11 @@ class _HeaderCell extends StatelessWidget {
                 : MainAxisAlignment.start,
             children: [
               if (!numeric) ...[
-                Icon(fieldTypeIcon(field), size: 16, color: scheme.outline),
+                Icon(
+                  fieldTypeIcon(field),
+                  size: 16,
+                  color: scheme.onSurfaceVariant,
+                ),
                 const SizedBox(width: Spacing.xxs),
               ],
               label,
