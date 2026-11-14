@@ -76,7 +76,7 @@ void main() {
       await open(tester, 'Pay invoice');
       await tester.tap(find.byTooltip('Add a reminder'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('1 h before'));
+      await tester.tap(find.text('30 min before'));
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Note'));
       await tester.pumpAndSettle();
@@ -89,8 +89,34 @@ void main() {
       final (_, _, fields) = lastWrite();
       expect(fields.keys.toSet(), {'kind', 'reminders', 'link', 'updatedAt'});
       expect(fields['kind'], 'note');
-      expect(fields['reminders'], [15, 60]);
+      expect(fields['reminders'], [15, 30]);
       expect(fields['link'], isNull);
+    });
+
+    testWidgets('a custom reminder fires at the picked date and time', (
+      tester,
+    ) async {
+      await open(tester, 'Pay invoice');
+      await tester.tap(find.byTooltip('Add a reminder'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Pick date & time…'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(DatePickerDialog),
+          matching: find.text('15'),
+        ),
+      );
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('OK')); // the time picker, at 09:30
+      await tester.pumpAndSettle();
+      expect(find.text('Sun 15, 09:30'), findsOneWidget);
+
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+      final (_, _, fields) = lastWrite();
+      expect(fields['reminders'], [15, -1440]);
     });
 
     testWidgets('a × clears from anywhere in its 44 px box', (tester) async {
@@ -214,7 +240,7 @@ void main() {
     await tester.tap(find.text('OK'));
     await tester.pumpAndSettle();
     expect(inEditor('09:00'), findsOneWidget);
-    expect(inEditor('At time'), findsOneWidget);
+    expect(inEditor('At start'), findsOneWidget);
     expect(inEditor('Morning of'), findsNothing);
 
     await tester.tap(find.text('Save'));
@@ -223,7 +249,7 @@ void main() {
     expect(fields.keys.toSet(), {'dueAt', 'allDay', 'reminders', 'updatedAt'});
     expect(fields['dueAt'], DateTime(2026, 11, 14, 9).toUtc());
     expect(fields['allDay'], isFalse);
-    expect(fields['reminders'], [InboxReminders.atTime]);
+    expect(fields['reminders'], [InboxReminders.atStart]);
   });
 
   group('permission line', () {
@@ -238,11 +264,12 @@ void main() {
       await open(tester, 'Dated');
       final rich = find.textContaining('Turn on notifications');
       expect(rich, findsOneWidget);
-      // Morning of / Day before only for an all-day item.
+      // Morning of (and a custom time) only for an all-day item.
       await tester.tap(find.byTooltip('Add a reminder'));
       await tester.pumpAndSettle();
       expect(find.text('Morning of'), findsOneWidget);
       expect(find.text('15 min before'), findsNothing);
+      expect(find.text('Pick date & time…'), findsOneWidget);
       await tester.tap(find.byTooltip('Add a reminder'));
       await tester.pumpAndSettle();
 

@@ -6141,7 +6141,7 @@ class AppLocalizationsUk extends AppLocalizations {
       'Укажіть дату, щоб додавати нагадування';
 
   @override
-  String get inboxReminderAtTime => 'Під час події';
+  String get inboxReminderAtStart => 'На початку';
 
   @override
   String get inboxReminder15MinBefore => 'За 15 хв';
@@ -6150,22 +6150,16 @@ class AppLocalizationsUk extends AppLocalizations {
   String get inboxReminder15Min => '15 хв';
 
   @override
-  String get inboxReminder1HourBefore => 'За 1 год';
+  String get inboxReminder30MinBefore => 'За 30 хв';
 
   @override
-  String get inboxReminder1Hour => '1 год';
-
-  @override
-  String get inboxReminder1DayBefore => 'За 1 день';
-
-  @override
-  String get inboxReminder1Day => '1 день';
+  String get inboxReminder30Min => '30 хв';
 
   @override
   String get inboxReminderMorningOf => 'Зранку того дня';
 
   @override
-  String get inboxReminderDayBefore => 'Напередодні';
+  String get inboxReminderCustom => 'Обрати дату й час…';
 
   @override
   String inboxReminderMinutes(int minutes) {

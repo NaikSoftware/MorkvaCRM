@@ -52,26 +52,43 @@ final class InboxLink extends Equatable {
   List<Object?> get props => [collectionId, cardId, label];
 }
 
-/// Reminder offsets, in minutes before the due moment (spec §3, §5).
+/// Reminder offsets, in wall-clock minutes before the due moment (an
+/// all-day item's is its local midnight); negative = after it (spec §3, §5).
+/// Any other offset is a custom date/time the user picked.
 abstract final class InboxReminders {
-  static const atTime = 0;
+  static const atStart = 0;
   static const min15 = 15;
-  static const hour1 = 60;
-  static const day1 = 1440;
+  static const min30 = 30;
 
-  /// All-day: 09:00 on the day (negative = after local midnight).
+  /// All-day: 09:00 on the day.
   static const morningOf = -540;
 
-  /// All-day: 09:00 the day before (15 h before local midnight).
-  static const dayBefore = 900;
-
-  static const timed = [atTime, min15, hour1, day1];
-  static const allDay = [morningOf, dayBefore];
+  static const timed = [atStart, min15, min30];
+  static const allDay = [morningOf];
   static const max = 3;
 
   /// The presets valid for an item with ([allDay] false) or without a time.
   static List<int> presetsFor({required bool allDay}) =>
       allDay ? InboxReminders.allDay : timed;
+
+  /// When [offset] fires for local due moment [base] (wall-clock, DST-safe).
+  static DateTime fireTime(DateTime base, int offset) => DateTime(
+    base.year,
+    base.month,
+    base.day,
+    base.hour,
+    base.minute - offset,
+    base.second,
+    base.millisecond,
+    base.microsecond,
+  );
+
+  /// The offset that fires at local wall-clock [at] for due moment [base].
+  static int offsetFor(DateTime base, DateTime at) =>
+      _wall(base).difference(_wall(at)).inMinutes;
+
+  static DateTime _wall(DateTime d) =>
+      DateTime.utc(d.year, d.month, d.day, d.hour, d.minute);
 }
 
 /// One Inbox entry (`workspaces/{wid}/inbox/{id}`, spec §5).
@@ -127,25 +144,20 @@ final class InboxItem extends Equatable {
     return DateTime(l.year, l.month, l.day);
   }
 
-  /// When each reminder fires, as local [DateTime]s in [reminders] order.
-  /// Empty when undated or a done task. Sub-day offsets are instants; the
-  /// 1-day offset keeps the wall-clock time (DST-safe), as do all-day ones.
-  List<DateTime> get fireTimes {
+  /// The local due moment reminders count from: local midnight of [day]
+  /// when all-day, else the local due time. Null when undated.
+  DateTime? get reminderBase {
     final due = dueAt;
-    if (due == null || !isOpen) return const [];
-    if (allDay) {
-      return [
-        for (final m in reminders)
-          DateTime(due.year, due.month, due.day, 0, -m),
-      ];
-    }
-    final l = due.toLocal();
-    return [
-      for (final m in reminders)
-        m == InboxReminders.day1
-            ? DateTime(l.year, l.month, l.day - 1, l.hour, l.minute)
-            : l.subtract(Duration(minutes: m)),
-    ];
+    if (due == null) return null;
+    return allDay ? DateTime(due.year, due.month, due.day) : due.toLocal();
+  }
+
+  /// When each reminder fires, as local [DateTime]s in [reminders] order.
+  /// Empty when undated or a done task.
+  List<DateTime> get fireTimes {
+    final base = reminderBase;
+    if (base == null || !isOpen) return const [];
+    return [for (final m in reminders) InboxReminders.fireTime(base, m)];
   }
 
   Map<String, Object?> toJson() => {

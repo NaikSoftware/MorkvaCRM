@@ -54,6 +54,13 @@ final class InboxDraft extends Equatable {
     return DateTime(d.year, d.month, d.day, m ~/ 60, m % 60).toUtc();
   }
 
+  /// The local moment reminders count from (see [InboxItem.reminderBase]).
+  DateTime? get reminderBase {
+    final d = date;
+    if (d == null) return null;
+    return DateTime(d.year, d.month, d.day, 0, minutes ?? 0);
+  }
+
   InboxDraft copyWith({
     InboxKind? kind,
     String? title,
@@ -69,35 +76,69 @@ final class InboxDraft extends Equatable {
     link: link == null ? this.link : link(),
   );
 
-  /// Clearing the date clears the time and the reminders (they need one).
-  InboxDraft withDate(DateTime? date) => InboxDraft(
-    kind: kind,
-    title: title,
-    details: details,
-    date: date == null ? null : DateTime(date.year, date.month, date.day),
-    minutes: date == null ? null : minutes,
-    reminders: date == null ? const [] : reminders,
-    link: link,
-  );
+  /// Clearing the date clears the time and the reminders (they need one);
+  /// moving it keeps custom reminders at their picked date/time.
+  InboxDraft withDate(DateTime? date) {
+    if (date == null) {
+      return InboxDraft(kind: kind, title: title, details: details, link: link);
+    }
+    final next = InboxDraft(
+      kind: kind,
+      title: title,
+      details: details,
+      date: DateTime(date.year, date.month, date.day),
+      minutes: minutes,
+      link: link,
+    );
+    final from = reminderBase;
+    return next._withReminders(
+      from == null
+          ? const []
+          : rebaseReminders(
+              reminders,
+              from: from,
+              fromAllDay: allDay,
+              to: next.reminderBase!,
+              toAllDay: allDay,
+            ),
+    );
+  }
 
-  /// Setting a time adds "At time"; switching between timed and all-day
-  /// drops the reminders no longer valid. Needs a [date].
+  /// Setting a time adds "At start"; switching between timed and all-day
+  /// drops the presets of the other kind. Needs a [date].
   InboxDraft withMinutes(int? minutes) {
     if (date == null) return this;
-    final allDay = minutes == null;
-    return InboxDraft(
+    final next = InboxDraft(
       kind: kind,
       title: title,
       details: details,
       date: date,
       minutes: minutes,
-      reminders: validReminders([
-        ...reminders,
-        if (this.minutes == null && !allDay) InboxReminders.atTime,
-      ], allDay: allDay),
       link: link,
     );
+    return next._withReminders(
+      validReminders([
+        ...rebaseReminders(
+          reminders,
+          from: reminderBase!,
+          fromAllDay: allDay,
+          to: next.reminderBase!,
+          toAllDay: next.allDay,
+        ),
+        if (allDay && !next.allDay) InboxReminders.atStart,
+      ]),
+    );
   }
+
+  InboxDraft _withReminders(List<int> reminders) => InboxDraft(
+    kind: kind,
+    title: title,
+    details: details,
+    date: date,
+    minutes: minutes,
+    reminders: reminders,
+    link: link,
+  );
 
   /// Adds or removes reminder [minutes]; at most [InboxReminders.max].
   InboxDraft toggleReminder(int offset) => InboxDraft(
@@ -111,7 +152,7 @@ final class InboxDraft extends Equatable {
             for (final r in reminders)
               if (r != offset) r,
           ]
-        : validReminders([...reminders, offset], allDay: allDay),
+        : validReminders([...reminders, offset]),
     link: link,
   );
 

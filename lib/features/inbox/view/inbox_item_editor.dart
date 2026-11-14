@@ -238,6 +238,21 @@ class _InboxItemEditorState extends State<InboxItemEditor> {
     }
   }
 
+  Future<void> _pickReminder() async {
+    final draft = _cubit.state;
+    final base = draft.reminderBase;
+    if (base == null) return;
+    final offset = await pickReminderOffset(
+      context,
+      base: base,
+      allDay: draft.allDay,
+      now: widget.now(),
+    );
+    if (offset != null && !_cubit.state.reminders.contains(offset)) {
+      _edit((d) => d.toggleReminder(offset));
+    }
+  }
+
   Future<void> _pickLink() async {
     final link = await showCardLinkPicker(context);
     if (link != null) _edit((d) => d.copyWith(link: () => link));
@@ -531,8 +546,14 @@ class _InboxItemEditorState extends State<InboxItemEditor> {
       for (final r in InboxReminders.presetsFor(allDay: draft.allDay))
         if (!draft.reminders.contains(r)) r,
     ];
-    final canAdd =
-        available.isNotEmpty && draft.reminders.length < InboxReminders.max;
+    final canAdd = draft.reminders.length < InboxReminders.max;
+    String label(int r) => reminderLabel(
+      l10n,
+      r,
+      base: draft.reminderBase,
+      allDay: draft.allDay,
+      locale: Localizations.localeOf(context).toString(),
+    );
     final muted = theme.textTheme.bodySmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
@@ -581,7 +602,7 @@ class _InboxItemEditorState extends State<InboxItemEditor> {
             children: [
               for (final r in draft.reminders)
                 InboxChip(
-                  label: reminderLabel(l10n, r),
+                  label: label(r),
                   onClear: () => _edit((d) => d.toggleReminder(r)),
                   clearTooltip: l10n.inboxRemoveReminder,
                 ),
@@ -590,8 +611,12 @@ class _InboxItemEditorState extends State<InboxItemEditor> {
                   for (final r in available)
                     MenuItemButton(
                       onPressed: () => _edit((d) => d.toggleReminder(r)),
-                      child: Text(reminderLabel(l10n, r)),
+                      child: Text(label(r)),
                     ),
+                  MenuItemButton(
+                    onPressed: _pickReminder,
+                    child: Text(l10n.inboxReminderCustom),
+                  ),
                 ],
                 builder: (context, controller, _) => InboxChip(
                   icon: MorkvaIcons.add,

@@ -5892,7 +5892,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inboxSetDateForReminders => 'Set a date to add reminders';
 
   @override
-  String get inboxReminderAtTime => 'At time';
+  String get inboxReminderAtStart => 'At start';
 
   @override
   String get inboxReminder15MinBefore => '15 min before';
@@ -5901,22 +5901,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inboxReminder15Min => '15 min';
 
   @override
-  String get inboxReminder1HourBefore => '1 h before';
+  String get inboxReminder30MinBefore => '30 min before';
 
   @override
-  String get inboxReminder1Hour => '1 h';
-
-  @override
-  String get inboxReminder1DayBefore => '1 day before';
-
-  @override
-  String get inboxReminder1Day => '1 day';
+  String get inboxReminder30Min => '30 min';
 
   @override
   String get inboxReminderMorningOf => 'Morning of';
 
   @override
-  String get inboxReminderDayBefore => 'Day before';
+  String get inboxReminderCustom => 'Pick date & time…';
 
   @override
   String inboxReminderMinutes(int minutes) {

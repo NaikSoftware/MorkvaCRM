@@ -512,7 +512,7 @@ class _ComposerState extends State<_Composer> {
                           : () => _page.setMinutes(null),
                       clearTooltip: l10n.inboxClearTime,
                     ),
-                    _reminderChip(draft, l10n),
+                    _reminderChip(draft, l10n, locale),
                     if (draft.link case final link?)
                       InboxLinkChip(
                         link: link,
@@ -578,9 +578,33 @@ class _ComposerState extends State<_Composer> {
     );
   }
 
-  Widget _reminderChip(InboxDraft draft, AppLocalizations l10n) {
+  Future<void> _pickReminder() => _hold(() async {
+    final draft = _page.state.composer;
+    final base = draft.reminderBase;
+    if (base == null) return;
+    final offset = await pickReminderOffset(
+      context,
+      base: base,
+      allDay: draft.allDay,
+      now: _page.now,
+    );
+    if (offset != null && !_page.state.composer.reminders.contains(offset)) {
+      _page.toggleReminder(offset);
+    }
+  });
+
+  Widget _reminderChip(InboxDraft draft, AppLocalizations l10n, String locale) {
     final reminders = draft.reminders;
     final enabled = draft.date != null;
+    final presets = InboxReminders.presetsFor(allDay: draft.allDay);
+    String label(int r, {bool short = false}) => reminderLabel(
+      l10n,
+      r,
+      base: draft.reminderBase,
+      allDay: draft.allDay,
+      locale: locale,
+      short: short,
+    );
     return MenuAnchor(
       onOpen: () => setState(() => _busy++),
       onClose: () {
@@ -588,7 +612,10 @@ class _ComposerState extends State<_Composer> {
         setState(() => _busy--);
       },
       menuChildren: [
-        for (final r in InboxReminders.presetsFor(allDay: draft.allDay))
+        for (final r in [
+          ...presets,
+          ...reminders.where((r) => !presets.contains(r)),
+        ])
           MenuItemButton(
             closeOnActivate: false,
             leadingIcon: Icon(
@@ -599,14 +626,21 @@ class _ComposerState extends State<_Composer> {
                 reminders.contains(r) || reminders.length < InboxReminders.max
                 ? () => _page.toggleReminder(r)
                 : null,
-            child: Text(reminderLabel(l10n, r)),
+            child: Text(label(r)),
           ),
+        MenuItemButton(
+          leadingIcon: const Icon(null, size: 18),
+          onPressed: reminders.length < InboxReminders.max
+              ? _pickReminder
+              : null,
+          child: Text(l10n.inboxReminderCustom),
+        ),
       ].map(_inField).toList(),
       builder: (context, controller, _) => InboxChip(
         icon: MorkvaIcons.notifications,
         label: reminders.isEmpty
             ? null
-            : '${reminderLabel(l10n, reminders.first, short: true)}'
+            : '${label(reminders.first, short: true)}'
                   '${reminders.length > 1 ? ' +${reminders.length - 1}' : ''}',
         outlined: reminders.isEmpty,
         tooltip: enabled
@@ -958,7 +992,7 @@ class _ItemRow extends StatelessWidget {
             ),
             const SizedBox(width: 2),
             Text(
-              '${reminderLabel(l10n, reminders.first, short: true)}'
+              '${reminderLabel(l10n, reminders.first, base: item.reminderBase, allDay: item.allDay, locale: Localizations.localeOf(context).toString(), short: true)}'
               '${reminders.length > 1 ? ' +${reminders.length - 1}' : ''}',
               style: metaStyle,
             ),

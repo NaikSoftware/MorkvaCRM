@@ -290,6 +290,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Reminder'));
       await tester.pumpAndSettle();
+      expect(find.text('Pick date & time…'), findsOneWidget);
       await tester.tap(find.text('Morning of'));
       await tester.pumpAndSettle();
       await tester.tapAt(const Offset(5, 5));
@@ -471,7 +472,7 @@ void main() {
     expect(find.text('Inbox'), findsNothing); // the shell's header
     expect(find.text('#1042'), findsOneWidget);
     expect(
-      tester.getTopLeft(find.text('At time')).dy,
+      tester.getTopLeft(find.text('At start')).dy,
       greaterThan(tester.getBottomLeft(find.text('Pay invoice')).dy - 1),
     );
     expect(tester.takeException(), isNull);

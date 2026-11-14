@@ -9124,11 +9124,11 @@ abstract class AppLocalizations {
   /// **'Set a date to add reminders'**
   String get inboxSetDateForReminders;
 
-  /// No description provided for @inboxReminderAtTime.
+  /// No description provided for @inboxReminderAtStart.
   ///
   /// In en, this message translates to:
-  /// **'At time'**
-  String get inboxReminderAtTime;
+  /// **'At start'**
+  String get inboxReminderAtStart;
 
   /// No description provided for @inboxReminder15MinBefore.
   ///
@@ -9142,29 +9142,17 @@ abstract class AppLocalizations {
   /// **'15 min'**
   String get inboxReminder15Min;
 
-  /// No description provided for @inboxReminder1HourBefore.
+  /// No description provided for @inboxReminder30MinBefore.
   ///
   /// In en, this message translates to:
-  /// **'1 h before'**
-  String get inboxReminder1HourBefore;
+  /// **'30 min before'**
+  String get inboxReminder30MinBefore;
 
-  /// No description provided for @inboxReminder1Hour.
+  /// No description provided for @inboxReminder30Min.
   ///
   /// In en, this message translates to:
-  /// **'1 h'**
-  String get inboxReminder1Hour;
-
-  /// No description provided for @inboxReminder1DayBefore.
-  ///
-  /// In en, this message translates to:
-  /// **'1 day before'**
-  String get inboxReminder1DayBefore;
-
-  /// No description provided for @inboxReminder1Day.
-  ///
-  /// In en, this message translates to:
-  /// **'1 day'**
-  String get inboxReminder1Day;
+  /// **'30 min'**
+  String get inboxReminder30Min;
 
   /// No description provided for @inboxReminderMorningOf.
   ///
@@ -9172,11 +9160,11 @@ abstract class AppLocalizations {
   /// **'Morning of'**
   String get inboxReminderMorningOf;
 
-  /// No description provided for @inboxReminderDayBefore.
+  /// No description provided for @inboxReminderCustom.
   ///
   /// In en, this message translates to:
-  /// **'Day before'**
-  String get inboxReminderDayBefore;
+  /// **'Pick date & time…'**
+  String get inboxReminderCustom;
 
   /// No description provided for @inboxReminderMinutes.
   ///

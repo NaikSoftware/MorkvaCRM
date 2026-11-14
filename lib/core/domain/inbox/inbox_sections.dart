@@ -147,12 +147,26 @@ abstract final class InboxDatePresets {
   }
 }
 
-/// [reminders] kept to the presets valid for an item with ([allDay] false)
-/// or without a time, deduplicated, at most [InboxReminders.max].
-List<int> validReminders(Iterable<int> reminders, {required bool allDay}) {
-  final valid = InboxReminders.presetsFor(allDay: allDay);
-  return {
+/// [reminders] deduplicated, at most [InboxReminders.max].
+List<int> validReminders(Iterable<int> reminders) =>
+    reminders.toSet().take(InboxReminders.max).toList();
+
+/// [reminders] for a due moment moved from local [from] to [to]: presets
+/// follow the due moment (dropped when [toAllDay] switches the preset set),
+/// custom ones keep the date/time the user picked.
+List<int> rebaseReminders(
+  Iterable<int> reminders, {
+  required DateTime from,
+  required bool fromAllDay,
+  required DateTime to,
+  required bool toAllDay,
+}) {
+  final presets = InboxReminders.presetsFor(allDay: fromAllDay);
+  return validReminders([
     for (final r in reminders)
-      if (valid.contains(r)) r,
-  }.take(InboxReminders.max).toList();
+      if (!presets.contains(r))
+        InboxReminders.offsetFor(to, InboxReminders.fireTime(from, r))
+      else if (fromAllDay == toAllDay)
+        r,
+  ]);
 }

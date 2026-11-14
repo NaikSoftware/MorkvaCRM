@@ -90,7 +90,7 @@ final t0 = DateTime.utc(2026, 11, 14, 10);
 InboxItem task(
   String id, {
   required DateTime due,
-  List<int> reminders = const [InboxReminders.atTime],
+  List<int> reminders = const [InboxReminders.atStart],
   bool done = false,
   DateTime? updated,
 }) => InboxItem(

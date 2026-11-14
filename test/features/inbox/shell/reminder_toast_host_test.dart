@@ -68,7 +68,7 @@ InboxItem _item(
   kind: kind,
   title: title ?? 'Item $id',
   dueAt: DateTime(2026, 11, 14, hour).toUtc(),
-  reminders: const [InboxReminders.atTime],
+  reminders: const [InboxReminders.atStart],
   link: link,
   assigneeUid: 'u1',
   createdBy: 'u1',

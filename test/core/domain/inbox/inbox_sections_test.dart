@@ -343,13 +343,44 @@ void main() {
     });
   });
 
-  test('valid reminders: presets for the item, deduped, at most 3', () {
-    expect(validReminders([0, 900, 15, 15, 60, 1440], allDay: false), [
-      0,
-      15,
-      60,
-    ]);
-    expect(validReminders([0, -540, 900], allDay: true), [-540, 900]);
-    expect(validReminders([7], allDay: false), isEmpty);
+  test('valid reminders: deduped, at most 3', () {
+    expect(validReminders([0, 15, 15, 30, 120]), [0, 15, 30]);
+  });
+
+  group('rebaseReminders', () {
+    final noon = DateTime(2026, 11, 20, 12);
+    final custom = InboxReminders.offsetFor(noon, DateTime(2026, 11, 19, 18));
+
+    test('a moved due moment keeps custom times, presets follow', () {
+      final next = DateTime(2026, 11, 22, 12);
+      final out = rebaseReminders(
+        [InboxReminders.min15, custom],
+        from: noon,
+        fromAllDay: false,
+        to: next,
+        toAllDay: false,
+      );
+      expect(out.first, InboxReminders.min15);
+      expect(
+        InboxReminders.fireTime(next, out.last),
+        DateTime(2026, 11, 19, 18),
+      );
+    });
+
+    test('timed to all-day drops the timed presets only', () {
+      final midnight = DateTime(2026, 11, 20);
+      final out = rebaseReminders(
+        [InboxReminders.atStart, custom],
+        from: noon,
+        fromAllDay: false,
+        to: midnight,
+        toAllDay: true,
+      );
+      expect(out, hasLength(1));
+      expect(
+        InboxReminders.fireTime(midnight, out.single),
+        DateTime(2026, 11, 19, 18),
+      );
+    });
   });
 }

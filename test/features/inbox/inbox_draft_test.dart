@@ -7,7 +7,7 @@ InboxItem _timed(DateTime dueAt) => InboxItem(
   kind: InboxKind.task,
   title: 'Call',
   dueAt: dueAt,
-  reminders: const [InboxReminders.atTime],
+  reminders: const [InboxReminders.atStart],
   assigneeUid: 'u',
   createdBy: 'u',
   createdAt: DateTime.utc(2026, 10),
@@ -38,6 +38,38 @@ void main() {
         draft.changesFrom(item)['dueAt'],
         DateTime(item.day!.year, item.day!.month, item.day!.day, 10).toUtc(),
       );
+    });
+  });
+
+  group('reminders follow date/time edits', () {
+    final draft = InboxDraft(
+      date: DateTime(2026, 11, 20),
+      minutes: 12 * 60,
+      reminders: [
+        InboxReminders.min15,
+        InboxReminders.offsetFor(
+          DateTime(2026, 11, 20, 12),
+          DateTime(2026, 11, 19, 18),
+        ),
+      ],
+    );
+    List<DateTime> fires(InboxDraft d) => [
+      for (final r in d.reminders) InboxReminders.fireTime(d.reminderBase!, r),
+    ];
+
+    test('a new date moves presets and keeps the custom time', () {
+      expect(fires(draft.withDate(DateTime(2026, 11, 22))), [
+        DateTime(2026, 11, 22, 11, 45),
+        DateTime(2026, 11, 19, 18),
+      ]);
+    });
+
+    test('clearing the time keeps only the custom one', () {
+      expect(fires(draft.withMinutes(null)), [DateTime(2026, 11, 19, 18)]);
+    });
+
+    test('clearing the date clears them all', () {
+      expect(draft.withDate(null).reminders, isEmpty);
     });
   });
 }

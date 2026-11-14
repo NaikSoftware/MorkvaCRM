@@ -111,33 +111,39 @@ void main() {
     test('timed offsets are instants before the due moment', () {
       final item = _item(
         dueAt: DateTime(2026, 11, 20, 15, 30).toUtc(),
-        reminders: const [0, 15, 60],
+        reminders: const [0, 15, 30],
       );
       expect(item.fireTimes, [
         DateTime(2026, 11, 20, 15, 30),
         DateTime(2026, 11, 20, 15, 15),
-        DateTime(2026, 11, 20, 14, 30),
+        DateTime(2026, 11, 20, 15),
       ]);
     });
 
-    test('1 day before keeps the wall-clock time across a DST change', () {
+    test('a custom offset keeps its wall-clock time across a DST change', () {
       // US DST starts 2026-03-08: under New York that day has 23 hours.
-      final item = _item(
-        dueAt: DateTime(2026, 3, 9, 10).toUtc(),
-        reminders: const [InboxReminders.day1],
-      );
+      final due = DateTime(2026, 3, 9, 10);
+      final offset = InboxReminders.offsetFor(due, DateTime(2026, 3, 8, 10));
+      expect(offset, 1440);
+      final item = _item(dueAt: due.toUtc(), reminders: [offset]);
       expect(item.fireTimes, [DateTime(2026, 3, 8, 10)]);
     });
 
-    test('all-day: 09:00 on the day and 09:00 the day before', () {
+    test('all-day: 09:00 on the day; a custom one at its picked time', () {
       final item = _item(
         dueAt: DateTime.utc(2026, 11, 20),
         allDay: true,
-        reminders: const [InboxReminders.morningOf, InboxReminders.dayBefore],
+        reminders: [
+          InboxReminders.morningOf,
+          InboxReminders.offsetFor(
+            DateTime(2026, 11, 20),
+            DateTime(2026, 11, 19, 18, 30),
+          ),
+        ],
       );
       expect(item.fireTimes, [
         DateTime(2026, 11, 20, 9),
-        DateTime(2026, 11, 19, 9),
+        DateTime(2026, 11, 19, 18, 30),
       ]);
     });
 

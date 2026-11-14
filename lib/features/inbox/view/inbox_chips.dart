@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/domain/inbox/inbox.dart';
 import '../../../design/design.dart';
 import '../../../l10n/l10n.dart';
 
@@ -151,5 +152,37 @@ void showInboxSnack(
               onPressed: onUndo,
             ),
     ),
+  );
+}
+
+/// Asks for a custom reminder's date, then time: the reminder offset for
+/// local due moment [base], or null when cancelled. Starts at [base]'s day
+/// (today when that is past) and time (09:00 for an all-day item).
+Future<int?> pickReminderOffset(
+  BuildContext context, {
+  required DateTime base,
+  required bool allDay,
+  required DateTime now,
+}) async {
+  final today = DateTime(now.year, now.month, now.day);
+  final baseDay = DateTime(base.year, base.month, base.day);
+  final day = await showDatePicker(
+    context: context,
+    initialDate: baseDay.isBefore(today) ? today : baseDay,
+    firstDate: today,
+    lastDate: DateTime(today.year + 10, 12, 31),
+    builder: (_, child) => MondayFirst(child: child!),
+  );
+  if (day == null || !context.mounted) return null;
+  final time = await showTimePicker(
+    context: context,
+    initialTime: allDay
+        ? const TimeOfDay(hour: 9, minute: 0)
+        : TimeOfDay.fromDateTime(base),
+  );
+  if (time == null) return null;
+  return InboxReminders.offsetFor(
+    base,
+    DateTime(day.year, day.month, day.day, time.hour, time.minute),
   );
 }
