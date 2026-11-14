@@ -51,8 +51,13 @@ those documents disagree with this one, this one wins.
 
 ## All collections page
 
-- Wide header: "All collections", "N collections · M pinned to the sidebar", filter, From
-  template, New collection (the buttons drop to an icon row under the title below 1000 px).
+- With the sidebar or rail (>= 840 px): "All collections", "N collections · M pinned to the
+  sidebar", From template, New collection. Below 840 px the shell header carries the only title
+  ("Collections"), and the page row is "N collections · M pinned" plus the buttons. Buttons are
+  labelled from 760 px of content width, icon buttons below. No filter: finding a collection is
+  Jump to (sidebar field, rail icon, Ctrl+K; below 840 px a search icon in the All collections
+  header), owner 2026-11-14. The 640–840 px band (phone header, card grid) has no artboard; the
+  code defines it.
 - Sections `PINNED` then `EVERYTHING ELSE` (just `COLLECTIONS` when nothing is pinned); card grid
   (max 320 px wide; 2 columns on phone), 176 px cards: tinted glyph, pin toggle, overflow menu
   (Customize / Rename / Delete), name, 2-line description, field count.

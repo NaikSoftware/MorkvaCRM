@@ -139,18 +139,41 @@ void main() {
       expect(find.byTooltip('Unpin from sidebar'), findsOneWidget);
     });
 
-    testWidgets('the filter narrows the cards by name', (tester) async {
-      final repository = FakeDataRepository([
-        const Collection(id: 'c_orders', name: 'Orders'),
-        const Collection(id: 'c_clients', name: 'Clients'),
-      ]);
-      await pumpView(tester, repository);
+    // Jump to finds collections, so the header has no filter at any width;
+    // labelled actions shrink to icon buttons below 760 without overflow.
+    for (final (width, labelled) in [
+      (390.0, false),
+      (640.0, false),
+      (759.0, false),
+      (760.0, true),
+      (1200.0, true),
+    ]) {
+      testWidgets('header at $width: no filter, labelled=$labelled', (
+        tester,
+      ) async {
+        tester.view.physicalSize = Size(width, 800);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await pumpView(
+          tester,
+          FakeDataRepository([
+            const Collection(id: 'c_orders', name: 'Orders'),
+            const Collection(id: 'c_clients', name: 'Clients'),
+          ]),
+        );
 
-      await tester.enterText(find.byType(TextField), 'cli');
-      await tester.pumpAndSettle();
-
-      expect(find.byType(CollectionCard), findsOneWidget);
-      expect(find.text('Clients'), findsOneWidget);
-    });
+        expect(find.byType(TextField), findsNothing);
+        expect(find.text('2 collections'), findsOneWidget);
+        expect(
+          find.text('All collections'),
+          width >= 840 ? findsOne : findsNothing,
+        );
+        expect(find.text('New collection'), labelled ? findsOne : findsNothing);
+        expect(
+          find.byTooltip('New collection'),
+          labelled ? findsNothing : findsOne,
+        );
+      });
+    }
   });
 }
