@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/shell/app_shell.dart';
 import '../../../core/domain/domain.dart';
 import '../../templates/template_picker.dart';
 import '../../../design/design.dart';
@@ -86,19 +87,13 @@ class CollectionsListView extends StatelessWidget {
   }
 }
 
-/// The populated state: the page header (title, filter, create actions), then
-/// the pinned collections and everything else as card grids.
-class _CollectionsContent extends StatefulWidget {
+/// The populated state: the page header (title, count, create actions), then
+/// the pinned collections and everything else as card grids. Finding a
+/// collection by name is the shell's Jump to.
+class _CollectionsContent extends StatelessWidget {
   const _CollectionsContent({required this.collections});
 
   final List<Collection> collections;
-
-  @override
-  State<_CollectionsContent> createState() => _CollectionsContentState();
-}
-
-class _CollectionsContentState extends State<_CollectionsContent> {
-  String _filter = '';
 
   @override
   Widget build(BuildContext context) {
@@ -106,14 +101,11 @@ class _CollectionsContentState extends State<_CollectionsContent> {
     final scheme = theme.colorScheme;
     final l10n = context.l10n;
     final pins = context.watch<PinnedCollectionsCubit>().state;
-    final all = widget.collections;
+    final all = collections;
     final pinned = pinnedCollections(pins, all);
-    final q = _filter.trim().toLowerCase();
-    bool matches(Collection c) => q.isEmpty || c.name.toLowerCase().contains(q);
-    final shownPinned = pinned.where(matches).toList();
     final others = [
       for (final c in all)
-        if (!pins.contains(c.id) && matches(c)) c,
+        if (!pins.contains(c.id)) c,
     ];
 
     return LayoutBuilder(
@@ -121,15 +113,19 @@ class _CollectionsContentState extends State<_CollectionsContent> {
         final isWide =
             constraints.maxWidth >= CollectionsListView._gridBreakpoint;
         final gutter = isWide ? Spacing.xl : Spacing.md;
-        // Title, filter and both buttons on one line need room.
-        final inlineActions = constraints.maxWidth >= 1000;
-        final filter = SearchField(
-          hintText: l10n.collectionsFilterHint,
-          onChanged: (v) => setState(() => _filter = v),
-        );
+        // Below the shell's sidebar breakpoint its header carries the title.
+        final ownTitle =
+            MediaQuery.sizeOf(context).width >= AppShell.expandedBreakpoint;
+        // Labelled buttons beside the title need room; else icon buttons.
+        final labelled = constraints.maxWidth >= 760;
         final count = pinned.isEmpty
             ? l10n.collectionsCount(all.length)
-            : l10n.collectionsCountWithPinned(all.length, pinned.length);
+            : ownTitle
+            ? l10n.collectionsCountWithPinned(all.length, pinned.length)
+            : l10n.collectionsCountWithPinnedShort(all.length, pinned.length);
+        final countStyle = theme.textTheme.bodyMedium?.copyWith(
+          color: scheme.onSurfaceVariant,
+        );
 
         Widget caption(String text, {IconData? icon}) => SliverToBoxAdapter(
           child: Padding(
@@ -190,20 +186,19 @@ class _CollectionsContentState extends State<_CollectionsContent> {
             SliverPadding(
               padding: EdgeInsets.fromLTRB(
                 gutter,
-                isWide ? Spacing.xl : Spacing.xxs,
+                ownTitle ? Spacing.xl : Spacing.xxs,
                 gutter,
                 0,
               ),
               sliver: SliverToBoxAdapter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                child: Row(
+                  crossAxisAlignment: ownTitle
+                      ? CrossAxisAlignment.end
+                      : CrossAxisAlignment.center,
                   children: [
-                    if (isWide)
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Expanded(
-                            child: Column(
+                    Expanded(
+                      child: ownTitle
+                          ? Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
@@ -211,64 +206,46 @@ class _CollectionsContentState extends State<_CollectionsContent> {
                                   style: theme.textTheme.headlineMedium,
                                 ),
                                 const SizedBox(height: Spacing.xxs),
-                                Text(
-                                  count,
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: scheme.onSurfaceVariant,
-                                  ),
-                                ),
+                                Text(count, style: countStyle),
                               ],
-                            ),
-                          ),
-                          if (inlineActions) ...[
-                            SizedBox(width: 260, child: filter),
-                            const SizedBox(width: Spacing.sm),
-                            SecondaryButton(
-                              label: l10n.collectionsFromTemplate,
-                              icon: Icons.auto_awesome_mosaic_outlined,
-                              onPressed: () =>
-                                  CollectionsListView._fromTemplate(context),
-                            ),
-                            const SizedBox(width: Spacing.xs),
-                            PrimaryButton(
-                              label: l10n.collectionsNewCollection,
-                              icon: Icons.add,
-                              onPressed: () =>
-                                  CollectionsListView._create(context),
-                            ),
-                          ],
-                        ],
+                            )
+                          : Text(count, style: countStyle),
+                    ),
+                    const SizedBox(width: Spacing.xs),
+                    if (labelled) ...[
+                      SecondaryButton(
+                        label: l10n.collectionsFromTemplate,
+                        icon: Icons.auto_awesome_mosaic_outlined,
+                        onPressed: () =>
+                            CollectionsListView._fromTemplate(context),
                       ),
-                    if (!inlineActions) ...[
-                      if (isWide) const SizedBox(height: Spacing.md),
-                      Row(
-                        children: [
-                          Expanded(child: filter),
-                          const SizedBox(width: Spacing.xs),
-                          IconButton.outlined(
-                            tooltip: l10n.collectionsFromTemplate,
-                            icon: const Icon(
-                              Icons.auto_awesome_mosaic_outlined,
-                            ),
-                            onPressed: () =>
-                                CollectionsListView._fromTemplate(context),
-                          ),
-                          IconButton.filled(
-                            tooltip: l10n.collectionsNewCollection,
-                            icon: const Icon(Icons.add),
-                            onPressed: () =>
-                                CollectionsListView._create(context),
-                          ),
-                        ],
+                      const SizedBox(width: Spacing.xs),
+                      PrimaryButton(
+                        label: l10n.collectionsNewCollection,
+                        icon: Icons.add,
+                        onPressed: () => CollectionsListView._create(context),
+                      ),
+                    ] else ...[
+                      IconButton.outlined(
+                        tooltip: l10n.collectionsFromTemplate,
+                        icon: const Icon(Icons.auto_awesome_mosaic_outlined),
+                        onPressed: () =>
+                            CollectionsListView._fromTemplate(context),
+                      ),
+                      const SizedBox(width: Spacing.xs),
+                      IconButton.filled(
+                        tooltip: l10n.collectionsNewCollection,
+                        icon: const Icon(Icons.add),
+                        onPressed: () => CollectionsListView._create(context),
                       ),
                     ],
                   ],
                 ),
               ),
             ),
-            if (shownPinned.isNotEmpty) ...[
+            if (pinned.isNotEmpty) ...[
               caption(l10n.shellPinnedHeader, icon: Icons.push_pin),
-              grid(shownPinned),
+              grid(pinned),
             ],
             if (others.isNotEmpty) ...[
               caption(
@@ -278,19 +255,6 @@ class _CollectionsContentState extends State<_CollectionsContent> {
               ),
               grid(others),
             ],
-            if (shownPinned.isEmpty && others.isEmpty)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(Spacing.xl),
-                  child: Text(
-                    l10n.collectionsNoMatch(_filter.trim()),
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-              ),
             const SliverToBoxAdapter(child: SizedBox(height: Spacing.xxl)),
           ],
         );

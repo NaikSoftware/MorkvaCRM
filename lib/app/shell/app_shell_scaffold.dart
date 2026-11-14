@@ -352,13 +352,15 @@ class _ShellViewState extends State<_ShellView> {
               : inAutomations
               ? context.l10n.commonAutomations
               : context.l10n.commonCollections,
-          // Wide, All collections and Automations draw their own header; a
-          // collection and the automation detail pages always do.
+          // Wide, All collections, Automations and Settings draw their own
+          // header; a collection and the automation detail pages always do.
           header:
               inCollection ||
                   widget.automationsDetail ||
                   (wide &&
-                      (place == ShellPlace.allCollections || inAutomations))
+                      (place == ShellPlace.allCollections ||
+                          inAutomations ||
+                          inSettings))
               ? const SizedBox.shrink()
               : null,
           // Wide, the sidebar is the way back and carries the brand.
@@ -373,6 +375,15 @@ class _ShellViewState extends State<_ShellView> {
             children: [
               // Phone: hidden while idle.
               if (!wide) const RunIndicatorButton(),
+              // Phone: no sidebar, so All collections carries Jump to.
+              if (!wide &&
+                  place == ShellPlace.allCollections &&
+                  collections.isNotEmpty)
+                IconButton(
+                  tooltip: context.l10n.shellJumpTo,
+                  icon: const Icon(Icons.search_rounded),
+                  onPressed: jumpTo,
+                ),
               ?ask,
               if (!inSettings && !inAutomations) avatar,
             ],

@@ -40,8 +40,11 @@ class _SlowRepository extends FakeDataRepository {
 ViewDefinition _view(CollectionViewsCubit cubit) =>
     (cubit.state as ViewsReady).activeView;
 
+/// On a phone, View settings sits in the header's overflow.
 Future<void> _open(WidgetTester tester) async {
-  await tester.tap(find.byTooltip('View settings'));
+  await tester.tap(find.byTooltip('More'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('View settings'));
   await tester.pumpAndSettle();
 }
 
@@ -52,14 +55,14 @@ SegmentedButton<String> _modes(WidgetTester tester) =>
     tester.widget(_inSheet(find.byType(SegmentedButton<String>)));
 
 void main() {
-  testWidgets('tune opens the sheet: mode, layout field, sort, fields', (
+  testWidgets('the overflow opens the sheet: mode, layout field, sort, fields', (
     tester,
   ) async {
     final cubit = await pumpWorkPage(tester, size: _phone);
     cubit.selectView('board');
     await tester.pumpAndSettle();
-    // One tune only.
-    expect(find.byIcon(Icons.tune), findsOneWidget);
+    // The phone header has no tune button; settings live in the overflow.
+    expect(find.byIcon(Icons.tune), findsNothing);
     await _open(tester);
 
     expect(

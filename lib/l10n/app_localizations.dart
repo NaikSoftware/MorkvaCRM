@@ -5617,17 +5617,17 @@ abstract class AppLocalizations {
   /// **'Added {name}'**
   String collectionsTemplateAdded(String name);
 
-  /// No description provided for @collectionsFilterHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Filter collections'**
-  String get collectionsFilterHint;
-
   /// No description provided for @collectionsCount.
   ///
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 collection} other{{count} collections}}'**
   String collectionsCount(int count);
+
+  /// No description provided for @collectionsCountWithPinnedShort.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 collection} other{{count} collections}} · {pinned} pinned'**
+  String collectionsCountWithPinnedShort(int count, int pinned);
 
   /// No description provided for @collectionsCountWithPinned.
   ///
@@ -5658,12 +5658,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'EVERYTHING ELSE'**
   String get collectionsHeaderOthers;
-
-  /// No description provided for @collectionsNoMatch.
-  ///
-  /// In en, this message translates to:
-  /// **'No collection matches \"{query}\"'**
-  String collectionsNoMatch(String query);
 
   /// No description provided for @collectionsDeleteTitle.
   ///
@@ -7584,6 +7578,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Modules, buttons and runs'**
   String get settingsAutomationsSubtitle;
+
+  /// No description provided for @settingsAccountSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get settingsAccountSection;
 
   /// No description provided for @settingsImportSection.
   ///

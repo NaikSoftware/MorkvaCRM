@@ -8,13 +8,13 @@
 <body>
 <x-dc>
 <helmet>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&amp;family=Hanken+Grotesk:wght@400;500;600&amp;display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&amp;family=Hanken+Grotesk:wght@400;500;600&amp;family=Onest:wght@400;500;600;700&amp;display=swap">
 <style>
 body{margin:0;background:#FBF7F2}
 .card{border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
 </style>
 </helmet>
-<div style="width: 1280px; height: 820px; display: flex; font-family: 'Hanken Grotesk', system-ui, sans-serif">
+<div style="width: 1280px; height: 820px; display: flex; font-family: 'Hanken Grotesk','Onest', system-ui, sans-serif">
   <sc-for list="{{themes}}" as="t" hint-placeholder-count="2">
     <div style="flex: 1 1 0; position: relative; overflow: hidden; background: {{t.paper}}; color: {{t.ink}}">
       <svg aria-hidden="true" width="100%" height="100%" style="position: absolute; inset: 0">
@@ -38,11 +38,11 @@ body{margin:0;background:#FBF7F2}
         <rect width="100%" height="100%" fill="url(#{{t.pid}})"></rect>
       </svg>
       <div style="position: relative; padding: 28px 24px; display: flex; flex-direction: column; gap: 18px">
-        <div style="font: 700 28px 'Bricolage Grotesque', sans-serif">{{t.label}}</div>
+        <div style="font: 700 28px 'Bricolage Grotesque','Onest', sans-serif">{{t.label}}</div>
         <div style="display: flex; gap: 14px">
           <sc-for list="{{t.cols}}" as="c" hint-placeholder-count="2">
             <section style="flex: 0 0 272px; border-radius: 16px; padding: 12px; background: {{t.sunk}}; display: flex; flex-direction: column; gap: 10px">
-              <div style="display: flex; align-items: center; gap: 8px"><span style="width: 10px; height: 10px; border-radius: 5px; background: {{c.dot}}"></span><span style="font: 500 16px 'Bricolage Grotesque', sans-serif">{{c.name}}</span><span style="font-size: 12px; font-weight: 600; color: {{t.ink2}}">3</span></div>
+              <div style="display: flex; align-items: center; gap: 8px"><span style="width: 10px; height: 10px; border-radius: 5px; background: {{c.dot}}"></span><span style="font: 500 16px 'Bricolage Grotesque','Onest', sans-serif">{{c.name}}</span><span style="font-size: 12px; font-weight: 600; color: {{t.ink2}}">3</span></div>
               <sc-for list="{{t.cards}}" as="k" hint-placeholder-count="3">
                 <article class="card" style="background: {{t.card}}; box-shadow: 0 1px 2px rgba(0,0,0,0.08)"><span style="font-size: 15px; font-weight: 600">{{k}}</span><span style="align-self: flex-start; padding: 2px 8px; border-radius: 8px; background: {{t.sunk}}; font-size: 12px; color: {{t.ink2}}">Nov 14</span></article>
               </sc-for>

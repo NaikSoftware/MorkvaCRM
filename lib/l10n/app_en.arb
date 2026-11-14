@@ -2571,7 +2571,6 @@
       }
     }
   },
-  "collectionsFilterHint": "Filter collections",
   "collectionsCount": "{count, plural, =1{1 collection} other{{count} collections}}",
   "@collectionsCount": {
     "placeholders": {
@@ -2580,6 +2579,8 @@
       }
     }
   },
+  "collectionsCountWithPinnedShort": "{count, plural, =1{1 collection} other{{count} collections}} · {pinned} pinned",
+  "@collectionsCountWithPinnedShort": {"placeholders": {"count": {"type": "int"}, "pinned": {"type": "int"}}},
   "collectionsCountWithPinned": "{count, plural, =1{1 collection} other{{count} collections}} · {pinned} pinned to the sidebar",
   "@collectionsCountWithPinned": {
     "placeholders": {
@@ -2595,7 +2596,6 @@
   "collectionsNewCollection": "New collection",
   "collectionsHeaderAll": "COLLECTIONS",
   "collectionsHeaderOthers": "EVERYTHING ELSE",
-  "collectionsNoMatch": "No collection matches \"{query}\"",
   "@collectionsNoMatch": {
     "placeholders": {
       "query": {
@@ -3728,6 +3728,7 @@
   "trelloImportButlerHint": "Used Butler in Trello? Set up the same steps as Morkva automations.",
   "settingsWorkspaceSection": "Workspace",
   "settingsAutomationsSubtitle": "Modules, buttons and runs",
+  "settingsAccountSection": "Account",
   "settingsImportSection": "Import from other apps",
   "settingsTrelloSubtitle": "Boards become collections — lists, cards, labels, checklists and comments",
   "settingsSignOut": "Sign out",

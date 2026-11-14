@@ -36,8 +36,9 @@ import 'widgets/views_skeleton.dart';
 ///
 /// Wide (≥ [AppShell.expandedBreakpoint]): in the persistent shell's main
 /// panel, beside the rail.
-/// Phone: a pushed page with back, name, view settings (`tune`) and an
-/// overflow holding "Customize collection"; "+ New" is the FAB.
+/// Phone: a pushed page with back, name, sync status, Ask Morkva and an
+/// overflow holding view settings and "Customize collection"; "+ New" is
+/// the FAB.
 ///
 /// Deep links (`collectionLink`): the page applies the `view`, `filter` and
 /// `card` query parameters whenever they change, also while it stays on the
@@ -824,22 +825,30 @@ class _PhoneFrame extends StatelessWidget {
                 ],
               ),
         actions: [
-          if (onAsk != null) AskMorkvaAction(onTap: onAsk),
           if (collection != null) ...[
-            if (onAsk != null) const SizedBox(width: Spacing.xs),
             // Takes the sync pill's slot while automations need a look.
             const RunIndicatorButton(idle: SyncStatusIndicator()),
-            // Without fields the body's Customize carries the only `tune`.
-            if (collection.fields.isNotEmpty)
-              IconButton(
-                tooltip: context.l10n.viewsViewSettings,
-                icon: const Icon(Icons.tune),
-                onPressed: () => _openViewSettings(context, modes),
-              ),
+            if (onAsk != null) const SizedBox(width: Spacing.xs),
+          ],
+          if (onAsk != null) AskMorkvaAction(onTap: onAsk),
+          if (collection != null)
             PopupMenuButton<void>(
               tooltip: context.l10n.commonMore,
               icon: const Icon(Icons.more_vert),
               itemBuilder: (_) => [
+                // Without fields the body's Customize carries the only
+                // view settings entry.
+                if (collection.fields.isNotEmpty)
+                  PopupMenuItem(
+                    onTap: () => _openViewSettings(context, modes),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.view_quilt_outlined, size: 20),
+                        const SizedBox(width: Spacing.sm),
+                        Flexible(child: Text(context.l10n.viewsViewSettings)),
+                      ],
+                    ),
+                  ),
                 if (ready != null)
                   ...collectionPhoneMenuItems(context, _actionScope(ready)),
                 PopupMenuItem(
@@ -856,7 +865,6 @@ class _PhoneFrame extends StatelessWidget {
                 ),
               ],
             ),
-          ],
         ],
       ),
       floatingActionButton: ready == null || ready.collection.fields.isEmpty

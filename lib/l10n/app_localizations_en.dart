@@ -3573,9 +3573,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get collectionsFilterHint => 'Filter collections';
-
-  @override
   String collectionsCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -3584,6 +3581,17 @@ class AppLocalizationsEn extends AppLocalizations {
       one: '1 collection',
     );
     return '$_temp0';
+  }
+
+  @override
+  String collectionsCountWithPinnedShort(int count, int pinned) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count collections',
+      one: '1 collection',
+    );
+    return '$_temp0 · $pinned pinned';
   }
 
   @override
@@ -3608,11 +3616,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get collectionsHeaderOthers => 'EVERYTHING ELSE';
-
-  @override
-  String collectionsNoMatch(String query) {
-    return 'No collection matches \"$query\"';
-  }
 
   @override
   String get collectionsDeleteTitle => 'Delete collection?';
@@ -4945,6 +4948,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsAutomationsSubtitle => 'Modules, buttons and runs';
+
+  @override
+  String get settingsAccountSection => 'Account';
 
   @override
   String get settingsImportSection => 'Import from other apps';

@@ -1,10 +1,9 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../api/auth/auth_cubit.dart';
+import '../../app/shell/app_shell.dart';
 import '../../design/design.dart';
 import '../../l10n/l10n.dart';
 import '../automation/widgets/run_indicator.dart';
@@ -12,7 +11,9 @@ import 'import/trello_import_sheet.dart';
 
 /// Settings: the workspace's Automations entry (the phone's way in; wide
 /// layouts also have it in the sidebar), imports from other apps and
-/// sign-out, in a 720 px column.
+/// sign-out. Wide, laid out like the Automations page: a centred 1040 px
+/// column on a 48 px gutter carrying its own title (the shell draws no
+/// header); on a phone, full width on the shell header's 16 px gutter.
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
@@ -24,76 +25,88 @@ class SettingsPage extends StatelessWidget {
     final sky = (theme.brightness == Brightness.light
         ? CollectionTints.light
         : CollectionTints.dark)[2];
-    // Scrolls when short (large text, landscape); Sign out sits at the
-    // bottom otherwise.
-    return LayoutBuilder(
-      builder: (context, box) => SingleChildScrollView(
-        padding: const EdgeInsets.all(Spacing.lg),
-        child: Align(
-          alignment: Alignment.topLeft,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: 720,
-              minHeight: math.max(0, box.maxHeight - 2 * Spacing.lg),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _SectionLabel(l10n.settingsWorkspaceSection),
-                    ListTileCard(
-                      title: l10n.commonAutomations,
-                      subtitle: l10n.settingsAutomationsSubtitle,
-                      leading: _Tile(
-                        icon: Icons.bolt_rounded,
-                        background: scheme.primaryContainer,
-                        foreground: scheme.onPrimaryContainer,
-                      ),
-                      trailing: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          RunIndicatorPill(),
-                          Icon(Icons.chevron_right_rounded),
-                        ],
-                      ),
-                      onTap: () => context.go('/automations'),
-                    ),
-                    const SizedBox(height: Spacing.lg),
-                    _SectionLabel(l10n.settingsImportSection),
-                    ListTileCard(
-                      title: 'Trello',
-                      subtitle: l10n.settingsTrelloSubtitle,
-                      leading: _Tile(
-                        icon: Icons.view_kanban_outlined,
-                        background: sky.background,
-                        foreground: sky.foreground,
-                      ),
-                      trailing: const Icon(Icons.chevron_right_rounded),
-                      onTap: () async {
-                        // Browser Back mid-import leaves Settings while the
-                        // sheet stays up; the router outlives this page.
-                        final router = GoRouter.of(context);
-                        final to = await showTrelloImportSheet(context);
-                        if (to != null) router.go(to);
-                      },
-                    ),
-                  ],
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(top: Spacing.lg),
-                  child: Center(
-                    child: SecondaryButton(
-                      label: l10n.settingsSignOut,
-                      icon: Icons.logout_rounded,
-                      onPressed: () => context.read<AuthCubit>().signOut(),
+    final wide =
+        MediaQuery.sizeOf(context).width >= AppShell.expandedBreakpoint;
+    final gutter = wide ? Spacing.xxl : Spacing.md;
+    // The scroll view spans the page, so the wheel works beside the column.
+    return SingleChildScrollView(
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 1040 + 2 * Spacing.xxl),
+          // Phone: with the shell header's sm bottom padding, a lg gap under
+          // its title.
+          padding: EdgeInsets.fromLTRB(
+            gutter,
+            wide ? Spacing.lg : Spacing.sm,
+            gutter,
+            Spacing.lg,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (wide) ...[
+                ConstrainedBox(
+                  // The Automations header's title row height.
+                  constraints: const BoxConstraints(minHeight: 44),
+                  child: Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: Text(
+                      l10n.commonSettings,
+                      style: theme.textTheme.headlineSmall,
                     ),
                   ),
                 ),
+                const SizedBox(height: Spacing.md),
               ],
-            ),
+              _SectionLabel(l10n.settingsWorkspaceSection),
+              ListTileCard(
+                title: l10n.commonAutomations,
+                subtitle: l10n.settingsAutomationsSubtitle,
+                leading: _Tile(
+                  icon: Icons.bolt_rounded,
+                  background: scheme.primaryContainer,
+                  foreground: scheme.onPrimaryContainer,
+                ),
+                trailing: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    RunIndicatorPill(),
+                    Icon(Icons.chevron_right_rounded),
+                  ],
+                ),
+                onTap: () => context.go('/automations'),
+              ),
+              const SizedBox(height: Spacing.lg),
+              _SectionLabel(l10n.settingsImportSection),
+              ListTileCard(
+                title: 'Trello',
+                subtitle: l10n.settingsTrelloSubtitle,
+                leading: _Tile(
+                  icon: Icons.view_kanban_outlined,
+                  background: sky.background,
+                  foreground: sky.foreground,
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () async {
+                  // Browser Back mid-import leaves Settings while the
+                  // sheet stays up; the router outlives this page.
+                  final router = GoRouter.of(context);
+                  final to = await showTrelloImportSheet(context);
+                  if (to != null) router.go(to);
+                },
+              ),
+              const SizedBox(height: Spacing.lg),
+              _SectionLabel(l10n.settingsAccountSection),
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: SecondaryButton(
+                  label: l10n.settingsSignOut,
+                  icon: Icons.logout_rounded,
+                  onPressed: () => context.read<AuthCubit>().signOut(),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -110,7 +123,7 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(Spacing.xxs, 0, 0, Spacing.xs),
+      padding: const EdgeInsets.only(bottom: Spacing.xs),
       child: Semantics(
         header: true,
         child: Text(

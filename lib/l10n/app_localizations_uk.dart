@@ -3670,9 +3670,6 @@ class AppLocalizationsUk extends AppLocalizations {
   }
 
   @override
-  String get collectionsFilterHint => 'Фільтрувати колекції';
-
-  @override
   String collectionsCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -3683,6 +3680,19 @@ class AppLocalizationsUk extends AppLocalizations {
       one: '$count колекція',
     );
     return '$_temp0';
+  }
+
+  @override
+  String collectionsCountWithPinnedShort(int count, int pinned) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count колекції',
+      many: '$count колекцій',
+      few: '$count колекції',
+      one: '$count колекція',
+    );
+    return '$_temp0 · закріплено: $pinned';
   }
 
   @override
@@ -3709,11 +3719,6 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get collectionsHeaderOthers => 'УСІ ІНШІ';
-
-  @override
-  String collectionsNoMatch(String query) {
-    return 'Не знайдено колекцій за запитом «$query»';
-  }
 
   @override
   String get collectionsDeleteTitle => 'Видалити колекцію?';
@@ -5119,6 +5124,9 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get settingsAutomationsSubtitle => 'Модулі, кнопки й запуски';
+
+  @override
+  String get settingsAccountSection => 'Обліковий запис';
 
   @override
   String get settingsImportSection => 'Імпорт з інших застосунків';

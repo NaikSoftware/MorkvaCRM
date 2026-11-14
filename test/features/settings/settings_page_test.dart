@@ -37,7 +37,8 @@ void main() {
     });
   }
 
-  testWidgets('a tall window keeps Sign out at the bottom', (tester) async {
+  testWidgets('wide: a centred column, as on Automations, with its own '
+      'title on one left edge and Sign out under the sections', (tester) async {
     setWindow(tester, const Size(1440, 900));
     await tester.pumpWidget(
       MaterialApp(
@@ -46,7 +47,38 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(tester.getBottomLeft(find.text('Sign out')).dy, greaterThan(800));
+    final card = find.byType(ListTileCard).first;
+    expect(tester.getCenter(card).dx, 720);
+    expect(tester.getSize(card).width, 1040);
+    final edge = tester.getTopLeft(card).dx;
+    for (final finder in [
+      find.text('Settings'),
+      find.text('WORKSPACE'),
+      find.text('ACCOUNT'),
+      find.byType(SecondaryButton),
+    ]) {
+      expect(tester.getTopLeft(finder).dx, edge);
+    }
+    // Sign out used to sit centred at the window bottom.
+    expect(
+      tester.getTopLeft(find.byType(SecondaryButton)).dy,
+      lessThan(tester.getBottomLeft(find.text('ACCOUNT')).dy + Spacing.md),
+    );
+  });
+
+  testWidgets('phone: no own title; the column sits on the shell header '
+      'gutter', (tester) async {
+    setWindow(tester, const Size(390, 844));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: const Scaffold(body: SettingsPage()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Settings'), findsNothing);
+    expect(tester.getTopLeft(find.byType(ListTileCard).first).dx, Spacing.md);
+    expect(tester.getTopLeft(find.byType(SecondaryButton)).dx, Spacing.md);
   });
 
   for (final (name, size) in [('wide', wideWindow), ('phone', phoneWindow)]) {

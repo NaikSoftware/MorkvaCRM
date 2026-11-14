@@ -8,21 +8,21 @@
 <body>
 <x-dc>
 <helmet>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&amp;family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&amp;family=Hanken+Grotesk:wght@400;500;600;700&amp;family=Onest:wght@400;500;600;700&amp;display=swap">
 <style>
 body{margin:0;background:#FBF7F2}
-.nav{display:flex;align-items:center;gap:12px;height:44px;padding:0 6px 0 8px;margin:0 0 2px;border-radius:14px;border:0;background:transparent;width:100%;text-align:left;font:500 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;color:#2B2018;box-sizing:border-box;text-decoration:none}
+.nav{display:flex;align-items:center;gap:12px;height:44px;padding:0 6px 0 8px;margin:0 0 2px;border-radius:14px;border:0;background:transparent;width:100%;text-align:left;font:500 14px 'Hanken Grotesk','Onest',sans-serif;letter-spacing:.1px;color:#2B2018;box-sizing:border-box;text-decoration:none}
 .nav:hover{background:rgba(255,255,255,.55)}
 .tile{width:28px;height:28px;flex:0 0 28px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center}
-.cap{font:700 11px 'Hanken Grotesk',sans-serif;letter-spacing:.9px;text-transform:uppercase;color:#6B5E52;margin:0}
+.cap{font:700 11px 'Hanken Grotesk','Onest',sans-serif;letter-spacing:.9px;text-transform:uppercase;color:#6B5E52;margin:0}
 .ib{width:44px;height:44px;border-radius:22px;border:0;background:transparent;color:#6B5E52;display:inline-flex;align-items:center;justify-content:center}
-.tab{position:relative;height:48px;padding:0 12px;border:0;background:transparent;display:inline-flex;align-items:center;gap:8px;font:500 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px;color:#6B5E52;border-radius:8px}
-.cnt{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;box-sizing:border-box;border-radius:10px;font:600 12px 'Hanken Grotesk',sans-serif;font-variant-numeric:tabular-nums}
-.pill{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 10px 0 8px;box-sizing:border-box;border-radius:12px;font:600 12px 'Hanken Grotesk',sans-serif;letter-spacing:.2px;white-space:nowrap}
-.npill{flex:0 0 auto;display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;box-sizing:border-box;border-radius:12px;font:600 12px 'Hanken Grotesk',sans-serif;white-space:nowrap;font-variant-numeric:tabular-nums}
+.tab{position:relative;height:48px;padding:0 12px;border:0;background:transparent;display:inline-flex;align-items:center;gap:8px;font:500 14px 'Hanken Grotesk','Onest',sans-serif;letter-spacing:.1px;color:#6B5E52;border-radius:8px}
+.cnt{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;box-sizing:border-box;border-radius:10px;font:600 12px 'Hanken Grotesk','Onest',sans-serif;font-variant-numeric:tabular-nums}
+.pill{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 10px 0 8px;box-sizing:border-box;border-radius:12px;font:600 12px 'Hanken Grotesk','Onest',sans-serif;letter-spacing:.2px;white-space:nowrap}
+.npill{flex:0 0 auto;display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;box-sizing:border-box;border-radius:12px;font:600 12px 'Hanken Grotesk','Onest',sans-serif;white-space:nowrap;font-variant-numeric:tabular-nums}
 .mod{display:flex;gap:16px;padding:16px;border-radius:16px;background:#FFFFFF;box-shadow:0 1px 2px rgba(0,0,0,.08),0 3px 6px rgba(74,53,32,.06);color:#2B2018;text-decoration:none}
 .mod:hover{box-shadow:0 2px 4px rgba(0,0,0,.10),0 8px 14px rgba(82,58,34,.08)}
-.meta{display:flex;align-items:flex-start;gap:8px;font:400 12px/1.45 'Hanken Grotesk',sans-serif;color:#6B5E52}
+.meta{display:flex;align-items:flex-start;gap:8px;font:400 12px/1.45 'Hanken Grotesk','Onest',sans-serif;color:#6B5E52}
 .meta svg{flex:0 0 14px;margin-top:2px}
 .card{background:#FFFFFF;border-radius:16px;box-shadow:0 1px 2px rgba(0,0,0,.08),0 3px 6px rgba(74,53,32,.06)}
 .row{display:flex;align-items:center;gap:12px;min-height:44px;padding:8px 16px;border-top:1px solid #F4EDE3;font-size:14px}
@@ -30,7 +30,7 @@ body{margin:0;background:#FBF7F2}
 .rb{position:relative;width:52px;height:52px;border-radius:16px;border:0;background:transparent;color:#6B5E52;display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
 .gl{width:36px;height:36px;border-radius:11px;display:inline-flex;align-items:center;justify-content:center}
 .hit{flex:0 0 auto;min-width:44px;min-height:44px;padding:0;border:0;background:transparent;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
-.fc{height:32px;padding:0 12px;border:0;border-radius:8px;background:transparent;box-shadow:inset 0 0 0 1px #B6A593;color:#2B2018;display:inline-flex;align-items:center;gap:6px;font:600 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px}
+.fc{height:32px;padding:0 12px;border:0;border-radius:8px;background:transparent;box-shadow:inset 0 0 0 1px #B6A593;color:#2B2018;display:inline-flex;align-items:center;gap:6px;font:600 14px 'Hanken Grotesk','Onest',sans-serif;letter-spacing:.1px}
 .run{display:flex;align-items:center;gap:12px;min-height:56px;padding:8px 12px 8px 16px;border-top:1px solid #F4EDE3;font-size:14px}
 .run:first-child{border-top:0}
 .two{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px}
@@ -40,11 +40,11 @@ body{margin:0;background:#FBF7F2}
 .ago{width:76px;flex:0 0 76px;color:#6B5E52;white-space:nowrap}
 .ms{width:56px;flex:0 0 56px;text-align:right;color:#6B5E52;font-variant-numeric:tabular-nums}
 .act{width:132px;flex:0 0 132px;display:flex;justify-content:flex-end}
-.rv{height:44px;padding:0 24px;border-radius:12px;border:1px solid #E0D5C7;background:#E8DECD;color:#2B2018;font:600 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px}
-.ta{height:44px;padding:0 12px;border-radius:12px;border:0;background:transparent;color:#8A4708;display:inline-flex;align-items:center;gap:8px;font:600 14px 'Hanken Grotesk',sans-serif;letter-spacing:.1px}
+.rv{height:44px;padding:0 24px;border-radius:12px;border:1px solid #E0D5C7;background:#E8DECD;color:#2B2018;font:600 14px 'Hanken Grotesk','Onest',sans-serif;letter-spacing:.1px}
+.ta{height:44px;padding:0 12px;border-radius:12px;border:0;background:transparent;color:#8A4708;display:inline-flex;align-items:center;gap:8px;font:600 14px 'Hanken Grotesk','Onest',sans-serif;letter-spacing:.1px}
 </style>
 </helmet>
-<div style="width: 1024px; height: 768px; display: flex; background: #FBF7F2; font-family: 'Hanken Grotesk', sans-serif; color: #2B2018; overflow: hidden">
+<div style="width: 1024px; height: 768px; display: flex; background: #FBF7F2; font-family: 'Hanken Grotesk','Onest', sans-serif; color: #2B2018; overflow: hidden">
   <!-- Rail 76 (shell_sidebar.dart _rail): each control in a 76 × 56 slot -->
   <nav aria-label="Main" style="width: 76px; flex: 0 0 76px; box-sizing: border-box; background: #F4EDE3; display: flex; flex-direction: column; align-items: center; padding: 16px 0">
     <a href="#" aria-label="Expand sidebar" style="width: 44px; height: 44px; margin: -2px; display: inline-flex; align-items: center; justify-content: center"><span style="width: 40px; height: 40px; border-radius: 13px; background: #E8821E; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(232,130,30,.35)">
@@ -59,7 +59,7 @@ body{margin:0;background:#FBF7F2}
     <div class="slot">
       <a href="#" aria-current="page" aria-label="Automations, 2 need review" title="Automations · 2 need review" class="rb" style="color: #4E2A00; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 3px 6px rgba(74,53,32,.06)">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 2.5L4.5 13.5H11l-1.5 8 9-11H12z"/></svg>
-        <span style="position: absolute; top: 6px; right: 5px; min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box; border-radius: 9px; background: #FBF3DC; color: #5A4410; box-shadow: 0 0 0 2px #FFFFFF, inset 0 0 0 1px #EBD7A0; font: 700 11px 'Hanken Grotesk', sans-serif; display: inline-flex; align-items: center; justify-content: center">2</span>
+        <span style="position: absolute; top: 6px; right: 5px; min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box; border-radius: 9px; background: #FBF3DC; color: #5A4410; box-shadow: 0 0 0 2px #FFFFFF, inset 0 0 0 1px #EBD7A0; font: 700 11px 'Hanken Grotesk','Onest', sans-serif; display: inline-flex; align-items: center; justify-content: center">2</span>
       </a>
     </div>
     <span aria-hidden="true" style="width: 28px; height: 1px; margin: 8px 0 7px; background: #E0D5C7"></span>
@@ -70,14 +70,14 @@ body{margin:0;background:#FBF7F2}
     <span style="flex: 1 1 auto"></span>
     <div class="slot"><button class="rb" aria-label="Settings"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg></button></div>
     <div style="height: 4px"></div>
-    <span aria-label="Olena Kovalenko, synced" role="img" style="position: relative; width: 34px; height: 34px; border-radius: 17px; background: #4C7A34; color: #FFFFFF; display: inline-flex; align-items: center; justify-content: center; font: 700 14px 'Hanken Grotesk', sans-serif">OK<span style="position: absolute; right: -1px; bottom: -1px; width: 7px; height: 7px; border-radius: 6px; background: #2E8B57; border: 2px solid #F4EDE3"></span></span>
+    <span aria-label="Olena Kovalenko, synced" role="img" style="position: relative; width: 34px; height: 34px; border-radius: 17px; background: #4C7A34; color: #FFFFFF; display: inline-flex; align-items: center; justify-content: center; font: 700 14px 'Hanken Grotesk','Onest', sans-serif">OK<span style="position: absolute; right: -1px; bottom: -1px; width: 7px; height: 7px; border-radius: 6px; background: #2E8B57; border: 2px solid #F4EDE3"></span></span>
   </nav>
 
   <!-- Automations page, rail width: padding 24 32 -->
   <main style="flex: 1 1 auto; min-width: 0; box-sizing: border-box; padding: 24px 32px; display: flex; flex-direction: column; overflow: hidden">
     <header style="display: flex; align-items: center; gap: 8px">
       <div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px">
-        <h1 style="margin: 0; font: 600 20px/1.25 'Bricolage Grotesque', sans-serif; letter-spacing: -0.3px">Automations</h1>
+        <h1 style="margin: 0; font: 600 20px/1.25 'Bricolage Grotesque','Onest', sans-serif; letter-spacing: -0.3px">Automations</h1>
         <p style="margin: 0; font-size: 14px; line-height: 1.45; color: #6B5E52">Modules add actions. Automations put them on buttons or run them when cards change.</p>
       </div>
     </header>
@@ -95,7 +95,7 @@ body{margin:0;background:#FBF7F2}
         <button class="hit" aria-pressed="true"><span class="fc" style="background: #FFE0C2; color: #4E2A00; box-shadow: none; padding-left: 8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Needs review<span class="cnt" style="background: #D4A017; color: #3D2E00">2</span></span></button>
         <button class="hit" aria-pressed="false"><span class="fc">Failed</span></button>
         <span style="width: 1px; height: 24px; margin: 0 4px; background: #E0D5C7"></span>
-        <button class="hit" aria-haspopup="listbox"><span style="height: 36px; padding: 0 8px; border: 0; border-radius: 8px; background: transparent; display: inline-flex; align-items: center; gap: 4px; font: 600 14px 'Hanken Grotesk', sans-serif; letter-spacing: .1px; color: #2B2018"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B5E52" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 2.5L4.5 13.5H11l-1.5 8 9-11H12z"/></svg>Any automation<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B5E52" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg></span></button>
+        <button class="hit" aria-haspopup="listbox"><span style="height: 36px; padding: 0 8px; border: 0; border-radius: 8px; background: transparent; display: inline-flex; align-items: center; gap: 4px; font: 600 14px 'Hanken Grotesk','Onest', sans-serif; letter-spacing: .1px; color: #2B2018"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B5E52" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 2.5L4.5 13.5H11l-1.5 8 9-11H12z"/></svg>Any automation<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B5E52" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg></span></button>
       </div>
 
       <div class="card" role="list" aria-label="Runs that need review" style="overflow: hidden">

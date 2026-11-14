@@ -220,7 +220,13 @@ void main() {
       expect(find.byType(ShellSidebar), findsNothing);
       expect(find.byType(NavigationBar), findsNothing);
       expect(find.byTooltip('Back'), findsOneWidget);
-      expect(find.byTooltip('View settings'), findsOneWidget);
+      // View settings lives in the overflow beside sync status.
+      expect(find.byTooltip('View settings'), findsNothing);
+      await tester.tap(find.byTooltip('More'));
+      await tester.pumpAndSettle();
+      expect(find.text('View settings'), findsOneWidget);
+      await tester.tapAt(const Offset(8, 400));
+      await tester.pumpAndSettle();
       // No assistant provided: no Ask Morkva entry.
       expect(find.byTooltip('Ask Morkva'), findsNothing);
       expect(find.byType(FloatingActionButton), findsOneWidget);
