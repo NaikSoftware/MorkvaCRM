@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/design/components/morkva_app_bar.dart';
 import 'package:morkva_crm/design/theme/app_theme.dart';
+import 'package:morkva_crm/design/morkva_icons.dart';
 
 void main() {
   Widget host(MorkvaAppBar appBar) => MaterialApp(
@@ -23,11 +24,11 @@ void main() {
             title: 'Contacts',
             actions: [
               IconButton(
-                icon: const Icon(Icons.search),
+                icon: const Icon(MorkvaIcons.search),
                 onPressed: () {},
               ),
               IconButton(
-                icon: const Icon(Icons.add),
+                icon: const Icon(MorkvaIcons.add),
                 onPressed: () {},
               ),
             ],
@@ -35,8 +36,8 @@ void main() {
         ),
       );
 
-      expect(find.byIcon(Icons.search), findsOneWidget);
-      expect(find.byIcon(Icons.add), findsOneWidget);
+      expect(find.byIcon(MorkvaIcons.search), findsOneWidget);
+      expect(find.byIcon(MorkvaIcons.add), findsOneWidget);
     });
 
     testWidgets('reports a preferred size that accounts for the bottom',

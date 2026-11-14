@@ -103,9 +103,9 @@ class ViewToolbar extends StatelessWidget {
                 if (onSort != null)
                   ToolbarButton(
                     icon: switch (sort) {
-                      null => Icons.swap_vert,
-                      ViewSort(ascending: true) => Icons.arrow_upward,
-                      _ => Icons.arrow_downward,
+                      null => MorkvaIcons.swapVert,
+                      ViewSort(ascending: true) => MorkvaIcons.arrowUp,
+                      _ => MorkvaIcons.arrowDown,
                     },
                     label:
                         sortLabel(sort, collection, l10n: context.l10n) ??
@@ -114,7 +114,7 @@ class ViewToolbar extends StatelessWidget {
                   ),
                 if (onEditFields != null)
                   ToolbarButton(
-                    icon: Icons.view_column_outlined,
+                    icon: MorkvaIcons.viewColumns,
                     label: fieldsLabel,
                     onPressed: onEditFields,
                   ),
@@ -246,7 +246,7 @@ class _FilterChip extends StatelessWidget {
       label: Text(label),
       onPressed: onPressed,
       onDeleted: onRemove,
-      deleteIcon: const Icon(Icons.close, size: 16),
+      deleteIcon: const Icon(MorkvaIcons.close, size: 16),
       deleteButtonTooltipMessage: context.l10n.viewWidgetsRemoveFilter,
       backgroundColor: scheme.primaryContainer,
       side: BorderSide.none,
@@ -294,7 +294,7 @@ class _AddFilterButton extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          Icons.add,
+                          MorkvaIcons.add,
                           size: 18,
                           color: scheme.onSurfaceVariant,
                         ),

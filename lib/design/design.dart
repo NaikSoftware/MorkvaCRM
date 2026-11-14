@@ -6,6 +6,7 @@ library;
 // Catalogs
 export 'collection_icons.dart';
 export 'color_hex.dart';
+export 'morkva_icons.dart';
 
 // Tokens
 export 'tokens/colors.dart';

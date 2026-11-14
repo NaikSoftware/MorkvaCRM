@@ -599,7 +599,7 @@ class _ObjectEditorState extends State<ObjectEditor> {
               ),
               leading: IconButton(
                 tooltip: l10n.commonClose,
-                icon: const Icon(Icons.close),
+                icon: const Icon(MorkvaIcons.close),
                 onPressed: _closeFor(state),
               ),
               title: Text(
@@ -786,7 +786,7 @@ class _Header extends StatelessWidget {
           buttons,
           ?inbox,
           IconActionButton(
-            icon: Icons.close,
+            icon: MorkvaIcons.close,
             tooltip: context.l10n.commonClose,
             onPressed: onClose,
           ),
@@ -871,7 +871,7 @@ class _DeleteButton extends StatelessWidget {
       minimumSize: const Size(44, 44),
     ),
     onPressed: onPressed,
-    icon: const Icon(Icons.delete_outline, size: 18),
+    icon: const Icon(MorkvaIcons.delete, size: 18),
     label: Text(label),
   );
 }
@@ -906,7 +906,7 @@ class _Banners extends StatelessWidget {
       ?run,
       if (count > 0)
         _Banner(
-          icon: Icons.error_outline,
+          icon: MorkvaIcons.error,
           background: scheme.errorContainer,
           foreground: scheme.onErrorContainer,
           alert: true,
@@ -914,7 +914,7 @@ class _Banners extends StatelessWidget {
         ),
       if (state.status == ObjectEditorStatus.saveFailed)
         _Banner(
-          icon: Icons.cloud_off_outlined,
+          icon: MorkvaIcons.cloudOff,
           background: scheme.errorContainer,
           foreground: scheme.onErrorContainer,
           alert: true,
@@ -922,7 +922,7 @@ class _Banners extends StatelessWidget {
         ),
       if (state.remoteDeleted)
         _Banner(
-          icon: Icons.warning_amber_rounded,
+          icon: MorkvaIcons.warning,
           background: warning,
           foreground: scheme.onSurface,
           title: l10n.objectsDeletedElsewhere(item),
@@ -930,7 +930,7 @@ class _Banners extends StatelessWidget {
         )
       else if (conflicts.isNotEmpty)
         _Banner(
-          icon: Icons.warning_amber_rounded,
+          icon: MorkvaIcons.warning,
           background: warning,
           foreground: scheme.onSurface,
           title: l10n.objectsChangedElsewhere(
@@ -1019,7 +1019,7 @@ class _RunBanner extends StatelessWidget {
               ? null
               : () => onAction!(a),
           icon: a == NoticeAction.undo
-              ? const Icon(Icons.undo_rounded, size: 18)
+              ? const Icon(MorkvaIcons.undo, size: 18)
               : null,
           label: Text(a.labelIn(l10n)),
         ),
@@ -1037,16 +1037,16 @@ class _RunBanner extends StatelessWidget {
         IconButton(
           tooltip: l10n.objectsDismiss,
           color: colors.foreground,
-          icon: const Icon(Icons.close, size: 18),
+          icon: const Icon(MorkvaIcons.close, size: 18),
           onPressed: onDismiss,
         ),
     ];
     final icon = Icon(
       copy.error
-          ? Icons.error_outline
+          ? MorkvaIcons.error
           : review
-          ? Icons.rate_review_outlined
-          : Icons.check_circle_outline,
+          ? MorkvaIcons.review
+          : MorkvaIcons.checkCircle,
       size: 20,
       color: colors.foreground,
     );
@@ -1219,7 +1219,7 @@ class _Section extends StatelessWidget {
               child: Row(
                 children: [
                   Icon(
-                    collapsed ? Icons.chevron_right : Icons.expand_more,
+                    collapsed ? MorkvaIcons.chevronRight : MorkvaIcons.expandMore,
                     size: 20,
                     color: scheme.onSurfaceVariant,
                   ),
@@ -1424,7 +1424,7 @@ class _FieldCell extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.error_outline, size: 14, color: scheme.error),
+              Icon(MorkvaIcons.error, size: 14, color: scheme.error),
               const SizedBox(width: Spacing.xxs),
               Expanded(
                 child: Text(

@@ -5,6 +5,7 @@ import 'package:morkva_crm/features/objects/value_editors/field_value_editor.dar
 import 'package:morkva_crm/features/objects/widgets/reference_picker.dart';
 
 import 'editor_harness.dart';
+import 'package:morkva_crm/design/morkva_icons.dart';
 
 const _stage = SingleSelectFieldDefinition(
   id: 'stage',
@@ -217,7 +218,7 @@ void main() {
 
       await tester.tap(find.text('Bob Stone'));
       await tester.pumpAndSettle();
-      expect(find.byIcon(Icons.check), findsOneWidget);
+      expect(find.byIcon(MorkvaIcons.check), findsOneWidget);
       await tester.tap(find.text('Unlink'));
       await tester.pumpAndSettle();
       expect(h.value, const ReferenceFieldValue());

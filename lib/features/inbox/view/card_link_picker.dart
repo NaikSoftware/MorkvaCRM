@@ -138,7 +138,7 @@ class _CardLinkPickerState extends State<CardLinkPicker> {
           key: ValueKey(_collection?.id),
           autofocus: true,
           hint: hint,
-          prefixIcon: const Icon(Icons.search),
+          prefixIcon: const Icon(MorkvaIcons.search),
           suffixText: suffix,
           textInputAction: TextInputAction.search,
           onChanged: (text) => setState(() => _query = text),
@@ -186,7 +186,7 @@ class _CardLinkPickerState extends State<CardLinkPicker> {
                         iconSize: 20,
                       ),
                       title: c.name,
-                      trailing: const Icon(Icons.chevron_right),
+                      trailing: const Icon(MorkvaIcons.chevronRight),
                       onTap: () => _choose(c),
                     );
                   },
@@ -277,7 +277,7 @@ class _Header extends StatelessWidget {
             IconButton(
               tooltip: l10n.inboxBackToCollections,
               onPressed: onBack,
-              icon: const Icon(Icons.arrow_back),
+              icon: const Icon(MorkvaIcons.arrowBack),
             ),
             CollectionGlyph(iconKey: c.icon, tintSeed: c.id, size: 36),
             const SizedBox(width: Spacing.sm),
@@ -306,7 +306,7 @@ class _Header extends StatelessWidget {
           IconButton(
             tooltip: l10n.commonClose,
             onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(Icons.close),
+            icon: const Icon(MorkvaIcons.close),
           ),
         ],
       ),

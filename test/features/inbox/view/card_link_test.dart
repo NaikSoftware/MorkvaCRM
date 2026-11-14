@@ -6,6 +6,7 @@ import 'package:morkva_crm/features/inbox/inbox.dart';
 
 import '../../collections/fake_data_repository.dart';
 import 'inbox_view_harness.dart';
+import 'package:morkva_crm/design/morkva_icons.dart';
 
 /// Its first collections listener fails (permission denied), later ones work.
 class _FlakyCollections extends FakeDataRepository {
@@ -141,7 +142,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Card deleted'), findsOneWidget);
       expect(find.text('card orders/gone'), findsNothing);
-      expect(find.byIcon(Icons.link_off), findsOneWidget);
+      expect(find.byIcon(MorkvaIcons.linkOff), findsOneWidget);
     });
 
     testWidgets('a deleted collection', (tester) async {

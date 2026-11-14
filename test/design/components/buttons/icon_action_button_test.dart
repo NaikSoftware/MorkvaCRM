@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/design/components/buttons/icon_action_button.dart';
 import 'package:morkva_crm/design/theme/app_theme.dart';
+import 'package:morkva_crm/design/morkva_icons.dart';
 
 class _Host extends StatelessWidget {
   const _Host(this.child);
@@ -21,21 +22,21 @@ void main() {
       await tester.pumpWidget(
         _Host(
           IconActionButton(
-            icon: Icons.search,
+            icon: MorkvaIcons.search,
             tooltip: 'Search',
             onPressed: () {},
           ),
         ),
       );
 
-      expect(find.byIcon(Icons.search), findsOneWidget);
+      expect(find.byIcon(MorkvaIcons.search), findsOneWidget);
     });
 
     testWidgets('exposes the tooltip as a semantic label', (tester) async {
       await tester.pumpWidget(
         _Host(
           IconActionButton(
-            icon: Icons.search,
+            icon: MorkvaIcons.search,
             tooltip: 'Search',
             onPressed: () {},
           ),
@@ -50,7 +51,7 @@ void main() {
       await tester.pumpWidget(
         _Host(
           IconActionButton(
-            icon: Icons.delete_outline,
+            icon: MorkvaIcons.delete,
             tooltip: 'Delete',
             onPressed: () => taps++,
           ),
@@ -67,7 +68,7 @@ void main() {
       await tester.pumpWidget(
         const _Host(
           IconActionButton(
-            icon: Icons.delete_outline,
+            icon: MorkvaIcons.delete,
             tooltip: 'Delete',
             onPressed: null,
           ),
@@ -77,14 +78,14 @@ void main() {
       await tester.tap(find.byType(IconActionButton), warnIfMissed: false);
       await tester.pump();
 
-      expect(find.byIcon(Icons.delete_outline), findsOneWidget);
+      expect(find.byIcon(MorkvaIcons.delete), findsOneWidget);
     });
 
     testWidgets('keeps a 44x44 hit target', (tester) async {
       await tester.pumpWidget(
         _Host(
           IconActionButton(
-            icon: Icons.search,
+            icon: MorkvaIcons.search,
             tooltip: 'Search',
             onPressed: () {},
           ),
@@ -100,7 +101,7 @@ void main() {
       await tester.pumpWidget(
         _Host(
           IconActionButton(
-            icon: Icons.search,
+            icon: MorkvaIcons.search,
             tooltip: 'Search',
             filled: true,
             onPressed: () {},

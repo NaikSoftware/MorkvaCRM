@@ -151,6 +151,7 @@ class _TestRunSheetState extends State<TestRunSheet> {
       field(
         l10n.automationTestRunCollection,
         DropdownButtonFormField<String>(
+          icon: const Icon(MorkvaIcons.expandMore),
           key: ValueKey(_collectionId),
           initialValue: _collectionId,
           items: [
@@ -232,7 +233,7 @@ class _TestRunSheetState extends State<TestRunSheet> {
 
     return AutomationSheetFrame(
       header: SheetHeader(
-        icon: Icons.play_arrow_outlined,
+        icon: MorkvaIcons.play,
         title: l10n.automationTestRunTitle(action.label),
       ),
       body: body,
@@ -247,7 +248,7 @@ class _TestRunSheetState extends State<TestRunSheet> {
             hint: state.canTestRun ? null : l10n.automationTestRunNeedsAllow,
             child: PrimaryButton(
               label: l10n.automationRunTest,
-              icon: Icons.play_arrow,
+              icon: MorkvaIcons.play,
               loading: test?.running ?? false,
               onPressed: state.canTestRun && _ready && !(test?.running ?? false)
                   ? () => cubit.testRun(
@@ -320,6 +321,7 @@ class _ParamInputState extends State<_ParamInput> {
     };
     if (options != null) {
       return DropdownButtonFormField<String>(
+        icon: const Icon(MorkvaIcons.expandMore),
         key: ValueKey((collection?.id, value)),
         initialValue: options.any((o) => o.$1 == value)
             ? value as String
@@ -461,9 +463,9 @@ class PlanLineRow extends StatelessWidget {
     final rest = cut < 0 ? null : line.label.substring(cut + 3);
     final icon = Icon(
       switch (line.kind) {
-        'createCard' => Icons.add_circle_outline,
-        'deleteCard' => Icons.remove_circle_outline,
-        _ => Icons.edit_outlined,
+        'createCard' => MorkvaIcons.addCircle,
+        'deleteCard' => MorkvaIcons.removeCircle,
+        _ => MorkvaIcons.edit,
       },
       size: 16,
       color: theme.colorScheme.onSurfaceVariant,

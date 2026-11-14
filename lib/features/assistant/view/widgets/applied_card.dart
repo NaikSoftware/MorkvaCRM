@@ -364,7 +364,7 @@ class _Badge extends StatelessWidget {
           borderRadius: schema ? BorderRadius.circular(9) : null,
         ),
         child: Icon(
-          Icons.undo_rounded,
+          MorkvaIcons.undo,
           size: schema ? 16 : 14,
           color: scheme.onSurfaceVariant,
         ),
@@ -379,7 +379,7 @@ class _Badge extends StatelessWidget {
           borderRadius: BorderRadius.circular(9),
         ),
         child: Icon(
-          Icons.account_tree_outlined,
+          MorkvaIcons.accountTree,
           size: 16,
           color: colors.objectChipText,
         ),
@@ -396,7 +396,7 @@ class _Badge extends StatelessWidget {
         shape: BoxShape.circle,
       ),
       child: Icon(
-        failed ? Icons.priority_high_rounded : Icons.check_rounded,
+        failed ? MorkvaIcons.priority : MorkvaIcons.check,
         size: 14,
         color: failed ? scheme.onErrorContainer : semantic.success,
       ),

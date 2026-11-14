@@ -23,7 +23,7 @@ class NoMatchesNotice extends StatelessWidget {
       child: Row(
         children: [
           Icon(
-            Icons.filter_alt_off_outlined,
+            MorkvaIcons.filterOff,
             size: 18,
             color: scheme.onSurfaceVariant,
           ),

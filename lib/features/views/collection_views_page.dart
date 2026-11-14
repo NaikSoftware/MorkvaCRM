@@ -749,19 +749,19 @@ class _WideHeader extends StatelessWidget {
             IconButton.outlined(
               tooltip: context.l10n.viewsCustomize,
               onPressed: () => _customize(context, collection.id),
-              icon: const Icon(Icons.tune, size: 18),
+              icon: const Icon(MorkvaIcons.tune, size: 18),
             )
           else
             OutlinedButton.icon(
               onPressed: () => _customize(context, collection.id),
-              icon: const Icon(Icons.tune, size: 18),
+              icon: const Icon(MorkvaIcons.tune, size: 18),
               label: Text(context.l10n.viewsCustomize),
             ),
           if (collection.fields.isNotEmpty) ...[
             const SizedBox(width: Spacing.sm),
             PrimaryButton(
               label: context.l10n.viewsNewItem(itemLabelOf(collection)),
-              icon: Icons.add,
+              icon: MorkvaIcons.add,
               onPressed: () => _createObject(context, state),
             ),
           ],
@@ -799,7 +799,7 @@ class _PhoneFrame extends StatelessWidget {
             ? null
             : IconButton(
                 tooltip: context.l10n.commonBack,
-                icon: const Icon(Icons.arrow_back),
+                icon: const Icon(MorkvaIcons.arrowBack),
                 onPressed: () =>
                     context.canPop() ? context.pop() : context.go('/'),
               ),
@@ -837,7 +837,7 @@ class _PhoneFrame extends StatelessWidget {
           if (collection != null)
             PopupMenuButton<void>(
               tooltip: context.l10n.commonMore,
-              icon: const Icon(Icons.more_vert),
+              icon: const Icon(MorkvaIcons.moreVert),
               itemBuilder: (_) => [
                 // Without fields the body's Customize carries the only
                 // view settings entry.
@@ -846,7 +846,7 @@ class _PhoneFrame extends StatelessWidget {
                     onTap: () => _openViewSettings(context, modes),
                     child: Row(
                       children: [
-                        const Icon(Icons.view_quilt_outlined, size: 20),
+                        const Icon(MorkvaIcons.spaceDashboard, size: 20),
                         const SizedBox(width: Spacing.sm),
                         Flexible(child: Text(context.l10n.viewsViewSettings)),
                       ],
@@ -858,7 +858,7 @@ class _PhoneFrame extends StatelessWidget {
                   onTap: () => _customize(context, collection.id),
                   child: Row(
                     children: [
-                      const Icon(Icons.tune, size: 20),
+                      const Icon(MorkvaIcons.tune, size: 20),
                       const SizedBox(width: Spacing.sm),
                       Flexible(
                         child: Text(context.l10n.viewsCustomizeCollection),
@@ -879,7 +879,7 @@ class _PhoneFrame extends StatelessWidget {
               tooltip: context.l10n.viewsNewItem(
                 itemLabelOf(ready.collection),
               ),
-              child: const Icon(Icons.add),
+              child: const Icon(MorkvaIcons.add),
             ),
       body: SafeArea(
         top: false,
@@ -918,12 +918,12 @@ class _WorkBody extends StatelessWidget {
 
     if (collection.fields.isEmpty) {
       return EmptyState(
-        icon: Icons.view_column_outlined,
+        icon: MorkvaIcons.viewColumns,
         title: context.l10n.viewsNoFieldsTitle,
         message: context.l10n.viewsNoFieldsMessage(itemLabelOf(collection)),
         action: PrimaryButton(
           label: context.l10n.viewsCustomize,
-          icon: Icons.tune,
+          icon: MorkvaIcons.tune,
           onPressed: () => _customize(context, collection.id),
         ),
       );
@@ -979,7 +979,7 @@ class _WorkBody extends StatelessWidget {
                   ),
                   TextActionButton(
                     label: context.l10n.viewsSaveAsView,
-                    icon: Icons.bookmark_add_outlined,
+                    icon: MorkvaIcons.bookmarkAdd,
                     onPressed: cubit.saveTransientAsView,
                   ),
                 ],
@@ -1015,7 +1015,7 @@ class _WorkBody extends StatelessWidget {
             padding: EdgeInsets.fromLTRB(gutter, Spacing.xxs, gutter, gutter),
             child: noMatches
                 ? EmptyState(
-                    icon: Icons.filter_alt_off_outlined,
+                    icon: MorkvaIcons.filterOff,
                     title: context.l10n.viewsNoMatchesTitle,
                     message: context.l10n.viewsNoMatchesMessage(
                       state.totalCount,
@@ -1023,7 +1023,7 @@ class _WorkBody extends StatelessWidget {
                     ),
                     action: SecondaryButton(
                       label: context.l10n.viewsClearFilters,
-                      icon: Icons.filter_alt_off_outlined,
+                      icon: MorkvaIcons.filterOff,
                       onPressed: cubit.clearFilters,
                     ),
                   )
@@ -1062,7 +1062,7 @@ class _AssistantFiltersChip extends StatelessWidget {
       message: context.l10n.viewsAssistantFiltersTooltip(filters),
       child: InputChip(
         avatar: Icon(
-          Icons.auto_awesome,
+          MorkvaIcons.sparkle,
           size: 16,
           color: scheme.onSecondaryContainer,
         ),
@@ -1075,7 +1075,7 @@ class _AssistantFiltersChip extends StatelessWidget {
           ),
         ),
         onDeleted: onClear,
-        deleteIcon: const Icon(Icons.close, size: 16),
+        deleteIcon: const Icon(MorkvaIcons.close, size: 16),
         deleteButtonTooltipMessage: context.l10n.viewsClearAssistantFilters,
         backgroundColor: scheme.secondaryContainer,
         side: BorderSide.none,
@@ -1119,7 +1119,7 @@ class _UnknownModeNotice extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(Icons.info_outline, size: 18, color: scheme.onSurfaceVariant),
+            Icon(MorkvaIcons.info, size: 18, color: scheme.onSurfaceVariant),
             const SizedBox(width: Spacing.xs),
             Expanded(
               child: Text(
@@ -1144,12 +1144,12 @@ class _NotFound extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => EmptyState(
-    icon: Icons.search_off_outlined,
+    icon: MorkvaIcons.searchOff,
     title: context.l10n.viewsNotFoundTitle,
     message: context.l10n.viewsNotFoundMessage,
     action: PrimaryButton(
       label: context.l10n.viewsBackToCollections,
-      icon: Icons.arrow_back,
+      icon: MorkvaIcons.arrowBack,
       onPressed: () => context.go('/'),
     ),
   );
@@ -1176,7 +1176,7 @@ class _ErrorCard extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.cloud_off_outlined, size: 32, color: scheme.error),
+              Icon(MorkvaIcons.cloudOff, size: 32, color: scheme.error),
               const SizedBox(height: Spacing.sm),
               Text(
                 context.l10n.viewsLoadError,
@@ -1194,7 +1194,7 @@ class _ErrorCard extends StatelessWidget {
               const SizedBox(height: Spacing.md),
               SecondaryButton(
                 label: context.l10n.commonRetry,
-                icon: Icons.refresh,
+                icon: MorkvaIcons.refresh,
                 onPressed: () => context.read<CollectionViewsCubit>().retry(),
               ),
             ],

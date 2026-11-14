@@ -70,7 +70,7 @@ class CardInboxButton extends StatelessWidget {
         );
         if (linked.isEmpty) {
           return IconActionButton(
-            icon: Icons.inbox_outlined,
+            icon: MorkvaIcons.inbox,
             tooltip: context.l10n.inboxAddToInbox,
             onPressed: add,
           );
@@ -121,7 +121,7 @@ class CardInboxButton extends StatelessWidget {
                             foregroundColor: accent,
                             iconColor: accent,
                           ),
-                          leadingIcon: const Icon(Icons.add_rounded),
+                          leadingIcon: const Icon(MorkvaIcons.add),
                           onPressed: add,
                           child: Text(context.l10n.inboxAddToInboxMenu),
                         ),
@@ -135,7 +135,7 @@ class CardInboxButton extends StatelessWidget {
           builder: (context, menu, _) => _Badged(
             count: linked.length,
             child: IconActionButton(
-              icon: Icons.inbox_outlined,
+              icon: MorkvaIcons.inbox,
               tooltip: context.l10n.inboxCardOpenCount(linked.length),
               filled: menu.isOpen,
               onPressed: () => menu.isOpen ? menu.close() : menu.open(),

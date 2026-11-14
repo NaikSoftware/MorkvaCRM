@@ -322,7 +322,7 @@ class _InboxItemEditorState extends State<InboxItemEditor> {
               IconButton(
                 tooltip: l10n.commonClose,
                 onPressed: () => Navigator.of(context).maybePop(),
-                icon: const Icon(Icons.close),
+                icon: const Icon(MorkvaIcons.close),
               ),
             ],
           ),
@@ -372,7 +372,7 @@ class _InboxItemEditorState extends State<InboxItemEditor> {
                     minimumSize: const Size(44, 44),
                   ),
                   onPressed: _delete,
-                  icon: const Icon(Icons.delete_outline, size: 20),
+                  icon: const Icon(MorkvaIcons.delete, size: 20),
                   label: Text(l10n.commonDelete),
                 ),
               const Spacer(),
@@ -445,7 +445,7 @@ class _InboxItemEditorState extends State<InboxItemEditor> {
     ];
     final minutes = draft.minutes;
     return _row(
-      Icons.calendar_today_outlined,
+      MorkvaIcons.calendarDay,
       Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -474,13 +474,13 @@ class _InboxItemEditorState extends State<InboxItemEditor> {
                             iconSize: 18,
                             color: theme.colorScheme.onSurfaceVariant,
                             onPressed: () => _edit((d) => d.withDate(null)),
-                            icon: const Icon(Icons.close),
+                            icon: const Icon(MorkvaIcons.close),
                           ),
                         ],
                       ),
               ),
               InboxChip(
-                icon: Icons.schedule,
+                icon: MorkvaIcons.schedule,
                 label: minutes == null ? null : timeLabel(minutes),
                 tooltip: date == null
                     ? l10n.inboxSetDateForTime
@@ -523,7 +523,7 @@ class _InboxItemEditorState extends State<InboxItemEditor> {
     final l10n = context.l10n;
     if (draft.date == null) {
       return _row(
-        Icons.notifications_none,
+        MorkvaIcons.notifications,
         _muted(l10n.inboxSetDateForReminders),
       );
     }
@@ -571,7 +571,7 @@ class _InboxItemEditorState extends State<InboxItemEditor> {
       NotificationPermission.unsupported => null,
     };
     return _row(
-      Icons.notifications_none,
+      MorkvaIcons.notifications,
       Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -594,7 +594,7 @@ class _InboxItemEditorState extends State<InboxItemEditor> {
                     ),
                 ],
                 builder: (context, controller, _) => InboxChip(
-                  icon: Icons.add,
+                  icon: MorkvaIcons.add,
                   outlined: true,
                   tooltip: l10n.inboxAddReminder,
                   onPressed: canAdd
@@ -619,7 +619,7 @@ class _InboxItemEditorState extends State<InboxItemEditor> {
   Widget _linkRow(BuildContext context, InboxDraft draft) {
     final link = draft.link;
     return _row(
-      Icons.link,
+      MorkvaIcons.link,
       Align(
         alignment: Alignment.centerLeft,
         child: link == null
@@ -691,7 +691,7 @@ class _KindToggle extends StatelessWidget {
             InboxKind.note,
             l10n.inboxNote,
             Icon(
-              Icons.sticky_note_2_outlined,
+              MorkvaIcons.stickyNote,
               size: 18,
               color: scheme.onSurfaceVariant,
             ),

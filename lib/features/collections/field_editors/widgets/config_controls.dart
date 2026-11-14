@@ -128,7 +128,7 @@ class InlineWarningNote extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.warning_amber_rounded, size: 18, color: warning),
+          Icon(MorkvaIcons.warning, size: 18, color: warning),
           const SizedBox(width: Spacing.xs),
           Expanded(
             child: Text(

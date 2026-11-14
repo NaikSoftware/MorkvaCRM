@@ -112,7 +112,7 @@ class _PlanCardState extends State<PlanCard> {
             if (plan.autoApplies)
               _WarningLine(
                 message: context.l10n.assistantAppliesWithoutAsking,
-                icon: Icons.bolt_rounded,
+                icon: MorkvaIcons.bolt,
               ),
             for (final w in plan.warnings)
               // The shield header says it as its subtitle.
@@ -383,10 +383,10 @@ class _Header extends StatelessWidget {
             ),
             child: Icon(
               destructive
-                  ? Icons.delete_outline_rounded
+                  ? MorkvaIcons.delete
                   : shield
-                  ? Icons.shield_outlined
-                  : Icons.edit_outlined,
+                  ? MorkvaIcons.shield
+                  : MorkvaIcons.edit,
               size: 16,
               color: destructive
                   ? scheme.onErrorContainer
@@ -473,7 +473,7 @@ class DiffLine extends StatelessWidget {
             ((before != null && before.isNotEmpty) ||
                 (markEmpty && after.isNotEmpty)))
           Icon(
-            Icons.arrow_forward_rounded,
+            MorkvaIcons.arrowForward,
             size: 14,
             color: scheme.onSurfaceVariant,
           ),
@@ -532,7 +532,7 @@ class DiffPill extends StatelessWidget {
 class _WarningLine extends StatelessWidget {
   const _WarningLine({
     required this.message,
-    this.icon = Icons.warning_amber_rounded,
+    this.icon = MorkvaIcons.warning,
   });
 
   final String message;
@@ -786,7 +786,7 @@ class _PlanRowTile extends StatelessWidget {
                         padding: const EdgeInsetsDirectional.only(start: 18),
                         child: TextActionButton(
                           label: context.l10n.assistantViewCode,
-                          icon: Icons.code_rounded,
+                          icon: MorkvaIcons.code,
                           onPressed: () =>
                               PlanCardScope.of(context).actions.viewCode(row),
                         ),
@@ -960,7 +960,7 @@ class CardNote extends StatelessWidget {
       child: ExcludeSemantics(
         child: Row(
           children: [
-            Icon(Icons.info_outline_rounded, size: 16, color: color),
+            Icon(MorkvaIcons.info, size: 16, color: color),
             const SizedBox(width: 6),
             Expanded(
               child: Text(
@@ -1080,29 +1080,29 @@ class _ClosedPlanCard extends StatelessWidget {
     final l10n = context.l10n;
     final (icon, line) = switch (item.status) {
       PlanStatus.rejected => (
-        Icons.block_rounded,
+        MorkvaIcons.block,
         l10n.assistantRejectedNothingChanged,
       ),
       PlanStatus.skipped => (
-        Icons.redo_rounded,
+        MorkvaIcons.redo,
         l10n.assistantSkippedNothingChanged,
       ),
       PlanStatus.stale => (
-        Icons.sync_problem_rounded,
+        MorkvaIcons.syncProblem,
         l10n.assistantNothingChangedAfter(
           message ?? l10n.assistantChangedElsewhere,
         ),
       ),
       PlanStatus.expired => (
-        Icons.timer_off_outlined,
+        MorkvaIcons.timerOff,
         l10n.assistantPreviewExpired,
       ),
       PlanStatus.interrupted => (
-        Icons.help_outline_rounded,
+        MorkvaIcons.help,
         l10n.assistantInterrupted,
       ),
       _ => (
-        Icons.error_outline_rounded,
+        MorkvaIcons.error,
         l10n.assistantNothingChangedAfter(
           message ?? l10n.assistantCouldNotApply,
         ),

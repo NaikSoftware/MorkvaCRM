@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/design/components/buttons/secondary_button.dart';
 import 'package:morkva_crm/design/theme/app_theme.dart';
+import 'package:morkva_crm/design/morkva_icons.dart';
 
 class _Host extends StatelessWidget {
   const _Host(this.child);
@@ -27,10 +28,10 @@ void main() {
 
     testWidgets('renders a leading icon when provided', (tester) async {
       await tester.pumpWidget(
-        _Host(SecondaryButton(label: 'Add', icon: Icons.add, onPressed: () {})),
+        _Host(SecondaryButton(label: 'Add', icon: MorkvaIcons.add, onPressed: () {})),
       );
 
-      expect(find.byIcon(Icons.add), findsOneWidget);
+      expect(find.byIcon(MorkvaIcons.add), findsOneWidget);
     });
 
     testWidgets('fires onPressed when tapped', (tester) async {

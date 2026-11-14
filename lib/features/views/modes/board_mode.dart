@@ -34,7 +34,7 @@ class BoardMode extends ViewMode {
   String get label => l10n.viewsModeBoard;
 
   @override
-  IconData get icon => Icons.view_kanban_outlined;
+  IconData get icon => MorkvaIcons.viewBoard;
 
   @override
   String get description => l10n.viewsModeBoardDescription;
@@ -69,7 +69,7 @@ class BoardMode extends ViewMode {
       fields: fields,
       selectedId: data.state.layoutField?.id,
       builder: (open) => ToolbarButton(
-        icon: Icons.view_kanban_outlined,
+        icon: MorkvaIcons.viewBoard,
         label: switch (data.state.layoutField?.name) {
           final name? => context.l10n.viewsGroupChip(name),
           null => context.l10n.viewsGroupChipNone,
@@ -103,7 +103,7 @@ class GroupByMenu extends StatelessWidget {
           MenuItemButton(
             leadingIcon: Icon(fieldTypeIcon(f), size: 20),
             trailingIcon: f.id == selectedId
-                ? const Icon(Icons.check, size: 20)
+                ? const Icon(MorkvaIcons.check, size: 20)
                 : null,
             onPressed: () => cubit.setLayoutField(f.id),
             child: Text(f.name),
@@ -679,7 +679,7 @@ class _NoGrouping extends StatelessWidget {
     final fields = groupableFields(collection);
     if (fields.isEmpty) {
       return EmptyState(
-        icon: Icons.view_kanban_outlined,
+        icon: MorkvaIcons.viewBoard,
         title: context.l10n.viewsBoardNeedsField,
         message: context.l10n.viewsBoardNeedsFieldMessage(
           switch (collection.name.trim().toLowerCase()) {
@@ -689,13 +689,13 @@ class _NoGrouping extends StatelessWidget {
         ),
         action: PrimaryButton(
           label: context.l10n.viewsAddField,
-          icon: Icons.add,
+          icon: MorkvaIcons.add,
           onPressed: () => context.go('/collections/${collection.id}/edit'),
         ),
       );
     }
     return EmptyState(
-      icon: Icons.view_kanban_outlined,
+      icon: MorkvaIcons.viewBoard,
       title: context.l10n.viewsBoardChooseGroup,
       message: context.l10n.viewsBoardChooseGroupMessage,
       action: GroupByMenu(
@@ -703,7 +703,7 @@ class _NoGrouping extends StatelessWidget {
         selectedId: null,
         builder: (open) => PrimaryButton(
           label: context.l10n.viewsGroupByAction,
-          icon: Icons.view_kanban_outlined,
+          icon: MorkvaIcons.viewBoard,
           onPressed: open,
         ),
       ),

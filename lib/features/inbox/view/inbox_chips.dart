@@ -41,7 +41,7 @@ class InboxChip extends StatelessWidget {
         ? scheme.onSurface
         : scheme.onSurface.withValues(alpha: 0.38);
     final label = this.label;
-    final leading = selected ? Icons.check : icon;
+    final leading = selected ? MorkvaIcons.check : icon;
     final pill = BoxDecoration(
       color: selected
           ? scheme.primaryContainer
@@ -94,7 +94,7 @@ class InboxChip extends StatelessWidget {
                 tooltip: clearTooltip ?? context.l10n.commonClear,
                 color: scheme.onSurfaceVariant,
                 onPressed: clear,
-                icon: const Icon(Icons.close),
+                icon: const Icon(MorkvaIcons.close),
               ),
             ),
         ],

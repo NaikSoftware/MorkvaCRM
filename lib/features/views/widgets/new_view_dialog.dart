@@ -130,7 +130,7 @@ class _NewViewDialogState extends State<NewViewDialog> {
           onAddField: _addField,
         ),
       _ModeTile(
-        icon: Icons.photo_library_outlined,
+        icon: MorkvaIcons.photos,
         label: l10n.viewWidgetsModeGallery,
         description: l10n.viewWidgetsModeGalleryDescription,
         reason: l10n.viewWidgetsModeGalleryReason,

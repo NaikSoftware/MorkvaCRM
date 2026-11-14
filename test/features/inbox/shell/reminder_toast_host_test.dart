@@ -194,7 +194,7 @@ void main() {
     expect(card.bottom, 800 - Spacing.md);
     // Done's check lines up with the title.
     expect(
-      tester.getTopLeft(find.byIcon(Icons.check_rounded)).dx,
+      tester.getTopLeft(find.byIcon(MorkvaIcons.check)).dx,
       tester.getTopLeft(find.text('Pay the invoice')).dx,
     );
 

@@ -224,7 +224,7 @@ class _InboxViewState extends State<_InboxView> {
                             Padding(
                               padding: const EdgeInsets.only(top: Spacing.xl),
                               child: EmptyState(
-                                icon: Icons.inbox_outlined,
+                                icon: MorkvaIcons.inbox,
                                 title: l10n.inboxEmptyTitle,
                                 message: l10n.inboxEmptyMessage,
                                 // Line 1 ends at "reminded.", as the mockup.
@@ -275,7 +275,7 @@ class _LoadError extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: Spacing.lg),
       child: Row(
         children: [
-          Icon(Icons.error_outline, color: theme.colorScheme.error),
+          Icon(MorkvaIcons.error, color: theme.colorScheme.error),
           const SizedBox(width: Spacing.sm),
           Expanded(
             child: Text(
@@ -496,7 +496,7 @@ class _ComposerState extends State<_Composer> {
                   children: [
                     _dateChip(state, date, l10n, locale),
                     InboxChip(
-                      icon: Icons.schedule,
+                      icon: MorkvaIcons.schedule,
                       label: draft.minutes == null
                           ? null
                           : timeLabel(draft.minutes!),
@@ -522,7 +522,7 @@ class _ComposerState extends State<_Composer> {
                       )
                     else
                       InboxChip(
-                        icon: Icons.link,
+                        icon: MorkvaIcons.link,
                         outlined: true,
                         tooltip: l10n.inboxLinkCard,
                         onPressed: _pickLink,
@@ -566,7 +566,7 @@ class _ComposerState extends State<_Composer> {
         MenuItemButton(onPressed: _pickDate, child: Text(l10n.inboxPickDate)),
       ].map(_inField).toList(),
       builder: (context, controller, _) => InboxChip(
-        icon: Icons.calendar_today_outlined,
+        icon: MorkvaIcons.calendarDay,
         label: date == null ? null : dayLabel(date, locale),
         outlined: date == null,
         tooltip: date == null ? l10n.inboxDate : null,
@@ -592,7 +592,7 @@ class _ComposerState extends State<_Composer> {
           MenuItemButton(
             closeOnActivate: false,
             leadingIcon: Icon(
-              reminders.contains(r) ? Icons.check : null,
+              reminders.contains(r) ? MorkvaIcons.check : null,
               size: 18,
             ),
             onPressed:
@@ -603,7 +603,7 @@ class _ComposerState extends State<_Composer> {
           ),
       ].map(_inField).toList(),
       builder: (context, controller, _) => InboxChip(
-        icon: Icons.notifications_none,
+        icon: MorkvaIcons.notifications,
         label: reminders.isEmpty
             ? null
             : '${reminderLabel(l10n, reminders.first, short: true)}'
@@ -820,7 +820,9 @@ class _SectionHeader extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        open ? Icons.expand_more : Icons.chevron_right,
+                        open
+                            ? MorkvaIcons.expandMore
+                            : MorkvaIcons.chevronRight,
                         size: 18,
                         color: ink,
                       ),
@@ -950,7 +952,7 @@ class _ItemRow extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.notifications_none,
+              MorkvaIcons.notifications,
               size: 14,
               color: scheme.onSurfaceVariant,
             ),

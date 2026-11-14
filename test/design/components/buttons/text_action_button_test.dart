@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/design/components/buttons/text_action_button.dart';
 import 'package:morkva_crm/design/theme/app_theme.dart';
 import 'package:morkva_crm/design/tokens/colors.dart';
+import 'package:morkva_crm/design/morkva_icons.dart';
 
 class _Host extends StatelessWidget {
   const _Host(this.child);
@@ -31,13 +32,13 @@ void main() {
         _Host(
           TextActionButton(
             label: 'Open',
-            icon: Icons.open_in_new,
+            icon: MorkvaIcons.openInNew,
             onPressed: () {},
           ),
         ),
       );
 
-      expect(find.byIcon(Icons.open_in_new), findsOneWidget);
+      expect(find.byIcon(MorkvaIcons.openInNew), findsOneWidget);
     });
 
     testWidgets('fires onPressed when tapped', (tester) async {

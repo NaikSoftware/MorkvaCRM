@@ -5,6 +5,7 @@ import '../../../l10n/l10n.dart';
 import 'field_editor.dart';
 import 'widgets/config_controls.dart';
 import 'widgets/preview_affordances.dart';
+import 'package:morkva_crm/design/morkva_icons.dart';
 
 /// [FieldEditor] for the numeric field type.
 class NumberFieldEditor extends FieldEditor {
@@ -21,7 +22,7 @@ class NumberFieldEditor extends FieldEditor {
       l10n.collectionsTypeNumberDescription;
 
   @override
-  IconData get icon => Icons.numbers;
+  IconData get icon => MorkvaIcons.numbers;
 
   @override
   FieldDefinition createDefault({required String id, required String name}) =>
@@ -116,5 +117,5 @@ class NumberFieldEditor extends FieldEditor {
   Widget buildPreviewAffordance(
     BuildContext context,
     FieldDefinition definition,
-  ) => const PreviewStubInput(icon: Icons.numbers, height: 36);
+  ) => const PreviewStubInput(icon: MorkvaIcons.numbers, height: 36);
 }

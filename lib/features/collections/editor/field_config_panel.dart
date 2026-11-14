@@ -98,7 +98,7 @@ class FieldConfigPanel extends StatelessWidget {
               ),
               shape: const RoundedRectangleBorder(borderRadius: Radii.mdAll),
               secondary: Icon(
-                Icons.flag_outlined,
+                MorkvaIcons.flag,
                 color: scheme.onSurfaceVariant,
               ),
               title: Text(
@@ -227,7 +227,7 @@ class _TypeLockNote extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.lock_outline, size: 16, color: scheme.onSurfaceVariant),
+          Icon(MorkvaIcons.lock, size: 16, color: scheme.onSurfaceVariant),
           const SizedBox(width: Spacing.xs),
           Expanded(
             child: Text(

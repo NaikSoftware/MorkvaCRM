@@ -91,7 +91,7 @@ class WeekStrip extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: Spacing.xxs),
-                  const Icon(Icons.expand_more, size: 20),
+                  const Icon(MorkvaIcons.expandMore, size: 20),
                 ],
               ),
             ),
@@ -102,7 +102,7 @@ class WeekStrip extends StatelessWidget {
           padding: EdgeInsets.zero,
           tooltip: l10n.inboxPreviousWeek,
           onPressed: () => onSelect(_shift(-7)),
-          icon: const Icon(Icons.chevron_left),
+          icon: const Icon(MorkvaIcons.chevronLeft),
         ),
         OutlinedButton(
           onPressed: isToday ? null : () => onSelect(today),
@@ -134,7 +134,7 @@ class WeekStrip extends StatelessWidget {
           padding: EdgeInsets.zero,
           tooltip: l10n.inboxNextWeek,
           onPressed: () => onSelect(_shift(7)),
-          icon: const Icon(Icons.chevron_right),
+          icon: const Icon(MorkvaIcons.chevronRight),
         ),
       ],
     );

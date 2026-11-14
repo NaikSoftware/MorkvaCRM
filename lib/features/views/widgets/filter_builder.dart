@@ -194,7 +194,7 @@ class _Header extends StatelessWidget {
           children: [
             if (onBack != null)
               IconButton(
-                icon: const Icon(Icons.arrow_back),
+                icon: const Icon(MorkvaIcons.arrowBack),
                 tooltip: context.l10n.commonBack,
                 onPressed: onBack,
               ),
@@ -234,7 +234,7 @@ class _ApplyBar extends StatelessWidget {
             label: editing
                 ? context.l10n.viewWidgetsUpdateFilter
                 : context.l10n.viewWidgetsAddFilter,
-            icon: Icons.check,
+            icon: MorkvaIcons.check,
             onPressed: onApply,
           ),
         ),
@@ -296,7 +296,7 @@ class _FieldStepState extends State<_FieldStep> {
                       _Row(
                         leading: Icon(fieldTypeIcon(f), size: 20),
                         label: f.name,
-                        trailing: const Icon(Icons.chevron_right, size: 20),
+                        trailing: const Icon(MorkvaIcons.chevronRight, size: 20),
                         onTap: () => widget.onPick(f),
                       ),
                   ],
@@ -335,9 +335,9 @@ class _OperatorStep extends StatelessWidget {
             selected: op == selected,
             trailing: _valueless(op)
                 ? (op == selected
-                      ? Icon(Icons.check, size: 20, color: scheme.primary)
+                      ? Icon(MorkvaIcons.check, size: 20, color: scheme.primary)
                       : null)
-                : const Icon(Icons.chevron_right, size: 20),
+                : const Icon(MorkvaIcons.chevronRight, size: 20),
             onTap: () => onPick(op),
           ),
       ],

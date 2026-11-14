@@ -5,6 +5,7 @@ import '../collection_icons.dart';
 import '../tokens/colors.dart';
 import '../tokens/radii.dart';
 import 'pressable_scale.dart';
+import 'package:morkva_crm/design/morkva_icons.dart';
 
 /// The carrot-tinted tile that fronts a collection everywhere it appears — the
 /// Home list card and the schema-editor header — so a collection reads with one
@@ -95,7 +96,7 @@ class CollectionGlyph extends StatelessWidget {
                   border: Border.all(color: scheme.outlineVariant),
                 ),
                 child: Icon(
-                  Icons.edit_outlined,
+                  MorkvaIcons.edit,
                   size: 12,
                   color: scheme.primary,
                 ),

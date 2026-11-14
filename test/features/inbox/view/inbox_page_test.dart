@@ -181,7 +181,7 @@ void main() {
         tester.getRect(button).right,
         moreOrLessEquals(
           tester
-              .getRect(find.widgetWithIcon(IconButton, Icons.chevron_left))
+              .getRect(find.widgetWithIcon(IconButton, MorkvaIcons.chevronLeft))
               .left,
           epsilon: 2,
         ),

@@ -4,6 +4,7 @@ import '../../../core/domain/domain.dart';
 import '../../../l10n/l10n.dart';
 import 'field_editor.dart';
 import 'widgets/preview_affordances.dart';
+import 'package:morkva_crm/design/morkva_icons.dart';
 
 /// [FieldEditor] for the boolean (true/false) field type.
 ///
@@ -24,7 +25,7 @@ class BooleanFieldEditor extends FieldEditor {
       l10n.collectionsTypeBooleanDescription;
 
   @override
-  IconData get icon => Icons.toggle_on_outlined;
+  IconData get icon => MorkvaIcons.toggle;
 
   @override
   FieldDefinition createDefault({required String id, required String name}) =>

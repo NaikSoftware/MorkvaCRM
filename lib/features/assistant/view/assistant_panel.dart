@@ -161,14 +161,14 @@ class _AssistantPanelState extends State<AssistantPanel> {
     final close = widget.onClose == null
         ? null
         : IconActionButton(
-            icon: Icons.close_rounded,
+            icon: MorkvaIcons.close,
             tooltip: context.l10n.assistantCloseAssistant,
             onPressed: widget.onClose,
           );
     final historyButton = widget.historyBuilder == null
         ? null
         : IconActionButton(
-            icon: Icons.history_rounded,
+            icon: MorkvaIcons.history,
             tooltip: history
                 ? context.l10n.assistantBackToConversation
                 : context.l10n.assistantConversationHistory,
@@ -189,7 +189,7 @@ class _AssistantPanelState extends State<AssistantPanel> {
           ?historyButton,
           if (state.items.isNotEmpty && state.availability.canSend)
             IconActionButton(
-              icon: Icons.edit_square,
+              icon: MorkvaIcons.compose,
               tooltip: context.l10n.assistantNewConversation,
               onPressed: widget.actions.newThread,
             ),

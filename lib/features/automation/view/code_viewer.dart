@@ -74,7 +74,7 @@ class CodeViewer extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.code, size: 20, color: scheme.onSurfaceVariant),
+          Icon(MorkvaIcons.code, size: 20, color: scheme.onSurfaceVariant),
           const SizedBox(width: Spacing.xs),
           Text(name, style: theme.textTheme.titleMedium),
           const SizedBox(width: Spacing.xs),
@@ -88,12 +88,12 @@ class CodeViewer extends StatelessWidget {
             ),
           ),
           IconActionButton(
-            icon: Icons.copy_outlined,
+            icon: MorkvaIcons.copy,
             tooltip: l10n.commonCopy,
             onPressed: () => Clipboard.setData(ClipboardData(text: code)),
           ),
           IconActionButton(
-            icon: Icons.close,
+            icon: MorkvaIcons.close,
             tooltip: l10n.commonClose,
             onPressed: () => Navigator.of(context).pop(),
           ),

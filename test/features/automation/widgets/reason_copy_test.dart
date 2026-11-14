@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart' show Icons, Locale;
+import 'package:flutter/material.dart' show Locale;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:morkva_crm/core/domain/automation/automation.dart';
 import 'package:morkva_crm/features/automation/widgets/reason_copy.dart';
 import 'package:morkva_crm/l10n/l10n.dart';
 
 import '../../../core/domain/automation/fixtures.dart';
+import 'package:morkva_crm/design/morkva_icons.dart';
 
 void main() {
   group('runCopy', () {
@@ -128,9 +129,9 @@ void main() {
       expect(moduleChip(ModuleStatus.ok), (
         label: 'Installed',
         tone: CopyTone.success,
-        icon: Icons.check_rounded,
+        icon: MorkvaIcons.check,
       ));
-      expect(applyChip(EffectiveApply.ask).icon, Icons.visibility_outlined);
+      expect(applyChip(EffectiveApply.ask).icon, MorkvaIcons.hourglass);
       expect(moduleChip(ModuleStatus.needsConsent).tone, CopyTone.warning);
       expect(moduleChip(ModuleStatus.broken).tone, CopyTone.error);
       for (final status in AutomationStatus.values) {

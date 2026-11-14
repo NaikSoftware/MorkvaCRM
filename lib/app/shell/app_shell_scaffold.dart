@@ -405,7 +405,7 @@ class _ShellViewState extends State<_ShellView> {
                   collections.isNotEmpty)
                 IconButton(
                   tooltip: context.l10n.shellJumpTo,
-                  icon: const Icon(Icons.search_rounded),
+                  icon: const Icon(MorkvaIcons.search),
                   onPressed: jumpTo,
                 ),
               ?ask,
@@ -846,7 +846,7 @@ class _PinsBar extends StatelessWidget {
       destinations: [
         if (onInbox != null)
           NavigationDestination(
-            icon: const InboxBadgeIcon(icon: Icon(Icons.inbox_rounded)),
+            icon: const InboxBadgeIcon(icon: Icon(MorkvaIcons.inbox)),
             label: context.l10n.inboxTitle,
           ),
         for (final c in shown)
@@ -855,7 +855,7 @@ class _PinsBar extends StatelessWidget {
             label: c.name,
           ),
         NavigationDestination(
-          icon: const Icon(Icons.grid_view_rounded),
+          icon: const Icon(MorkvaIcons.gridView),
           label: context.l10n.shellNavAll,
         ),
       ],

@@ -142,7 +142,7 @@ class SublistSection extends StatelessWidget {
               ),
               const SizedBox(width: Spacing.sm),
               SecondaryButton(
-                icon: Icons.add,
+                icon: MorkvaIcons.add,
                 label: l10n.objectsAddItem(item),
                 onPressed: () => _add(context),
               ),
@@ -408,7 +408,7 @@ class _ItemRow extends StatelessWidget {
                   ),
                 ],
                 const SizedBox(width: Spacing.xxs),
-                Icon(Icons.chevron_right, color: scheme.outline),
+                Icon(MorkvaIcons.chevronRight, color: scheme.outline),
               ],
             ),
           ),

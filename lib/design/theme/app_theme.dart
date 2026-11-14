@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 
+import '../morkva_icons.dart';
 import '../tokens/colors.dart';
 import '../tokens/motion.dart';
 import '../tokens/radii.dart';
@@ -44,6 +45,11 @@ abstract final class AppTheme {
           TargetPlatform.windows: FadeForwardsPageTransitionsBuilder(),
           TargetPlatform.linux: FadeForwardsPageTransitionsBuilder(),
         },
+      ),
+      // Framework back/close buttons draw our icons, not Material's.
+      actionIconTheme: ActionIconThemeData(
+        backButtonIconBuilder: (_) => const Icon(MorkvaIcons.arrowBack),
+        closeButtonIconBuilder: (_) => const Icon(MorkvaIcons.close),
       ),
       appBarTheme: AppBarTheme(
         backgroundColor: scheme.surface,

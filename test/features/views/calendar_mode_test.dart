@@ -280,7 +280,7 @@ void main() {
       // Keyboard focus reveals it.
       Focus.of(
         tester.element(
-          find.descendant(of: add, matching: find.byIcon(Icons.add)),
+          find.descendant(of: add, matching: find.byIcon(MorkvaIcons.add)),
         ),
       ).requestFocus();
       await tester.pump();

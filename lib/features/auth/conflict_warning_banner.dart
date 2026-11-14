@@ -73,7 +73,7 @@ class _ConflictBanner extends StatelessWidget {
           children: [
             Padding(
               padding: const EdgeInsets.only(top: Spacing.xxs),
-              child: Icon(Icons.history_rounded, size: 20, color: fg),
+              child: Icon(MorkvaIcons.history, size: 20, color: fg),
             ),
             const SizedBox(width: Spacing.sm),
             Expanded(

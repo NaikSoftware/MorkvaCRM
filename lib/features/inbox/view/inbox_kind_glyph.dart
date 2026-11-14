@@ -23,11 +23,7 @@ class InboxNoteGlyph extends StatelessWidget {
           borderRadius: BorderRadius.circular(7),
         ),
         alignment: Alignment.center,
-        child: Icon(
-          Icons.sticky_note_2_outlined,
-          size: 15,
-          color: tint.foreground,
-        ),
+        child: Icon(MorkvaIcons.stickyNote, size: 15, color: tint.foreground),
       ),
     );
   }
@@ -57,7 +53,9 @@ class InboxTaskCircle extends StatelessWidget {
           width: 2,
         ),
       ),
-      child: done ? Icon(Icons.check, size: 14, color: scheme.onPrimary) : null,
+      child: done
+          ? Icon(MorkvaIcons.check, size: 14, color: scheme.onPrimary)
+          : null,
     );
   }
 }

@@ -257,17 +257,17 @@ class _KindTile extends StatelessWidget {
         : CollectionTints.dark[4];
     final (icon, bg, fg) = switch (kind) {
       InboxKind.task => (
-        Icons.task_alt_rounded,
+        MorkvaIcons.taskAlt,
         scheme.primaryContainer,
         scheme.onPrimaryContainer,
       ),
       InboxKind.note => (
-        Icons.sticky_note_2_outlined,
+        MorkvaIcons.stickyNote,
         sand.background,
         sand.foreground,
       ),
       null => (
-        Icons.schedule_rounded,
+        MorkvaIcons.schedule,
         scheme.surfaceContainer,
         scheme.onSurfaceVariant,
       ),
@@ -300,7 +300,7 @@ class _DismissButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) => IconButton(
     tooltip: tooltip ?? context.l10n.inboxDismiss,
-    icon: const Icon(Icons.close_rounded, size: 18),
+    icon: const Icon(MorkvaIcons.close, size: 18),
     color: Theme.of(context).colorScheme.onSurfaceVariant,
     onPressed: onPressed,
   );
@@ -397,7 +397,7 @@ class _ReminderToast extends StatelessWidget {
                         ),
                       ),
                       onPressed: onDone,
-                      icon: const Icon(Icons.check_rounded, size: 16),
+                      icon: const Icon(MorkvaIcons.check, size: 16),
                       label: Text(l10n.inboxDone),
                     ),
                   TextButton(onPressed: onOpen, child: Text(l10n.commonOpen)),
@@ -487,8 +487,8 @@ class _AwayToast extends StatelessWidget {
                               // A circle-check, not the row checkbox: nothing to tick here.
                               Icon(
                                 t.item.isTask
-                                    ? Icons.task_alt_rounded
-                                    : Icons.sticky_note_2_outlined,
+                                    ? MorkvaIcons.taskAlt
+                                    : MorkvaIcons.stickyNote,
                                 size: 16,
                                 color: scheme.onSurfaceVariant,
                               ),

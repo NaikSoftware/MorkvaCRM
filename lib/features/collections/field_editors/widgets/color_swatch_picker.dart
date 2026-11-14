@@ -112,7 +112,7 @@ class _ColorSwatch extends StatelessWidget {
                 ),
               ),
               child: selected
-                  ? Icon(Icons.check, size: 16, color: checkColor)
+                  ? Icon(MorkvaIcons.check, size: 16, color: checkColor)
                   : null,
             ),
           ),
@@ -154,7 +154,7 @@ class _NoneSwatch extends StatelessWidget {
                 ),
               ),
               child: Icon(
-                Icons.format_color_reset_outlined,
+                MorkvaIcons.colorReset,
                 size: 16,
                 color: scheme.onSurfaceVariant,
               ),

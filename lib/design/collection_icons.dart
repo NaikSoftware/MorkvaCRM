@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:morkva_crm/design/morkva_icons.dart';
 
 /// One entry in the curated collection-icon catalog: a stable [key] (what gets
 /// persisted on `Collection.icon`), the [icon] it renders to, and a short
@@ -21,34 +22,34 @@ class CollectionIconOption {
 /// Every glyph is a `const` [IconData] so the icon tree-shaker still works.
 abstract final class CollectionIcons {
   /// Rendered when a collection has no icon, or an unknown/retired key.
-  static const IconData fallback = Icons.style_outlined;
+  static const IconData fallback = MorkvaIcons.cards;
 
   /// The pickable catalog, in display order.
   static const List<CollectionIconOption> all = [
-    CollectionIconOption('cards', Icons.style_outlined, 'Cards'),
-    CollectionIconOption('grid', Icons.dashboard_customize_outlined, 'Grid'),
-    CollectionIconOption('box', Icons.inventory_2_outlined, 'Inventory'),
-    CollectionIconOption('truck', Icons.local_shipping_outlined, 'Shipping'),
-    CollectionIconOption('cart', Icons.shopping_cart_outlined, 'Orders'),
-    CollectionIconOption('bag', Icons.shopping_bag_outlined, 'Products'),
-    CollectionIconOption('tag', Icons.sell_outlined, 'Pricing'),
-    CollectionIconOption('people', Icons.groups_outlined, 'People'),
-    CollectionIconOption('person', Icons.person_outline, 'Contact'),
-    CollectionIconOption('business', Icons.apartment_outlined, 'Company'),
-    CollectionIconOption('store', Icons.storefront_outlined, 'Store'),
-    CollectionIconOption('money', Icons.payments_outlined, 'Finance'),
-    CollectionIconOption('receipt', Icons.receipt_long_outlined, 'Invoices'),
-    CollectionIconOption('calendar', Icons.event_outlined, 'Schedule'),
-    CollectionIconOption('task', Icons.checklist_outlined, 'Tasks'),
-    CollectionIconOption('folder', Icons.folder_outlined, 'Documents'),
-    CollectionIconOption('note', Icons.sticky_note_2_outlined, 'Notes'),
-    CollectionIconOption('star', Icons.star_outline, 'Favorites'),
-    CollectionIconOption('flag', Icons.flag_outlined, 'Priorities'),
-    CollectionIconOption('home', Icons.home_outlined, 'Properties'),
-    CollectionIconOption('car', Icons.directions_car_outlined, 'Vehicles'),
-    CollectionIconOption('build', Icons.build_outlined, 'Services'),
-    CollectionIconOption('pets', Icons.pets_outlined, 'Pets'),
-    CollectionIconOption('restaurant', Icons.restaurant_outlined, 'Menu'),
+    CollectionIconOption('cards', MorkvaIcons.cards, 'Cards'),
+    CollectionIconOption('grid', MorkvaIcons.dashboard, 'Grid'),
+    CollectionIconOption('box', MorkvaIcons.inventory, 'Inventory'),
+    CollectionIconOption('truck', MorkvaIcons.shipping, 'Shipping'),
+    CollectionIconOption('cart', MorkvaIcons.cart, 'Orders'),
+    CollectionIconOption('bag', MorkvaIcons.bag, 'Products'),
+    CollectionIconOption('tag', MorkvaIcons.sell, 'Pricing'),
+    CollectionIconOption('people', MorkvaIcons.groups, 'People'),
+    CollectionIconOption('person', MorkvaIcons.person, 'Contact'),
+    CollectionIconOption('business', MorkvaIcons.apartment, 'Company'),
+    CollectionIconOption('store', MorkvaIcons.store, 'Store'),
+    CollectionIconOption('money', MorkvaIcons.payments, 'Finance'),
+    CollectionIconOption('receipt', MorkvaIcons.receipt, 'Invoices'),
+    CollectionIconOption('calendar', MorkvaIcons.event, 'Schedule'),
+    CollectionIconOption('task', MorkvaIcons.checklist, 'Tasks'),
+    CollectionIconOption('folder', MorkvaIcons.folder, 'Documents'),
+    CollectionIconOption('note', MorkvaIcons.stickyNote, 'Notes'),
+    CollectionIconOption('star', MorkvaIcons.star, 'Favorites'),
+    CollectionIconOption('flag', MorkvaIcons.flag, 'Priorities'),
+    CollectionIconOption('home', MorkvaIcons.home, 'Properties'),
+    CollectionIconOption('car', MorkvaIcons.car, 'Vehicles'),
+    CollectionIconOption('build', MorkvaIcons.build, 'Services'),
+    CollectionIconOption('pets', MorkvaIcons.pets, 'Pets'),
+    CollectionIconOption('restaurant', MorkvaIcons.restaurant, 'Menu'),
   ];
 
   /// The [IconData] for [key], or [fallback] when [key] is null or not in the

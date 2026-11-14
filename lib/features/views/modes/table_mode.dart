@@ -28,7 +28,7 @@ class TableMode extends ViewMode {
   String get label => l10n.viewsModeTable;
 
   @override
-  IconData get icon => Icons.table_rows_outlined;
+  IconData get icon => MorkvaIcons.tableRows;
 
   @override
   String get description => l10n.viewsModeTableDescription;
@@ -426,7 +426,7 @@ class _HeaderCell extends StatelessWidget {
     );
     final arrow = sorted
         ? Icon(
-            sort!.ascending ? Icons.arrow_upward : Icons.arrow_downward,
+            sort!.ascending ? MorkvaIcons.arrowUp : MorkvaIcons.arrowDown,
             size: 16,
             color: scheme.onSurface,
           )
@@ -454,7 +454,11 @@ class _HeaderCell extends StatelessWidget {
                 : MainAxisAlignment.start,
             children: [
               if (!numeric) ...[
-                Icon(fieldTypeIcon(field), size: 16, color: scheme.outline),
+                Icon(
+                  fieldTypeIcon(field),
+                  size: 16,
+                  color: scheme.onSurfaceVariant,
+                ),
                 const SizedBox(width: Spacing.xxs),
               ],
               label,
@@ -628,7 +632,7 @@ class ViewTableCell extends StatelessWidget {
           ],
         ),
       (BooleanFieldDefinition(), BooleanFieldValue(value: true)) => Icon(
-        Icons.check_rounded,
+        MorkvaIcons.check,
         size: 20,
         color: theme.colorScheme.primary,
         semanticLabel: context.l10n.coreYes,
@@ -700,7 +704,7 @@ class _GhostRow extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.add, size: 20, color: link),
+                      Icon(MorkvaIcons.add, size: 20, color: link),
                       const SizedBox(width: Spacing.xs),
                       // Both shrink with ellipses on a narrow (phone) table.
                       Flexible(
@@ -719,7 +723,7 @@ class _GhostRow extends StatelessWidget {
                           child: TextButton.icon(
                             onPressed: onTap,
                             icon: const Icon(
-                              Icons.view_column_outlined,
+                              MorkvaIcons.viewColumns,
                               size: 18,
                             ),
                             label: Text(

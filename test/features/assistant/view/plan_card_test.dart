@@ -606,8 +606,8 @@ void main() {
       expect(plan.grantsPermissions, isTrue);
       await pump(tester, PlanItem.proposed(id: 'm', plan: plan));
 
-      expect(find.byIcon(Icons.shield_outlined), findsOneWidget);
-      expect(find.byIcon(Icons.delete_outline_rounded), findsNothing);
+      expect(find.byIcon(MorkvaIcons.shield), findsOneWidget);
+      expect(find.byIcon(MorkvaIcons.delete), findsNothing);
       expect(find.text('Install “Stamp shipped date”'), findsOneWidget);
       // The grants warning is the subtitle, not a second warning line.
       expect(
@@ -617,7 +617,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.byIcon(Icons.warning_amber_rounded), findsNothing);
+      expect(find.byIcon(MorkvaIcons.warning), findsNothing);
       expect(find.text('Create and change cards'), findsOneWidget);
       expect(find.text('Install module'), findsOneWidget);
       expect(find.text('Applies changes without asking'), findsNothing);
@@ -665,11 +665,11 @@ void main() {
       // What the user first sees: the high-risk module stays ticked with
       // the automation that depends on it.
       await pump(tester, PlanItem.proposed(id: 'm', plan: plan));
-      expect(find.byIcon(Icons.bolt_rounded), findsOneWidget);
+      expect(find.byIcon(MorkvaIcons.bolt), findsOneWidget);
       // The banner and the item's own diff line.
       expect(find.text('Applies changes without asking'), findsNWidgets(2));
       expect(find.text('Approve 2 changes'), findsOneWidget);
-      expect(find.byIcon(Icons.shield_outlined), findsOneWidget);
+      expect(find.byIcon(MorkvaIcons.shield), findsOneWidget);
     });
 
     testWidgets('an auto-apply automation alone gets the shield header', (
@@ -682,9 +682,9 @@ void main() {
         rows: [AssistantSeeds.moduleWithAutoPlan.rows.last],
       );
       await pump(tester, PlanItem.proposed(id: 'a', plan: plan));
-      expect(find.byIcon(Icons.shield_outlined), findsOneWidget);
-      expect(find.byIcon(Icons.edit_outlined), findsNothing);
-      expect(find.byIcon(Icons.bolt_rounded), findsOneWidget);
+      expect(find.byIcon(MorkvaIcons.shield), findsOneWidget);
+      expect(find.byIcon(MorkvaIcons.edit), findsNothing);
+      expect(find.byIcon(MorkvaIcons.bolt), findsOneWidget);
     });
 
     test('autoApplies fails closed unless apply is "ask"', () {

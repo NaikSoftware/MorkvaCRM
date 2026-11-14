@@ -5,6 +5,7 @@ import '../collection_icons.dart';
 import '../tokens/radii.dart';
 import '../tokens/spacing.dart';
 import 'pressable_scale.dart';
+import 'package:morkva_crm/design/morkva_icons.dart';
 
 /// The outcome of [CollectionIconPicker]: the chosen [key] (null means "no
 /// icon" — clear back to the default glyph). The picker future resolves to null
@@ -70,7 +71,7 @@ class CollectionIconPicker extends StatelessWidget {
                       // A distinct "no icon" mark — not the default glyph,
                       // which otherwise made this tile a twin of the first
                       // real option.
-                      icon: Icons.do_not_disturb_alt,
+                      icon: MorkvaIcons.block,
                       label: l10n.designIconNone,
                       selected: current == null,
                       muted: true,

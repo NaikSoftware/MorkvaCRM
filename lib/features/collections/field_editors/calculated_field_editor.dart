@@ -5,6 +5,7 @@ import '../../../l10n/l10n.dart';
 import 'field_editor.dart';
 import 'widgets/calculation_config.dart';
 import 'widgets/preview_affordances.dart';
+import 'package:morkva_crm/design/morkva_icons.dart';
 
 /// [FieldEditor] for the calculated field type: a formula or an aggregate,
 /// configured in [CalculationConfig].
@@ -22,7 +23,7 @@ class CalculatedFieldEditor extends FieldEditor {
       l10n.collectionsTypeCalculatedDescription;
 
   @override
-  IconData get icon => Icons.functions;
+  IconData get icon => MorkvaIcons.formula;
 
   @override
   bool get isComputed => true;
@@ -72,5 +73,5 @@ class CalculatedFieldEditor extends FieldEditor {
   Widget buildPreviewAffordance(
     BuildContext context,
     FieldDefinition definition,
-  ) => const PreviewStubInput(icon: Icons.functions, height: 36);
+  ) => const PreviewStubInput(icon: MorkvaIcons.formula, height: 36);
 }

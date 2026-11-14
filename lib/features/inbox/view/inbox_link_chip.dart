@@ -198,7 +198,7 @@ class _InboxLinkChipState extends State<InboxLinkChip> {
             SizedBox.square(
               dimension: 20,
               child: Icon(
-                Icons.link_off,
+                MorkvaIcons.linkOff,
                 size: 14,
                 color: scheme.onSurfaceVariant,
               ),
@@ -238,7 +238,7 @@ class _InboxLinkChipState extends State<InboxLinkChip> {
                 tooltip: l10n.inboxRemoveLink,
                 color: scheme.onSurfaceVariant,
                 onPressed: clear,
-                icon: const Icon(Icons.close),
+                icon: const Icon(MorkvaIcons.close),
               ),
             ),
         ],

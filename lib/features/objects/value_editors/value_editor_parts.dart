@@ -22,7 +22,7 @@ class AddValueButton extends StatelessWidget {
         theme.extension<MorkvaSemanticColors>()?.primaryText ?? scheme.primary;
     return TextButton.icon(
       onPressed: onPressed,
-      icon: const Icon(Icons.add, size: 18),
+      icon: const Icon(MorkvaIcons.add, size: 18),
       label: Text(label),
       style: TextButton.styleFrom(
         foregroundColor: color,
@@ -74,7 +74,7 @@ class RemovableChip extends StatelessWidget {
       backgroundColor: color ?? scheme.surfaceContainer,
       side: BorderSide.none,
       shape: shape ?? const RoundedRectangleBorder(borderRadius: Radii.smAll),
-      deleteIcon: const Icon(Icons.close, size: 16),
+      deleteIcon: const Icon(MorkvaIcons.close, size: 16),
       deleteIconColor: scheme.onSurfaceVariant,
       deleteButtonTooltipMessage: deleteTooltip,
       onDeleted: onDeleted,

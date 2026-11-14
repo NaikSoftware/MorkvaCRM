@@ -96,7 +96,7 @@ class _ImportSheetState extends State<ImportSheet> {
             children: [
               if (automationsExpanded(context)) ...[
                 Icon(
-                  Icons.upload_file_outlined,
+                  MorkvaIcons.uploadFile,
                   color: scheme.onSurfaceVariant,
                 ),
                 const SizedBox(height: Spacing.xs),
@@ -112,7 +112,7 @@ class _ImportSheetState extends State<ImportSheet> {
               ],
               SecondaryButton(
                 label: l10n.automationImportChooseFile,
-                icon: Icons.folder_open_outlined,
+                icon: MorkvaIcons.folderOpen,
                 onPressed: _choose,
               ),
             ],
@@ -131,7 +131,7 @@ class _ImportSheetState extends State<ImportSheet> {
 
     return AutomationSheetFrame(
       header: SheetHeader(
-        icon: Icons.upload_outlined,
+        icon: MorkvaIcons.uploadFile,
         title: l10n.automationImportModule,
       ),
       body: [
@@ -190,14 +190,14 @@ class _ImportSheetState extends State<ImportSheet> {
           const SizedBox(height: Spacing.sm),
           AutomationBanner(
             tone: CopyTone.neutral,
-            icon: Icons.check_circle_outline,
+            icon: MorkvaIcons.checkCircle,
             title: l10n.automationImportSameVersion(bundle.manifest.version),
           ),
         ] else if (replacing != null && bundle != null) ...[
           const SizedBox(height: Spacing.sm),
           AutomationBanner(
             tone: CopyTone.warning,
-            icon: Icons.swap_horiz,
+            icon: MorkvaIcons.swapHoriz,
             title: l10n.automationImportReplacingTitle(
               replacing.module.version,
             ),

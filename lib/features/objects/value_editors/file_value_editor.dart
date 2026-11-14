@@ -234,7 +234,7 @@ class _AttachmentTile extends StatelessWidget {
             onPressed: onRemove,
             iconSize: 18,
             color: scheme.onSurfaceVariant,
-            icon: const Icon(Icons.delete_outline),
+            icon: const Icon(MorkvaIcons.delete),
           ),
         ],
       ),
@@ -302,7 +302,7 @@ class _UploadingTile extends StatelessWidget {
                 onPressed: onCancel,
                 iconSize: 18,
                 color: scheme.onSurfaceVariant,
-                icon: const Icon(Icons.close),
+                icon: const Icon(MorkvaIcons.close),
               ),
           ],
         ),
@@ -326,7 +326,7 @@ class _UploadButton extends StatelessWidget {
         theme.extension<MorkvaSemanticColors>()?.primaryText ?? scheme.primary;
     return TextButton.icon(
       onPressed: onPressed,
-      icon: const Icon(Icons.add, size: 18),
+      icon: const Icon(MorkvaIcons.add, size: 18),
       label: Text(label),
       style: TextButton.styleFrom(
         foregroundColor: color,

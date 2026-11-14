@@ -147,7 +147,7 @@ class ShellSidebar extends StatelessWidget {
             _NavRow(
               label: l10n.inboxTitle,
               selected: place == ShellPlace.inbox,
-              leading: const _ToolTile(Icons.inbox_rounded),
+              leading: const _ToolTile(MorkvaIcons.inbox),
               trailing: const _InboxPill(),
               onTap: onInbox,
             ),
@@ -161,7 +161,7 @@ class ShellSidebar extends StatelessWidget {
             _NavRow(
               label: l10n.commonAutomations,
               selected: place == ShellPlace.automations,
-              leading: const _ToolTile(Icons.bolt_rounded),
+              leading: const _ToolTile(MorkvaIcons.bolt),
               trailing: const RunIndicatorPill(),
               onTap: onAutomations,
             ),
@@ -249,7 +249,7 @@ class ShellSidebar extends StatelessWidget {
               null => l10n.shellJumpTo,
             },
             onTap: onJumpTo,
-            child: Icon(Icons.search_rounded, color: scheme.onSurfaceVariant),
+            child: Icon(MorkvaIcons.search, color: scheme.onSurfaceVariant),
           ),
           if (onAssistant case final onAssistant?)
             _RailButton(
@@ -275,7 +275,7 @@ class ShellSidebar extends StatelessWidget {
               onTap: onInbox,
               child: InboxBadgeIcon(
                 icon: Icon(
-                  Icons.inbox_rounded,
+                  MorkvaIcons.inbox,
                   color: place == ShellPlace.inbox
                       ? scheme.onPrimaryContainer
                       : scheme.onSurfaceVariant,
@@ -338,7 +338,7 @@ class ShellSidebar extends StatelessWidget {
             tooltip: l10n.commonSettings,
             selected: place == ShellPlace.settings,
             onTap: onSettings,
-            child: Icon(Icons.tune_rounded, color: scheme.onSurfaceVariant),
+            child: Icon(MorkvaIcons.settings, color: scheme.onSurfaceVariant),
           ),
           const SizedBox(height: Spacing.xxs),
           UserAvatar(user: user, showSync: true),
@@ -372,7 +372,7 @@ Future<void> _showUnpinMenu(
         value: true,
         child: ListTile(
           contentPadding: EdgeInsets.zero,
-          leading: const Icon(Icons.push_pin_outlined),
+          leading: const Icon(MorkvaIcons.pin),
           title: Text(context.l10n.shellUnpin),
         ),
       ),
@@ -399,7 +399,7 @@ class _AllTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(size * 0.3),
       ),
       child: Icon(
-        Icons.grid_view_rounded,
+        MorkvaIcons.gridView,
         size: size * 0.57,
         color: selected ? scheme.onPrimary : scheme.onSurfaceVariant,
       ),
@@ -491,7 +491,7 @@ class _JumpField extends StatelessWidget {
             child: Row(
               children: [
                 Icon(
-                  Icons.search_rounded,
+                  MorkvaIcons.search,
                   size: 18,
                   color: scheme.onSurfaceVariant,
                 ),
@@ -697,7 +697,7 @@ class _NavRowState extends State<_NavRow> {
                               child: Tooltip(
                                 message: context.l10n.shellDragToReorder,
                                 child: Icon(
-                                  Icons.drag_indicator_rounded,
+                                  MorkvaIcons.dragHandle,
                                   size: 18,
                                   color: scheme.outline,
                                 ),
@@ -853,7 +853,7 @@ class _ProfileRow extends StatelessWidget {
                   ? scheme.surfaceContainerLowest
                   : null,
             ),
-            icon: const Icon(Icons.tune_rounded),
+            icon: const Icon(MorkvaIcons.settings),
           ),
         ],
       ),

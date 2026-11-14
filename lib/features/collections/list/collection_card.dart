@@ -90,7 +90,7 @@ class CollectionCard extends StatelessWidget {
                         : null,
                   ),
                   icon: Icon(
-                    pinned ? Icons.push_pin : Icons.push_pin_outlined,
+                    pinned ? MorkvaIcons.pinFilled : MorkvaIcons.pin,
                     size: 18,
                   ),
                 ),
@@ -150,7 +150,7 @@ class _OverflowMenu extends StatelessWidget {
     final l10n = context.l10n;
     return PopupMenuButton<CollectionCardAction>(
       tooltip: l10n.collectionsMoreActions,
-      icon: Icon(Icons.more_vert, size: 20, color: scheme.onSurfaceVariant),
+      icon: Icon(MorkvaIcons.moreVert, size: 20, color: scheme.onSurfaceVariant),
       style: IconButton.styleFrom(visualDensity: VisualDensity.compact),
       padding: EdgeInsets.zero,
       splashRadius: 20,
@@ -160,7 +160,7 @@ class _OverflowMenu extends StatelessWidget {
           value: CollectionCardAction.customize,
           child: ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.tune),
+            leading: const Icon(MorkvaIcons.tune),
             title: Text(l10n.collectionsCustomize),
           ),
         ),
@@ -168,7 +168,7 @@ class _OverflowMenu extends StatelessWidget {
           value: CollectionCardAction.rename,
           child: ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.edit_outlined),
+            leading: const Icon(MorkvaIcons.edit),
             title: Text(l10n.commonRename),
           ),
         ),
@@ -176,7 +176,7 @@ class _OverflowMenu extends StatelessWidget {
           value: CollectionCardAction.delete,
           child: ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.delete_outline, color: scheme.error),
+            leading: Icon(MorkvaIcons.delete, color: scheme.error),
             title: Text(
               l10n.commonDelete,
               style: TextStyle(color: scheme.error),

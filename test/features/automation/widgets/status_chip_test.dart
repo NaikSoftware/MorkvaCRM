@@ -75,7 +75,7 @@ void main() {
       ),
     );
     expect(find.byType(IntrinsicWidth), findsNothing);
-    expect(find.byIcon(Icons.check_rounded), findsOneWidget);
+    expect(find.byIcon(MorkvaIcons.check), findsOneWidget);
     final chip = tester.getSize(find.byType(StatusChip));
     expect(chip.width, lessThan(200));
   });

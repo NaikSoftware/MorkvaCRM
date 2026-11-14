@@ -102,3 +102,18 @@ dialogs, sheets or the phone app bar. Colour comes from
   attention. Text-heavy surfaces (table, board columns, cards, list sections,
   calendar grid) keep their own opaque backgrounds so the doodles show only in
   the gaps — never put text straight onto the pattern beyond a page header.
+
+## 11. Icons
+Use `MorkvaIcons` (`morkva_icons.dart`, font family `MorkvaIcons`), never
+Material `Icons`. The set is drawn in-house in the "Bricolage Ink-Trap" style:
+heavy verticals, thin horizontals, flat-cut ends and small ink traps, so it
+sits with the Bricolage Grotesque headings.
+- **Need a new glyph?** Add a row to `tool/icons/concepts.tsv` (name, the
+  Material names it replaces, meaning), draw `tool/icons/svg/<name>.svg` per
+  `tool/icons/STYLE.md`, then run `tool/icons/build.py` (it regenerates the
+  font and `morkva_icons.dart`; code points stay stable in `codepoints.json`).
+- **Merged or rebased code with `Icons.*`?** Run `python3 tool/icons/migrate.py`;
+  it maps every Material name listed in `concepts.tsv` and reports the rest.
+- `test/design/morkva_icons_test.dart` fails on any `Icons.` left in `lib/`.
+- Still Material, drawn by the framework: date/time pickers, `ExpansionTile`
+  chevrons, checkboxes and reorder handles.

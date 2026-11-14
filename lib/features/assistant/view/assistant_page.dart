@@ -70,14 +70,14 @@ class AssistantPage extends StatelessWidget {
                         ?indicator,
                         if (onOpenHistory != null)
                           IconActionButton(
-                            icon: Icons.history_rounded,
+                            icon: MorkvaIcons.history,
                             tooltip: context.l10n.assistantConversationHistory,
                             onPressed: onOpenHistory,
                           ),
                         if (state.items.isNotEmpty &&
                             state.availability.canSend)
                           IconActionButton(
-                            icon: Icons.edit_square,
+                            icon: MorkvaIcons.compose,
                             tooltip: context.l10n.assistantNewConversation,
                             onPressed: actions.newThread,
                           ),

@@ -89,7 +89,7 @@ class _Sheet extends StatelessWidget {
       );
 }
 
-const _boardIcon = Icons.view_kanban_outlined;
+const _boardIcon = MorkvaIcons.viewBoard;
 
 /// "1,200".
 String _n(int n) =>
@@ -197,7 +197,7 @@ class _AddStepState extends State<_AddStep> {
           child: Column(
             children: [
               Icon(
-                Icons.upload_file_outlined,
+                MorkvaIcons.uploadFile,
                 size: 28,
                 color: scheme.onSurfaceVariant,
               ),
@@ -212,7 +212,7 @@ class _AddStepState extends State<_AddStep> {
               const SizedBox(height: Spacing.xs),
               SecondaryButton(
                 label: l10n.trelloImportChooseFiles,
-                icon: Icons.folder_outlined,
+                icon: MorkvaIcons.folder,
                 onPressed: _choose,
               ),
             ],
@@ -255,7 +255,7 @@ class _AddStepState extends State<_AddStep> {
               const SizedBox(width: Spacing.sm),
               SecondaryButton(
                 label: l10n.trelloImportAddBoard,
-                icon: Icons.add_rounded,
+                icon: MorkvaIcons.add,
                 onPressed: _paste.text.trim().isEmpty ? null : _addPasted,
               ),
             ],
@@ -366,7 +366,7 @@ class _ExportHowTo extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline, size: 18, color: scheme.onSurfaceVariant),
+          Icon(MorkvaIcons.info, size: 18, color: scheme.onSurfaceVariant),
           const SizedBox(width: Spacing.sm),
           Expanded(
             child: Column(
@@ -542,7 +542,7 @@ class _BoardRow extends StatelessWidget {
             ),
           ),
           IconActionButton(
-            icon: Icons.close_rounded,
+            icon: MorkvaIcons.close,
             tooltip: l10n.trelloImportRemoveNamed(name),
             onPressed: onRemove,
           ),
@@ -573,7 +573,7 @@ class _ProblemRow extends StatelessWidget {
           child: Row(
             children: [
               _RowTile(
-                icon: Icons.error_outline,
+                icon: MorkvaIcons.error,
                 background: tone.background,
                 foreground: tone.foreground,
               ),
@@ -598,7 +598,7 @@ class _ProblemRow extends StatelessWidget {
                 ),
               ),
               IconActionButton(
-                icon: Icons.close_rounded,
+                icon: MorkvaIcons.close,
                 tooltip: context.l10n.trelloImportDismissNamed(problem.name),
                 onPressed: onDismiss,
               ),
@@ -632,7 +632,7 @@ class _InlineProblem extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.error_outline, size: 16, color: color),
+          Icon(MorkvaIcons.error, size: 16, color: color),
           const SizedBox(width: Spacing.xs),
           Expanded(
             child: Text(
@@ -673,7 +673,7 @@ class _ChooseStep extends StatelessWidget {
       body: [
         AutomationBanner(
           tone: CopyTone.neutral,
-          icon: Icons.bolt_outlined,
+          icon: MorkvaIcons.bolt,
           title: l10n.trelloImportNoAutomationsTitle,
           body: l10n.trelloImportNoAutomationsBody,
         ),
@@ -752,7 +752,7 @@ class _ChooseStep extends StatelessWidget {
           ImportBlockedReason.nothingChosen => l10n.trelloImportNothingChosen,
           ImportBlockedReason.offline => l10n.trelloImportOffline,
         },
-        hintIcon: count > 0 && state.offline ? Icons.wifi_off_rounded : null,
+        hintIcon: count > 0 && state.offline ? MorkvaIcons.wifiOff : null,
         buttons: [
           TextActionButton(label: l10n.commonBack, onPressed: cubit.back),
           PrimaryButton(
@@ -852,7 +852,7 @@ class _BoardGroup extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Icon(
-                              Icons.info_outline_rounded,
+                              MorkvaIcons.info,
                               size: 14,
                               color: semantic.onWarningContainer,
                             ),
@@ -1023,7 +1023,7 @@ class _ImportingStep extends StatelessWidget {
         if (paused) ...[
           AutomationBanner(
             tone: CopyTone.warning,
-            icon: Icons.warning_amber_rounded,
+            icon: MorkvaIcons.warning,
             title: l10n.trelloImportPaused,
             body: switch (failure) {
               ImportFailure.stalled => l10n.trelloImportStalled,
@@ -1072,7 +1072,7 @@ class _ImportingStep extends StatelessWidget {
                 ),
                 PrimaryButton(
                   label: l10n.commonRetry,
-                  icon: Icons.refresh_rounded,
+                  icon: MorkvaIcons.refresh,
                   onPressed: () => unawaited(cubit.retry()),
                 ),
               ],
@@ -1105,13 +1105,13 @@ class _ProgressRow extends StatelessWidget {
     );
     final marker = switch (row.status) {
       ImportRowStatus.done => dot(
-        Icons.check_rounded,
+        MorkvaIcons.check,
         success.background,
         success.foreground,
         l10n.commonDone,
       ),
       ImportRowStatus.paused => dot(
-        Icons.pause_rounded,
+        MorkvaIcons.pause,
         semantic.warningContainer,
         semantic.onWarningContainer,
         l10n.trelloImportRowPaused,
@@ -1132,7 +1132,7 @@ class _ProgressRow extends StatelessWidget {
       ImportRowStatus.pending => SizedBox.square(
         dimension: 28,
         child: Icon(
-          Icons.schedule_rounded,
+          MorkvaIcons.schedule,
           size: 18,
           color: scheme.onSurfaceVariant,
           semanticLabel: l10n.trelloImportRowWaiting,
@@ -1193,7 +1193,7 @@ class _DoneStep extends StatelessWidget {
         .fold(0, (n, r) => n + r.total);
     return AutomationSheetFrame(
       header: SheetHeader(
-        icon: Icons.check_rounded,
+        icon: MorkvaIcons.check,
         title: l10n.trelloImportDoneTitle,
         subtitle:
             '${l10n.trelloImportCollectionCount(state.rows.length, _n(state.rows.length))}'
@@ -1278,7 +1278,7 @@ class _DoneStep extends StatelessWidget {
           child: Row(
             children: [
               Icon(
-                Icons.bolt_outlined,
+                MorkvaIcons.bolt,
                 size: 18,
                 color: scheme.onSurfaceVariant,
               ),

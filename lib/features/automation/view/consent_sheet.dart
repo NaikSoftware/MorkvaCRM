@@ -230,7 +230,7 @@ class SheetHeader extends StatelessWidget {
         ),
         if (onClose != null)
           IconActionButton(
-            icon: Icons.close_rounded,
+            icon: MorkvaIcons.close,
             tooltip: context.l10n.commonClose,
             onPressed: onClose,
           ),
@@ -241,15 +241,15 @@ class SheetHeader extends StatelessWidget {
 
 /// A capability's icon (consent sheet, module details).
 IconData capabilityIcon(String cap) => switch (cap) {
-  'schema:read' => Icons.table_chart_outlined,
-  'data:read' => Icons.visibility_outlined,
-  'data:write' => Icons.edit_outlined,
-  'data:delete' => Icons.delete_outline,
-  'schema:write' => Icons.build_outlined,
-  'schema:delete' => Icons.delete_forever_outlined,
-  'views:write' => Icons.view_column_outlined,
-  'ui:navigate' => Icons.link,
-  _ => Icons.shield_outlined,
+  'schema:read' => MorkvaIcons.table,
+  'data:read' => MorkvaIcons.visibility,
+  'data:write' => MorkvaIcons.edit,
+  'data:delete' => MorkvaIcons.delete,
+  'schema:write' => MorkvaIcons.build,
+  'schema:delete' => MorkvaIcons.deleteForever,
+  'views:write' => MorkvaIcons.viewColumns,
+  'ui:navigate' => MorkvaIcons.link,
+  _ => MorkvaIcons.shield,
 };
 
 /// "On a card" / "On a collection" / "Card or collection".
@@ -436,7 +436,7 @@ class _ConsentSheetState extends State<ConsentSheet> {
               // The same bundle again: nothing changed to compare.
               if (view.codeChanged)
                 MetaLine(
-                  icon: Icons.code,
+                  icon: MorkvaIcons.code,
                   text: l10n.automationConsentCodeChanged(
                     '${view.fromVersion}',
                     manifest.version,
@@ -446,14 +446,14 @@ class _ConsentSheetState extends State<ConsentSheet> {
                 )
               else
                 MetaLine(
-                  icon: Icons.check_circle_outline,
+                  icon: MorkvaIcons.checkCircle,
                   text: l10n.automationConsentSameVersion,
                 ),
               // Installing writes a fresh consent, auto-apply off.
               if (view.autoApplyTurnsOff) ...[
                 const SizedBox(height: Spacing.xxs),
                 MetaLine(
-                  icon: Icons.bolt_outlined,
+                  icon: MorkvaIcons.bolt,
                   text: view.codeChanged
                       ? l10n.automationConsentAutoApplyOffNew
                       : l10n.automationConsentAutoApplyOffAgain,
@@ -509,7 +509,7 @@ class _ConsentSheetState extends State<ConsentSheet> {
             ),
             TextActionButton(
               label: l10n.automationViewCode,
-              icon: Icons.code,
+              icon: MorkvaIcons.code,
               onPressed: () => showCodeViewer(
                 context,
                 code: view.bundle.code,
@@ -624,7 +624,7 @@ class _ConsentSheetState extends State<ConsentSheet> {
         ),
       const SizedBox(height: Spacing.md),
       MetaLine(
-        icon: Icons.shield_outlined,
+        icon: MorkvaIcons.shield,
         text: l10n.automationConsentSandboxNote,
       ),
     ];
@@ -637,7 +637,7 @@ class _ConsentSheetState extends State<ConsentSheet> {
     final pickHint = _scope.chosen ? null : l10n.automationConsentPickWhere;
     return AutomationSheetFrame(
       header: SheetHeader(
-        icon: Icons.shield_outlined,
+        icon: MorkvaIcons.shield,
         title: edit
             ? l10n.automationConsentChangeAccessTitle(manifest.name)
             : l10n.automationConsentAllowTitle(manifest.name),
