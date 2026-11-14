@@ -685,8 +685,6 @@ final class SessionAssistantActions implements AssistantActions {
   void newThread() => _bloc.add(const NewThreadRequested());
 
   @override
-  void grantConsent() => _bloc.add(const ConsentGranted());
-
   @override
   void openObject({
     required String collectionId,

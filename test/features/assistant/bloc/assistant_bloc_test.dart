@@ -332,34 +332,19 @@ void main() {
       },
     );
 
-    blocTest<AssistantBloc, AssistantState>(
-      'consent needed: the disclosure until "Enable Ask Morkva"',
-      setUp: () async {
-        rig = AssistantRig();
-        await rig.start(consented: false);
-      },
-      build: () => rig.bloc,
-      act: (bloc) async {
-        expect(
-          bloc.state.availability,
-          const AvailabilityNeedsConsent(freeTier: true),
-        );
-        bloc.add(const PromptSubmitted('Hello'));
-        bloc.add(const ConsentGranted());
-        await rig.until((s) => s.availability is AvailabilityEnabled);
-        await rig.settle();
-      },
-      expect: () => [
-        stateWhere((s) => s.availability is AvailabilityEnabled, 'enabled'),
-      ],
-      verify: (_) async {
-        expect(rig.state.items, isEmpty, reason: 'sent before consent');
-        final doc = await rig.firestore
-            .doc('workspaces/$workspaceId/config/assistant')
-            .get();
-        expect(doc.data()?['consentedBy'], user.uid);
-      },
-    );
+    test('no opt-in step: a fresh workspace is enabled at once', () async {
+      rig = AssistantRig();
+      await rig.start();
+
+      expect(rig.state.availability, const AvailabilityEnabled());
+      expect(
+        (await rig.firestore
+                .doc('workspaces/$workspaceId/config/assistant')
+                .get())
+            .exists,
+        isFalse,
+      );
+    });
 
     blocTest<AssistantBloc, AssistantState>(
       'offline: the composer is off, and approving needs a connection',

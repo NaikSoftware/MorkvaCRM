@@ -251,7 +251,6 @@ class _ComposerState extends State<Composer> {
         return message;
       case AvailabilityChecking() ||
           AvailabilityEnabled() ||
-          AvailabilityNeedsConsent() ||
           AvailabilityDisabledByFlag() ||
           AvailabilityNotSetUp():
         break;

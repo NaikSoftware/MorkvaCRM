@@ -277,22 +277,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get assistantConsentTitle => 'Before you start';
-
-  @override
-  String get assistantConsentData =>
-      'To answer, Ask Morkva sends your question and the parts of your data it needs to Google’s Gemini.';
-
-  @override
-  String get assistantConsentFreeTier =>
-      'On the free tier Google may use prompts and answers to improve its products, so keep sensitive details out of your questions.';
-
-  @override
   String get assistantDisclaimer =>
       'Answers can be wrong — check important numbers.';
-
-  @override
-  String get assistantEnable => 'Enable Ask Morkva';
 
   @override
   String get assistantOffTitle => 'Ask Morkva is off';

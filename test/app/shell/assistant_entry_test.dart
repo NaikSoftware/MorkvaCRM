@@ -124,13 +124,6 @@ void main() {
     testWidgets('Ctrl+J toggles it, Esc closes it, not over a dialog', (
       tester,
     ) async {
-      // Opted in, so the composer is there to take focus.
-      await firestore
-          .collection('workspaces')
-          .doc('u1')
-          .collection('config')
-          .doc('assistant')
-          .set({'consentedBy': 'u1', 'consentedAt': '2026-11-01T10:00:00Z'});
       await pumpApp(tester, const Size(1300, 900));
 
       await pressCtrl(tester, LogicalKeyboardKey.keyJ);
@@ -188,10 +181,16 @@ void main() {
 
     await tester.tap(find.text('Ask Morkva to write one'));
     await tester.pumpAndSettle();
-    // The panel opens with the text waiting for its composer (this rig
-    // shows the consent disclosure, so nothing takes it yet).
+    // The panel opens and its composer takes the text.
     expect(session(tester).panel.isOpen, isTrue);
-    expect(session(tester).draft.value, 'Write a module that ');
+    expect(session(tester).draft.value, isNull);
+    expect(
+      find.descendant(
+        of: find.byType(AssistantPanel),
+        matching: find.widgetWithText(TextField, 'Write a module that '),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('phone: the header sparkle opens /assistant and its history', (

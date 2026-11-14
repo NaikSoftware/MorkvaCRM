@@ -165,14 +165,6 @@ abstract final class AssistantSeeds {
     collectionNames: _collections,
   );
 
-  /// The empty state before the workspace opted in (disclosure + "Enable
-  /// Ask Morkva").
-  static AssistantState consent() => const AssistantState(
-    availability: AvailabilityNeedsConsent(),
-    userFirstName: 'Olena',
-    collectionNames: _collections,
-  );
-
   /// Analyze: a bar chart, then an applied 12-of-14 plan with Undo.
   static AssistantState analyze({DateTime? now}) {
     final at = now ?? DateTime.now();

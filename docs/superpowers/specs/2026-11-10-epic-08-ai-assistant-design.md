@@ -1135,11 +1135,10 @@ CRM cards hold the business's customers' personal data, and whatever the assista
 Gemini. On the Gemini Developer API **unpaid** tier Google may use prompts and responses to improve
 its products, including human review; on the paid tier it does not. (The project is on **Spark** — billing was linked and unlinked on 2026-11-10 — so the unpaid terms
 apply: `config/assistant.dataUse = "free"`.)
-- **Consent.** The assistant is opt-in per workspace: `workspaces/{wid}/config/assistant`
-  `{consentedBy, consentedAt}`. Until it is set, the empty state shows the disclosure and an
-  "Enable Ask Morkva" button instead of the composer. The disclosure text comes from `dataUse`
-  ("Data you ask about is sent to Google Gemini and, on the free tier, may be used to improve Google
-  products."); the same line sits in settings.
+- **Consent.** ~~Opt-in per workspace with an "Enable Ask Morkva" disclosure.~~ Removed
+  2026-11-14 (owner): Ask Morkva opens straight to the composer; the app no longer reads or writes
+  `workspaces/{wid}/config/assistant`, and `config/assistant.dataUse` is unused. The composer's
+  disclaimer line stays.
 - **Minimal persistence.** Message docs store FunctionResponses compacted (`{summary, spec}`; no
   row values), so deleting a card does not leave copies of its data in chat history. Journal
   mirrors are the one exception (they need before-values) and expire with the undo window: the

@@ -98,10 +98,7 @@ final class AssistantRig {
     session = AssistantSession(
       harnessSession: harness,
       threads: this.threads,
-      config: AssistantConfigRepository(
-        firestore: this.firestore,
-        now: () => clock,
-      ),
+      config: AssistantConfigRepository(firestore: this.firestore),
       syncStatus: sync,
       llmFactory: () => llm,
       runsStarted: runsStarted.stream,
@@ -133,18 +130,8 @@ final class AssistantRig {
   AssistantBloc get bloc => session.bloc;
   AssistantState get state => bloc.state;
 
-  /// Records the workspace's opt-in (as a member enabling it would).
-  Future<void> consent() => firestore
-      .collection('workspaces')
-      .doc(workspaceId)
-      .collection('config')
-      .doc('assistant')
-      .set({'consentedBy': user.uid, 'consentedAt': '2026-11-01T10:00:00Z'});
-
-  /// Signs the member in, consenting first unless told not to, and waits
-  /// for the config to arrive.
-  Future<void> start({bool consented = true}) async {
-    if (consented) await consent();
+  /// Signs the member in and waits for the config to arrive.
+  Future<void> start() async {
     await session.initialize(workspaceId, user: user);
     await until((s) => s.availability is! AvailabilityChecking);
     await session.cache.ready;
