@@ -424,6 +424,24 @@ abstract final class MorkvaIcons {
   /// Notes.
   static const IconData stickyNote = IconData(0xe08a, fontFamily: _family);
 
+  /// Inbox.
+  static const IconData inbox = IconData(0xe08b, fontFamily: _family);
+
+  /// Reminder.
+  static const IconData notifications = IconData(0xe08c, fontFamily: _family);
+
+  /// Notifications blocked.
+  static const IconData notificationsOff = IconData(0xe08d, fontFamily: _family);
+
+  /// Reminders fired.
+  static const IconData notificationsActive = IconData(0xe08e, fontFamily: _family);
+
+  /// Linked card missing.
+  static const IconData linkOff = IconData(0xe08f, fontFamily: _family);
+
+  /// Task kind.
+  static const IconData taskAlt = IconData(0xe090, fontFamily: _family);
+
   /// Every icon by name, for previews and tests.
   static const Map<String, IconData> all = {
     'add': add,
@@ -565,5 +583,11 @@ abstract final class MorkvaIcons {
     'pets': pets,
     'restaurant': restaurant,
     'stickyNote': stickyNote,
+    'inbox': inbox,
+    'notifications': notifications,
+    'notificationsOff': notificationsOff,
+    'notificationsActive': notificationsActive,
+    'linkOff': linkOff,
+    'taskAlt': taskAlt,
   };
 }

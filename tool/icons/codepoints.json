@@ -137,5 +137,11 @@
   "build": 57479,
   "pets": 57480,
   "restaurant": 57481,
-  "stickyNote": 57482
+  "stickyNote": 57482,
+  "inbox": 57483,
+  "notifications": 57484,
+  "notificationsOff": 57485,
+  "notificationsActive": 57486,
+  "linkOff": 57487,
+  "taskAlt": 57488
 }

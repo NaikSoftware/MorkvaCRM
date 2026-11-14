@@ -137,3 +137,9 @@ build	build_outlined	wrench; services / tools
 pets	pets_outlined	paw print; pets	
 restaurant	restaurant_outlined	fork and knife; menu / food	
 stickyNote	sticky_note_2_outlined	sticky note with folded corner; notes	
+inbox	inbox_outlined,inbox_rounded,inbox	tray with a dipped front edge; inbox	
+notifications	notifications_none,notifications_outlined	bell; reminder	
+notificationsOff	notifications_off_outlined	bell with an off mark; notifications blocked	
+notificationsActive	notifications_active_outlined	bell with ring marks either side; reminders fired	
+linkOff	link_off	chain links broken apart; linked card missing	
+taskAlt	task_alt_rounded,task_alt	checkmark whose right arm breaks out of an open circle; task kind	
