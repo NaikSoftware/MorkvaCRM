@@ -15,7 +15,7 @@ InboxItem _item(String id, {String assignee = _uid}) => InboxItem(
   title: 'Call $id',
   dueAt: DateTime.utc(2026, 11, 20),
   allDay: true,
-  reminders: const [InboxReminders.morningOf],
+  reminders: const [InboxReminders.atStart - InboxReminders.dayStart],
   link: const InboxLink(collectionId: 'c1', cardId: 'b1', label: '#1'),
   assigneeUid: assignee,
   createdBy: assignee,

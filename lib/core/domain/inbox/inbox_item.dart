@@ -60,12 +60,21 @@ abstract final class InboxReminders {
   static const min15 = 15;
   static const min30 = 30;
 
-  /// All-day: 09:00 on the day.
-  static const morningOf = -540;
-
   static const timed = [atStart, min15, min30];
-  static const allDay = [morningOf];
+
+  /// An all-day item "starts" at 09:00: its presets are [timed] counted
+  /// from then (-540 = 09:00, -525 = 08:45, -510 = 08:30).
+  static const dayStart = 9 * 60;
+  static const allDay = [
+    atStart - dayStart,
+    min15 - dayStart,
+    min30 - dayStart,
+  ];
   static const max = 3;
+
+  /// The [timed] preset an all-day preset [offset] mirrors, and back.
+  static int toTimed(int offset) => offset + dayStart;
+  static int toAllDay(int offset) => offset - dayStart;
 
   /// The presets valid for an item with ([allDay] false) or without a time.
   static List<int> presetsFor({required bool allDay}) =>

@@ -134,7 +134,7 @@ void main() {
         dueAt: DateTime.utc(2026, 11, 20),
         allDay: true,
         reminders: [
-          InboxReminders.morningOf,
+          InboxReminders.allDay.first,
           InboxReminders.offsetFor(
             DateTime(2026, 11, 20),
             DateTime(2026, 11, 19, 18, 30),

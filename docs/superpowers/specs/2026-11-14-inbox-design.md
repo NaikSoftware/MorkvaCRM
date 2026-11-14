@@ -33,7 +33,7 @@ Two usage styles must both feel native:
   disappear silently.
 - G3. Link an item to any card of any collection; open the card from the item; add an item from a
   card and see a card's open items from the card.
-- G4. Reminders (at start, 15 min, 30 min before, or a custom date/time; morning-of for all-day items) that
+- G4. Reminders (at start, 15 min, 30 min before, or a custom date/time; counted from 09:00 for all-day items) that
   show as a browser notification when Morkva is open but not focused, and as an in-app toast when it
   is focused.
 - G5. Team-ready data: items live at workspace level with an assignee and an author, so Epic 10
@@ -93,7 +93,7 @@ Trello; the owner's reference xTiles). What we take, what we leave:
 | **Note** | The owner's "notification": no checkbox, never overdue, ends with Delete. Default: **No date** (a sticky note); with a date + time + reminder it is a timed notification. |
 | **Kind toggle** | The leading icon of the composer/editor; tooltip "Task — switch to note" / "Note — switch to task" (owner: "maybe icon is enough"). Toggling flips the date default unless the user touched the date. |
 | **Due** | Optional: a date (all-day) or a date + time. |
-| **Reminder** | Up to 3 per item (owner, 2026-11-14). Timed items: "At start", "15 min before", "30 min before". All-day items: "Morning of" (09:00). Any item with a date: "Pick date & time…" sets a custom reminder (date picker, then time picker). Presets follow the due moment when it moves; a custom reminder keeps the date/time picked. Setting a time adds "At start" by default (removable); switching timed ↔ all-day drops the other kind's presets. |
+| **Reminder** | Up to 3 per item (owner, 2026-11-14). Timed items: "At start", "15 min before", "30 min before". All-day items get the same three, counted from 09:00 ("At start · 09:00", "15 min before · 08:45", "30 min before · 08:30"). Any item with a date: "Pick date & time…" sets a custom reminder (date picker, then time picker). Presets follow the due moment when it moves; a custom reminder keeps the date/time picked. Setting a time adds "At start" by default (removable); switching timed ↔ all-day keeps each preset (15 min before the time ↔ 08:45). |
 | **Link** | Optional reference to one card: `{collectionId, cardId, label}` (card ids are unique only within their collection; `label` is a snapshot for display). |
 | **Assignee** | `assigneeUid`, defaults to me. Not editable until Epic 10. |
 
@@ -289,7 +289,7 @@ deploy (owner action); e2e runs on the Firestore emulator with this branch's rul
 | `details` | string ≤ 5000 | optional |
 | `dueAt` | Timestamp? | timed: the instant; all-day: UTC midnight of the calendar date |
 | `allDay` | bool | |
-| `reminders` | int[] ≤ 3 | wall-clock minutes before the due moment (all-day: before local midnight; negative = after). Presets: timed 0, 15, 30; all-day `-540` (09:00 that day). Any other value is a custom date/time. |
+| `reminders` | int[] ≤ 3 | wall-clock minutes before the due moment (all-day: before local midnight; negative = after). Presets: timed 0, 15, 30; all-day `-540`, `-525`, `-510` (09:00, 08:45, 08:30 that day). Any other value is a custom date/time. |
 | `link` | `{collectionId, cardId, label}`? | label ≤ 200 |
 | `assigneeUid` | string | = `createdBy` in v1 |
 | `createdBy` | string | |

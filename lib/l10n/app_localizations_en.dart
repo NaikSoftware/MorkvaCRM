@@ -5907,9 +5907,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inboxReminder30Min => '30 min';
 
   @override
-  String get inboxReminderMorningOf => 'Morning of';
-
-  @override
   String get inboxReminderCustom => 'Pick date & time…';
 
   @override

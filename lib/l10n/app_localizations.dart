@@ -9154,12 +9154,6 @@ abstract class AppLocalizations {
   /// **'30 min'**
   String get inboxReminder30Min;
 
-  /// No description provided for @inboxReminderMorningOf.
-  ///
-  /// In en, this message translates to:
-  /// **'Morning of'**
-  String get inboxReminderMorningOf;
-
   /// No description provided for @inboxReminderCustom.
   ///
   /// In en, this message translates to:

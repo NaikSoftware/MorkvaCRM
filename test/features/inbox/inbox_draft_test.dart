@@ -64,8 +64,11 @@ void main() {
       ]);
     });
 
-    test('clearing the time keeps only the custom one', () {
-      expect(fires(draft.withMinutes(null)), [DateTime(2026, 11, 19, 18)]);
+    test('clearing the time counts presets from 09:00', () {
+      expect(fires(draft.withMinutes(null)), [
+        DateTime(2026, 11, 20, 8, 45),
+        DateTime(2026, 11, 19, 18),
+      ]);
     });
 
     test('clearing the date clears them all', () {

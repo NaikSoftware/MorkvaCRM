@@ -6156,9 +6156,6 @@ class AppLocalizationsUk extends AppLocalizations {
   String get inboxReminder30Min => '30 хв';
 
   @override
-  String get inboxReminderMorningOf => 'Зранку того дня';
-
-  @override
   String get inboxReminderCustom => 'Обрати дату й час…';
 
   @override
