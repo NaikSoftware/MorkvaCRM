@@ -6,12 +6,15 @@ import '../../api/auth/auth_cubit.dart';
 import '../../app/shell/app_shell.dart';
 import '../../design/design.dart';
 import '../../l10n/l10n.dart';
+import '../automation/view/consent_sheet.dart' show sheetSegmentedStyle;
 import '../automation/widgets/run_indicator.dart';
 import 'import/trello_import_sheet.dart';
+import 'theme_mode_cubit.dart';
 
-/// Settings: the workspace's Automations entry (the phone's way in; wide
-/// layouts also have it in the sidebar), imports from other apps and
-/// sign-out. Wide, laid out like the Automations page: a centred 1040 px
+/// Settings, ordered by scope: what the workspace shares (its Automations
+/// entry — the phone's way in; wide layouts also have it in the sidebar —
+/// and imports from other apps), then what is yours on this device (theme,
+/// sign-out). Wide, laid out like the Automations page: a centred 1040 px
 /// column on a 48 px gutter carrying its own title (the shell draws no
 /// header); on a phone, full width on the shell header's 16 px gutter.
 class SettingsPage extends StatelessWidget {
@@ -97,6 +100,9 @@ class SettingsPage extends StatelessWidget {
                 },
               ),
               const SizedBox(height: Spacing.lg),
+              _SectionLabel(l10n.settingsAppearanceSection),
+              const _ThemeCard(),
+              const SizedBox(height: Spacing.lg),
               _SectionLabel(l10n.settingsAccountSection),
               Align(
                 alignment: AlignmentDirectional.centerStart,
@@ -134,6 +140,96 @@ class _SectionLabel extends StatelessWidget {
             letterSpacing: 0.9,
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Theme: Light · Dark · System. The control sits at the row's end, or drops
+/// under the title, full width, when the card is narrow (a phone).
+class _ThemeCard extends StatelessWidget {
+  const _ThemeCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final plum = (theme.brightness == Brightness.light
+        ? CollectionTints.light
+        : CollectionTints.dark)[3];
+    final l10n = context.l10n;
+    final mode = context.watch<ThemeModeCubit>().state;
+    final picker = SegmentedButton<ThemeMode>(
+      segments: [
+        ButtonSegment(
+          value: ThemeMode.light,
+          icon: const Icon(Icons.light_mode_outlined),
+          label: Text(l10n.settingsThemeLight),
+        ),
+        ButtonSegment(
+          value: ThemeMode.dark,
+          icon: const Icon(Icons.dark_mode_outlined),
+          label: Text(l10n.settingsThemeDark),
+        ),
+        ButtonSegment(
+          value: ThemeMode.system,
+          icon: const Icon(Icons.contrast_rounded),
+          label: Text(l10n.settingsThemeSystem),
+        ),
+      ],
+      selected: {mode},
+      // The default check mark stands in for the picked segment's icon: a
+      // cue beyond the fill colour (WCAG 1.4.11).
+      style: sheetSegmentedStyle,
+      onSelectionChanged: (s) =>
+          context.read<ThemeModeCubit>().select(s.single),
+    );
+    final title = Row(
+      children: [
+        _Tile(
+          icon: Icons.palette_outlined,
+          background: plum.background,
+          foreground: plum.foreground,
+        ),
+        const SizedBox(width: Spacing.sm),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l10n.settingsTheme, style: theme.textTheme.titleMedium),
+              const SizedBox(height: Spacing.xxs),
+              Text(
+                l10n.settingsThemeSubtitle,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+    return SurfaceCard(
+      padding: const EdgeInsets.symmetric(
+        horizontal: Spacing.md,
+        vertical: Spacing.sm,
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) => constraints.maxWidth >= 560
+            ? Row(
+                children: [
+                  Expanded(child: title),
+                  const SizedBox(width: Spacing.sm),
+                  picker,
+                ],
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  title,
+                  const SizedBox(height: Spacing.sm),
+                  picker,
+                ],
+              ),
       ),
     );
   }

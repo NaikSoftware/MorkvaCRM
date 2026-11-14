@@ -42,6 +42,7 @@ import '../features/assistant/bloc/assistant_session.dart';
 import '../features/automation/bloc/automation_runs_cubit.dart';
 import '../features/automation/bloc/modules_cubit.dart';
 import '../features/automation/bloc/run_log_cubit.dart';
+import '../features/settings/theme_mode_cubit.dart';
 import '../l10n/l10n.dart';
 import 'router/app_router.dart';
 
@@ -81,6 +82,7 @@ class AppScrollBehavior extends MaterialScrollBehavior {
 class MorkvaApp extends StatefulWidget {
   const MorkvaApp({
     super.key,
+    required this.themeModeCubit,
     this.authRepository,
     this.dataRepository,
     this.syncStatusCubit,
@@ -91,6 +93,9 @@ class MorkvaApp extends StatefulWidget {
     this.automationStores,
     this.scriptEngine,
   });
+
+  /// The theme choice saved on this device; closed with the app.
+  final ThemeModeCubit themeModeCubit;
 
   /// Auth backend; defaults to [FirestoreAuthRepository].
   final AuthRepository? authRepository;
@@ -324,6 +329,7 @@ class _MorkvaAppState extends State<MorkvaApp> {
     await _dataRepository.dispose();
     await _authCubit.close();
     await _syncStatusCubit.close();
+    await widget.themeModeCubit.close();
     _sessionReady.dispose();
   }
 
@@ -357,44 +363,47 @@ class _MorkvaAppState extends State<MorkvaApp> {
       child: MultiBlocProvider(
         providers: [
           BlocProvider<AuthCubit>.value(value: _authCubit),
+          BlocProvider<ThemeModeCubit>.value(value: widget.themeModeCubit),
           BlocProvider<SyncStatusCubit>.value(value: _syncStatusCubit),
           BlocProvider<AssistantBloc>.value(value: _assistant.bloc),
           BlocProvider<AssistantPanelCubit>.value(value: _assistant.panel),
         ],
         child: BlocListener<AuthCubit, AuthState>(
           listener: _onAuthChanged,
-          child: MaterialApp.router(
-            onGenerateTitle: (context) => context.l10n.appTitle,
-            localizationsDelegates: const [
-              AppLocalizations.delegate,
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-            ],
-            supportedLocales: AppLocalizations.supportedLocales,
-            debugShowCheckedModeBanner: false,
-            theme: AppTheme.light,
-            darkTheme: AppTheme.dark,
-            themeMode: ThemeMode.system,
-            scrollBehavior: const AppScrollBehavior(),
-            routerConfig: _router,
-            builder: (context, child) {
-              // DateFormat in lib/core (no BuildContext) reads this.
-              Intl.defaultLocale = Localizations.localeOf(context).toString();
-              // So do core's fallback words ("Untitled", "Yes"…).
-              CoreWords.current = context.l10n.coreWords;
-              final router = KeyedSubtree(key: _routerKey, child: child!);
-              final cubits = _cubits;
-              if (cubits == null) return router;
-              return MultiBlocProvider(
-                providers: [
-                  BlocProvider<ModulesCubit>.value(value: cubits.modules),
-                  BlocProvider<AutomationRunsCubit>.value(value: cubits.runs),
-                  BlocProvider<RunLogCubit>.value(value: cubits.runLog),
-                ],
-                child: router,
-              );
-            },
+          child: BlocBuilder<ThemeModeCubit, ThemeMode>(
+            builder: (context, themeMode) => MaterialApp.router(
+              onGenerateTitle: (context) => context.l10n.appTitle,
+              localizationsDelegates: const [
+                AppLocalizations.delegate,
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              supportedLocales: AppLocalizations.supportedLocales,
+              debugShowCheckedModeBanner: false,
+              theme: AppTheme.light,
+              darkTheme: AppTheme.dark,
+              themeMode: themeMode,
+              scrollBehavior: const AppScrollBehavior(),
+              routerConfig: _router,
+              builder: (context, child) {
+                // DateFormat in lib/core (no BuildContext) reads this.
+                Intl.defaultLocale = Localizations.localeOf(context).toString();
+                // So do core's fallback words ("Untitled", "Yes"…).
+                CoreWords.current = context.l10n.coreWords;
+                final router = KeyedSubtree(key: _routerKey, child: child!);
+                final cubits = _cubits;
+                if (cubits == null) return router;
+                return MultiBlocProvider(
+                  providers: [
+                    BlocProvider<ModulesCubit>.value(value: cubits.modules),
+                    BlocProvider<AutomationRunsCubit>.value(value: cubits.runs),
+                    BlocProvider<RunLogCubit>.value(value: cubits.runLog),
+                  ],
+                  child: router,
+                );
+              },
+            ),
           ),
         ),
       ),

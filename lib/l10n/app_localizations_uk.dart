@@ -5139,6 +5139,24 @@ class AppLocalizationsUk extends AppLocalizations {
   String get settingsSignOut => 'Вийти';
 
   @override
+  String get settingsAppearanceSection => 'Вигляд';
+
+  @override
+  String get settingsTheme => 'Тема';
+
+  @override
+  String get settingsThemeSubtitle => 'Зберігається на цьому пристрої';
+
+  @override
+  String get settingsThemeLight => 'Світла';
+
+  @override
+  String get settingsThemeDark => 'Темна';
+
+  @override
+  String get settingsThemeSystem => 'Системна';
+
+  @override
   String get viewsGroupBy => 'Групувати за';
 
   @override
