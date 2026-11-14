@@ -124,11 +124,6 @@ final class ThreadDeleted extends AssistantEvent {
   final String threadId;
 }
 
-/// "Enable Ask Morkva" on the consent disclosure.
-final class ConsentGranted extends AssistantEvent {
-  const ConsentGranted();
-}
-
 /// One event of the running turn [turn].
 final class _AgentEventReceived extends AssistantEvent {
   const _AgentEventReceived(this.turn, this.event);

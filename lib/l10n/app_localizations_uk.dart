@@ -285,22 +285,8 @@ class AppLocalizationsUk extends AppLocalizations {
   }
 
   @override
-  String get assistantConsentTitle => 'Перш ніж почати';
-
-  @override
-  String get assistantConsentData =>
-      'Щоб відповісти, Морква надсилає ваше запитання й потрібні дані до Gemini від Google.';
-
-  @override
-  String get assistantConsentFreeTier =>
-      'На безкоштовному тарифі Google може використовувати запити й відповіді для покращення своїх продуктів, тож не додавайте до запитань конфіденційних даних.';
-
-  @override
   String get assistantDisclaimer =>
       'Відповіді можуть бути помилковими — перевіряйте важливі числа.';
-
-  @override
-  String get assistantEnable => 'Увімкнути Моркву';
 
   @override
   String get assistantOffTitle => 'Моркву вимкнено';

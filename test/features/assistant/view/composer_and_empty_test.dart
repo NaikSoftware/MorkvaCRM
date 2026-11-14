@@ -214,23 +214,6 @@ void main() {
       expect(actions.calls, isEmpty);
     });
 
-    testWidgets('consent: disclosure and "Enable Ask Morkva"', (tester) async {
-      await pumpInScope(
-        tester,
-        SizedBox(
-          height: 900,
-          child: EmptyChat(state: AssistantSeeds.consent()),
-        ),
-        actions: actions,
-      );
-      expect(find.text('ASK'), findsNothing);
-      expect(find.textContaining('free tier'), findsOneWidget);
-      await tester.ensureVisible(find.text('Enable Ask Morkva'));
-      await tester.pump();
-      await tester.tap(find.text('Enable Ask Morkva'));
-      expect(actions.calls, ['grantConsent()']);
-    });
-
     test('suggestions without collections are plain starters', () {
       final groups = suggestionGroups(const []);
       expect(groups.map((g) => g.title), ['Ask', 'Act']);

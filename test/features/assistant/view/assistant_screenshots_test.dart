@@ -105,17 +105,6 @@ void _shots() {
     await shoot(tester, 'empty');
   });
 
-  testWidgets('Empty: consent disclosure', (tester) async {
-    await pumpPanel(
-      tester,
-      FakeAssistantBloc.consent(),
-      actions: RecordingActions(),
-      historyBuilder: history,
-    );
-    await tester.pumpAndSettle();
-    await shoot(tester, 'consent');
-  });
-
   testWidgets('Analyze: chart, applied card and its undo snackbar', (
     tester,
   ) async {

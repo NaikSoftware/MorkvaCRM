@@ -21,9 +21,6 @@ class FakeAssistantBloc extends Cubit<AssistantState> {
   /// Empty: first open.
   FakeAssistantBloc.empty() : this(AssistantSeeds.empty());
 
-  /// The empty state awaiting the workspace's consent.
-  FakeAssistantBloc.consent() : this(AssistantSeeds.consent());
-
   /// Analyze: chart + applied card with Undo.
   FakeAssistantBloc.analyze({DateTime? now})
     : this(AssistantSeeds.analyze(now: now));

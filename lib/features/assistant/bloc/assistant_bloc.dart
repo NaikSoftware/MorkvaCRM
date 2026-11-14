@@ -2,10 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
 
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
 
 import '../../../api/assistant/assistant_config.dart';
 import '../../../api/assistant/assistant_config_repository.dart';
@@ -106,7 +104,6 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
   String? _uid;
   AssistantConfig? _config;
   bool _online;
-  bool _consentGranted = false;
   bool _notSetUp = false;
   String? _unavailable;
   DateTime? _quotaUntil;
@@ -179,7 +176,6 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
         ),
         NewThreadRequested() => _requestSwitch(const _Switch.fresh(), emit),
         ThreadDeleted(:final threadId) => _onDelete(threadId, emit),
-        ConsentGranted() => _sync(() => _onConsent(emit)),
         _AgentEventReceived(:final turn, :final event) => _onAgent(
           turn,
           event,
@@ -235,7 +231,6 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
     _workspaceId = null;
     _uid = null;
     _config = null;
-    _consentGranted = false;
     _notSetUp = false;
     _unavailable = null;
     _quotaUntil = null;
@@ -256,7 +251,6 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
 
   void _onConfigChanged(AssistantConfig config, Emitter<AssistantState> emit) {
     _config = config;
-    if (config.consented) _consentGranted = false;
     _loop.settings = AgentSettings(
       model: config.model,
       fallbackModel: config.fallbackModel,
@@ -267,19 +261,6 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
     );
     _onConfig?.call(config);
     _emitAvailability(emit, names: true);
-  }
-
-  void _onConsent(Emitter<AssistantState> emit) {
-    if (_uid == null || (_config?.consented ?? false)) return;
-    _consentGranted = true;
-    _emitAvailability(emit);
-    _configRepo.grantConsent().then<void>(
-      (_) {},
-      onError: (Object error) {
-        _log('Saving the consent failed', error);
-        add(const _SaveFailed());
-      },
-    );
   }
 
   void _onFocus(AssistantFocus? focus, Emitter<AssistantState> emit) {
@@ -302,11 +283,6 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
     if (_notSetUp) return const AvailabilityNotSetUp();
     if (_unavailable case final message?) {
       return AvailabilityUnavailable(message);
-    }
-    if (!config.consented && !_consentGranted) {
-      return AvailabilityNeedsConsent(
-        freeTier: config.dataUse == AssistantDataUse.free,
-      );
     }
     if (!_online) return const AvailabilityOffline();
     if (_quotaUntil case final until? when _now().isBefore(until)) {
@@ -771,10 +747,7 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
       case LlmBlockedFailure():
         _append(
           turn,
-          AssistantTextItem(
-            id: turn.mint(),
-            text: l10n.assistantBlocked,
-          ),
+          AssistantTextItem(id: turn.mint(), text: l10n.assistantBlocked),
           emit,
           phase: const IdlePhase(),
           clearBanner: true,
